@@ -3,6 +3,7 @@
   "description": "AI 长篇小说创作器 —— DeepSeek Harness ordinary persistent Cordis bundle plugin",
   "version": "2.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.22.0",
   "engines": {
     "node": ">=22"
   },
@@ -31,7 +32,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke:i1": "tsx scripts/smoke-i1.mjs",
-    "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1"
+    "smoke:i1:profile": "tsx scripts/smoke-i1-profile.mjs",
+    "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "^4.0.1"

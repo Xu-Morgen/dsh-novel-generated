@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 build/
+lib/
 *.tsbuildinfo
 
 # Environment / secrets (LLM API keys)
@@ -27,3 +28,7 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+
+
+# scripts
+birthday-party-planner.js
