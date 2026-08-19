@@ -1,0 +1,8 @@
+# Local Loader smoke composition only.
+#
+# This file is NOT a production install/discovery path: it lets the I1 smoke
+# script load the built Host plugin through the loader + include plugins to
+# prove the Cordis composition entry works locally. Production activation uses
+# the selected-profile bundle path (see cordis.patch.yml and the design §0.1.1).
+- id: novel-creation-tool
+  name: ./lib/index.js

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "将小说创作器重置为 DeepSeek Harness/Cordis 不可变宿主插件，重写权威文档、退役旧 I1 并从新 I1 开始",
+  "goal": "将小说创作器重置为 DeepSeek Harness/Cordis 不可变宿主插件，重写权威文档、退役旧 I1 并从新 I1 开始",
+  "successEvidence": [
+    "三份权威文档与 AGENTS 一致；旧独立应用路径消失；新 I1 普通 Cordis 插件可构建、装载与卸载；验证全绿"
+  ],
+  "stopCondition": "done=文档基线、新 I1 与验证完成；blocked=外部 DSH 契约连续三轮不可获得；needs-verification=实现存在但宿主验证不足；scope-exceeded=需要修改 DSH 本体",
+  "nonGoals": [
+    "本轮不完成全部小说引擎和编辑 UI"
+  ],
+  "scope": "设计/需求/开发计划/AGENTS/旧 I1 退役/新 I1 插件骨架及测试",
+  "changeKinds": [
+    "architecture-reset"
+  ],
+  "riskHints": [
+    "权威架构、宿主契约、代码退役与构建边界同步变化"
+  ]
+}

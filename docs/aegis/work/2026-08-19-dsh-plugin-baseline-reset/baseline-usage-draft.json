@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-19-dsh-plugin-baseline-reset",
+  "requiredBaselineRefs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-requirements.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "AGENTS.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-requirements.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "AGENTS.md"
+  ],
+  "citedInPlanRefs": [
+    "docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

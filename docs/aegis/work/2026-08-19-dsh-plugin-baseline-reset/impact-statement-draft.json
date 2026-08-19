@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Host composition / Cordis plugin / Client Slot / project data"
+  ],
+  "owners": [
+    "DeepSeek Harness/Cordis host boundary"
+  ],
+  "invariants": [
+    "产品主交付始终是可被 DSH composition 装载和卸载的普通持久插件，禁止独立前端成为第二主路径"
+  ],
+  "compatBoundary": "保留作品数据与叙事模型；不保留旧独立 Vite/浏览器直连 LLM 兼容路径",
+  "nonGoals": [
+    "本轮不完成全部小说引擎和编辑 UI"
+  ]
+}

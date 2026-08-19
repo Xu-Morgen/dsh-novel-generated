@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-requirements.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "AGENTS.md"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/impact-statement-draft.json",
+  "compatPlan": "保留作品数据与叙事模型；不保留旧独立 Vite/浏览器直连 LLM 兼容路径",
+  "retirementPlan": "not-yet-verified",
+  "evidenceBundle": []
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-19-dsh-plugin-baseline-reset",
+  "currentTodo": "完成验证、ADR 与提交",
+  "completedTodos": [
+    "重写设计文档 v2.0 并双审通过",
+    "重写需求文档 v2.0(H0+R0-R9)并解决四项 Important",
+    "重写开发计划 v2.0(I1-I45/9 阶段)与 AGENTS.md v2.0",
+    "退役旧 I1a/I1b 独立应用代码",
+    "实现新 I1 Host 插件骨架并通过 verify:i1"
+  ],
+  "activeSlice": "ADR/证据/提交",
+  "evidenceRefs": [
+    "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/90-evidence.md"
+  ],
+  "blockedOn": null,
+  "nextStep": "运行 workspace check+bundle 并提交 reset commit",
+  "updatedAt": "2026-08-19"
+}

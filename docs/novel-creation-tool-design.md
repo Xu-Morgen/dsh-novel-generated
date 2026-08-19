@@ -1,17 +1,77 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v1.4
-> 状态：设计定稿（v1.2 并入创作环境扩展，见 §14），进入 M0 实现
-> 定位：从「角色扮演聊天器（SillyTavern 范式）」升级为「具备持久化叙事状态的 AI 长篇小说创作器」
+> 版本：v2.0
+> 状态：v2.0 架构基线已重置；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
 
 | 版本 | 变更 |
 |---|---|
-| v1.1 | 设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展） |
-| v1.2 | ① 产品升级为「创作环境」；② 细纲（大纲 beat 下场景卡）；③ 世界观层落地为一级能力；④ 关系引擎降级为可选增强；⑤ 新增拆分/分类/续写/灵感 agent；⑥ 新增导入/导出/编辑 UI/快速重写与落地；⑦ 新增「不变设定索引层」（数据库）；⑧ ST 迁移改为不做，仅参考格式；⑨ 变量宏显式纳入 ContextAssembler |
-| v1.3 | 设计本体（13 层模型 / 7 引擎 / M0–M10 里程碑 / D1–D10 决策）**不变**；仅同步计划执行层细分：迭代 49 → 57（再拆 I1/I7/I19a/I24a/I28b）、新增「统一确认原语（ConfirmationGate）」与「解析→写回 thin 闭环」、LLM 阈值分层、硬 MVP 切线（I1a–I19b = v1.0）。详见 `novel-creation-tool-development-plan.md` v1.3 |
-| v1.4 | 设计本体（13 层模型 / 7 引擎 / M0–M10 里程碑 / D1–D10 决策）**不变**；仅同步计划执行层再细分：迭代 57 → 68（拆 I6a/I9/I10/I15b/I21b/I23c/I25b）、新增 I5c「真实 LLM thin 垂直切片」、修 I27c 字数/I28b1 多样性验收、补跨层写回原子性 + 规模 smoke + 样本金标禁改。详见 `novel-creation-tool-development-plan.md` v1.4 |
+| v1.1（历史来源） | provenance only：设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展）；不构成 v2.0 当前执行权威。 |
+| v1.2（历史来源） | provenance only：产品升级为「创作环境」，引入细纲、世界观一级能力、辅助 agent、导入导出/编辑 UI、不变设定索引层等；不构成 v2.0 当前执行权威。 |
+| v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
+| v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
+| **v2.0** | **架构重置**：将 v1.x 的独立 Node/Vite 应用方向记为历史且已被取代；DeepSeek Harness（DSH）成为唯一运行宿主和主交付形态，产品作为 ordinary persistent plugin（普通持久插件）交付；生产安装/组合合同唯一见 §0.1.1。13 层叙事模型、引擎、存储、导入导出、编辑与 agent 产品设计继续有效，唯有与宿主边界冲突的实现方式失效。 |
+
+> **v2.0 supersession / 过渡规则**：本次架构重置期间，现存 v1.x `novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均为待同步的历史材料，**不是有效执行权威**；在三者完成 v2.0 同步前，不得启动或继续任何迭代，尤其不得依照旧 React/Vite 独立应用计划执行。最终仓库变更必须在同一次 change 中同步更新这三份文件后，方可恢复迭代执行。
+>
+> 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
+
+## 0.1 宪法级宿主基线（不可由普通变更修改）
+
+> **NON-MODIFIABLE HOST BASELINE / 非可修改宿主基线**
+>
+> 1. **DeepSeek Harness 是本项目唯一运行宿主和主交付形态。** 创作器必须是 DSH 进程中的普通、持久、可组合 Cordis Plugin，并严格采用 §0.1.1 的唯一生产安装/组合合同。它不是、也不得附带第二个独立应用主路径。
+> 2. 发布物必须是 **ordinary persistent plugin（普通持久插件）**。这是本项目对“其 npm/仓库 Cordis plugin package 与 composition row 均跨 DSH 重启持续存在”的工程术语，**不是 DSH 定义的一种 artifact kind**。动态 `cordis_define` 仅可用于临时原型和设计验证，**永远不是 release、安装或生产装载路径**；生产安装、组合与本地 smoke 的边界唯一见 §0.1.1。
+> 3. 本基线不得因普通迭代、重构、兼容性工作、迁移便利或临时交付而放宽。若未来决定让其他宿主或独立应用成为主路径，必须明确终止本项目的当前身份并建立新项目，而不是在本项目中增加第二条主路径或兼容 fallback。
+
+### 0.1.1 外层组成与运行边界
+
+> **唯一规范性生产安装/组合合同**（其他章节只能引用本节，不得另立或复制规则）：
+>
+> 1. **Plugin patch 路径**：plugin package dependency 必须声明在**所选 profile 的 `package.json`**。composition row 的插入必须恰好由一个 composition layer 拥有：只能由该 profile 的 `cordis.patch.yml` 或优先级更高的 home `cordis.patch.yml` 之一插入，绝不能两者同时插入；更高优先级 layer 可按 id 覆盖既有 row 的配置，但不得重新插入或复制该 row。home patch **没有独立的 dependency location**，package 仍必须从所选 profile/DSH dependency chain 解析。
+> 2. **Bundle 路径**：bundle package dependency 必须显式安装并声明在**所选 profile 的 `package.json`**；package manifest 必须声明 `dsh.bundle.patch`，且该 bundle 必须在**所选 profile** 的有序 `dsh.profile.bundles` 中显式列入。仅安装 package 不会自动激活 bundle patch。
+> 3. **仓库 composition 边界**：仓库 `cordis.yml` 如存在，**只**用于本地 Loader smoke；它不是生产安装、发现或组合入口。DSH 随附（shipped）composition 永不编辑。
+>
+> Bundle 路径与直接插入 plugin row 的 Plugin patch 路径对同一 deployment 必须互斥，只能择一作为当前安装合同；任何 deployment 中 plugin row 的插入 owner 都必须恰好为一个 composition layer。装载、停用与组合均由 DSH/Cordis 管理。
+
+| 概念 | 规范性职责 |
+|---|---|
+| **Composition** | 严格执行本节上述唯一生产安装/组合合同；不存在 home patch 专属依赖目录、自动 bundle 激活或仓库 `cordis.yml` 生产发现等第三条路径。 |
+| **外层 Cordis Plugin** | 产品的运行与发布单元，提供 Host 面以及可选 Client 面。它与 §11 的小说内部 Extension 不是同一概念。 |
+| **Host** | 唯一拥有作品文件 I/O、目录选择后的路径使用、凭据/SecretRef 解析、LLM 调用、持久化与索引、领域 Services、Events、模型 Tools、导入导出和业务校验。Host 通过 DSH/Cordis 公共契约向 Client 暴露最小能力。 |
+| **Client** | 只拥有注册到 DSH Web GUI **Slot** 的界面、交互状态和视图适配；只调用 Host 暴露的受控能力，不拥有领域真相。 |
+| **Fiber** | 每项 Service、Event 监听、Tool、Slot 注册、样式、定时任务及其他副作用都必须归属当前 Cordis Fiber，并在停止、更新或卸载时可完整 dispose。 |
+
+### 0.1.2 数据、LLM、凭据与 UI 的所有权
+
+- 文件式作品数据仍是 source of truth（§10）；文件读写、SQLite/向量索引和导入导出全部在 Host。
+- LLM 后端选择、请求、流式处理、重试和解析全部在 Host；Client 不得直接连接 OpenAI/Anthropic/兼容端点。
+- 长期凭据只可由 Host 经 DSH credentials/settings seam 或环境变量引用解析；不得进入 Client bundle、浏览器存储或界面 props。
+- UI 必须作为 Client Plugin 注册到经核验的 DSH Slot。Client **禁止**自带独立 HTML、调用 `createRoot()` 自挂载、启动独立 Vite Web 应用、直接访问作品文件或复制 Host 业务逻辑。
+- 生产 Host–Client 接口必须采用当前 DSH 对普通 out-of-tree 持久插件公开并受版本约束的正式契约；动态插件示例中的 `harness.handle` / `host.call` **不得被发明或推定为生产 RPC 合同**。
+
+### 0.1.3 包、构建、发现与 Host–Client 兼容性门
+
+- 生产安装与发现严格引用 §0.1.1 的唯一合同，不在本节另立依赖、patch、bundle 或仓库 composition 规则。
+- **过渡期已观测安装证据（非项目 pin）**：当前已安装环境的观测证据是 DSH `0.1.0-rc.7` 与 Cordis `4.0.1`；该证据尚不是可复现的项目 pin，过渡期间不得称为 project baseline。I1 必须先在项目根权威 `package.json` 中加入 DSH family 与 Cordis 的明确 pin/经验证兼容范围，并生成、提交与之对应且锁定精确解析版本的权威 lockfile；只有二者齐备并经可复现安装验证后，才可称为项目依赖基线。任何后续升级都必须进入专门的兼容性迭代，并重新执行 selected profile boot 与完整 Client gate。
+- **I1（Host-only 地基）**：package manifest 必须通过 I1 建立并验证的项目 DSH 基线公共入口暴露 Host；Host 构建必须能被实际安装并由所选 profile 启动。I1 严格为 Host-only，**不尝试 Client gate**，不得预建 Client seam、伪 RPC、Client probe、产品 UI 或独立 UI fallback。
+- **I2（专用兼容性门迭代）**：I2 是唯一获准在门禁通过前产生 Client 代码的例外，但只可构建证明普通 out-of-tree plugin 公共合同所必需的**最小、非产品 Client probe**。该 probe 仅用于证明公共 client bundling/装载、按 §0.1.1 完成 selected profile boot、向一个经核验 Slot 注册以及 Fiber dispose 后完整卸载；不得加入任何产品 UI、领域行为、产品 Host–Client seam、独立 HTML、独立 SPA 或其他 standalone 路径。
+- **I2 通过条件与停止线**：I2 必须针对 I1 的项目依赖基线证明普通 out-of-tree plugin 可用且受支持的**公共 Remote 合同与公共 client bundling/装载合同**，并留下真实 package build、selected profile boot、单一 Slot 注册/卸载 smoke 的可执行证据。不得以动态插件的 `harness.handle` / `host.call`（动态 RPC）代替证明，也不得采用未发布或 internal 的 builder/`clientBundle` API 作为 fallback。若该公开、受支持的 out-of-tree 合同不能被证明，I2 判失败并停止，**不得开始任何产品 Client 工作**。
+- **产品 Client 起点**：只有 I2 兼容性门全部通过后，后续迭代才可依据已证明的公共 contracts、Client exports、manifest 与 bundle 形态开始产品 Client 实现；I2 probe 本身不得演化为产品 UI。
+- 仓库不得把独立 Vite HTML app、第二个 Web server、独立 SPA shell 或浏览器直接 LLM/file seam 作为运行、开发验收或发布前提。构建工具即使内部复用 Vite，也不得产出或要求独立应用入口。
+
+### 0.1.4 负向架构验收与 falsifiers
+
+出现下列任一项即判定架构不合格，而不是“兼容模式”：
+
+1. 离开 DeepSeek Harness 后仍存在被支持的主要运行路径，或必须另启 Web 应用才能使用核心能力；
+2. release 依赖动态 `cordis_define`，或不能按 §0.1.1 的唯一合同完成生产安装、装载、停用和再次装载；
+3. Client 包含独立 HTML/`createRoot()`、持有长期密钥、直连 LLM、直接读写作品文件或绕过 Host 修改状态；
+4. Host 的 Service/Event/Tool、Client 的 Slot 或任一副作用在 Fiber dispose 后仍残留；
+5. 除 I2 最小非产品 Client probe 外，在 §0.1.3 兼容性门通过前实现任何产品 Client；I2 probe 超出公共合同证明范围、加入产品 UI/standalone 路径，或门禁证据缺少真实 build、selected profile boot、单一 Slot 注册/卸载 smoke 中任一项；
+6. 把小说内部 Extension 当作可独立装载的外层 Cordis Plugin，或为 v1.x 独立应用保留第二 owner/fallback。
 
 ---
 
@@ -40,6 +100,9 @@
 | **揭示/知情（Knowledge）** | 秘密、真相以及「哪个角色知道什么」 |
 | **大纲（Outline）** | 预设剧情骨架，作为生成方向的「引力」而非「牢笼」 |
 | **注入（Injection）** | 把某层信息序列化为文本、拼入 LLM 上下文的动作 |
+| **Cordis Plugin** | 由 DSH Composition 装载、在 Cordis Fiber 中运行的外层产品/发布单元 |
+| **Extension** | 创作器领域内部的可插拔能力点（Provider/Injector/Validator/Parser/规则/后端等），不等于外层 Cordis Plugin |
+| **Host / Client** | Host 拥有数据、LLM、凭据与业务能力；Client 只拥有 DSH Slot UI |
 | **POV** | 叙事视角（point of view），决定某角色视角下可见哪些信息 |
 
 ---
@@ -108,6 +171,7 @@ SillyTavern 的运行时模型可概括为：
 | **POV 感知** | 信息按视角过滤注入，防止上帝视角泄漏 |
 | **可逆性分级** | 不同层有不同的可逆性：状态可改、正史不可改、规则不可违 |
 | **一切可序列化** | 任何层都能降级为纯文本，保证模型可消费、可导出 |
+| **宿主与所有权唯一** | DSH/Cordis 是唯一宿主；Host 持有业务与 I/O，Client 只持有 Slot UI，所有副作用随 Fiber 回收 |
 
 ---
 
@@ -181,15 +245,15 @@ C. 运行时叙事层（随故事推进而变化）
 
 **职责**：引擎本身，正常使用中永不变。
 
-- Node 运行时、数据存储结构、分层组装流水线、LLM 代理与流式传输、各层 Schema 定义、变量宏系统（`{{user}}`、`{{pov}}` 等）。
+- DeepSeek Harness 的 Node Host 运行时、数据存储结构、分层组装流水线、LLM 代理与流式传输、各层 Schema 定义、变量宏系统（`{{user}}`、`{{pov}}` 等）。
 
-**Schema**：不面向用户，由引擎内部实现决定。仅要求：所有层的读写都经过引擎提供的统一接口，禁止绕过接口直接改文件。
+**Schema**：不面向用户，由引擎内部实现决定。仅要求：所有层的读写都经过 Host 引擎提供的统一 Service 接口，禁止 Client 或 Extension 绕过接口直接改文件。
 
 ### 5.2 A2 可插拔系统层（系统替换）
 
 **职责**：工具提供、用户可替换的机制件。
 
-- 提示词模板、Instruct/Jailbreak 预设、UI 主题、采样参数、扩展插件、LLM 后端适配器。
+- 提示词模板、Instruct/Jailbreak 预设、UI 主题、采样参数、内部 Extensions、LLM 后端适配器。
 
 ```yaml
 BackendAdapter:
@@ -540,7 +604,7 @@ Chapter:
 
 ### 6.5 关系引擎（RelationshipEngine，v1.2 降级为可选增强）
 
-> **决策（D9）**：关系变更的主路径由 §6.6 的关系解析 agent 唯一写入；本引擎**后置为可选的可解释性增强（插件）**，默认不启用，避免双机制写 C1 打架。
+> **决策（D9）**：关系变更的主路径由 §6.6 的关系解析 agent 唯一写入；本引擎**后置为可选的可解释性增强（内部 Extension）**，默认不启用，避免双机制写 C1 打架。
 
 - （可选）定义规则：某类正史事件触发关系数值变化。例：`kind:'betrayal'` → 相关关系 `trust -= 30`。
 - 数值变化记录来源（链到正史事件），保证「为什么关系变了」可解释。
@@ -740,20 +804,24 @@ project/
 
 ---
 
-## 11. 扩展性
+## 11. 内部扩展性（Extensions）
 
-### 11.1 插件接口（Provider 模式）
+### 11.1 Extension points（Provider 模式）
 
-借鉴 SillyTavern 扩展体系，但把核心从「文本拼接」升级为「层管理」后，插件可挂载到以下扩展点：
+本项目只有一个外层产品身份：由 DSH Composition 装载的 Cordis Plugin。以下接口是该产品**内部的小说领域 Extension points**，不是新的 Cordis Plugin 类型，也不赋予 Extension 独立宿主、文件、凭据、LLM 或 UI 所有权。
 
-| 扩展点 | 说明 |
+借鉴 SillyTavern 扩展体系，但把核心从「文本拼接」升级为「层管理」后，内部 Extension 可注册到以下扩展点：
+
+| Extension point | 说明 |
 |---|---|
 | **层 Provider** | 定义新的自定义层（如「经济层」「战斗层」） |
 | **注入器 Injector** | 自定义某层如何序列化进上下文 |
 | **校验器 Validator** | 注册额外的生成后检查 |
 | **叙事解析器 Parser** | 为某层注册自定义解析 agent 与输出 Schema |
-| **关系规则** | 自定义「事件 → 关系数值变化」规则 |
-| **后端适配器** | 新增 LLM 后端协议 |
+| **关系规则 Extension** | 自定义「事件 → 关系数值变化」规则 |
+| **后端适配器 Extension** | 新增 LLM 后端协议，但仍由 Host 解析凭据和发起调用 |
+
+所有 Extension 通过 Host 定义的注册表/Service 合同接入，受同一校验、事务和 Fiber 生命周期管理；需要 UI 的 Extension 只能贡献外层 Client Plugin 所允许的 Slot 内容，不能自挂载页面。
 
 ### 11.2 与 SillyTavern 的关系
 
@@ -767,7 +835,7 @@ project/
 
 | # | 决策点 | 候选 | 定稿 |
 |---|---|---|---|
-| D1 | 基于 SillyTavern 改造 vs 全新自建 | 改造 / 自建 | ✅ 已定：全新自建；UI 不借鉴 ST，走原生 DSH 风格（v1.2：MVP 内交付关键层编辑 UI，见 §14.1） |
+| D1 | 产品宿主与交付形态 | 独立自建应用（v1.x provenance，非执行权威） / DSH 原生插件 | ✅ **v2.0 已重置**：独立自建应用方向已被取代，不再是当前或兼容决策；当前唯一方向是 DeepSeek Harness/Cordis 普通持久插件，生产安装/组合唯一见 §0.1.1，Client 前置门见 §0.1.3，UI 边界见 §14.1。 |
 | D2 | 存储：文件 vs 数据库 | 文件式 / SQLite | ✅ 已定：文件式起步 + 后期加 SQLite/向量索引（v1.2：新增「不变设定索引层」，见 D8） |
 | D3 | 叙事解析的实现方式 | LLM 抽取 / 规则 / 混合 | ✅ 已定：独立于正文的解析 agent，逐层查看、规则化输出、机械应用增删改 |
 | D4 | 单用户本地 vs 多用户服务 | 本地 / 服务 | ✅ 已定：本地单用户（起步） |
@@ -780,20 +848,22 @@ project/
 
 ---
 
-## 13. 路线图
+## 13. 路线图（DSH-first）
+
+> v1.x 的独立 Node/Vite 应用顺序仅属 provenance，已被本路线取代且不具当前执行权威。任何领域里程碑开始前，必须先满足 §0.1.1 的唯一生产安装/组合合同；Host 是数据与 LLM owner。Client 工作还必须先通过 §0.1.3 兼容性门，首个浏览器界面只能是 DSH Slot Client，而不是独立页面。
 
 | 里程碑 | 内容 | 产出 |
 |---|---|---|
-| **M0** | 数据模型 + 状态层(C2) + 正史账本(C4) 最小原型 | 能存、能查、能回溯的叙事状态 |
-| **M1** | 上下文组装器 + 分层注入（规则/风格/角色核心/状态/世界观） | 能基于受管状态生成 |
-| **M2** | 大纲导航器 + 细纲 + 关系层(C1) | 方向牵引 + 细纲规划 + 关系网络 |
+| **M0** | DSH/Cordis Host Plugin 地基 + 数据模型 + 状态层(C2) + 正史账本(C4) 最小原型 | 满足 §0.1.1；Fiber 可卸载；Host 内能存、能查、能回溯叙事状态 |
+| **M1** | Host 上下文组装器 + 分层注入（规则/风格/角色核心/状态/世界观）+ 正式 LLM/凭据 seam | 在 DSH Host 内基于受管状态生成，Client 不接触密钥 |
+| **M2** | §0.1.3 门禁通过后交付 DSH Client bundle + Slot UI 地基；大纲导航器 + 细纲 + 关系层(C1) | executable build + selected profile boot + Slot smoke；现有 DSH GUI 内的原生入口 + 方向牵引、细纲规划、关系网络 |
 | **M3** | 知情过滤器 + 揭示层(C3) | 多视角安全叙事 |
 | **M4** | 一致性校验器 | 规则/正史/知情自动检查 |
 | **M5** | 叙事解析器 + 结构化写回闭环（含世界观解析） | 完整「解析→写回」闭环 |
-| **M6** | 插件化 + 后端适配（含模板/Instruct 预设） | 可扩展、模型无关 |
-| **M7** | 编辑 UI（角色/世界观/大纲/关系）+ 快速重写与落地 | 创作环境编辑体验 |
-| **M8** | 导入管线（拆分 agent）+ 导出管线（单文件包 + 纯文本） | 可起步、可分享 |
-| **M9** | 不变设定索引层 + 分类 agent | 确认设定稳定检索 |
+| **M6** | 内部 Extensions + 后端适配（含 Provider/Injector/Validator/Parser/规则/模板/Instruct 预设） | 在外层 Cordis Plugin 内可扩展、模型无关 |
+| **M7** | Slot 编辑 UI（角色/世界观/大纲/关系）+ 快速重写与落地 | DSH 创作环境编辑体验，不产生独立 SPA |
+| **M8** | Host 导入管线（拆分 agent）+ 导出管线（单文件包 + 纯文本） | 可起步、可分享，文件 I/O 不越过 Host |
+| **M9** | Host 不变设定索引层 + 分类 agent | 确认设定稳定检索 |
 | **M10** | 续写 + 灵感 agent | 突破卡文、随剧情调大纲/细纲 |
 
 ---
@@ -804,8 +874,8 @@ project/
 
 ### 14.1 分层编辑 UI
 
-- **定位**：D1「UI 最小化」的落地形态——MVP 内交付**关键层**的可视化编辑，覆盖 B2 世界观、B3 角色核心、B5 大纲（含细纲）、C1 关系。
-- **职责边界**：UI 只做「设定与状态的精确调整」与「生成/重写/续写触发」，不做核心引擎逻辑；所有写入走引擎统一接口（§5.1），不绕过接口直接改文件。
+- **定位**：D1「DSH 原生插件」的可见形态——仅在 §0.1.3 Host–Client 兼容性门通过后，由 Client Plugin 向经核验的 DSH Slot 交付**关键层**可视化编辑，覆盖 B2 世界观、B3 角色核心、B5 大纲（含细纲）、C1 关系；不创建独立页面或第二前端。
+- **职责边界**：Client UI 只做「设定与状态的精确调整」与「生成/重写/续写触发」，不做核心引擎逻辑；所有读取和写入走 Host 的统一接口（§0.1、§5.1），不直接访问文件、LLM 或凭据。
 - **交互要点**：每层一个编辑面板 + 列表/详情；改动即存，状态层显示快照/回滚入口；正史（C4）只读（append-only），更正走 supersede 确认。
 - **范围外（后置）**：UI 主题/深色模式（A-7 后置）、items/factions 大对象编辑（P2）。
 

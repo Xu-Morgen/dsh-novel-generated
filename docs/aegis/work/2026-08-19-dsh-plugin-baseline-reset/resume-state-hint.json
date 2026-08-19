@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-19-dsh-plugin-baseline-reset",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/todo-checkpoint-draft.json",
+  "resumeInstruction": "读取 99-reflection 与 ADR-0001 后执行最终验证与 commit",
+  "knownPartialWork": [
+    "重写设计文档 v2.0 并双审通过",
+    "重写需求文档 v2.0(H0+R0-R9)并解决四项 Important",
+    "重写开发计划 v2.0(I1-I45/9 阶段)与 AGENTS.md v2.0",
+    "退役旧 I1a/I1b 独立应用代码",
+    "实现新 I1 Host 插件骨架并通过 verify:i1"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/10-intent.md",
+    "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/20-checkpoint.md",
+    "docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "selected-profile boot 尚未实测；lib/ 未入库"
+  ]
+}

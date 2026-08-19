@@ -4,29 +4,39 @@
 
 ## 1. 项目与权威文档
 
-项目：AI 长篇小说创作器（结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链）。
+项目：AI 长篇小说创作器（结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链），作为 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin** 交付。
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v1.4）—— 需求与架构唯一权威来源。
-2. `docs/novel-creation-tool-development-plan.md`（v1.4）—— 执行层，68 个迭代，每一步从它的 §5 迭代卡片出发。
-3. `docs/novel-creation-tool-requirements.md`（v1.4）—— 覆盖矩阵，用于核对某需求是否已被某迭代覆盖。
+1. `docs/novel-creation-tool-design.md`（v2.0）—— 需求与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-development-plan.md`（v2.0）—— 执行层，45 个迭代（I1–I45），每一步从它的阶段/迭代卡片出发。
+3. `docs/novel-creation-tool-requirements.md`（v2.0）—— 需求 ID、验收证据与迭代覆盖矩阵。
+
+## 1.1 宪法级宿主基线（不可修改）
+
+- 本项目的唯一运行宿主和主交付形态是 DeepSeek Harness；交付物必须是 ordinary persistent Cordis Plugin。
+- 生产安装走**所选 profile 的 bundle path**：package 声明 `dsh.bundle.patch` 并显式列入所选 profile 的 `dsh.profile.bundles`；plugin row 只有一个 insertion owner。
+- Host 拥有作品文件、凭据、`ctx.llm`、持久化、领域 Services/Events/Tools 与导入导出；Client 只拥有注册到 DSH Slot 的 UI，不拥有领域真相。
+- 禁止独立 HTML、`createRoot()` 自挂载、独立 Vite SPA、第二 Web server、浏览器直连 LLM、浏览器持有长期密钥、绕过 Host 改文件。
+- 动态 `cordis_define` 仅限原型，绝非 release/安装/生产路径；动态 `harness.handle`/`host.call` 不是普通插件的生产 RPC 合同。
+- I1 为 Host-only；I2 为 gate-only 最小 Client 探针，若公开合同无法证明则停止。产品 Client 仅在 I2 通过后开始。
+- 所有副作用必须归属 Cordis Fiber，停止/更新/卸载时完整 dispose。
 
 ## 2. 总控铁律
 
 - 一迭代一任务：每次只执行一个 Ixx，绝不跨迭代顺手改别的。
-- 动手前先读计划 §5 该迭代的「范围 / 明确不做 / 交付物 / 验收 / 验证」，填 §4 DoD 卡片，再写代码。
-- 确定性模块：实现 → 回归测试 + 负向测试 → `npx vitest run` 全绿。
+- 动手前先读计划对应迭代的「目标 / 明确不做 / 交付物 / 验收 / 验证」，填 DoD 卡片，再写代码。
+- 确定性模块：实现 → 回归测试 + 负向测试 → `pnpm test` 全绿。
 - LLM 模块：先建/更新样本集（含 held-out 子集）再改 prompt/schema，跑样本回归；低于阈值即失败，禁止「接受并继续」。
-- 集成点先接 mock：任何接 LLM 的集成，先 fake backend / mock parser 跑通管道，再换真实 LLM。
-- 任何「用户确认」必须复用 I4a ConfirmationGate，禁止各迭代临时实现。
+- 集成点先接 mock：任何接 LLM 的集成，先 fake backend / mock parser 跑通管道，再换真实 DSH `ctx.llm`。
+- 任何「用户确认」必须复用 I11 ConfirmationGate，禁止各迭代临时实现。
 - 地基切片必配「消费者夹具」（至少一条按下游消费方式的测试）。
-- 样本禁改：禁止为让测试通过而修改样本/金标/阈值，违者该迭代判失败并回退（§7.15）。
+- 样本禁改：禁止为让测试通过而修改样本/金标/阈值，违者该迭代判失败并回退。
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 
 ## 3. 完成定义（DoD）
 
-每个迭代以「确定性断言绿 + 负向断言绿 +（LLM 模块时）样本回归达标 + smoke 产物可查 + 一次干净 commit」为完成，不以「代码写完」为完成。
+每个迭代以「确定性断言绿 + 负向断言绿 +（LLM 模块时）样本回归达标 + smoke 产物可查 + 一次干净 commit」为完成，不以「代码写完」为完成。每迭代验证命令固定为 `pnpm run verify:iN`；每阶段累积验证为 `pnpm run verify:stage-N`。
 
 ## 4. Commit 与代码注释规范
 
@@ -46,7 +56,7 @@
 - type：`feat` / `test` / `docs` / `refactor` / `fix`。
 - 一次迭代一个 commit；禁止把多个迭代的改动混进一个 commit。
 - 提交前自检：`git status` 只含本迭代文件；`git diff` 无 console.log / 临时文件 / 注释掉的死代码；测试绿。
-- 绝不提交 node_modules、.env、真实 API key（已入 `.gitignore`）。
+- 绝不提交 node_modules、.env、真实 API key；凭据只经 DSH credentials/settings seam。
 
 ### 代码注释
 
@@ -57,19 +67,22 @@
 
 ## 5. 目录结构约定
 
-- 顶层：`src/` 源码、`scripts/` demo 与回归脚本、`projects/` 作品数据、`samples/` LLM 样本、`docs/` 文档、`contracts/` 契约锁。
-- `src/` 一模块一目录，命名与计划 §5 对齐：
-  - `src/core/{project,io,schema,state,canon,confirm,assemble,relationship,outline,knowledge,validate,pipeline,settings-index}/`
-  - `src/llm/{backend,parse,validate,template}/`
-  - `src/plugin/`、`src/ui/editor/`、`src/import/`、`src/export/`、`src/write/`、`src/agents/`
+- 顶层：`src/` 源码、`scripts/` demo 与回归脚本、`projects/` 作品数据、`samples/` LLM 样本、`docs/` 文档、`contracts/` 契约锁、`examples/` 安装/组合示例、`cordis.yml`（本地 Loader smoke）。
+- `src/` 一模块一目录：
+  - Host 领域核心：`src/core/{project,io,schema,state,canon,confirm,assemble,relationship,outline,knowledge,validate,pipeline,settings-index}/`
+  - Host LLM：`src/llm/{port,parse,validate,template}/`
+  - Host 领域服务与 Remote：`src/host/`
+  - Client Slot UI：`src/client/`、`src/ui/editor/`
+  - 内部扩展点：`src/extensions/`（不是外层 Cordis Plugin）
+  - 导入/导出/写作辅助：`src/import/`、`src/export/`、`src/write/`、`src/agents/`
 - 层 Schema 集中在 `src/core/schema/`（rules.ts、style.ts、characters.ts、worldview.ts、relationship.ts、outline.ts、knowledge.ts…）。
-- 数据目录由 I2 的 `createProject()` 生成（对应设计 §10.1），源码不硬编码路径。
+- 数据目录由 I3 的 `createProject()` 生成（对应设计 §10.1），源码不硬编码路径。
 - 新迭代只在自属目录内新增文件；不改动已交付目录的语义；跨模块共享类型走 `contracts/` 契约锁。
 - 不创建任何空目录（git 不跟踪空目录）。
 
 ## 6. 阶段收尾
 
-每阶段末跑 `npm run demo:stage-N` 与全量 `npx vitest run`（I19b 起加全样本集回归），确认本阶段及之前产物累积可用；出现回归先定位到具体迭代，回退到上一可用 commit 修复，不带着红灯进入下一阶段。
+每阶段末跑 `pnpm test` 全量 + 本阶段全部 held-out 样本回归 + `pnpm run verify:stage-N`，确认本阶段及之前产物累积可用；出现回归先定位到具体迭代，回退到上一可用 commit 修复，不带着红灯进入下一阶段。
 
 ## 7. 汇报格式（每迭代结束输出）
 

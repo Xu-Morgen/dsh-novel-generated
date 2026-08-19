@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-/** Keeps repository-wide tests independent from the I1b Vite UI root. */
+/** I1 unit tests exercise the Host Cordis plugin lifecycle deterministically. */
 export default defineConfig({
   test: {
-    root: '.',
+    include: ['src/**/*.test.ts'],
   },
 });

@@ -1,32 +1,23 @@
-import { appendText } from './core/io/append-text.js';
-
-export { appendText } from './core/io/append-text.js';
-
-/** Fixed deterministic chunks used by the offline I1a generation seam. */
-export const MOCK_GENERATION_CHUNKS = [
-  '# 第一章\n\n',
-  '雨落在旧城的青石路上，',
-  '旅人推开了灯火未熄的门。\n',
-] as const;
-
-export interface MockGenerationRequest {
-  projectRoot: string;
-  chapterPath: string;
-  input: string;
-}
+import type { Context } from '@deepseek-ai/cordis';
 
 /**
- * Runs the I1a offline generation slice and persists its deterministic output.
- * `input` deliberately crosses the seam but does not affect output until a real
- * backend is introduced in I1b.
+ * I1 Host plugin: proves the ordinary out-of-tree Cordis package contract.
+ *
+ * This module is the Host entry (`exports["."]`). It provides a minimal
+ * read-only `novelCreation` status service for the lifetime of its Cordis
+ * Fiber; the service disappears when the Fiber is disposed. No Client code,
+ * Remote, Slot, LLM, or project data belongs here yet (design §0.1.3 I1).
  */
-export async function runMockGeneration(
-  request: MockGenerationRequest,
-): Promise<void> {
-  void request.input;
-  await appendText(
-    request.projectRoot,
-    request.chapterPath,
-    MOCK_GENERATION_CHUNKS,
-  );
+export const name = 'novel-creation-tool';
+
+/** Minimal I1 status service, read-only and versioned for smoke assertions. */
+export interface NovelCreationStatus {
+  readonly version: '2.0.0';
+  readonly ready: true;
+}
+
+export function apply(ctx: Context): void {
+  const status: NovelCreationStatus = { version: '2.0.0', ready: true };
+  // Service is owned by the current Fiber and removed on dispose.
+  ctx.provide('novelCreation', status);
 }

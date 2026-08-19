@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-requirements.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "AGENTS.md"
+  ],
+  "whyRelevant": "这些文件是当前项目的架构、需求与执行权威",
+  "missingAuthority": []
+}

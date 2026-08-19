@@ -1,0 +1,13 @@
+# Bundle patch layer for the novel-creation-tool Host plugin.
+#
+# This file is the production composition contribution referenced by
+# package.json `dsh.bundle.patch`. It is activated only when the package is a
+# selected-profile dependency AND is explicitly listed in that profile's
+# ordered `dsh.profile.bundles`. It is never edited into a shipped DSH
+# composition.
+#
+# A single plugin row is inserted with exactly one composition owner; no
+# profile/home patch may re-insert the same row id.
+- insert:
+    - id: novel-creation-tool
+      name: novel-creation-tool
