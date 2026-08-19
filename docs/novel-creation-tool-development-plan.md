@@ -45,7 +45,7 @@
 | LLM 后端 | OpenAI 兼容协议（I1b 起步），后抽象为 BackendAdapter | 设计文档 §5.2 |
 | 测试框架 | Vitest（`npx vitest run`） | 确定性模块单测 + LLM 模块样本集 |
 | 包管理 | npm | 默认 |
-| UI | **I1b 锁定的二选一**：A. React + Vite（轻量渲染，交付物用 `.tsx`）；B. 原生 TS + 手写 DOM（交付物用 `.ts`）。默认推荐 A。**I1b 定死后不再变**，后续 I22/I23 交付物扩展名随锁定值 | D1「UI 最小化」，消除 `.tsx`/「原生」矛盾 |
+| UI | **I1b 已锁定：React + Vite**（轻量渲染，交付物用 `.tsx`）。后续 I22/I23 沿用，不再改栈 | D1「UI 最小化」；I1b 已完成二选一决策 |
 
 > 若团队偏好其他测试框架/语言，仅在 I1a 中替换，后续迭代命令随之替换，不改变迭代边界。
 
@@ -224,7 +224,7 @@ Change Necessity:
 | ID | 映射 | 目标 | 范围（做什么 / 明确不做） |
 |---|---|---|---|
 | **I1a** | P0.1 | 最小闭环骨架 + 持久化（mock 后端） | 脚手架 + 项目目录 + 「输入 → mock 固定文本 → 存盘」**纯确定性**，无 API key、无网络。**明确不做**：真实 LLM、流式、任何分层/状态/正史、UI |
-| **I1b** | P0.2 | 真实后端 + 流式 + 最小 UI（锁 UI 栈） | 接入真实 OpenAI 兼容后端（薄 seam `send(request)→stream`）+ 流式 + 最小 UI（输入→流式→追加）。**本迭代锁定 UI 技术栈**（A. React+Vite 用 `.tsx` / B. 原生 TS 用 `.ts`，默认 A，定死不回改）。**明确不做**：多后端、分层、模板、Instruct |
+| **I1b** | P0.2 | 真实后端 + 流式 + 最小 UI（锁 UI 栈） | 接入真实 OpenAI 兼容后端（薄 seam `send(request)→stream`）+ 流式 + 最小 UI（输入→流式→追加）。**本迭代已锁定 React + Vite**（使用 `.tsx`，后续不回改）。**明确不做**：多后端、分层、模板、Instruct |
 
 - **I1a 交付物**：`package.json`、`tsconfig.json`、`src/index.ts`、`src/core/io/append-text.ts`、`projects/demo/`、`scripts/demo-i1a.mjs`
 - **I1a 本迭代锁定的决策**：① 项目目录结构；② `npm run demo:<i>` 统一 smoke 命令约定；③ 配置读取位置（env 或 config）。UI 技术栈**不在本迭代锁定**，后移到 I1b。
