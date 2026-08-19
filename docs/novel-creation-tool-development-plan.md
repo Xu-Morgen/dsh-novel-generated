@@ -397,7 +397,7 @@ TDD Route:
 
 - **目标**：纯文本/Markdown 导出 + 版本化单文件包 + 确定性往返。
 - **明确不做**：ST 格式、新 source of truth、浏览器建包、向量导出。
-- **验收**：C5 导出 txt/docs；设定导出可读 Markdown/YAML；包覆盖 B1–B5/C1–C5/C6/正史元数据；导出→导入→导出规范一致；冲突走 Gate；坏/不支持版本失败。
+- **验收**：C5 导出 txt/docs；设定导出可读 Markdown/YAML；`full-project` 档案覆盖 B1–B5 与 C1–C6 共 11 层、`shareable-template` 排除 C5 文本；round-trip 以规范化语义等价校验（不比较 `exportedAt` 字节）；冲突走 Gate；坏/不支持版本失败。
 - **验证**：`pnpm run verify:i39`。
 
 ### I40：可重建 SQLite 不变设定索引

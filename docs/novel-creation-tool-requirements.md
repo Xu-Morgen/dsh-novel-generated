@@ -173,7 +173,7 @@
 |---|---|---|---|---|
 | R8-1 | Host 确定性读取 txt/md/docx，规范化后交拆分 agent；路径安全、大小和类型受控。 | 三格式 gold 文本一致性夹具；越界路径/伪扩展/损坏 docx 失败。 | I37 | `pnpm run verify:i37`; `pnpm run verify:stage-7` |
 | R8-2 | 拆分 agent 分两步产出大纲/世界观候选与 detailBeats；低置信逐条确认，不自动生成 C1/C2/C3/C4。 | 各阶段 ≥80%；候选进入 Gate；非目标层哈希不变。 | I38 | `pnpm run verify:i38`; `pnpm run verify:stage-7` |
-| R8-3 | 自定义单文件包导出/导入规则、世界观、角色、风格、大纲/细纲、关系、知情和正史；可重建项目。 | export→clean import 语义等价；版本、校验和、冲突 diff；破损包失败。 | I39 | `pnpm run verify:i39`; `pnpm run verify:stage-7` |
+| R8-3 | 自定义单文件包导出/导入**全部 11 个作品数据层**（B1–B5、C1–C6）；`shareable-template` 档案排除 C5 文本；可重建项目；round-trip 以规范化语义等价校验，不比较含 `exportedAt` 的字节。 | export→clean import 语义等价；版本、校验和、冲突 diff；破损包失败；A1/A2 不入包。 | I39 | `pnpm run verify:i39`; `pnpm run verify:stage-7` |
 | R8-4 | C5 按章节导出 txt/md/docx；设定可导出可读 Markdown/YAML，不锁定专有格式。 | gold 比对含完整开头/结尾/顺序；再次导出确定。 | I39, I43 | `pnpm run verify:i39`; `pnpm run verify:i43`; `pnpm run verify:stage-8` |
 | R8-5 | 文件式 YAML/jsonl 是唯一 source of truth；SQLite 仅为不变设定的可重建精确索引。 | 删除 DB 后从文件重建得到等价查询；DB 直接改动不改变源文件。 | I3, I40 | `pnpm run verify:i3`; `pnpm run verify:i40`; `pnpm run verify:stage-7` |
 | R8-6 | 索引覆盖 B1 immutable、B2 mutable:false 和已确认分类项；支持增量同步和 supersededBy。 | 重建/增量/删除/更正夹具；悬空 sourceId 失败。 | I40, I41 | `pnpm run verify:i40`; `pnpm run verify:i41`; `pnpm run verify:stage-8` |
