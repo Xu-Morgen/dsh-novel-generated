@@ -107,4 +107,7 @@ export class OutlineRepository {
   }
 }
 
+export { OutlineNavigator } from './navigator.js';
+export { OutlineProgressRepository, appendDeviation, assertProgressReferences, reconcileDeviation } from './progress.js';
+export type { OutlineNavigation, OutlineDeviation, OutlineProgress, OutlineProgressInput } from '../schema/outline-progress.js';
 export type { DetailBeat, Outline, OutlineBeatCard, OutlineInput } from '../schema/outline.js';

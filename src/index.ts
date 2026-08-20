@@ -29,8 +29,8 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   including independently queryable forbidden expressions (R1-B4).
  * - `novelConfirmation` (I11): Host facade over the persistent, idempotent
  *   proposal→accept/reject gate shared by all later user-confirmed writes.
- * - `novelOutline` (I14): Host facade over the B5 outline and nested detail-beat
- *   scene-card store; C6 execution state remains a later layer.
+ * - `novelOutline` (I14/I15): Host facade over B5 outline/detail-beat storage and
+ *   C6 progress/navigation; C6 never rewrites the B5 source.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
