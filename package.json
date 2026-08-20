@@ -58,6 +58,7 @@
     "smoke:i9": "node scripts/smoke-i9.mjs",
     "smoke:i10": "node scripts/smoke-i10.mjs",
     "smoke:i11": "node scripts/smoke-i11.mjs",
+    "smoke:i12": "node scripts/smoke-i12.mjs",
     "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile",
     "verify:i2": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i2 && pnpm run smoke:i2:profile",
     "verify:i3": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i3",
@@ -69,6 +70,7 @@
     "verify:i9": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i9",
     "verify:i10": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i10",
     "verify:i11": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i11",
+    "verify:i12": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i12",
     "verify:stage-0": "pnpm run verify:i1 && pnpm run verify:i2",
     "verify:stage-1": "pnpm run verify:i3 && pnpm run verify:i4 && pnpm run verify:i5 && pnpm run verify:i6 && pnpm run verify:i7 && pnpm run verify:i8 && pnpm run verify:i9 && pnpm run verify:i10 && pnpm run verify:i11"
   },

@@ -176,7 +176,7 @@ TDD Route:
 
 ### I12：ContextAssembler 内核
 
-- **目标**：确定性 assembler 框架、固定 section 顺序、预算、宏展开、B1/B4 serializer。
+- **目标**：确定性 assembler 框架、固定 section 顺序、预算、宏展开、B1/B4 serializer。I12 固定采用 UTF-16 code-unit 预算：rules 4,000、style 3,000、总计 6,000；该预算不接受调用方或模型级动态覆盖。
 - **明确不做**：B2/B3/C2 serializer、LLM、动态预算、Client。
 - **验收**：同输入字节稳定；顺序 rules→style；`{{user}}`/`{{pov}}` 完整展开；section/总预算受控；缺必填/未解析宏失败。
 - **验证**：`pnpm run verify:i12`。
