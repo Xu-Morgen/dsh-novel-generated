@@ -14,26 +14,44 @@
       "types": "./lib/index.d.ts",
       "default": "./lib/index.js"
     },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "lib/index.d.ts",
+    "lib/remote.js",
+    "lib/remote.d.ts",
+    "lib/client.js",
+    "lib/client.d.ts",
     "cordis.patch.yml"
   ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [],
+      "immediately": false
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
+    "build:client": "node scripts/build-client.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke:i1": "tsx scripts/smoke-i1.mjs",
     "smoke:i1:profile": "tsx scripts/smoke-i1-profile.mjs",
-    "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile"
+    "smoke:i2": "tsx scripts/smoke-i2.mjs",
+    "smoke:i2:profile": "tsx scripts/smoke-i2-profile.mjs",
+    "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile",
+    "verify:i2": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i2 && pnpm run smoke:i2:profile",
+    "verify:stage-0": "pnpm run verify:i1 && pnpm run verify:i2"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "^4.0.1"
@@ -41,7 +59,13 @@
   "devDependencies": {
     "@deepseek-ai/cordis-plugin-include": "^1.0.6",
     "@deepseek-ai/cordis-plugin-loader": "^1.0.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.0-rc.7",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.0-rc.7",
+    "@deepseek-ai/dsh-typert-registry": "0.1.0-rc.7",
     "@types/node": "^24.0.0",
+    "@types/react": "^18.2.0",
+    "esbuild": "^0.28.0",
+    "react": "^18.2.0",
     "tsx": "^4.20.0",
     "typescript": "^5.8.0",
     "vitest": "^4.0.0"
