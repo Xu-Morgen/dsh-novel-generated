@@ -1,5 +1,5 @@
 import { ContextAssembler } from '../lib/core/assemble/index.js';
-import { registerI12Serializers } from '../lib/core/assemble/serializers.js';
+import { registerContextSerializers } from '../lib/core/assemble/serializers.js';
 
 const rule = {
   id: 'harbor-law', version: 1, scope: 'global', kind: 'taboo',
@@ -14,10 +14,22 @@ const style = {
   },
   forbidden: ['suddenly'],
 };
+const state = {
+  id: 'state-1', version: 1, seq: 0, storyTime: 'dusk',
+  scene: { location: 'Harbor', timeOfDay: 'night', weather: 'fog', season: 'winter', atmosphere: 'tense' },
+  characters: [],
+};
 
-const assemble = () => registerI12Serializers(new ContextAssembler()).assemble({
+const assemble = (sources) => registerContextSerializers(new ContextAssembler()).assemble({
   macros: { user: 'Lin', pov: 'Mira' },
-  sources: { rules: [{ rule, scope: rule.scope, priority: rule.priority, immutable: rule.immutable }], style },
+  sources: {
+    rules: [{ rule, scope: rule.scope, priority: rule.priority, immutable: rule.immutable }],
+    style,
+    characters: [],
+    worldview: [],
+    state,
+    ...sources,
+  },
 });
 
 const first = assemble();
@@ -34,12 +46,8 @@ if (!Object.isFrozen((await import('../lib/core/assemble/index.js')).contextSect
 
 let rejectedBudget = false;
 try {
-  registerI12Serializers(new ContextAssembler()).assemble({
-    macros: { user: 'Lin', pov: 'Mira' },
-    sources: {
-      rules: [{ rule: { ...rule, statement: 'x'.repeat(4_000) }, scope: rule.scope, priority: rule.priority, immutable: rule.immutable }],
-      style,
-    },
+  assemble({
+    rules: [{ rule: { ...rule, statement: 'x'.repeat(4_000) }, scope: rule.scope, priority: rule.priority, immutable: rule.immutable }],
   });
 } catch {
   rejectedBudget = true;
