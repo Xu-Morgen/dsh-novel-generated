@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Implement the persistent idempotent ConfirmationGate required by development-plan I11.",
+  "goal": "Deliver I11 as one verified commit.",
+  "successEvidence": [
+    "Typecheck, I11 positive and negative regression tests, smoke:i11, verify:i11, and a clean I11 commit."
+  ],
+  "stopCondition": "Complete on passing verify:i11 and commit; stop on contract conflict, scope expansion, or persistent verification failure.",
+  "nonGoals": [
+    "Do not wire CanonLedger or later business flows."
+  ],
+  "scope": "I11 only: confirmation schema, core gate, Host facade, tests, smoke, verification script.",
+  "changeKinds": [
+    "contract"
+  ],
+  "riskHints": [
+    "Shared persistent confirmation primitive consumed by all future user-confirmed writes."
+  ]
+}

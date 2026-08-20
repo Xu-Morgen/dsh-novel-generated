@@ -20,3 +20,20 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-19 | adr | docs/aegis/adr/ADR-0001-deepseek-harness-is-exclusive-host.md | ADR-0001 - DeepSeek Harness 是唯一且不可修改的产品宿主 |
 | 2026-08-19 | artifact | docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/gate-input-pack.json | 2026-08-19-dsh-plugin-baseline-reset gate input pack |
 | 2026-08-19 | work | docs/aegis/work/2026-08-19-dsh-plugin-baseline-reset/proof-bundle.md | 2026-08-19-dsh-plugin-baseline-reset proof bundle |
+| 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/10-intent.md | I11 ConfirmationGate intent |
+| 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/20-checkpoint.md | I11 ConfirmationGate checkpoint |
+| 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/90-evidence.md | I11 ConfirmationGate evidence |
+| 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/99-reflection.md | I11 ConfirmationGate reflection |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/task-intent-draft.json | I11 ConfirmationGate task intent draft |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/baseline-read-set-hint.json | I11 ConfirmationGate baseline read-set hint |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/baseline-usage-draft.json | I11 ConfirmationGate baseline usage draft |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/impact-statement-draft.json | I11 ConfirmationGate impact statement draft |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/todo-checkpoint-draft.json | I11 ConfirmationGate todo checkpoint draft |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/drift-check-draft.json | I11 ConfirmationGate drift check draft |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/resume-state-hint.json | 2026-08-20-i11-confirmation-gate resume state hint |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-i11.json | 2026-08-20-i11-confirmation-gate evidence verify-i11 |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-stage-1.json | 2026-08-20-i11-confirmation-gate evidence verify-stage-1 |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/gate-input-pack.json | 2026-08-20-i11-confirmation-gate gate input pack |
+| 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/proof-bundle.md | 2026-08-20-i11-confirmation-gate proof bundle |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-i11-post-review.json | 2026-08-20-i11-confirmation-gate evidence verify-i11-post-review |
+| 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-stage-1-post-review.json | 2026-08-20-i11-confirmation-gate evidence verify-stage-1-post-review |

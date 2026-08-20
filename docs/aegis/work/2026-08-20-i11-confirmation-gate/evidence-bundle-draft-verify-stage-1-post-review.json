@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-stage-1-post-review",
+  "type": "command",
+  "source": "pnpm run verify:stage-1",
+  "summary": "Post-review cumulative I3-I11 verification passed.",
+  "verifier": "pnpm"
+}

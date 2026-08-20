@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9",
+    "src/core/project/index.ts",
+    "src/core/io/yaml.ts"
+  ],
+  "whyRelevant": "The plan and requirements lock behavior; existing project and YAML modules establish storage conventions.",
+  "missingAuthority": []
+}

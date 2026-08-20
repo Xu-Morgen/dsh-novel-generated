@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis';
 
 import { createCanonService } from './host/canon-service.js';
 import { createCharacterService } from './host/character-service.js';
+import { createConfirmationService } from './host/confirmation-service.js';
 import { createProjectService } from './host/project-service.js';
 import { createRuleService } from './host/rule-service.js';
 import { createStateService } from './host/state-service.js';
@@ -25,6 +26,8 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   store, explicitly separated from the C2 mutable state layer (R1-B3).
  * - `novelStyle` (I10): Host facade over the one global B4 StyleProfile,
  *   including independently queryable forbidden expressions (R1-B4).
+ * - `novelConfirmation` (I11): Host facade over the persistent, idempotent
+ *   proposal→accept/reject gate shared by all later user-confirmed writes.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -56,6 +59,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelWorldview', createWorldviewService(projectsRoot));
   ctx.provide('novelCharacter', createCharacterService(projectsRoot));
   ctx.provide('novelStyle', createStyleService(projectsRoot));
+  ctx.provide('novelConfirmation', createConfirmationService(projectsRoot));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

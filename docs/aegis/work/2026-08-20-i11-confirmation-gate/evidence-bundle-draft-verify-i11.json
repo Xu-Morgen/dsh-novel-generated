@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i11",
+  "type": "command",
+  "source": "pnpm run verify:i11",
+  "summary": "22 Vitest files / 99 tests passed; typecheck, build, and I11 smoke passed.",
+  "verifier": "pnpm"
+}

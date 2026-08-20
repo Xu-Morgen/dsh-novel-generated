@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-20-i11-confirmation-gate",
+  "requiredBaselineRefs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9",
+    "src/core/project/index.ts",
+    "src/core/io/yaml.ts"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9",
+    "src/core/project/index.ts",
+    "src/core/io/yaml.ts"
+  ],
+  "citedInPlanRefs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

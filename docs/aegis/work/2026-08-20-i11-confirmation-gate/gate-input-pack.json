@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-20-i11-confirmation-gate/impact-statement-draft.json",
+  "compatPlan": "No business proposal semantics, Client panel, or LLM integration.",
+  "retirementPlan": "The invalid generic callback seam was removed; no retained old path. Future domain writers own proposal-idempotent transactions.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-i11-post-review.json",
+    "docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-i11.json",
+    "docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-stage-1-post-review.json",
+    "docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-stage-1.json"
+  ]
+}

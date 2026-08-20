@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-20-i11-confirmation-gate",
+  "taskIntentRef": "docs/aegis/work/2026-08-20-i11-confirmation-gate/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/novel-creation-tool-development-plan.md#I11",
+    "docs/novel-creation-tool-requirements.md#R2-9"
+  ],
+  "scopeStatus": "I11-only Gate/schema/Host/test/smoke/script/work-record changes; review repairs stayed in the canonical owner.",
+  "compatStatus": "Host-owned project YAML only; no Client, LLM, CanonLedger/business semantics, fallback, or migration added.",
+  "retirementStatus": "The invalid generic callback seam was removed; no retained old path. Future domain writers own proposal-idempotent transactions.",
+  "newRiskSignals": [],
+  "decision": "continue"
+}

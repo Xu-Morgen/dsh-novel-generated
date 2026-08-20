@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Host-owned core confirmation and project persistence"
+  ],
+  "owners": [
+    "src/core/confirm and src/host/confirm-service"
+  ],
+  "invariants": [
+    "No proposal applies before acceptance; each accepted proposal applies at most once; rejection never applies; pending survives restart."
+  ],
+  "compatBoundary": "No business proposal semantics, Client panel, or LLM integration.",
+  "nonGoals": [
+    "Do not wire CanonLedger or later business flows."
+  ]
+}

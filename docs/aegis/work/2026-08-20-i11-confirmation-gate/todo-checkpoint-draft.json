@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-20-i11-confirmation-gate",
+  "currentTodo": "Inspect the final I11 delta and create the single iteration commit",
+  "completedTodos": [
+    "Read authority and persistence baseline",
+    "Implement ConfirmationGate and Host facade",
+    "Add positive, negative, consumer, concurrent-instance, fresh-process, and smoke coverage",
+    "Pass refreshed verify:i11 and verify:stage-1",
+    "Close independent review findings"
+  ],
+  "activeSlice": "Final task-owned diff review and commit",
+  "evidenceRefs": [
+    "pnpm run verify:i11 after review repairs: 22 files / 99 tests, build, and fresh-process I11 smoke passed",
+    "pnpm run verify:stage-1 after review repairs: cumulative I3-I11 verification passed",
+    "Independent review: callback, multi-instance, and restart-evidence blockers resolved"
+  ],
+  "blockedOn": null,
+  "nextStep": "Stage only I11 paths, commit, and read back the Git receipt.",
+  "updatedAt": "2026-08-20"
+}
