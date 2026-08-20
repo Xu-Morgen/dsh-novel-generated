@@ -3,6 +3,7 @@ import type { ConstantStyleSegment } from '../schema/style.js';
 import type { SceneCharacterView } from '../schema/characters.js';
 import type { WorldEntryHit } from '../schema/worldview.js';
 import type { WorldState } from '../schema/state.js';
+import type { RelationshipSummarySource } from '../schema/relationship.js';
 
 /**
  * The fixed injection order (development plan I13 / design §8.1). Constant
@@ -16,6 +17,7 @@ export const contextSectionOrder = Object.freeze([
   'style',
   'characters',
   'worldview',
+  'relationships',
   'state',
 ] as const);
 export type ContextSectionId = typeof contextSectionOrder[number];
@@ -40,6 +42,7 @@ export interface ContextAssemblySources {
   readonly style: ConstantStyleSegment;
   readonly characters: readonly SceneCharacterView[];
   readonly worldview: readonly WorldEntryHit[];
+  readonly relationships?: RelationshipSummarySource;
   readonly state: WorldState;
 }
 
@@ -57,16 +60,16 @@ export const i12ContextBudget = Object.freeze({
 
 /**
  * Immutable I13 UTF-16 code-unit limits for the B3/B2/C2 sections and the full
- * five-section prompt (development plan I13). Unlike B1/B4, whose over-budget
+ * six-section prompt (development plan I13/I16). Unlike B1/B4, whose over-budget
  * behaviour fails closed, these sections deterministically truncate and mark
  * themselves (see {@link contextTruncationMarker}); the combined total remains
  * a hard cap that fails closed. The total mirrors the I12 pattern of being
  * tighter than the sum of per-section caps (4_000 + 3_000 + 4_000 + 3_000 +
- * 3_000 − 1_000 = 16_000).
+ * 3_000 + 3_000 − 4_000 = 16_000).
  */
 export const i13ContextBudget = Object.freeze({
   totalCharacters: 16_000,
-  sectionCharacters: Object.freeze({ characters: 4_000, worldview: 3_000, state: 3_000 }),
+  sectionCharacters: Object.freeze({ characters: 4_000, worldview: 3_000, relationships: 3_000, state: 3_000 }),
 });
 
 /** Suffix appended when a truncatable section is deterministically cut to budget. */

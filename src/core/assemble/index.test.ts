@@ -8,6 +8,7 @@ import type { ConstantStyleSegment, StyleProfile } from '../schema/style.js';
 import type { CharacterCore, SceneCharacterView } from '../schema/characters.js';
 import type { WorldEntry, WorldEntryHit } from '../schema/worldview.js';
 import type { CharacterState, WorldState } from '../schema/state.js';
+import type { Relationship } from '../schema/relationship.js';
 import { StyleRepository } from '../style/index.js';
 import {
   ContextAssembler,
@@ -171,7 +172,50 @@ function orderOf(prompt: string, heading: string): number {
   return prompt.indexOf(`## ${heading}`);
 }
 
+function relationship(id: string, over: Partial<Relationship> = {}): Relationship {
+  return {
+    id,
+    version: 1,
+    from: 'mira',
+    to: 'lin',
+    type: 'friendship',
+    affinity: 30,
+    trust: 60,
+    status: 'uneasy alliance',
+    milestones: ['meeting-1'],
+    knownTo: ['mira'],
+    ...over,
+  };
+}
+
 describe('I12 ContextAssembler', () => {
+  it('injects deterministic C1 summaries for related scene pairs only', () => {
+    const result = assembler().assemble({
+      ...request(),
+      sources: {
+        ...request().sources,
+        characters: [sceneCharacter(character('mira')), sceneCharacter(character('lin'))],
+        relationships: {
+          relationships: [relationship('z', { from: 'lin', to: 'mira' }), relationship('outside', { to: 'other' }), relationship('a')],
+          characterIds: ['mira', 'lin'],
+        },
+      },
+    });
+    expect(result.prompt).toContain('## Relationships\n');
+    expect(result.prompt).toContain('id: a');
+    expect(result.prompt).toContain('id: z');
+    expect(result.prompt).not.toContain('id: outside');
+    expect(result.prompt.indexOf('id: a')).toBeLessThan(result.prompt.indexOf('id: z'));
+    expect(result.prompt).toContain('knownTo: mira');
+  });
+
+  it('rejects malformed C1 summary input instead of widening its boundary', () => {
+    expect(() => assembler().assemble({
+      ...request(),
+      sources: { ...request().sources, relationships: { relationships: [{ id: 'bad' }], characterIds: ['mira'] } as never },
+    })).toThrow(/relationship context source/);
+  });
+
   it('produces byte-stable B1→B4 prompt sections with complete macro expansion', () => {
     const first = assembler().assemble(request());
     const second = assembler().assemble(request({
@@ -421,7 +465,7 @@ describe('I13 B3/B2/C2 serializers and trigger consumption', () => {
   it('exposes immutable I13 budgets and the deterministic truncation marker', () => {
     expect(i13ContextBudget).toEqual({
       totalCharacters: 16_000,
-      sectionCharacters: { characters: 4_000, worldview: 3_000, state: 3_000 },
+      sectionCharacters: { characters: 4_000, worldview: 3_000, relationships: 3_000, state: 3_000 },
     });
     expect(Object.isFrozen(i13ContextBudget)).toBe(true);
     expect(Object.isFrozen(i13ContextBudget.sectionCharacters)).toBe(true);

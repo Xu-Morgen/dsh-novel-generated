@@ -10,6 +10,7 @@ import { createStyleService } from './host/style-service.js';
 import { createTextService } from './host/text-service.js';
 import { createWorldviewService } from './host/worldview-service.js';
 import { createOutlineService } from './host/outline-service.js';
+import { createRelationshipService } from './host/relationship-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -64,6 +65,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelStyle', createStyleService(projectsRoot));
   ctx.provide('novelConfirmation', createConfirmationService(projectsRoot));
   ctx.provide('novelOutline', createOutlineService(projectsRoot));
+  ctx.provide('novelRelationship', createRelationshipService(projectsRoot));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

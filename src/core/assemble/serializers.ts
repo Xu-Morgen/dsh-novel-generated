@@ -8,6 +8,7 @@ import {
 } from '../schema/characters.js';
 import { worldEntrySchema, type WorldEntry, type WorldEntryHit } from '../schema/worldview.js';
 import { worldStateSchema, type CharacterState, type WorldState } from '../schema/state.js';
+import { relationshipSchema, relationshipSummary, type RelationshipSummarySource } from '../schema/relationship.js';
 import { ContextAssemblyError, type ContextAssembler, type ContextSectionSerializer } from './index.js';
 
 /**
@@ -110,6 +111,21 @@ export const worldContextSerializer: ContextSectionSerializer = {
  * compact structured snapshot — key/value lines, never prose — with characters
  * and opaque flag keys stable-sorted for byte-identical output.
  */
+/** C1 relationship serializer: only pairs present in the current scene are injected. */
+export const relationshipContextSerializer: ContextSectionSerializer = {
+  id: 'relationships',
+  heading: 'Relationships',
+  truncatable: true,
+  optional: true,
+  serialize(source: unknown): string {
+    if (source === undefined) return '';
+    if (!isRelationshipSummarySource(source)) throw new ContextAssemblyError('Invalid relationship context source');
+    return relationshipSummary(source)
+      .map(({ relationship }) => renderRelationship(relationship))
+      .join('\n');
+  },
+};
+
 export const stateContextSerializer: ContextSectionSerializer = {
   id: 'state',
   heading: 'State',
@@ -131,6 +147,7 @@ export function registerContextSerializers(assembler: ContextAssembler): Context
     .register(styleContextSerializer)
     .register(characterContextSerializer)
     .register(worldContextSerializer)
+    .register(relationshipContextSerializer)
     .register(stateContextSerializer);
 }
 
@@ -198,6 +215,29 @@ function validateWorldEntryHit(value: unknown): ValidatedWorldHit {
     throw new ContextAssemblyError(`World entry hit must be active: ${entry.id}`);
   }
   return { entry, entryId: entry.id, ancestors: value.ancestors, level: value.level };
+}
+
+function isRelationshipSummarySource(value: unknown): value is RelationshipSummarySource {
+  if (!value || typeof value !== 'object') return false;
+  const source = value as { relationships?: unknown; characterIds?: unknown };
+  return Array.isArray(source.relationships)
+    && source.relationships.every((item) => relationshipSchema.safeParse(item).success)
+    && Array.isArray(source.characterIds)
+    && source.characterIds.every((id) => typeof id === 'string' && id.length > 0);
+}
+
+function renderRelationship(relationship: RelationshipSummarySource['relationships'][number]): string {
+  return [
+    `- id: ${relationship.id}`,
+    `  from: ${relationship.from}`,
+    `  to: ${relationship.to}`,
+    `  type: ${relationship.type}`,
+    `  affinity: ${relationship.affinity}`,
+    `  trust: ${relationship.trust}`,
+    `  status: ${relationship.status}`,
+    `  milestones: ${list(relationship.milestones)}`,
+    `  knownTo: ${list(relationship.knownTo)}`,
+  ].join('\n');
 }
 
 function parseWorldState(value: unknown): WorldState {
