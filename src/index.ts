@@ -5,6 +5,7 @@ import { createProjectService } from './host/project-service.js';
 import { createRuleService } from './host/rule-service.js';
 import { createStateService } from './host/state-service.js';
 import { createTextService } from './host/text-service.js';
+import { createWorldviewService } from './host/worldview-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -17,6 +18,7 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   the project, C2 state, and C4 canon stores respectively.
  * - `novelText` (I6): Host facade over controlled C5 chapter/scene text storage.
  * - `novelRule` (I7): Host facade over the B1 hard-constraint rule store.
+ * - `novelWorldview` (I8): Host facade over the B2 worldview (WorldEntry) store.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -45,6 +47,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelCanon', createCanonService(projectsRoot));
   ctx.provide('novelText', createTextService(projectsRoot));
   ctx.provide('novelRule', createRuleService(projectsRoot));
+  ctx.provide('novelWorldview', createWorldviewService(projectsRoot));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

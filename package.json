@@ -54,6 +54,7 @@
     "smoke:i5": "node scripts/smoke-i5.mjs",
     "smoke:i6": "node scripts/smoke-i6.mjs",
     "smoke:i7": "node scripts/smoke-i7.mjs",
+    "smoke:i8": "node scripts/smoke-i8.mjs",
     "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile",
     "verify:i2": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i2 && pnpm run smoke:i2:profile",
     "verify:i3": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i3",
@@ -61,6 +62,7 @@
     "verify:i5": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i5",
     "verify:i6": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i6",
     "verify:i7": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i7",
+    "verify:i8": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i8",
     "verify:stage-0": "pnpm run verify:i1 && pnpm run verify:i2"
   },
   "dependencies": {
