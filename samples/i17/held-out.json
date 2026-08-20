@@ -1,0 +1,12 @@
+{
+  "iteration": "I17",
+  "purpose": "Host-only ctx.llm generation contract",
+  "split": "held-out",
+  "immutable": true,
+  "cases": [
+    { "id": "stream-ordered", "prompt": "continue", "expected": "ordered candidate chunks" },
+    { "id": "backend-error", "prompt": "continue", "expected": "GenerationError.backend" },
+    { "id": "cancelled", "prompt": "continue", "expected": "GenerationError.cancelled" }
+  ],
+  "threshold": 1.0
+}
