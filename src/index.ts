@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis';
 
 import { createProjectService } from './host/project-service.js';
+import { createStateService } from './host/state-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -31,7 +32,9 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const status: NovelCreationStatus = { version: '2.0.0', ready: true };
   // Services are owned by the current Fiber and removed on dispose.
   ctx.provide('novelCreation', status);
-  ctx.provide('novelProject', createProjectService(config.projectsRoot));
+  const projectsRoot = config.projectsRoot;
+  ctx.provide('novelProject', createProjectService(projectsRoot));
+  ctx.provide('novelState', createStateService(projectsRoot));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
