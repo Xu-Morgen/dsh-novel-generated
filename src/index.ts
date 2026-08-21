@@ -24,7 +24,7 @@ import { createRelationshipParserService } from './host/relationship-parser-serv
 import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
 import { createWorldviewParserService } from './host/worldview-parser-service.js';
 import { createExtensionService } from './host/extension-service.js';
-import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
+import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NAMESPACE, workspaceContribution, workspaceViewModel } from './remote.js';
 
 /**
  * I1 Host plugin extended by I2 (design §0.1.3 I2): proves the ordinary
@@ -129,8 +129,10 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
+  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, { viewModel: workspaceViewModel });
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {
     ctx.effect(() => typert.register(probeContribution));
+    ctx.effect(() => typert.register(workspaceContribution));
   }
 }

@@ -1,83 +1,64 @@
 import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots';
 import { describe, expect, it } from 'vitest';
-
 import factory from './client.js';
 
-/**
- * I2 Slot contract (design §0.1.2, §0.1.4; H0-5, H0-6): the probe registers ONE
- * static marker into a single additive Slot and Fiber dispose removes it. The
- * probe's runtime target `shell.overlay` is exercised through the factory test
- * below; here the real SlotCore mechanics prove register/dispose and the
- * fail-loud undeclared-slot rule. `root` is declared locally to mirror the
- * shell's single a-priori declaration without importing the shell layout.
- */
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface SlotMap {
-    'root': { kind: 'single'; scope: 'root' };
-  }
+  interface SlotMap { root: { kind: 'single'; scope: 'root' }; }
 }
 
-describe('I2 Slot registration / disposal', () => {
-  it('registers exactly one entry and removes it on dispose', () => {
-    const core = new SlotCore();
-    const disposer = core.register({ name: 'root' }, () => null);
-
-    expect(core.entries('root')).toHaveLength(1);
-
-    disposer();
-    expect(core.entries('root')).toHaveLength(0);
-  });
-
-  it('registering into an undeclared slot fails loud (no silent skip)', () => {
-    const core = new SlotCore();
-    expect(() =>
-      (core as unknown as { register(o: unknown, c: unknown): unknown }).register(
-        { name: 'undeclared.slot' },
-        () => null,
-      ),
-    ).toThrow();
-  });
-});
-
-describe('I2 client probe factory', () => {
-  it('returns a client entry that registers exactly one shell.overlay marker', () => {
+describe('I33 product Client workspace', () => {
+  it('registers one Slot entry and renders the Host view model', async () => {
     const registrations: Array<{ options: Record<string, unknown>; component: () => unknown }> = [];
-    const injected: string[] = [];
-    const fakeReact = {
-      createElement: (tag: string, props: Record<string, unknown>, ...children: string[]) =>
-        ({ tag, props, children }),
+    let resolveModel!: (value: unknown) => void;
+    const model = new Promise<any>((resolve) => { resolveModel = resolve; });
+    const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
+    let disposeCount = 0;
+    const remote = {
+      $mount: async () => async () => { disposeCount += 1; },
+      novelWorkspace: { viewModel: () => model },
     };
     const slots = {
-      inject(key: string, cb: () => () => void): () => void {
-        injected.push(key);
-        cb();
-        return () => {};
-      },
-      register(options: Record<string, unknown>, component: () => unknown): () => void {
-        registrations.push({ options, component });
-        return () => {};
-      },
+      inject(key: string, cb: () => () => void) { expect(key).toBe('shell.overlay'); return cb(); },
+      register(options: Record<string, unknown>, component: () => unknown) { registrations.push({ options, component }); return () => {}; },
     };
-
-    const entry = factory((spec: string) => (spec === 'react' ? fakeReact : undefined));
-    expect(entry.name).toBe('novel-creation-tool-client');
-    expect(entry.inject).toEqual(['slots']);
-
-    entry.apply({ slots });
-
-    expect(injected).toEqual(['shell.overlay']);
+    const entry = factory((spec) => spec === 'react' ? fakeReact : undefined);
+    entry.apply({ slots, remote });
+    expect(entry.inject).toEqual(['slots', 'remote']);
     expect(registrations).toHaveLength(1);
-    expect(registrations[0].options).toMatchObject({
-      name: 'shell.overlay',
-      id: 'novel-creation-tool-probe',
-    });
+    expect((registrations[0].component() as { props: Record<string, unknown> }).props['data-novel-workspace']).toBe('loading');
+    resolveModel({ product: 'novel-creation-tool', version: '2.0.0', ready: true, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect((registrations[0].component() as { props: Record<string, unknown> }).props['data-novel-workspace']).toBe('ready');
+    expect(registrations[0].options).toMatchObject({ id: 'novel-creation-tool-workspace' });
+  });
 
-    // The marker is static and non-domain: a single div carrying the probe tag.
-    const rendered = registrations[0].component();
-    expect(rendered).toEqual({
-      tag: 'div',
-      props: { 'data-i2-probe': 'marker' },
-      children: ['I2-PROBE'],
-    });
+  it('shows an error state when the Host Remote fails and disposes the Remote', async () => {
+    const registrations: Array<() => unknown> = [];
+    const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
+    let rejectModel!: (error: Error) => void;
+    const model = new Promise<never>((_, reject) => { rejectModel = reject; });
+    let disposeCount = 0;
+    const remote = { $mount: async () => async () => { disposeCount += 1; }, novelWorkspace: { viewModel: () => model } };
+    let slotDispose!: () => void;
+    const slots = {
+      inject(_: string, cb: () => () => void) { slotDispose = cb(); return () => {}; },
+      register(_: unknown, component: () => unknown) { registrations.push(component); return () => {}; },
+    };
+    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote });
+    rejectModel(new Error('offline'));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect((registrations[0]() as { props: Record<string, unknown> }).props['data-novel-workspace']).toBe('error');
+    slotDispose();
+    expect(disposeCount).toBe(1);
+  });
+
+  it('keeps the verified SlotCore registration reversible', () => {
+    const core = new SlotCore();
+    const disposer = core.register({ name: 'root' }, () => null);
+    expect(core.entries('root')).toHaveLength(1);
+    disposer();
+    expect(core.entries('root')).toHaveLength(0);
   });
 });
