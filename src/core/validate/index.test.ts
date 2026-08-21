@@ -3,6 +3,7 @@ import {
   adjudicateViolations,
   createConsistencyValidator,
   detectForbiddenExpressions,
+  detectStructuralSoftViolations,
 } from './index.js';
 
 const soft = { kind: 'outline-deviation', severity: 'soft', message: 'Beat was skipped.', references: ['beat-2'] };
@@ -51,5 +52,57 @@ describe('I20 deterministic consistency adjudicator', () => {
     expect(validator.beforeWriteback([soft]).status).toBe('warn');
     expect(validator.afterGeneration([]).status).toBe('pass');
     expect(validator.beforeWriteback([]).status).toBe('pass');
+  });
+});
+
+describe('I23 deterministic structural soft checks', () => {
+  const baseInput = {
+    progress: {
+      outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1',
+      completedBeats: [], tensionLevel: 50,
+      deviations: [{
+        id: 'deviation-1', planned: 'Mira enters the harbor.', actual: 'Mira stays inland.',
+        reason: 'The scene followed the emergent investigation.', reconciled: false,
+      }],
+    },
+    entityReferences: ['mira', 'unknown-ship'],
+    knownEntityIds: ['mira', 'lin'],
+  };
+
+  it('emits one soft warning for each unresolved deviation and dangling entity reference', () => {
+    const violations = detectStructuralSoftViolations(baseInput);
+    expect(violations).toEqual([
+      {
+        kind: 'unresolved-outline-deviation', severity: 'soft',
+        message: 'Outline deviation remains unresolved: deviation-1', references: ['deviation-1'],
+      },
+      {
+        kind: 'dangling-entity-reference', severity: 'soft',
+        message: 'Entity reference does not resolve: unknown-ship', references: ['unknown-ship'],
+      },
+    ]);
+    expect(adjudicateViolations(violations).status).toBe('warn');
+  });
+
+  it('does not warn for reconciled deviations or legal entity references', () => {
+    const violations = detectStructuralSoftViolations({
+      ...baseInput,
+      progress: { ...baseInput.progress, deviations: [{ ...baseInput.progress.deviations[0], reconciled: true }] },
+      entityReferences: ['mira', 'lin'],
+    });
+    expect(violations).toEqual([]);
+    expect(adjudicateViolations(violations).status).toBe('pass');
+  });
+
+  it('deduplicates repeated dangling references while preserving a frozen result array', () => {
+    const violations = detectStructuralSoftViolations({ ...baseInput, entityReferences: ['unknown-ship', 'unknown-ship'] });
+    expect(violations).toHaveLength(2);
+    expect(Object.isFrozen(violations)).toBe(true);
+  });
+
+  it('fails closed for malformed progress or entity-reference inputs', () => {
+    expect(() => detectStructuralSoftViolations({ ...baseInput, progress: { ...baseInput.progress, extra: true } })).toThrow();
+    expect(() => detectStructuralSoftViolations({ ...baseInput, entityReferences: [''] })).toThrow();
+    expect(() => detectStructuralSoftViolations({ ...baseInput, knownEntityIds: 'mira' })).toThrow();
   });
 });

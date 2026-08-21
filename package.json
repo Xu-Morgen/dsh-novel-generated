@@ -64,6 +64,7 @@
     "smoke:i20": "node scripts/smoke-i20.mjs",
     "smoke:i21": "node scripts/smoke-i21.mjs",
     "smoke:i22": "node scripts/smoke-i22.mjs",
+    "smoke:i23": "node scripts/smoke-i23.mjs",
     "verify:i1": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i1 && pnpm run smoke:i1:profile",
     "verify:i2": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i2 && pnpm run smoke:i2:profile",
     "verify:i3": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i3",
@@ -86,6 +87,8 @@
     "verify:i20": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i20",
     "verify:i21": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i21",
     "verify:i22": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i22",
+    "verify:i23": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i23",
+    "verify:stage-3": "pnpm run verify:i20 && pnpm run verify:i21 && pnpm run verify:i22 && pnpm run verify:i23",
     "verify:stage-2": "pnpm run verify:i12 && pnpm run verify:i13 && pnpm run verify:i14 && pnpm run verify:i15 && pnpm run verify:i16 && pnpm run verify:i17 && pnpm run verify:i18 && pnpm run verify:i19",
     "verify:stage-0": "pnpm run verify:i1 && pnpm run verify:i2",
     "verify:stage-1": "pnpm run verify:i3 && pnpm run verify:i4 && pnpm run verify:i5 && pnpm run verify:i6 && pnpm run verify:i7 && pnpm run verify:i8 && pnpm run verify:i9 && pnpm run verify:i10 && pnpm run verify:i11"
