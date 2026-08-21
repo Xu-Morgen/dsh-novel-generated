@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "plan I31; design §§0.1.2,5.2; requirements R1-A2/R3-4/R6-1"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-21-i31-a2-host-config/impact-statement-draft.json",
+  "compatPlan": "保留 GenerationSettings 调用形状并仅在 Host 解析 SecretRef；不替换 ctx.llm adapter。",
+  "retirementPlan": "No legacy A2 owner or fallback exists; no retirement action required.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-diff-check.json",
+    "docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-verify-i31.json"
+  ]
+}

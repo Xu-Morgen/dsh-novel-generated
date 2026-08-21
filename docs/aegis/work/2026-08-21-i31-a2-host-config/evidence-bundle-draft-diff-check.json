@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "diff-check",
+  "type": "command",
+  "source": "git diff --check",
+  "summary": "passed: no whitespace errors in I31 working-tree diff",
+  "verifier": "git"
+}

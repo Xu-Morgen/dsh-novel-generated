@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "AGENTS.md; development plan I31; design §§0.1.2,5.2; requirements R0-4,R1-A2,R3-4,R6-1,R6-4; I17 LLM port; I19/I30 consumers"
+  ],
+  "whyRelevant": "这些文档与代码共同规定 Host-only A2 配置边界、模型无关性与现有 consumer 兼容性。",
+  "missingAuthority": []
+}

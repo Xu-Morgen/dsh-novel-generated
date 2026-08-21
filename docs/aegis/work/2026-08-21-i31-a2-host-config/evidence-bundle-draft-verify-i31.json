@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i31",
+  "type": "command",
+  "source": "pnpm run verify:i31",
+  "summary": "passed: typecheck, 53 test files / 223 tests, build, and I31 smoke",
+  "verifier": "pnpm"
+}

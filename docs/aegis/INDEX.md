@@ -105,3 +105,20 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/evidence-bundle-draft-verify-i30.json | I30 evidence-bundle-draft-verify-i30.json |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/gate-input-pack.json | 2026-08-21-i30-full-lifecycle gate input pack |
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/proof-bundle.md | 2026-08-21-i30-full-lifecycle proof bundle |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/10-intent.md | I31 A2 Host 配置 intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/20-checkpoint.md | I31 A2 Host 配置 checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/90-evidence.md | I31 A2 Host 配置 evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/99-reflection.md | I31 A2 Host 配置 reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/task-intent-draft.json | I31 A2 Host 配置 task intent draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/baseline-read-set-hint.json | I31 A2 Host 配置 baseline read-set hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/baseline-usage-draft.json | I31 A2 Host 配置 baseline usage draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/impact-statement-draft.json | I31 A2 Host 配置 impact statement draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/todo-checkpoint-draft.json | I31 A2 Host 配置 todo checkpoint draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/drift-check-draft.json | I31 A2 Host 配置 drift check draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/resume-state-hint.json | 2026-08-21-i31-a2-host-config resume state hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-verify-i31.json | 2026-08-21-i31-a2-host-config evidence verify-i31 |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-diff-check.json | 2026-08-21-i31-a2-host-config evidence diff-check |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/gate-input-pack.json | 2026-08-21-i31-a2-host-config gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/proof-bundle.md | 2026-08-21-i31-a2-host-config proof bundle |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-verify-i31-final.json | 2026-08-21-i31-a2-host-config evidence verify-i31-final |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-dsh-contract.json | 2026-08-21-i31-a2-host-config evidence dsh-contract |

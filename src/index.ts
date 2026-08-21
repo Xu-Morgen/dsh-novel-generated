@@ -14,6 +14,7 @@ import { createRelationshipService } from './host/relationship-service.js';
 import { createKnowledgeService } from './host/knowledge-service.js';
 import { createGenerationService } from './host/generation-service.js';
 import { createStoryGenerationService } from './host/story-generation-service.js';
+import { createSettingsService } from './host/settings-service.js';
 import { createStoryLifecycleService } from './host/story-lifecycle-service.js';
 import { createConsistencyDetectionService } from './host/consistency-detection-service.js';
 import { createKnowledgeLeakDetectionService } from './host/knowledge-leak-detection-service.js';
@@ -46,6 +47,8 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  * - `novelKnowledge` (I18): Host facade over the C3 knowledge store and POV filter;
  *   C3 never derives visibility from C1 relationship publicity.
  * - `novelGeneration` (I17): Host-only ctx.llm candidate collection.
+ * - `novelSettings` (I31): Host-only persisted A2 template/preset/route settings;
+ *   it resolves SecretRefs through the Host seam and delegates through the existing ctx.llm adapter.
  * - `novelStoryGeneration` (I19): full navigation/context/history candidate path;
  *   it deliberately has no parser or writeback operation.
  * - `novelConsistencyDetection` (I21): Host-only B1 immutable/C4 semantic
@@ -83,6 +86,8 @@ export interface NovelCreationStatus {
 
 export interface NovelCreationConfig {
   projectsRoot?: string;
+  /** Host-only location for A2 settings; it is not a project/export data path. */
+  settingsRoot?: string;
 }
 
 export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
@@ -103,7 +108,9 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelRelationship', createRelationshipService(projectsRoot));
   ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
   const llm = ctx.get('llm', false);
+  const credentials = ctx.get('credentials', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelSettings', createSettingsService(llm, config.settingsRoot, credentials, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryGeneration', createStoryGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryLifecycle', createStoryLifecycleService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelConsistencyDetection', createConsistencyDetectionService(llm, (dispose) => ctx.effect(() => dispose)));

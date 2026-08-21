@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i31-final",
+  "type": "command",
+  "source": "pnpm run verify:i31",
+  "summary": "passed after public DSH credential/GenerateOptions contract repair: typecheck, 53 test files / 225 tests, build, I31 smoke",
+  "verifier": "pnpm"
+}

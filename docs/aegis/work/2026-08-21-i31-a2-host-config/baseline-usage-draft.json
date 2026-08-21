@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I31",
+  "requiredBaselineRefs": [
+    "AGENTS.md; plan I31; design §§0.1.2,5.2; requirements R0-4,R1-A2,R3-4,R6-1,R6-4; I17/I19/I30 seams"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "AGENTS.md; plan I31; design §§0.1.2,5.2; requirements R0-4,R1-A2,R3-4,R6-1,R6-4; existing I17 port and I19/I30 consumers"
+  ],
+  "citedInPlanRefs": [
+    "design §0.1.2 Host credential/LLM ownership; §5.2 A2 template/preset/model configuration; plan I31 scope fence"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

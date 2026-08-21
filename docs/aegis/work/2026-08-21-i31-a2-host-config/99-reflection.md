@@ -1,0 +1,3 @@
+# I31 A2 Host 配置 - Reflection
+
+I31 introduces a single Host-only A2 settings owner outside the project/export tree. It persists only controlled backend routes, sampling, templates, and presets; `SecretRef` and jailbreak text are omitted from the safe projection. Each selected environment-variable reference is resolved through Host `ctx.credentials` per operation, while the value remains inside DSH. The existing I17 port remains the only `ctx.llm` adapter, and the pre-existing `ContextAssembler` retains ownership of canonical narrative section serialization. Future I32 internal extensions may consume declared seams, but must not take ownership of A2 persistence, credentials, LLM access, or UI.

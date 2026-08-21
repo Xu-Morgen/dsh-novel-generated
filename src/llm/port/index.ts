@@ -6,6 +6,7 @@ export const GenerationSettingsSchema = z.object({
   credentialRef: z.string().min(1),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
+  stopSequences: z.array(z.string().min(1)).optional(),
 }).strict();
 
 export type GenerationSettings = z.infer<typeof GenerationSettingsSchema>;
@@ -58,6 +59,7 @@ interface DshGenerateOptions {
   messages: readonly [{ id: string; role: 'user'; content: readonly [{ type: 'text'; text: string }]; source: { kind: 'plugin'; plugin: string } }];
   temperature?: number;
   maxTokens?: number;
+  stop?: string[];
   signal?: AbortSignal;
 }
 
@@ -116,6 +118,7 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
         }],
         temperature: request.settings.temperature,
         maxTokens: request.settings.maxTokens,
+        stop: request.settings.stopSequences,
         signal: request.signal,
       };
       for await (const chunk of llm.stream(options)) {

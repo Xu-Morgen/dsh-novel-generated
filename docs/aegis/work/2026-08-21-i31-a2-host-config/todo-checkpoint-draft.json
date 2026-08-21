@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I31",
+  "currentTodo": "审查 I31-only diff 并提交 I31",
+  "completedTodos": [
+    "TaskStartSnapshot; DoD/scope fence; baseline readback; persisted A2 settings; template/preset renderer; Host credentials per-operation resolution; DSH-supported route/sampling/stop delegation; focused positive/negative tests; smoke; complete verify:i31"
+  ],
+  "activeSlice": "Git closeout after final advisory review",
+  "evidenceRefs": [
+    "pnpm run verify:i31 final: 53 files/225 tests, build/smoke passed; git diff --check passed; DSH public GenerateOptions/CredentialProvider contracts inspected"
+  ],
+  "blockedOn": null,
+  "nextStep": "Review final working-tree findings, then stage only I31 paths and commit.",
+  "updatedAt": "2026-08-21"
+}

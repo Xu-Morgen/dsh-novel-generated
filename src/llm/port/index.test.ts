@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { asLlmBackend, GenerationError, collectCandidate, resolveGenerationSettings } from './index.js';
 import { createGenerationService } from '../../host/generation-service.js';
 
-const settings = { modelRef: 'route/default', credentialRef: 'secret/ref', temperature: 0.4 };
+const settings = { modelRef: 'route/default', credentialRef: 'secret/ref', temperature: 0.4, stopSequences: ['<END>'] };
 
 describe('I17 Host-only LLM port', () => {
   it('locks request settings and collects ordered stream chunks', async () => {
@@ -32,7 +32,7 @@ describe('I17 Host-only LLM port', () => {
     });
     await expect(collectCandidate(backend, { prompt: 'continue', settings })).resolves.toEqual({ text: '夜色沉下来', chunks: 3 });
     expect(options).toMatchObject({
-      provider: 'route', model: 'default', temperature: 0.4,
+      provider: 'route', model: 'default', temperature: 0.4, stop: ['<END>'],
       messages: [{ role: 'user', content: [{ type: 'text', text: 'continue' }], source: { kind: 'plugin', plugin: 'novel-creation-tool' } }],
     });
   });

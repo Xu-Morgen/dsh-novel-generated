@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "A2 Host configuration and Host LLM adapter seam"
+  ],
+  "owners": [
+    "新 settings-index 仅拥有配置持久化和受控解析；llm port 保持唯一 ctx.llm adapter。"
+  ],
+  "invariants": [
+    "Raw endpoint/key 不进入配置、客户端或 DSH stream options；上层始终传受控 resolved settings；模板 section 顺序确定。"
+  ],
+  "compatBoundary": "保留 GenerationSettings 调用形状并仅在 Host 解析 SecretRef；不替换 ctx.llm adapter。",
+  "nonGoals": [
+    "UI 主题、Client LLM、外层 plugin 类型、内部 Extension registry、直连 endpoint/credential。"
+  ]
+}

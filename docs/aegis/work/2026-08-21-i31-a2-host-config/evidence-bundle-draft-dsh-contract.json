@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "dsh-contract",
+  "type": "source-inspection",
+  "source": "@deepseek-ai/dsh-llm lib/types/types.d.ts:332-356; @deepseek-ai/dsh-credentials lib/types/index.d.ts:46-56",
+  "summary": "GenerateOptions supports temperature/maxTokens/stop only; ctx.credentials resolves one SecretRef per operation.",
+  "verifier": "repository inspection"
+}

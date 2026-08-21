@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I31",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-21-i31-a2-host-config/todo-checkpoint-draft.json",
+  "resumeInstruction": "Read I31 checkpoint and final review; re-run diff check before staged commit.",
+  "knownPartialWork": [
+    "TaskStartSnapshot; DoD/scope fence; baseline readback; persisted A2 settings; template/preset renderer; Host credentials per-operation resolution; DSH-supported route/sampling/stop delegation; focused positive/negative tests; smoke; complete verify:i31"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-21-i31-a2-host-config/10-intent.md",
+    "docs/aegis/work/2026-08-21-i31-a2-host-config/20-checkpoint.md",
+    "docs/aegis/work/2026-08-21-i31-a2-host-config/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Never forward a credential value or unsupported DSH option; route providers resolve their configured ref internally."
+  ]
+}

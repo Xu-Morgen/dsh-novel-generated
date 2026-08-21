@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I31",
+  "taskIntentRef": "docs/aegis/work/2026-08-21-i31-a2-host-config/task-intent-draft.json",
+  "baselineRefs": [
+    "DSH GenerateOptions and CredentialProvider public declarations; plan I31; design §§0.1.2,5.2"
+  ],
+  "scopeStatus": "I31-only A2 Host settings, with credential resolution limited to the public ctx.credentials seam.",
+  "compatStatus": "Existing explicit GenerationSettings contracts preserved; single ctx.llm adapter forwards only public temperature/maxTokens/stop.",
+  "retirementStatus": "No legacy A2 owner/fallback exists.",
+  "newRiskSignals": [],
+  "decision": "continue"
+}
