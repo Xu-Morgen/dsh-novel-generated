@@ -1,0 +1,1 @@
+{"schemaVersion":"aegis.schema.v0","artifactKey":"verify-i30","type":"command","source":"pnpm run verify:i30","summary":"Passed: typecheck, 50 files/217 tests, build, and I30 smoke.","verifier":"pnpm"}

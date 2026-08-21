@@ -1,0 +1,1 @@
+{"schemaVersion":"aegis.schema.v0","requestedOutcome":"完成 I30 完整生命周期编排","goal":"完成 I30：生成、两道校验、用户裁决、五层解析、串行写回与可审计补偿。","successEvidence":["verify:i30 passed","verify:stage-4 passed"],"stopCondition":"完成、阻塞、需要验证或超范围时停止。","nonGoals":["UI","新层","第二写入 owner"],"scope":"I30 Host lifecycle","changeKinds":["feature"],"riskHints":["cross-layer partial persistence"]}

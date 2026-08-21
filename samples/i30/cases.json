@@ -1,0 +1,21 @@
+{
+  "iteration": "I30",
+  "version": 1,
+  "purpose": "Frozen full-lifecycle fake-ctx.llm regression corpus",
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["canonical-full-accept", "canonical-hard-reject", "canonical-user-reject"],
+  "heldOutCaseIds": ["heldout-warning-accept", "heldout-parser-empty", "heldout-prewrite-reject"],
+  "cases": [
+    {"id":"canonical-full-accept","candidate":"米拉在码头找到铜钥匙。","decision":"accept","afterGeneration":"pass","beforeWriteback":"pass","expected":"written"},
+    {"id":"canonical-hard-reject","candidate":"米拉泄露了未知秘密。","decision":"accept","afterGeneration":"reject","beforeWriteback":"pass","expected":"generation-rejected"},
+    {"id":"canonical-user-reject","candidate":"米拉转身离开码头。","decision":"reject","afterGeneration":"pass","beforeWriteback":"pass","expected":"decision-rejected"},
+    {"id":"heldout-warning-accept","candidate":"米拉冒险穿过风暴港。","decision":"accept","afterGeneration":"warn","beforeWriteback":"warn","expected":"written"},
+    {"id":"heldout-parser-empty","candidate":"雨落在空旷的码头。","decision":"accept","afterGeneration":"pass","beforeWriteback":"pass","expected":"written"},
+    {"id":"heldout-prewrite-reject","candidate":"米拉已知晓未揭示的真相。","decision":"accept","afterGeneration":"pass","beforeWriteback":"reject","expected":"prewrite-rejected"},
+    {"id":"soft-style-warning","candidate":"米拉说出禁用词。","decision":"accept","afterGeneration":"warn","beforeWriteback":"pass","expected":"written"},
+    {"id":"rewrite-no-write","candidate":"米拉回到钟楼。","decision":"rewrite","afterGeneration":"pass","beforeWriteback":"pass","expected":"decision-rejected"},
+    {"id":"branch-no-write","candidate":"米拉选择另一条路。","decision":"branch","afterGeneration":"pass","beforeWriteback":"pass","expected":"decision-rejected"},
+    {"id":"compensation-on-c4-failure","candidate":"米拉点亮灯塔。","decision":"accept","afterGeneration":"pass","beforeWriteback":"pass","expected":"pending-compensation"}
+  ]
+}

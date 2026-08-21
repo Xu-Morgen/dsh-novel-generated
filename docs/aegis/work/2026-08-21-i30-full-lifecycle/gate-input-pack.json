@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "design §§6.6,7,9",
+    "development plan I30"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-21-i30-full-lifecycle/impact-statement-draft.json",
+  "compatPlan": "Existing layer stores and I11 retain all domain persistence and confirmation ownership.",
+  "retirementPlan": "no retained fallback or duplicate writer",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-21-i30-full-lifecycle/evidence-bundle-draft-verify-i30.json"
+  ]
+}

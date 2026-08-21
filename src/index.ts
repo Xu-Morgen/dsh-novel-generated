@@ -14,6 +14,7 @@ import { createRelationshipService } from './host/relationship-service.js';
 import { createKnowledgeService } from './host/knowledge-service.js';
 import { createGenerationService } from './host/generation-service.js';
 import { createStoryGenerationService } from './host/story-generation-service.js';
+import { createStoryLifecycleService } from './host/story-lifecycle-service.js';
 import { createConsistencyDetectionService } from './host/consistency-detection-service.js';
 import { createKnowledgeLeakDetectionService } from './host/knowledge-leak-detection-service.js';
 import { createRelationshipStyleDetectionService } from './host/relationship-style-detection-service.js';
@@ -104,6 +105,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const llm = ctx.get('llm', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryGeneration', createStoryGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelStoryLifecycle', createStoryLifecycleService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelConsistencyDetection', createConsistencyDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelKnowledgeLeakDetection', createKnowledgeLeakDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelRelationshipStyleDetection', createRelationshipStyleDetectionService(llm, (dispose) => ctx.effect(() => dispose)));

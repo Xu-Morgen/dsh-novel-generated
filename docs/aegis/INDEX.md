@@ -92,3 +92,16 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/evidence-bundle-draft-verify-i27.json | 2026-08-21-i27-c1-relationship-parser evidence verify-i27 |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/gate-input-pack.json | 2026-08-21-i27-c1-relationship-parser gate input pack |
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/proof-bundle.md | 2026-08-21-i27-c1-relationship-parser proof bundle |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/10-intent.md | I30 lifecycle intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/20-checkpoint.md | I30 lifecycle checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/90-evidence.md | I30 lifecycle evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/99-reflection.md | I30 lifecycle reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/task-intent-draft.json | I30 task-intent-draft.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/baseline-read-set-hint.json | I30 baseline-read-set-hint.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/baseline-usage-draft.json | I30 baseline-usage-draft.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/impact-statement-draft.json | I30 impact-statement-draft.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/todo-checkpoint-draft.json | I30 todo-checkpoint-draft.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/drift-check-draft.json | I30 drift-check-draft.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/evidence-bundle-draft-verify-i30.json | I30 evidence-bundle-draft-verify-i30.json |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i30-full-lifecycle/gate-input-pack.json | 2026-08-21-i30-full-lifecycle gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i30-full-lifecycle/proof-bundle.md | 2026-08-21-i30-full-lifecycle proof bundle |

@@ -1,0 +1,1 @@
+{"schemaVersion":"aegis.schema.v0","taskId":"2026-08-21-i30-full-lifecycle","currentTodo":"Commit verified I30 diff.","completedTodos":["implementation","focused tests","verify:i30","verify:stage-4"],"activeSlice":"Git closeout","evidenceRefs":["90-evidence.md"],"blockedOn":null,"nextStep":"Stage only I30 paths and commit.","updatedAt":"2026-08-21"}
