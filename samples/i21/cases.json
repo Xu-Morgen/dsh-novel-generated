@@ -1,0 +1,131 @@
+{
+  "iteration": "I21",
+  "version": 1,
+  "purpose": "Frozen rule/canon hard-constraint detector regression corpus",
+  "immutable": true,
+  "threshold": 0.9,
+  "canonicalCaseIds": [
+    "canonical-immutable-no-magic",
+    "canonical-immutable-one-moon",
+    "canonical-canon-death",
+    "canonical-canon-location",
+    "canonical-canon-possession"
+  ],
+  "heldOutCaseIds": [
+    "heldout-rule-oath",
+    "heldout-rule-time",
+    "heldout-canon-injury",
+    "heldout-canon-title",
+    "heldout-clean-prose"
+  ],
+  "cases": [
+    {
+      "id": "canonical-immutable-no-magic",
+      "prose": "米拉抬手施放火球，照亮港口。",
+      "rules": [{ "id": "rule-no-magic", "statement": "人类不能施放魔法。", "immutable": true, "active": true }],
+      "canon": [],
+      "expected": [{ "kind": "immutable-rule", "severity": "hard", "message": "正文让人类施放魔法，违反不可变规则。", "references": ["rule-no-magic"] }]
+    },
+    {
+      "id": "canonical-immutable-one-moon",
+      "prose": "两轮明月同时升出海面。",
+      "rules": [{ "id": "rule-one-moon", "statement": "世界只有一轮月亮。", "immutable": true, "active": true }],
+      "canon": [],
+      "expected": [{ "kind": "immutable-rule", "severity": "hard", "message": "正文出现两轮月亮，违反不可变规则。", "references": ["rule-one-moon"] }]
+    },
+    {
+      "id": "canonical-canon-death",
+      "prose": "已故的林舟推开门，向米拉微笑。",
+      "rules": [],
+      "canon": [{ "id": "canon-lin-dead", "summary": "林舟在旧桥坍塌中死亡。", "detail": "遗体已被安葬。" }],
+      "expected": [{ "kind": "canon-conflict", "severity": "hard", "message": "正文让已死亡的林舟出现，和正史矛盾。", "references": ["canon-lin-dead"] }]
+    },
+    {
+      "id": "canonical-canon-location",
+      "prose": "同一时刻，米拉独自在北塔顶端等待。",
+      "rules": [],
+      "canon": [{ "id": "canon-mira-harbor", "summary": "米拉被困在封锁的南港仓库。", "detail": "所有出口均由守卫封锁。" }],
+      "expected": [{ "kind": "canon-conflict", "severity": "hard", "message": "正文将米拉置于北塔，与其被困南港仓库的正史直接矛盾。", "references": ["canon-mira-harbor"] }]
+    },
+    {
+      "id": "canonical-canon-possession",
+      "prose": "米拉从口袋里取出仍完好的星盘。",
+      "rules": [],
+      "canon": [{ "id": "canon-astrolabe-destroyed", "summary": "星盘已在爆炸中彻底毁坏。", "detail": "碎片沉入海底。" }],
+      "expected": [{ "kind": "canon-conflict", "severity": "hard", "message": "正文使用已毁坏的星盘，和正史矛盾。", "references": ["canon-astrolabe-destroyed"] }]
+    },
+    {
+      "id": "rule-active-immutable-clean",
+      "prose": "米拉点燃油灯，沿堤岸前行。",
+      "rules": [{ "id": "rule-no-magic", "statement": "人类不能施放魔法。", "immutable": true, "active": true }],
+      "canon": [],
+      "expected": []
+    },
+    {
+      "id": "rule-mutable-ignored",
+      "prose": "北塔的守卫人数从四人变成六人。",
+      "rules": [{ "id": "rule-guard-count", "statement": "北塔通常有四名守卫。", "immutable": false, "active": true }],
+      "canon": [],
+      "expected": []
+    },
+    {
+      "id": "rule-inactive-ignored",
+      "prose": "港口今晚禁止船只靠岸，但一艘渔船仍靠了岸。",
+      "rules": [{ "id": "rule-closed-harbor", "statement": "港口今晚禁止船只靠岸。", "immutable": true, "active": false }],
+      "canon": [],
+      "expected": []
+    },
+    {
+      "id": "canon-consistent-aftermath",
+      "prose": "米拉在林舟的墓前放下一束白花。",
+      "rules": [],
+      "canon": [{ "id": "canon-lin-dead", "summary": "林舟在旧桥坍塌中死亡。", "detail": "遗体已被安葬。" }],
+      "expected": []
+    },
+    {
+      "id": "combined-two-hard-findings",
+      "prose": "林舟施放火球，带着完好的星盘穿过港口。",
+      "rules": [{ "id": "rule-no-magic", "statement": "人类不能施放魔法。", "immutable": true, "active": true }],
+      "canon": [{ "id": "canon-astrolabe-destroyed", "summary": "星盘已在爆炸中彻底毁坏。", "detail": "碎片沉入海底。" }],
+      "expected": [
+        { "kind": "immutable-rule", "severity": "hard", "message": "正文让人类施放魔法，违反不可变规则。", "references": ["rule-no-magic"] },
+        { "kind": "canon-conflict", "severity": "hard", "message": "正文使用已毁坏的星盘，和正史矛盾。", "references": ["canon-astrolabe-destroyed"] }
+      ]
+    },
+    {
+      "id": "heldout-rule-oath",
+      "prose": "米拉违背血誓，向外人说出了家族密令。",
+      "rules": [{ "id": "rule-blood-oath", "statement": "血誓者绝不可向外人泄露家族密令。", "immutable": true, "active": true }],
+      "canon": [],
+      "expected": [{ "kind": "immutable-rule", "severity": "hard", "message": "正文违背血誓泄露密令，违反不可变规则。", "references": ["rule-blood-oath"] }]
+    },
+    {
+      "id": "heldout-rule-time",
+      "prose": "午夜尚未到来，港口的钟已敲响第十三下。",
+      "rules": [{ "id": "rule-twelve-chimes", "statement": "港口钟楼每夜最多敲响十二下。", "immutable": true, "active": true }],
+      "canon": [],
+      "expected": [{ "kind": "immutable-rule", "severity": "hard", "message": "正文出现第十三下钟声，违反不可变规则。", "references": ["rule-twelve-chimes"] }]
+    },
+    {
+      "id": "heldout-canon-injury",
+      "prose": "米拉用从未受伤的右手轻松拉开铁门。",
+      "rules": [],
+      "canon": [{ "id": "canon-mira-right-hand", "summary": "米拉的右手在爆炸中骨折并被固定。", "detail": "短期内不能用力。" }],
+      "expected": [{ "kind": "canon-conflict", "severity": "hard", "message": "正文将米拉右手写成未受伤且能用力，和正史矛盾。", "references": ["canon-mira-right-hand"] }]
+    },
+    {
+      "id": "heldout-canon-title",
+      "prose": "被废黜的总督仍以总督身份向众人下令。",
+      "rules": [],
+      "canon": [{ "id": "canon-governor-deposed", "summary": "总督已被议会废黜，失去全部职权。", "detail": "议会任命临时执政官。" }],
+      "expected": [{ "kind": "canon-conflict", "severity": "hard", "message": "正文让被废黜的总督继续行使职权，和正史矛盾。", "references": ["canon-governor-deposed"] }]
+    },
+    {
+      "id": "heldout-clean-prose",
+      "prose": "米拉在雨里收起油灯，等待天亮。",
+      "rules": [{ "id": "rule-no-magic", "statement": "人类不能施放魔法。", "immutable": true, "active": true }],
+      "canon": [{ "id": "canon-lin-dead", "summary": "林舟在旧桥坍塌中死亡。", "detail": "遗体已被安葬。" }],
+      "expected": []
+    }
+  ]
+}

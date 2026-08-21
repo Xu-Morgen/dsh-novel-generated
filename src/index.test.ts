@@ -13,6 +13,31 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     await fiber.dispose();
   });
 
+  it('wires I21 detection to the Host ctx.llm service while its Fiber is live', async () => {
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({
+          violations: [{ kind: 'immutable-rule', severity: 'hard', message: '违反禁魔规则。', references: ['rule-no-magic'] }],
+        }) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply);
+    const detector = root.get('novelConsistencyDetection') as {
+      detectRuleAndCanon(input: unknown, settings: unknown): Promise<{ adjudication: { status: string } }>;
+    };
+
+    await expect(detector.detectRuleAndCanon({
+      prose: '米拉施放火球。',
+      rules: [{ id: 'rule-no-magic', statement: '人类不能施放魔法。', immutable: true, active: true }],
+      canon: [],
+    }, { modelRef: 'dsh/default', credentialRef: 'dsh/managed' })).resolves.toMatchObject({ adjudication: { status: 'reject' } });
+
+    await fiber.dispose();
+    expect(root.get('novelConsistencyDetection', false)).toBeUndefined();
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);
