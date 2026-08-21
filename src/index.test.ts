@@ -111,6 +111,30 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.get('novelRelationshipParser', false)).toBeUndefined();
   });
 
+  it('wires I28 C3 recognition as a forward-only parser service', async () => {
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', text: JSON.stringify({ ops: [{ op: 'advance', targetId: 'harbor-secret', addHolders: ['mira'], status: 'partially-revealed', confidence: 'high' }] }) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply);
+    const parser = root.get('novelKnowledgeParser') as {
+      parseC3Knowledge(input: unknown, settings: unknown): Promise<{ ops: unknown[] }>;
+    };
+
+    await expect(parser.parseC3Knowledge({
+      prose: '米拉看见了暗门。',
+      entries: [{ id: 'harbor-secret', version: 1, fact: '暗门藏在灯塔地下。', kind: 'secret', holders: ['lin'], revealPlan: { revealTo: ['mira'], revealAt: '钟楼对峙后' }, status: 'hidden' }],
+      states: [{ characterId: 'lin', knows: ['harbor-secret'] }, { characterId: 'mira', knows: [] }],
+    }, { modelRef: 'dsh/default', credentialRef: 'dsh/managed' })).resolves.toMatchObject({ ops: [{ targetId: 'harbor-secret', status: 'partially-revealed' }] });
+    expect(Object.keys(parser)).toEqual(['parseC3Knowledge']);
+
+    await fiber.dispose();
+    expect(root.get('novelKnowledgeParser', false)).toBeUndefined();
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);

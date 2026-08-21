@@ -19,6 +19,7 @@ import { createKnowledgeLeakDetectionService } from './host/knowledge-leak-detec
 import { createRelationshipStyleDetectionService } from './host/relationship-style-detection-service.js';
 import { createStateParserService } from './host/state-parser-service.js';
 import { createRelationshipParserService } from './host/relationship-parser-service.js';
+import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -58,6 +59,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  * - `novelRelationshipParser` (I27): Host-only C1 recognition through `ctx.llm`.
  *   It returns strict operations only; its parser path is the default C1
  *   automatic writer, while RelationshipRepository persists validated C1 state.
+ * - `novelKnowledgeParser` (I28): Host-only C3 recognition through `ctx.llm`.
+ *   It returns strict forward operations only; KnowledgeRepository retains C3
+ *   graph validation and persistence while I11 owns low-confidence confirmation.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -101,6 +105,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelRelationshipStyleDetection', createRelationshipStyleDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStateParser', createStateParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
