@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i27",
+  "type": "command",
+  "source": "pnpm run verify:i27",
+  "summary": "Passed: typecheck; 44 Vitest files / 195 tests; build including client bundle; smoke:i27. Frozen corpus matched 11/11 on controlled fake route, with held-out 3/3, above 80% threshold.",
+  "verifier": "pnpm"
+}

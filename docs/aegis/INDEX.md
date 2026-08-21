@@ -78,3 +78,17 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/evidence-bundle-draft-verify-i26.json | 2026-08-21-i26-c4-canon-parser evidence verify-i26 |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/gate-input-pack.json | 2026-08-21-i26-c4-canon-parser gate input pack |
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/proof-bundle.md | 2026-08-21-i26-c4-canon-parser proof bundle |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/10-intent.md | I27 C1 关系 parser intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/20-checkpoint.md | I27 C1 关系 parser checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/90-evidence.md | I27 C1 关系 parser evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/99-reflection.md | I27 C1 关系 parser reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/task-intent-draft.json | I27 C1 关系 parser task intent draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/baseline-read-set-hint.json | I27 C1 关系 parser baseline read-set hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/baseline-usage-draft.json | I27 C1 关系 parser baseline usage draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/impact-statement-draft.json | I27 C1 关系 parser impact statement draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/todo-checkpoint-draft.json | I27 C1 关系 parser todo checkpoint draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/drift-check-draft.json | I27 C1 关系 parser drift check draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/resume-state-hint.json | 2026-08-21-i27-c1-relationship-parser resume state hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/evidence-bundle-draft-verify-i27.json | 2026-08-21-i27-c1-relationship-parser evidence verify-i27 |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/gate-input-pack.json | 2026-08-21-i27-c1-relationship-parser gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i27-c1-relationship-parser/proof-bundle.md | 2026-08-21-i27-c1-relationship-parser proof bundle |

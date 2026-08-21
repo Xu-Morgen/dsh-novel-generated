@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i27-c1-relationship-parser",
+  "requiredBaselineRefs": [
+    "AGENTS.md",
+    "design §§5.8,6.5,6.6",
+    "plan I27",
+    "requirements R1-C1,R2-5,R2-7,R5-3",
+    "C1 schema/repository",
+    "I25/I26 parser patterns",
+    "I17 LLM port"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "AGENTS.md",
+    "design §§5.8,6.5,6.6",
+    "plan I27",
+    "requirements R1-C1,R2-5,R2-7,R5-3",
+    "C1 schema/repository",
+    "I25/I26 parser patterns",
+    "I17 LLM port"
+  ],
+  "citedInPlanRefs": [
+    "design §6.6",
+    "plan I27",
+    "requirements R5-3"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

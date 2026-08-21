@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i27-c1-relationship-parser",
+  "currentTodo": "完成 I27 Git closeout。",
+  "completedTodos": [
+    "TaskStartSnapshot、DoD/基线读取、冻结 11-case corpus、严格 C1 create/modify schema、C1-only Host parser、RelationshipRepository consumer fixture、I11 low-confidence pending/rejection boundary、Host facade、focused tests、smoke 与 pnpm run verify:i27。"
+  ],
+  "activeSlice": "Git closeout",
+  "evidenceRefs": [
+    "pnpm run verify:i27 passed: typecheck, 44 Vitest files / 195 tests, build, smoke:i27; frozen corpus 11/11 including held-out 3/3."
+  ],
+  "blockedOn": null,
+  "nextStep": "Commit only the I27-owned files.",
+  "updatedAt": "2026-08-21"
+}

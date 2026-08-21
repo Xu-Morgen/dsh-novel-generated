@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "AGENTS.md",
+    "docs/novel-creation-tool-design.md §5.8, §6.5, §6.6",
+    "docs/novel-creation-tool-development-plan.md I27",
+    "docs/novel-creation-tool-requirements.md R1-C1, R2-5, R2-7, R5-3",
+    "src/core/schema/relationship.ts and src/core/relationship/index.ts",
+    "src/llm/parse/state.ts and src/llm/parse/canon.ts",
+    "src/llm/port/index.ts"
+  ],
+  "whyRelevant": "Baseline read-set requires agent review.",
+  "missingAuthority": []
+}

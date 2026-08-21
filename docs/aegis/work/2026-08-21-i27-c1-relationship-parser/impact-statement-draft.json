@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "C1 parser seam only"
+  ],
+  "owners": [
+    "RelationshipRepository retains persistence/schema boundary; parser recognizes proposals only; Host facade retains injected ctx.llm cancellation ownership."
+  ],
+  "invariants": [
+    "C1 store enforces endpoint, numeric, and list invariants; parser is the only default C1 automatic writer; no RelationshipEngine default path exists."
+  ],
+  "compatBoundary": "C1 repository remains canonical persistence owner; I17 LLM port remains Host routing owner; no C3 knowledge behavior derives from C1 knownTo.",
+  "nonGoals": [
+    "No RelationshipEngine, knowledge/worldview parsing, cross-layer orchestration, Client, or direct endpoint."
+  ]
+}

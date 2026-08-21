@@ -87,6 +87,30 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.get('novelRelationshipStyleDetection', false)).toBeUndefined();
   });
 
+  it('wires I27 C1 recognition as the only automatic C1 parser service', async () => {
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', text: JSON.stringify({ ops: [{ op: 'modify', targetId: 'lin-mira', field: 'trust', action: 'set', value: 70, confidence: 'high' }] }) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply);
+    const parser = root.get('novelRelationshipParser') as {
+      parseC1Relationships(input: unknown, settings: unknown): Promise<{ ops: unknown[] }>;
+    };
+
+    await expect(parser.parseC1Relationships({
+      prose: '林舟终于相信米拉。',
+      current: [{ id: 'lin-mira', version: 1, from: 'lin', to: 'mira', type: 'friendship', affinity: 30, trust: 40, status: 'uneasy alliance', milestones: [], knownTo: ['lin', 'mira'] }],
+    }, { modelRef: 'dsh/default', credentialRef: 'dsh/managed' })).resolves.toMatchObject({ ops: [{ targetId: 'lin-mira', field: 'trust' }] });
+    expect(Object.keys(parser)).toEqual(['parseC1Relationships']);
+    expect(root.get('relationshipEngine', false)).toBeUndefined();
+
+    await fiber.dispose();
+    expect(root.get('novelRelationshipParser', false)).toBeUndefined();
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);

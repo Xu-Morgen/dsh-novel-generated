@@ -18,6 +18,7 @@ import { createConsistencyDetectionService } from './host/consistency-detection-
 import { createKnowledgeLeakDetectionService } from './host/knowledge-leak-detection-service.js';
 import { createRelationshipStyleDetectionService } from './host/relationship-style-detection-service.js';
 import { createStateParserService } from './host/state-parser-service.js';
+import { createRelationshipParserService } from './host/relationship-parser-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -54,6 +55,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   detector. It returns I20 warnings only and has no parser or writeback.
  * - `novelStateParser` (I25): Host-only C2 recognition through `ctx.llm`; it
  *   returns strict ops only, leaving StateEngine and I11 Gate write authority intact.
+ * - `novelRelationshipParser` (I27): Host-only C1 recognition through `ctx.llm`.
+ *   It returns strict operations only; its parser path is the default C1
+ *   automatic writer, while RelationshipRepository persists validated C1 state.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -96,6 +100,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelKnowledgeLeakDetection', createKnowledgeLeakDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelRelationshipStyleDetection', createRelationshipStyleDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStateParser', createStateParserService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

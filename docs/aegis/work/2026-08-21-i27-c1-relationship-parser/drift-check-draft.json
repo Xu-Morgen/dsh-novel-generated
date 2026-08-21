@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i27-c1-relationship-parser",
+  "taskIntentRef": "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/task-intent-draft.json",
+  "baselineRefs": [
+    "design §6.5/§6.6; plan I27; requirements R5-3"
+  ],
+  "scopeStatus": "Aligned with C1 parser only; no RelationshipEngine, C3/B2 parser, Client, or orchestration introduced.",
+  "compatStatus": "RelationshipRepository remains C1 persistence/invariant owner; I17 port remains Host LLM route owner; I11 owns low-confidence confirmation; C1 knownTo remains separate from C3.",
+  "retirementStatus": "No fallback, old automatic C1 writer, or RelationshipEngine path introduced.",
+  "newRiskSignals": [],
+  "decision": "continue"
+}

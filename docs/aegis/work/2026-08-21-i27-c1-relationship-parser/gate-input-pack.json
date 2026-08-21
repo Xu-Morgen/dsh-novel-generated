@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "design §6.5/§6.6; plan I27; requirements R5-3"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/impact-statement-draft.json",
+  "compatPlan": "C1 repository remains canonical persistence owner; I17 LLM port remains Host routing owner; no C3 knowledge behavior derives from C1 knownTo.",
+  "retirementPlan": "No fallback, old automatic C1 writer, or RelationshipEngine path introduced.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/evidence-bundle-draft-verify-i27.json"
+  ]
+}

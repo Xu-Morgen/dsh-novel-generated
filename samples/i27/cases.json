@@ -1,0 +1,22 @@
+{
+  "iteration": "I27",
+  "version": 1,
+  "purpose": "Frozen C1 relationship-parser regression corpus",
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["canonical-create-friendship", "canonical-trust-change", "canonical-affinity-change"],
+  "heldOutCaseIds": ["heldout-status-change", "heldout-milestone-set", "heldout-known-to-set"],
+  "cases": [
+    {"id":"canonical-create-friendship","prose":"林舟与米拉在钟楼并肩守望，正式结为盟友。","current":[],"expected":{"ops":[{"op":"create","relationship":{"id":"lin-mira","from":"lin","to":"mira","type":"friendship","affinity":40,"trust":65,"status":"new allies","milestones":["evt-watch"],"knownTo":["lin","mira"]},"confidence":"high"}]}},
+    {"id":"canonical-trust-change","prose":"米拉交出铜钥匙后，林舟终于相信了她。","current":[{"id":"lin-mira","version":1,"from":"lin","to":"mira","type":"friendship","affinity":40,"trust":35,"status":"uneasy alliance","milestones":[],"knownTo":["lin","mira"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-mira","field":"trust","action":"set","value":70,"confidence":"high"}]}},
+    {"id":"canonical-affinity-change","prose":"守门人的背叛令林舟对他彻底厌恶。","current":[{"id":"lin-guard","version":1,"from":"lin","to":"guard","type":"friendship","affinity":20,"trust":30,"status":"strained","milestones":[],"knownTo":["lin"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-guard","field":"affinity","action":"set","value":-80,"confidence":"high"}]}},
+    {"id":"type-change","prose":"经历决斗后，林舟与守门人从旧友变成了死敌。","current":[{"id":"lin-guard","version":1,"from":"lin","to":"guard","type":"friendship","affinity":20,"trust":30,"status":"strained","milestones":[],"knownTo":["lin"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-guard","field":"type","action":"set","value":"enmity","confidence":"medium"},{"op":"modify","targetId":"lin-guard","field":"status","action":"set","value":"sworn enemies","confidence":"medium"}]}},
+    {"id":"create-romantic","prose":"米拉与阿岚互诉心意，开始了一段秘密恋情。","current":[],"expected":{"ops":[{"op":"create","relationship":{"id":"mira-aran","from":"mira","to":"aran","type":"romantic","affinity":75,"trust":80,"status":"secret romance","milestones":["evt-confession"],"knownTo":["mira","aran"]},"confidence":"medium"}]}},
+    {"id":"no-relationship-change","prose":"雨水敲打着空荡的石阶，远处传来钟声。","current":[],"expected":{"ops":[]}},
+    {"id":"multiple-modifications","prose":"林舟救下米拉后，两人的嫌隙消散，彼此更加信任。","current":[{"id":"lin-mira","version":1,"from":"lin","to":"mira","type":"friendship","affinity":10,"trust":25,"status":"uneasy alliance","milestones":[],"knownTo":["lin","mira"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-mira","field":"affinity","action":"set","value":55,"confidence":"high"},{"op":"modify","targetId":"lin-mira","field":"trust","action":"set","value":75,"confidence":"high"},{"op":"modify","targetId":"lin-mira","field":"status","action":"set","value":"trusted allies","confidence":"medium"}]}},
+    {"id":"low-confidence-drift","prose":"旁人似乎觉得林舟与米拉之间多了几分难言的隔阂。","current":[{"id":"lin-mira","version":1,"from":"lin","to":"mira","type":"friendship","affinity":55,"trust":75,"status":"trusted allies","milestones":[],"knownTo":["lin","mira"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-mira","field":"status","action":"set","value":"possible distance","confidence":"low"}]}},
+    {"id":"heldout-status-change","prose":"守门人接受了林舟的条件，两人达成暂时停战。","current":[{"id":"lin-guard","version":1,"from":"lin","to":"guard","type":"enmity","affinity":-50,"trust":10,"status":"open conflict","milestones":[],"knownTo":["lin","guard"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-guard","field":"status","action":"set","value":"temporary truce","confidence":"high"}]}},
+    {"id":"heldout-milestone-set","prose":"在钟楼立誓后，林舟与米拉将这次共同守夜记为关系的里程碑。","current":[{"id":"lin-mira","version":1,"from":"lin","to":"mira","type":"friendship","affinity":55,"trust":75,"status":"trusted allies","milestones":[],"knownTo":["lin","mira"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-mira","field":"milestones","action":"set","value":["evt-watch-oath"],"confidence":"medium"}]}},
+    {"id":"heldout-known-to-set","prose":"阿岚亲眼看见林舟与米拉结盟，成为知晓这段关系的人。","current":[{"id":"lin-mira","version":1,"from":"lin","to":"mira","type":"friendship","affinity":55,"trust":75,"status":"trusted allies","milestones":["evt-watch"],"knownTo":["lin","mira"]}],"expected":{"ops":[{"op":"modify","targetId":"lin-mira","field":"knownTo","action":"set","value":["lin","mira","aran"],"confidence":"medium"}]}}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i27-c1-relationship-parser",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/todo-checkpoint-draft.json",
+  "resumeInstruction": "Read I27 proof bundle, then inspect the committed receipt before starting I28.",
+  "knownPartialWork": [
+    "TaskStartSnapshot、DoD/基线读取、冻结 11-case corpus、严格 C1 create/modify schema、C1-only Host parser、RelationshipRepository consumer fixture、I11 low-confidence pending/rejection boundary、Host facade、focused tests、smoke 与 pnpm run verify:i27。"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/10-intent.md",
+    "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/20-checkpoint.md",
+    "docs/aegis/work/2026-08-21-i27-c1-relationship-parser/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Live credentialed DSH-model extraction and I30 cross-layer atomicity are not proven by the controlled fake corpus."
+  ]
+}

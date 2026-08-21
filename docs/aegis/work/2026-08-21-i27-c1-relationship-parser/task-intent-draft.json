@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "完成 I27：将已接受正文解析为严格 C1 关系新增/变更操作，并由 C1 repository 机械应用。",
+  "goal": "建立正文到 C1 的单层严格 Host LLM parser seam，同时保持 parser 为默认唯一 C1 自动写入者。",
+  "successEvidence": [
+    "冻结至少 10 个样本（含 canonical 与 held-out），controlled fake backend 的 overall 与 held-out 均 >=80%，严格 schema，C1 repository 消费者夹具，非法 JSON/op/target/field/value fail closed，无第二默认 C1 写入路径，pnpm run verify:i27 通过。"
+  ],
+  "stopCondition": "接触 RelationshipEngine、C3/B2 parser、跨层编排、Client、真实 endpoint，或样本阈值未达标。",
+  "nonGoals": [
+    "No RelationshipEngine, knowledge/worldview parsing, cross-layer orchestration, Client, or direct endpoint."
+  ],
+  "scope": "I27 frozen samples、C1 parser/schema/apply seam、Host facade、测试、smoke、verify 脚本和工作记录。",
+  "changeKinds": [
+    "code"
+  ],
+  "riskHints": [
+    "控制 fake route 仅验证契约和语料计量；实时 DSH 模型的抽取质量仍依赖环境。"
+  ]
+}
