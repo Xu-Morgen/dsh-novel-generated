@@ -1,0 +1,22 @@
+{
+  "iteration": "I25",
+  "version": 1,
+  "purpose": "Frozen C2 state-parser regression corpus",
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["canonical-character-move", "canonical-inventory-add", "canonical-scene-weather"],
+  "heldOutCaseIds": ["heldout-character-mood", "heldout-inventory-remove", "heldout-story-time"],
+  "cases": [
+    {"id":"canonical-character-move","prose":"林舟离开码头，来到钟楼。","expected":{"ops":[{"op":"modify","target":"lin","field":"location","action":"set","value":"钟楼","confidence":"high"}]}},
+    {"id":"canonical-inventory-add","prose":"米拉从桌上拿起铜钥匙。","expected":{"ops":[{"op":"modify","target":"mira","field":"inventory","action":"add","value":"铜钥匙","confidence":"high"}]}},
+    {"id":"canonical-scene-weather","prose":"暴雨骤然而至，码头被雨幕笼罩。","expected":{"ops":[{"op":"modify","target":"scene","field":"weather","action":"set","value":"暴雨","confidence":"medium"}]}},
+    {"id":"character-health-change","prose":"林舟被碎石击中，肩膀受伤。","expected":{"ops":[{"op":"modify","target":"lin","field":"health","action":"set","value":"受伤","confidence":"high"}]}},
+    {"id":"character-alive-change","prose":"卫兵在爆炸中当场死亡。","expected":{"ops":[{"op":"modify","target":"guard","field":"alive","action":"set","value":false,"confidence":"high"}]}},
+    {"id":"scene-atmosphere-change","prose":"大厅陷入令人窒息的紧张沉默。","expected":{"ops":[{"op":"modify","target":"scene","field":"atmosphere","action":"set","value":"紧张","confidence":"medium"}]}},
+    {"id":"character-flag-set","prose":"米拉终于认出密令的印记。","expected":{"ops":[{"op":"modify","target":"mira","field":"flags","action":"set","value":{"key":"recognizedSeal","value":true},"confidence":"low"}]}},
+    {"id":"no-state-change","prose":"远处的钟声在空旷街道上回荡。","expected":{"ops":[]}},
+    {"id":"heldout-character-mood","prose":"米拉读完来信后感到惶恐不安。","expected":{"ops":[{"op":"modify","target":"mira","field":"mood","action":"set","value":"惶恐","confidence":"high"}]}},
+    {"id":"heldout-inventory-remove","prose":"林舟把铜钥匙交给了守门人。","expected":{"ops":[{"op":"modify","target":"lin","field":"inventory","action":"remove","value":"铜钥匙","confidence":"medium"}]}},
+    {"id":"heldout-story-time","prose":"翌日清晨，众人再次在码头会合。","expected":{"ops":[{"op":"modify","target":"state","field":"storyTime","action":"set","value":"day 2 dawn","confidence":"high"}]}}
+  ]
+}
