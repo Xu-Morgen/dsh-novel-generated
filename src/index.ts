@@ -13,6 +13,7 @@ import { createOutlineService } from './host/outline-service.js';
 import { createRelationshipService } from './host/relationship-service.js';
 import { createKnowledgeService } from './host/knowledge-service.js';
 import { createGenerationService } from './host/generation-service.js';
+import { createStoryGenerationService } from './host/story-generation-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -36,6 +37,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   C6 progress/navigation; C6 never rewrites the B5 source.
  * - `novelKnowledge` (I18): Host facade over the C3 knowledge store and POV filter;
  *   C3 never derives visibility from C1 relationship publicity.
+ * - `novelGeneration` (I17): Host-only ctx.llm candidate collection.
+ * - `novelStoryGeneration` (I19): full navigation/context/history candidate path;
+ *   it deliberately has no parser or writeback operation.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -73,6 +77,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
   const llm = ctx.get('llm', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelStoryGeneration', createStoryGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

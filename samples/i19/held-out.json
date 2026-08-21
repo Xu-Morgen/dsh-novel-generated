@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "purpose": "I19 complete Host context and candidate-generation acceptance cases",
+  "heldOut": true,
+  "cases": [
+    { "id": "current-beat-only", "fixture": "pipeline-current-beat", "expected": "prompt includes only current navigation beat" },
+    { "id": "pov-secret-exclusion", "fixture": "pipeline-pov-filter", "expected": "prompt excludes fact unknown to POV" },
+    { "id": "canon-history-tiers", "fixture": "pipeline-history", "expected": "prompt includes canonical summary, recent prose, and distant summary" },
+    { "id": "state-change-visible", "fixture": "pipeline-state-change", "expected": "changed state produces a changed candidate prompt" },
+    { "id": "budget-fail-closed", "fixture": "pipeline-budget", "expected": "oversize navigation fails before LLM invocation" }
+  ],
+  "threshold": 0.8,
+  "note": "These immutable deterministic held-out fixtures validate I19 assembly. A credentialed real DSH model-route evaluation is a separate environment-gated execution and must record candidate scoring without modifying this asset."
+}
