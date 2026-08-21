@@ -15,6 +15,7 @@ import { createKnowledgeService } from './host/knowledge-service.js';
 import { createGenerationService } from './host/generation-service.js';
 import { createStoryGenerationService } from './host/story-generation-service.js';
 import { createConsistencyDetectionService } from './host/consistency-detection-service.js';
+import { createKnowledgeLeakDetectionService } from './host/knowledge-leak-detection-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -44,6 +45,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  * - `novelConsistencyDetection` (I21): Host-only B1 immutable/C4 semantic
  *   detector using the injected `ctx.llm` route; it returns I20 adjudication
  *   but has no parser or writeback operation.
+ * - `novelKnowledgeLeakDetection` (I22): Host-only C3 POV leak detector.
+ *   It derives the allowed view through I18, returns I20 adjudication, and
+ *   has no C3 write, parser, or Client operation.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -83,6 +87,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryGeneration', createStoryGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelConsistencyDetection', createConsistencyDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelKnowledgeLeakDetection', createKnowledgeLeakDetectionService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

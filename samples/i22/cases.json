@@ -1,0 +1,152 @@
+{
+  "iteration": "I22",
+  "version": 1,
+  "purpose": "Frozen POV knowledge-leak hard-constraint detector regression corpus",
+  "immutable": true,
+  "threshold": 0.9,
+  "canonicalCaseIds": [
+    "canonical-secret-gate",
+    "canonical-traitor",
+    "canonical-poison",
+    "canonical-hidden-parentage",
+    "canonical-double-leak"
+  ],
+  "heldOutCaseIds": [
+    "heldout-codeword",
+    "heldout-captain-order",
+    "heldout-foreshadow-clean",
+    "heldout-revealed-fact-clean",
+    "heldout-other-pov-clean"
+  ],
+  "cases": [
+    {
+      "id": "canonical-secret-gate",
+      "prose": "米拉知道北港暗门只能在退潮时开启。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-gate", "version": 1, "fact": "北港暗门只能在退潮时开启。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "act-2" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-gate"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉得知了仅林舟持有的北港暗门秘密。", "references": ["secret-gate"] }]
+    },
+    {
+      "id": "canonical-traitor",
+      "prose": "以赛亚就是向海盗通风报信的叛徒，米拉早已看穿。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-traitor", "version": 1, "fact": "以赛亚向海盗通风报信。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "trial" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-traitor"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉在揭示前得知以赛亚的叛徒身份。", "references": ["secret-traitor"] }]
+    },
+    {
+      "id": "canonical-poison",
+      "prose": "米拉避开了酒杯，因为她知道酒里被下了月银毒。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-poison", "version": 1, "fact": "酒杯中被下了月银毒。", "kind": "plotpoint", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "banquet" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-poison"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉知晓了未向她揭示的下毒事实。", "references": ["secret-poison"] }]
+    },
+    {
+      "id": "canonical-hidden-parentage",
+      "prose": "米拉终于确认总督正是自己的生父。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-parentage", "version": 1, "fact": "总督是米拉的生父。", "kind": "backstory", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "act-3" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-parentage"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉在揭示前获知了自己的身世。", "references": ["secret-parentage"] }]
+    },
+    {
+      "id": "canonical-double-leak",
+      "prose": "米拉知道暗门退潮才会开启，也知道以赛亚向海盗通风报信。",
+      "pov": "mira",
+      "entries": [
+        { "id": "secret-gate", "version": 1, "fact": "北港暗门只能在退潮时开启。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "act-2" }, "status": "hidden" },
+        { "id": "secret-traitor", "version": 1, "fact": "以赛亚向海盗通风报信。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "trial" }, "status": "hidden" }
+      ],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-gate", "secret-traitor"] }],
+      "expected": [
+        { "kind": "knowledge-leak", "severity": "hard", "message": "米拉获知北港暗门秘密。", "references": ["secret-gate"] },
+        { "kind": "knowledge-leak", "severity": "hard", "message": "米拉获知以赛亚的叛徒身份。", "references": ["secret-traitor"] }
+      ]
+    },
+    {
+      "id": "known-fact-clean",
+      "prose": "米拉按自己早已知道的退潮时刻前往北港。",
+      "pov": "mira",
+      "entries": [{ "id": "known-tide", "version": 1, "fact": "米拉知道北港在退潮时最安全。", "kind": "foreshadow", "holders": ["mira"], "revealPlan": { "revealTo": ["lin"], "revealAt": "later" }, "status": "partially-revealed" }],
+      "states": [{ "characterId": "mira", "knows": ["known-tide"] }],
+      "expected": []
+    },
+    {
+      "id": "unrelated-prose-clean",
+      "prose": "米拉在雨中收起油灯，沿堤岸慢慢前行。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-gate", "version": 1, "fact": "北港暗门只能在退潮时开启。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "act-2" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-gate"] }],
+      "expected": []
+    },
+    {
+      "id": "partial-reveal-clean",
+      "prose": "米拉想起林舟告诉她北港还有一条逃生路。",
+      "pov": "mira",
+      "entries": [{ "id": "revealed-route", "version": 1, "fact": "北港有一条逃生路。", "kind": "plotpoint", "holders": ["mira", "lin"], "revealPlan": { "revealTo": [], "revealAt": "act-1" }, "status": "partially-revealed" }],
+      "states": [{ "characterId": "mira", "knows": ["revealed-route"] }, { "characterId": "lin", "knows": ["revealed-route"] }],
+      "expected": []
+    },
+    {
+      "id": "different-secret-clean",
+      "prose": "米拉担心风暴会在午夜前抵达港口。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-poison", "version": 1, "fact": "酒杯中被下了月银毒。", "kind": "plotpoint", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "banquet" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-poison"] }],
+      "expected": []
+    },
+    {
+      "id": "known-and-unknown-clean-known-only",
+      "prose": "米拉依照林舟告诉她的逃生路线离开仓库。",
+      "pov": "mira",
+      "entries": [
+        { "id": "known-route", "version": 1, "fact": "仓库有一条逃生路线。", "kind": "plotpoint", "holders": ["mira", "lin"], "revealPlan": { "revealTo": [], "revealAt": "now" }, "status": "revealed" },
+        { "id": "secret-poison", "version": 1, "fact": "酒杯中被下了月银毒。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "banquet" }, "status": "hidden" }
+      ],
+      "states": [{ "characterId": "mira", "knows": ["known-route"] }, { "characterId": "lin", "knows": ["known-route", "secret-poison"] }],
+      "expected": []
+    },
+    {
+      "id": "heldout-codeword",
+      "prose": "米拉在门上刻下‘灰潮’这个只有密探知道的联络暗号。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-codeword", "version": 1, "fact": "密探联络暗号是灰潮。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "recruitment" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-codeword"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉使用了尚未向她揭示的密探暗号。", "references": ["secret-codeword"] }]
+    },
+    {
+      "id": "heldout-captain-order",
+      "prose": "米拉提前把船驶向黑礁，因为她知道船长命令全员黎明前撤离。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-order", "version": 1, "fact": "船长命令全员黎明前撤离。", "kind": "plotpoint", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "briefing" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-order"] }],
+      "expected": [{ "kind": "knowledge-leak", "severity": "hard", "message": "米拉得知了未传达给她的船长命令。", "references": ["secret-order"] }]
+    },
+    {
+      "id": "heldout-foreshadow-clean",
+      "prose": "米拉看着远处的灯塔，隐约觉得今晚会有变化。",
+      "pov": "mira",
+      "entries": [{ "id": "secret-storm", "version": 1, "fact": "灯塔将在午夜熄灭。", "kind": "foreshadow", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "midnight" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-storm"] }],
+      "expected": []
+    },
+    {
+      "id": "heldout-revealed-fact-clean",
+      "prose": "米拉记得总督是自己的生父，于是拒绝了他的交易。",
+      "pov": "mira",
+      "entries": [{ "id": "revealed-parentage", "version": 1, "fact": "总督是米拉的生父。", "kind": "backstory", "holders": ["mira", "lin"], "revealPlan": { "revealTo": [], "revealAt": "act-2" }, "status": "revealed" }],
+      "states": [{ "characterId": "mira", "knows": ["revealed-parentage"] }, { "characterId": "lin", "knows": ["revealed-parentage"] }],
+      "expected": []
+    },
+    {
+      "id": "heldout-other-pov-clean",
+      "prose": "林舟知道酒杯中被下了月银毒，悄悄将它推开。",
+      "pov": "lin",
+      "entries": [{ "id": "secret-poison", "version": 1, "fact": "酒杯中被下了月银毒。", "kind": "secret", "holders": ["lin"], "revealPlan": { "revealTo": ["mira"], "revealAt": "banquet" }, "status": "hidden" }],
+      "states": [{ "characterId": "mira", "knows": [] }, { "characterId": "lin", "knows": ["secret-poison"] }],
+      "expected": []
+    }
+  ]
+}

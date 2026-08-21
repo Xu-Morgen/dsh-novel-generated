@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i22-knowledge-leak-hard-detector",
+  "requiredBaselineRefs": [],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [],
+  "citedInPlanRefs": [],
+  "missingRefs": [],
+  "decision": "continue"
+}

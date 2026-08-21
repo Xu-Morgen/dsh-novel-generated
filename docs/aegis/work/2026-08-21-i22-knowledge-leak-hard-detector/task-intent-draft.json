@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "完成 I22：仅以过滤后的 POV 视图界定可知事实，通过 Host ctx.llm 检测正文知情泄漏并交由 I20 拒绝。",
+  "goal": "完成 I22：仅以过滤后的 POV 视图界定可知事实，通过 Host ctx.llm 检测正文知情泄漏并交由 I20 拒绝。",
+  "successEvidence": [],
+  "stopCondition": "Stop when success evidence is satisfied or a blocker/risk requires pause.",
+  "nonGoals": [],
+  "scope": "I22 detector, frozen samples, Host facade, tests, smoke, verify, work record",
+  "changeKinds": [
+    "code"
+  ],
+  "riskHints": []
+}

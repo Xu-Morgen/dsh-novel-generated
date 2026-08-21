@@ -52,3 +52,15 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/evidence-bundle-draft-review-followup.json | 2026-08-21-i20-deterministic-adjudicator evidence review-followup |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/gate-input-pack.json | 2026-08-21-i20-deterministic-adjudicator gate input pack |
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/proof-bundle.md | 2026-08-21-i20-deterministic-adjudicator proof bundle |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/10-intent.md | I22 知情泄漏硬约束检测器 intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/20-checkpoint.md | I22 知情泄漏硬约束检测器 checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/90-evidence.md | I22 知情泄漏硬约束检测器 evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/99-reflection.md | I22 知情泄漏硬约束检测器 reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/task-intent-draft.json | I22 知情泄漏硬约束检测器 task intent draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/baseline-read-set-hint.json | I22 知情泄漏硬约束检测器 baseline read-set hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/baseline-usage-draft.json | I22 知情泄漏硬约束检测器 baseline usage draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/impact-statement-draft.json | I22 知情泄漏硬约束检测器 impact statement draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/todo-checkpoint-draft.json | I22 知情泄漏硬约束检测器 todo checkpoint draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/drift-check-draft.json | I22 知情泄漏硬约束检测器 drift check draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/gate-input-pack.json | 2026-08-21-i22-knowledge-leak-hard-detector gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/proof-bundle.md | 2026-08-21-i22-knowledge-leak-hard-detector proof bundle |
