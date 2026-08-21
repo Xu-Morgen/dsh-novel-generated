@@ -99,17 +99,21 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // Services are owned by the current Fiber and removed on dispose.
   ctx.provide('novelCreation', status);
   const projectsRoot = config.projectsRoot;
+  const characterService = createCharacterService(projectsRoot);
+  const worldviewService = createWorldviewService(projectsRoot);
+  const outlineService = createOutlineService(projectsRoot);
+  const relationshipService = createRelationshipService(projectsRoot);
   ctx.provide('novelProject', createProjectService(projectsRoot));
   ctx.provide('novelState', createStateService(projectsRoot));
   ctx.provide('novelCanon', createCanonService(projectsRoot));
   ctx.provide('novelText', createTextService(projectsRoot));
   ctx.provide('novelRule', createRuleService(projectsRoot));
-  ctx.provide('novelWorldview', createWorldviewService(projectsRoot));
-  ctx.provide('novelCharacter', createCharacterService(projectsRoot));
+  ctx.provide('novelWorldview', worldviewService);
+  ctx.provide('novelCharacter', characterService);
   ctx.provide('novelStyle', createStyleService(projectsRoot));
   ctx.provide('novelConfirmation', createConfirmationService(projectsRoot));
-  ctx.provide('novelOutline', createOutlineService(projectsRoot));
-  ctx.provide('novelRelationship', createRelationshipService(projectsRoot));
+  ctx.provide('novelOutline', outlineService);
+  ctx.provide('novelRelationship', relationshipService);
   ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
   const llm = ctx.get('llm', false);
   const credentials = ctx.get('credentials', false);
@@ -129,9 +133,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
-  const characterService = ctx.get('novelCharacter');
-  const worldviewService = ctx.get('novelWorldview');
-  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService(characterService, worldviewService));
+  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService(characterService, worldviewService, outlineService, relationshipService));
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {
     ctx.effect(() => typert.register(probeContribution));

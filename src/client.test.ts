@@ -62,7 +62,7 @@ describe('I33 product Client workspace', () => {
     await Promise.resolve();
     const rendered = registrations[0]();
     const children = (rendered as any).children as any[];
-    expect(children.some((child) => child?.props?.['data-novel-editors'] === 'b3-b2')).toBe(true);
+    expect(children.some((child) => child?.props?.['data-novel-editors'] === 'b5-c1')).toBe(true);
   });
 
   it('keeps the verified SlotCore registration reversible', () => {

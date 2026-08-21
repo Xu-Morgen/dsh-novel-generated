@@ -2,8 +2,12 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertRemoteC
 import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry';
 import type { NovelCharacterService } from './host/character-service.js';
 import type { NovelWorldviewService } from './host/worldview-service.js';
+import type { NovelOutlineService } from './host/outline-service.js';
+import type { NovelRelationshipService } from './host/relationship-service.js';
 import type { CharacterCore, CharacterCoreInput, CharacterCorePatch } from './core/schema/characters.js';
 import type { WorldEntry, WorldEntryInput } from './core/schema/worldview.js';
+import type { Outline, OutlineBeatCard, OutlineInput } from './core/schema/outline.js';
+import type { Relationship, RelationshipInput } from './core/schema/relationship.js';
 
 /** I2 gate probe identity retained for the public contract regression. */
 export const NOVEL_PROBE_NAMESPACE = 'novelProbe';
@@ -66,9 +70,16 @@ export const worldviewListInvocation = editorInvocation('novelWorldview', 'list'
 export const worldviewReadInvocation = editorInvocation('novelWorldview', 'read', [projectParameter, entityParameter]);
 export const worldviewCreateInvocation = editorInvocation('novelWorldview', 'create', [projectParameter, inputParameter]);
 export const worldviewRewriteInvocation = editorInvocation('novelWorldview', 'rewrite', [projectParameter, entityParameter, inputParameter]);
+export const outlineReadInvocation = editorInvocation('novelOutline', 'read', [projectParameter]);
+export const outlineSaveInvocation = editorInvocation('novelOutline', 'save', [projectParameter, inputParameter]);
+export const outlineBeatCardsInvocation = editorInvocation('novelOutline', 'beatCards', [projectParameter]);
+export const relationshipReadInvocation = editorInvocation('novelRelationship', 'read', [projectParameter]);
+export const relationshipSaveInvocation = editorInvocation('novelRelationship', 'save', [projectParameter, inputParameter]);
 export const editorInvocations = [
   characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation,
   worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation,
+  outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation,
+  relationshipReadInvocation, relationshipSaveInvocation,
 ] as const;
 export const workspaceContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [],
@@ -88,13 +99,21 @@ export interface WorkspaceEditorService {
   worldviewRead(projectId: string, entityId: string): Promise<WorldEntry>;
   worldviewCreate(projectId: string, input: WorldEntryInput): Promise<WorldEntry>;
   worldviewRewrite(projectId: string, entityId: string, input: WorldEntryInput): Promise<{ superseded: WorldEntry; replacement: WorldEntry }>;
+  outlineRead(projectId: string): Promise<Outline>;
+  outlineSave(projectId: string, input: OutlineInput): Promise<Outline>;
+  outlineBeatCards(projectId: string): Promise<OutlineBeatCard[]>;
+  relationshipRead(projectId: string): Promise<Relationship[]>;
+  relationshipSave(projectId: string, input: RelationshipInput): Promise<Relationship>;
 }
 
 /** Host-only adapter that keeps existing domain Services as the sole write owner. */
 export function createWorkspaceEditorService(
   characters: NovelCharacterService,
   worldview: NovelWorldviewService,
+  outline?: NovelOutlineService,
+  relationship?: NovelRelationshipService,
 ): WorkspaceEditorService {
+  if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
   return {
     viewModel: workspaceViewModel,
     characterList: (projectId) => characters.list(projectId),
@@ -105,6 +124,11 @@ export function createWorkspaceEditorService(
     worldviewRead: (projectId, entityId) => worldview.read(projectId, entityId),
     worldviewCreate: (projectId, input) => worldview.create(projectId, input),
     worldviewRewrite: (projectId, entityId, input) => worldview.rewrite(projectId, entityId, input),
+    outlineRead: (projectId) => outline.read(projectId),
+    outlineSave: (projectId, input) => outline.save(projectId, input),
+    outlineBeatCards: (projectId) => outline.beatCards(projectId),
+    relationshipRead: (projectId) => relationship.read(projectId),
+    relationshipSave: (projectId, input) => relationship.save(projectId, input),
   };
 }
 

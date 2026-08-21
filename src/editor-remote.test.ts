@@ -12,6 +12,8 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     expect(editorInvocations.map((item) => `${item.namespace}/${item.method}`)).toEqual([
       'novelCharacter/list', 'novelCharacter/read', 'novelCharacter/create', 'novelCharacter/update',
       'novelWorldview/list', 'novelWorldview/read', 'novelWorldview/create', 'novelWorldview/rewrite',
+      'novelOutline/read', 'novelOutline/save', 'novelOutline/beatCards',
+      'novelRelationship/read', 'novelRelationship/save',
     ]);
     expect(characterListInvocation.parameters[0]).toMatchObject({ name: 'projectId', wire: 'projectId', source: 'json' });
     expect(characterCreateInvocation.parameters[1]).toMatchObject({ name: 'input', wire: 'input', source: 'json' });
@@ -28,7 +30,9 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
       list: async (projectId: string) => { calls.push(`world:list:${projectId}`); return []; },
       read: async () => ({ id: 'realm' }), create: async () => ({ id: 'realm' }), rewrite: async () => ({ superseded: {}, replacement: {} }),
     } as any;
-    const service = createWorkspaceEditorService(characters, worldview);
+    const outline = { read: async () => ({}), save: async () => ({}), beatCards: async () => [] } as any;
+    const relationship = { read: async () => [], save: async () => ({}) } as any;
+    const service = createWorkspaceEditorService(characters, worldview, outline, relationship);
     await service.characterList('book');
     await service.characterRead('book', 'mara');
     await service.characterCreate('book', {} as any);
@@ -37,6 +41,11 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     await service.worldviewRead('book', 'realm');
     await service.worldviewCreate('book', {} as any);
     await service.worldviewRewrite('book', 'realm', {} as any);
+    await service.outlineRead('book');
+    await service.outlineSave('book', {} as any);
+    await service.outlineBeatCards('book');
+    await service.relationshipRead('book');
+    await service.relationshipSave('book', {} as any);
     expect(calls).toEqual(['character:list:book', 'world:list:book']);
   });
 
@@ -45,7 +54,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     await root.plugin(TypertRegistry);
     const disposer = root.typert.register(workspaceContribution);
     expect(root.typert.local.get(`${NOVEL_WORKSPACE_NAMESPACE}/viewModel`)).toBeDefined();
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(9);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(14);
     disposer();
     expect(root.typert.local.get('novelCharacter/create')).toBeUndefined();
     await root.fiber.dispose();

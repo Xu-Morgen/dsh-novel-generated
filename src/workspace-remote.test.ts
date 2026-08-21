@@ -17,7 +17,7 @@ describe('I33 Host workspace Remote', () => {
     disposer();
     expect(root.typert.local.get('novelWorkspace/viewModel')).toBeUndefined();
     expect(workspaceRemoteContribution.descriptors[0]).toBe(workspaceViewModelInvocation);
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(9);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(14);
     await root.fiber.dispose();
   });
 });

@@ -14,12 +14,19 @@ export interface EditorRemote {
   worldviewRead(projectId: string, entityId: string): Promise<unknown>;
   worldviewCreate(projectId: string, input: unknown): Promise<unknown>;
   worldviewRewrite(projectId: string, entityId: string, input: unknown): Promise<unknown>;
+  outlineRead(projectId: string): Promise<unknown>;
+  outlineSave(projectId: string, input: unknown): Promise<unknown>;
+  outlineBeatCards(projectId: string): Promise<unknown[]>;
+  relationshipRead(projectId: string): Promise<unknown[]>;
+  relationshipSave(projectId: string, input: unknown): Promise<unknown>;
 }
 export interface WorkspaceRemote {
   $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer>;
   novelWorkspace: { viewModel(): Promise<WorkspaceViewModel> };
   novelCharacter?: EditorRemote;
   novelWorldview?: EditorRemote;
+  novelOutline?: EditorRemote;
+  novelRelationship?: EditorRemote;
 }
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
@@ -70,6 +77,33 @@ function editorPanel(React: ReactFace, remote: WorkspaceRemote, projectId: strin
   );
 }
 
+function outlineRelationshipPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+  let mode = 'outline';
+  let payload = '';
+  let message = '';
+  const save = (event: { preventDefault?: () => void }) => {
+    event.preventDefault?.();
+    let parsed: unknown;
+    try { parsed = JSON.parse(payload); } catch { message = 'Host rejected invalid JSON payload'; return; }
+    const operation = mode === 'outline'
+      ? remote.novelOutline?.outlineSave(projectId, parsed)
+      : remote.novelRelationship?.relationshipSave(projectId, parsed);
+    void operation?.then(() => { message = 'Saved through Host validation'; }, (error: Error) => { message = error.message; });
+  };
+  return React.createElement('section', { 'data-novel-editors': 'b5-c1' },
+    React.createElement('h3', null, 'Outline, scene cards, and relationships'),
+    React.createElement('div', { role: 'tablist' },
+      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'outline', onClick: () => { mode = 'outline'; } }, 'Outline / scene cards'),
+      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'relationship', onClick: () => { mode = 'relationship'; } }, 'Relationships'),
+    ),
+    React.createElement('form', { onSubmit: save },
+      React.createElement('textarea', { value: payload, placeholder: 'Host-validated JSON payload', onChange: (event: { target: { value: string } }) => { payload = event.target.value; } }),
+      React.createElement('button', { type: 'submit' }, 'Save'),
+    ),
+    message ? React.createElement('p', { role: 'alert' }, message) : null,
+  );
+}
+
 function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote): unknown {
   if (state.status === 'loading') return React.createElement('section', { 'data-novel-workspace': 'loading' }, 'Loading workspace...');
   if (state.status === 'error') return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, state.message);
@@ -81,6 +115,7 @@ function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote):
       React.createElement('button', { key: capability, type: 'button', 'data-command': capability }, capability),
     )),
     editorPanel(React, remote, 'default'),
+    outlineRelationshipPanel(React, remote, 'default'),
   );
 }
 
