@@ -14,7 +14,7 @@
 | v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
 | **v2.0** | **架构重置**：将 v1.x 的独立 Node/Vite 应用方向记为历史且已被取代；DeepSeek Harness（DSH）成为唯一运行宿主和主交付形态，产品作为 ordinary persistent plugin（普通持久插件）交付；生产安装/组合合同唯一见 §0.1.1。13 层叙事模型、引擎、存储、导入导出、编辑与 agent 产品设计继续有效，唯有与宿主边界冲突的实现方式失效。 |
 
-> **v2.0 supersession / 过渡规则**：本次架构重置期间，现存 v1.x `novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均为待同步的历史材料，**不是有效执行权威**；在三者完成 v2.0 同步前，不得启动或继续任何迭代，尤其不得依照旧 React/Vite 独立应用计划执行。最终仓库变更必须在同一次 change 中同步更新这三份文件后，方可恢复迭代执行。
+> **v2.0 supersession / 同步完成状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.0 当前执行材料；I1–I45 可仅依其 v2.0 迭代卡片执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 

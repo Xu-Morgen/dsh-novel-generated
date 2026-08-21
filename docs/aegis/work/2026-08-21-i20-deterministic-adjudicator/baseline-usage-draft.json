@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i20-deterministic-adjudicator",
+  "requiredBaselineRefs": [
+    "docs/novel-creation-tool-design.md §9.1",
+    "docs/novel-creation-tool-development-plan.md I20 / §0.6",
+    "docs/novel-creation-tool-requirements.md R2-8/R4-1"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/novel-creation-tool-design.md §9.1",
+    "docs/novel-creation-tool-development-plan.md I20 / §0.6",
+    "docs/novel-creation-tool-requirements.md R2-8/R4-1"
+  ],
+  "citedInPlanRefs": [
+    "design §9.1; plan I20; R2-8/R4-1"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

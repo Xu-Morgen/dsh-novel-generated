@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i20-deterministic-adjudicator",
+  "currentTodo": "Final task-owned diff and Git receipt.",
+  "completedTodos": [
+    "Read plan/design/requirements and existing owners.",
+    "Implemented deterministic adjudicator, literal forbidden fixture, two-gate fixture, tests, smoke, and verify script.",
+    "Reviewed change; fixed deep-readonly adjudication view.",
+    "pnpm run verify:i20 passed after review repair."
+  ],
+  "activeSlice": "I20 closeout",
+  "evidenceRefs": [
+    "pnpm run verify:i20: passed (149 tests + smoke).",
+    "Advisory review: shallow immutability repaired and regression-tested."
+  ],
+  "blockedOn": null,
+  "nextStep": "Run workspace bundle/check, inspect final diff, commit task-owned paths.",
+  "updatedAt": "2026-08-21"
+}

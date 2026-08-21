@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i20",
+  "type": "command",
+  "source": "pnpm run verify:i20",
+  "summary": "Passed: typecheck, 33 Vitest files / 148 tests, build, and smoke-i20.",
+  "verifier": "pnpm"
+}

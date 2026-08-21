@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "完成 I20：将结构化 violation 确定性裁决为 pass/warn/reject，并同步设计过渡声明。",
+  "goal": "完成 I20：将结构化 violation 确定性裁决为 pass/warn/reject，并同步设计过渡声明。",
+  "successEvidence": [
+    "verify:i20 通过，含 hard/soft/empty/非法 schema 与两个调用点夹具。"
+  ],
+  "stopCondition": "验证失败、范围扩展至检测器或 LLM、或出现未决契约冲突时停止。",
+  "nonGoals": [
+    "I21-I24 检测器、LLM、parser、写回、Client。"
+  ],
+  "scope": "I20 adjudicator、测试、smoke/verify、设计文档过渡状态同步。",
+  "changeKinds": [
+    "code"
+  ],
+  "riskHints": [
+    "共享一致性契约；必须 fail closed，且不得实现 I21-I24 检测。"
+  ]
+}

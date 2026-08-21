@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "src/core/validate"
+  ],
+  "owners": [
+    "ConsistencyValidator deterministic adjudication seam"
+  ],
+  "invariants": [
+    "任一 hard 拒绝；仅 soft 警告；空集通过；非法输入 fail closed。"
+  ],
+  "compatBoundary": "只消费结构化 violations；不加入语义检测、LLM、写回或产品 UI。",
+  "nonGoals": [
+    "I21-I24 检测器、LLM、parser、写回、Client。"
+  ]
+}

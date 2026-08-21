@@ -37,3 +37,18 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-20 | work | docs/aegis/work/2026-08-20-i11-confirmation-gate/proof-bundle.md | 2026-08-20-i11-confirmation-gate proof bundle |
 | 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-i11-post-review.json | 2026-08-20-i11-confirmation-gate evidence verify-i11-post-review |
 | 2026-08-20 | artifact | docs/aegis/work/2026-08-20-i11-confirmation-gate/evidence-bundle-draft-verify-stage-1-post-review.json | 2026-08-20-i11-confirmation-gate evidence verify-stage-1-post-review |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/10-intent.md | I20 确定性裁决器 intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/20-checkpoint.md | I20 确定性裁决器 checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/90-evidence.md | I20 确定性裁决器 evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/99-reflection.md | I20 确定性裁决器 reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/task-intent-draft.json | I20 确定性裁决器 task intent draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/baseline-read-set-hint.json | I20 确定性裁决器 baseline read-set hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/baseline-usage-draft.json | I20 确定性裁决器 baseline usage draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/impact-statement-draft.json | I20 确定性裁决器 impact statement draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/todo-checkpoint-draft.json | I20 确定性裁决器 todo checkpoint draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/drift-check-draft.json | I20 确定性裁决器 drift check draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/evidence-bundle-draft-verify-i20.json | 2026-08-21-i20-deterministic-adjudicator evidence verify-i20 |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/resume-state-hint.json | 2026-08-21-i20-deterministic-adjudicator resume state hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/evidence-bundle-draft-review-followup.json | 2026-08-21-i20-deterministic-adjudicator evidence review-followup |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/gate-input-pack.json | 2026-08-21-i20-deterministic-adjudicator gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/proof-bundle.md | 2026-08-21-i20-deterministic-adjudicator proof bundle |

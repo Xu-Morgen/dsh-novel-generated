@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/novel-creation-tool-design.md §9.1",
+    "docs/novel-creation-tool-development-plan.md I20 / §0.6",
+    "docs/novel-creation-tool-requirements.md R2-8/R4-1"
+  ],
+  "whyRelevant": "定义验收证据。",
+  "missingAuthority": []
+}

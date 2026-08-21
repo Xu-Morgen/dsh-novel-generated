@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "design §9.1 / plan I20 / requirements R2-8,R4-1"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/impact-statement-draft.json",
+  "compatPlan": "只消费结构化 violations；不加入语义检测、LLM、写回或产品 UI。",
+  "retirementPlan": "No retired implementation path; design transition wording updated to reflect completed v2 synchronization.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/evidence-bundle-draft-review-followup.json",
+    "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/evidence-bundle-draft-verify-i20.json"
+  ]
+}

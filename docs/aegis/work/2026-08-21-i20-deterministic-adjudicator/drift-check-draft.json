@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i20-deterministic-adjudicator",
+  "taskIntentRef": "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/task-intent-draft.json",
+  "baselineRefs": [
+    "design §9.1 / plan I20 / requirements R2-8,R4-1"
+  ],
+  "scopeStatus": "Only I20 schema/adjudicator, literal forbidden-expression fixture, test/smoke/verify, and authorized design synchronization changed.",
+  "compatStatus": "Consumes structured violations only; no LLM, parser, writeback, Client, fallback, or adapter added.",
+  "retirementStatus": "No retired implementation path; design transition wording updated to reflect completed v2 synchronization.",
+  "newRiskSignals": [],
+  "decision": "continue"
+}

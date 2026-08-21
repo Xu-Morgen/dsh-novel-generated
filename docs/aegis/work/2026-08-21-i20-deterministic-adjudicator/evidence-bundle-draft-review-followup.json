@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "review-followup",
+  "type": "review",
+  "source": "requesting-code-review + pnpm run verify:i20",
+  "summary": "Reviewer found shallow immutability; fixed at core/validate canonical owner with deep-readonly view and regression. Fresh verify:i20 passed: 149 tests plus smoke.",
+  "verifier": "reviewer and pnpm"
+}

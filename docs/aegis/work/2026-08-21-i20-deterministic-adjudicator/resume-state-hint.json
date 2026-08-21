@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i20-deterministic-adjudicator",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/todo-checkpoint-draft.json",
+  "resumeInstruction": "Do not add I21-I24 detectors; commit only I20-owned paths after clean diff check.",
+  "knownPartialWork": [
+    "Read plan/design/requirements and existing owners.",
+    "Implemented deterministic adjudicator, literal forbidden fixture, two-gate fixture, tests, smoke, and verify script.",
+    "Reviewed change; fixed deep-readonly adjudication view.",
+    "pnpm run verify:i20 passed after review repair."
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/10-intent.md",
+    "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/20-checkpoint.md",
+    "docs/aegis/work/2026-08-21-i20-deterministic-adjudicator/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": []
+}
