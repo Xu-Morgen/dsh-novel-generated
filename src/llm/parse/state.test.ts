@@ -44,8 +44,10 @@ describe('I25 C2 state parser', () => {
   it('limits the prompt to C2 and produces validated ops without writing state', async () => {
     const state = { ...initial, seq: 0 };
     const prompt = buildC2StateParserPrompt({ prose: '林舟来到钟楼。', state });
+    expect(prompt).toContain('你是小说世界状态解析器');
     expect(prompt).toContain('不得输出关系、知情、正史、世界观、大纲、风格或正文改写');
     expect(prompt).toContain('"characterId":"lin"');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
     const result = await parseC2StateFromNarrative(backendReturning({ ops: [{ op: 'modify', target: 'lin', field: 'location', action: 'set', value: '钟楼', confidence: 'high' }] }), { prose: '林舟来到钟楼。', state }, settings);
     expect(result.ops).toHaveLength(1);
     expect(state.characters[0].location).toBe('码头');

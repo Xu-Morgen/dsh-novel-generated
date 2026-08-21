@@ -69,13 +69,13 @@ export async function parseC3KnowledgeFromNarrative(
 /** Build the minimum C3-only JSON prompt; C1 relationship publicity is never a knowledge source. */
 export function buildC3KnowledgeParserPrompt(input: C3KnowledgeParserInput): string {
   return [
-    '你是小说 C3 知情解析器。比较已接受正文与给定当前 C3 知情图，只识别已经发生的知情前进。',
-    '不得输出状态、关系、正史、世界观、大纲、风格或正文改写；不得创建、删除或替换事实；不得解释、不得使用 Markdown。C1 knownTo 是关系公开性，绝不是 C3 知情来源。',
+    '你是小说知情解析器。比较已接受正文与给定当前知情图，只识别已经发生的知情前进。',
+    '不得输出状态、关系、正史、世界观、大纲、风格或正文改写；不得创建、删除或替换事实；不得解释、不得使用 Markdown。关系的 knownTo 是关系公开性，绝不是角色知情来源。',
     '仅输出一个 JSON 对象，必须完全符合：',
     '{"ops":[{"op":"advance","targetId":"existing knowledge id","addHolders":["existing character id"],"status":"partially-revealed|revealed","confidence":"low|medium|high"}]}',
     '每个 advance 只能为既有事实新增当前不知情的角色，并将状态恰好前进一步：hidden→partially-revealed 或 partially-revealed→revealed。不得跳级、倒退、重复 holder 或修改 fact/kind/revealPlan。没有变更输出 {"ops":[]}。',
-    `当前 C3 知情条目：${JSON.stringify(input.entries)}`,
-    `当前 C3 知情状态：${JSON.stringify(input.states)}`,
+    `当前知情条目：${JSON.stringify(input.entries)}`,
+    `当前知情状态：${JSON.stringify(input.states)}`,
     `已接受正文：${input.prose}`,
   ].join('\n');
 }

@@ -71,12 +71,12 @@ export async function parseB2WorldviewFromNarrative(
 /** Build the minimum B2-only prompt; no C-layer or other setting-layer projection is disclosed. */
 export function buildB2WorldviewParserPrompt(input: B2WorldviewParserInput): string {
   return [
-    '你是小说 B2 世界观改写解析器。比较已接受正文与给定当前 B2 世界观，只识别已经发生且需要改写的可变世界观条目。',
+    '你是小说世界观改写解析器。比较已接受正文与给定当前世界观，只识别已经发生且需要改写的可变世界观条目。',
     '不得输出状态、关系、知情、正史、大纲、角色、风格或正文改写；不得原地更新、删除或直接创建条目；不得解释、不得使用 Markdown。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"supersede","targetId":"existing mutable active B2 id","replacement":{"id":"new id","kind":"geography|history|faction|culture|race|concept|artifact","title":"string","content":"string","keywords":["string"],"triggerMode":"keyword|regex|constant","weight":"integer","parent":"same parent id or null","mutable":"boolean"},"confidence":"low|medium|high"}]}',
-    'supersede 只可指向给出的 mutable:true 且 status:active 条目；replacement 必须使用未出现的新 id，与目标保持相同 parent。新条目的 version/status/supersededBy 由存储层决定。所有 B2 改写无论置信度都必须等待用户确认；没有改写输出 {"ops":[]}。',
-    `当前 B2 世界观：${JSON.stringify(input.current)}`,
+    '{"ops":[{"op":"supersede","targetId":"现有可改写且生效的世界观条目 id","replacement":{"id":"new id","kind":"geography|history|faction|culture|race|concept|artifact","title":"string","content":"string","keywords":["string"],"triggerMode":"keyword|regex|constant","weight":"integer","parent":"same parent id or null","mutable":"boolean"},"confidence":"low|medium|high"}]}',
+    'supersede 只可指向给出的 mutable:true 且 status:active 条目；replacement 必须使用未出现的新 id，与目标保持相同 parent。新条目的 version/status/supersededBy 由存储层决定。所有世界观条目改写无论置信度都必须等待用户确认；没有改写输出 {"ops":[]}。',
+    `当前世界观：${JSON.stringify(input.current)}`,
     `已接受正文：${input.prose}`,
   ].join('\n');
 }

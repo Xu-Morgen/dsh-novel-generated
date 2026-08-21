@@ -89,10 +89,10 @@ export function buildRelationshipStyleDetectorPrompt(input: RelationshipStyleDet
     forbidden: input.style.forbidden,
   };
   return [
-    '你是小说一致性软约束检测器。只检查正文是否与给定 C1 关系状态发生显著关系漂移，或偏离 B4 风格档案。',
+    '你是小说一致性软约束检测器。只检查正文是否与给定关系状态发生显著关系漂移，或偏离叙事风格档案。',
     '不得检查规则、正史、POV 知情、大纲、实体引用或任何硬约束；不得输出 hard。',
     '仅输出一个 JSON 对象，不要 Markdown 或解释。对象必须完全符合：',
-    '{"violations":[{"kind":"relationship-drift"|"style-deviation","severity":"soft","message":"非空说明","references":["C1 relationship id 或 B4 style id"]}]}',
+    '{"violations":[{"kind":"relationship-drift"|"style-deviation","severity":"soft","message":"非空说明","references":["关系记录 id 或风格档案 id"]}]}',
     '没有软偏离时输出 {"violations":[]}。relationship-drift 只能引用给定关系 id；style-deviation 只能引用给定风格 id。',
     `关系状态：${JSON.stringify(relationships)}`,
     `风格档案：${JSON.stringify(style)}`,

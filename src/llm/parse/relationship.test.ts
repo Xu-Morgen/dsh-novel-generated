@@ -34,8 +34,10 @@ describe('I27 C1 relationship parser', () => {
     const repository = new RelationshipRepository(await root());
     await repository.open();
     const prompt = buildC1RelationshipParserPrompt({ prose: '林舟与米拉结为盟友。', current: [friendship] });
+    expect(prompt).toContain('你是小说关系解析器');
     expect(prompt).toContain('不得输出状态、知情、正史、世界观、大纲、风格或正文改写');
     expect(prompt).toContain('knownTo 只表示关系公开性');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
     const result = await parseC1RelationshipsFromNarrative(backendReturning({ ops: [{
       op: 'modify', targetId: 'lin-mira', field: 'trust', action: 'set', value: 70, confidence: 'high',
     }] }), { prose: '林舟终于相信米拉。', current: [friendship] }, settings);

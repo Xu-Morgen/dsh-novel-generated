@@ -80,12 +80,12 @@ export async function parseC1RelationshipsFromNarrative(
 /** Build the minimum C1-only JSON prompt; C1 knownTo remains relationship publicity, never C3 knowledge. */
 export function buildC1RelationshipParserPrompt(input: C1RelationshipParserInput): string {
   return [
-    '你是小说 C1 关系解析器。比较已接受正文与给定当前 C1 关系，只识别需要新增或变更的关系。',
-    '不得输出状态、知情、正史、世界观、大纲、风格或正文改写；不得解释、不得使用 Markdown。knownTo 只表示关系公开性，不表示 C3 知情。',
+    '你是小说关系解析器。比较已接受正文与给定当前关系，只识别需要新增或变更的关系。',
+    '不得输出状态、知情、正史、世界观、大纲、风格或正文改写；不得解释、不得使用 Markdown。knownTo 只表示关系公开性，不表示角色知情。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"create","relationship":{"id":"string","from":"id","to":"id","type":"kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate","affinity":"-100..100 integer","trust":"0..100 integer","status":"string","milestones":["C4 event id"],"knownTo":["id"]},"confidence":"low|medium|high"}|{"op":"modify","targetId":"existing relationship id","field":"type|affinity|trust|status|milestones|knownTo","action":"set","value":"field value","confidence":"low|medium|high"}]}',
+    '{"ops":[{"op":"create","relationship":{"id":"string","from":"id","to":"id","type":"kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate","affinity":"-100..100 integer","trust":"0..100 integer","status":"string","milestones":["正史事件 id"],"knownTo":["id"]},"confidence":"low|medium|high"}|{"op":"modify","targetId":"existing relationship id","field":"type|affinity|trust|status|milestones|knownTo","action":"set","value":"field value","confidence":"low|medium|high"}]}',
     'create 必须提供完整新关系；modify 只能修改现有关系的 type、affinity、trust、status、milestones 或 knownTo，不能修改 id、from 或 to。没有变更输出 {"ops":[]}。',
-    `当前 C1 关系：${JSON.stringify(input.current)}`,
+    `当前关系：${JSON.stringify(input.current)}`,
     `已接受正文：${input.prose}`,
   ].join('\n');
 }

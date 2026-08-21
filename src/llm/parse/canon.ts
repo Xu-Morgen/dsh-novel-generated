@@ -109,12 +109,12 @@ export async function parseC4CanonFromNarrative(
 /** Build the minimum C4-only JSON prompt; no other layer is disclosed. */
 export function buildC4CanonParserPrompt(input: C4CanonParserInput): string {
   return [
-    '你是小说 C4 正史解析器。比较已接受正文与给定当前 C4 正史账本，只识别需要追加的正史事实或对既有事实的更正提案。',
+    '你是小说正史解析器。比较已接受正文与给定当前正史账本，只识别需要追加的正史事实或对既有事实的更正提案。',
     '不得输出状态、关系、知情、世界观、大纲、风格或正文改写；不得更新、删除或重写旧正史行；不得解释、不得使用 Markdown。',
     '仅输出一个 JSON 对象，必须完全符合：',
     '{"ops":[{"op":"append","event":{"id":"string","storyTime":"string","kind":"event|decision|revelation|statechange|dialogue","summary":"string","detail":"string","participants":["id"],"location":"string","consequences":["id"],"affectedLayers":["string"]},"confidence":"low|medium|high"}|{"op":"supersede","targetId":"existing active id","correction":{"id":"string","storyTime":"string","summary":"string","detail":"string","participants":["id"],"location":"string","consequences":["id"],"affectedLayers":["string"]},"confidence":"low|medium|high"}]}',
     'append 仅新增事实；supersede 仅更正给出的未被更正事件，且不含 kind、seq、immutable 或 supersedes。无法确定事实时 confidence 为 low；没有变更输出 {"ops":[]}。',
-    `当前 C4 正史账本：${JSON.stringify(input.canon)}`,
+    `当前正史账本：${JSON.stringify(input.canon)}`,
     `已接受正文：${input.prose}`,
   ].join('\n');
 }

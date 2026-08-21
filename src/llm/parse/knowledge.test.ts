@@ -38,8 +38,10 @@ describe('I28 C3 knowledge parser', () => {
     const repository = new KnowledgeRepository(await root());
     await repository.open();
     const prompt = buildC3KnowledgeParserPrompt({ prose: '米拉看见了暗门。', entries: [...current.entries], states: [...current.states] });
+    expect(prompt).toContain('你是小说知情解析器');
     expect(prompt).toContain('不得输出状态、关系、正史、世界观、大纲、风格或正文改写');
-    expect(prompt).toContain('C1 knownTo 是关系公开性');
+    expect(prompt).toContain('关系的 knownTo 是关系公开性');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
     const result = await parseC3KnowledgeFromNarrative(backendReturning({ ops: [{
       op: 'advance', targetId: 'harbor-secret', addHolders: ['mira'], status: 'partially-revealed', confidence: 'high',
     }] }), { prose: '米拉看见了暗门。', ...current }, settings);

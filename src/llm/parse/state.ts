@@ -76,12 +76,12 @@ export async function parseC2StateFromNarrative(
 /** Build the minimum C2-only JSON prompt; no other layer is disclosed. */
 export function buildC2StateParserPrompt(input: C2StateParserInput): string {
   return [
-    '你是小说 C2 状态解析器。比较已接受正文与给定当前 C2 世界状态，只识别需要写入 C2 的变化。',
+    '你是小说世界状态解析器。比较已接受正文与给定当前世界状态，只识别需要写入状态的变化。',
     '不得输出关系、知情、正史、世界观、大纲、风格或正文改写；不得解释、不得使用 Markdown。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"modify","target":"state|scene|现有 characterId","field":"允许的 C2 字段","action":"set|add|remove|delete","value":"JSON 值","confidence":"low|medium|high"}]}',
+    '{"ops":[{"op":"modify","target":"state|scene|现有 characterId","field":"允许的状态字段","action":"set|add|remove|delete","value":"JSON 值","confidence":"low|medium|high"}]}',
     'state 仅可 set storyTime；scene 仅可 set location/timeOfDay/weather/season/atmosphere；角色标量仅可 set location/alive/health/mood/condition/currentGoal；inventory 仅可 add/remove 字符串；flags 仅可 set {key,value} 或 delete {key}。没有变更输出 {"ops":[]}。',
-    `当前 C2 状态：${JSON.stringify(input.state)}`,
+    `当前世界状态：${JSON.stringify(input.state)}`,
     `已接受正文：${input.prose}`,
   ].join('\n');
 }

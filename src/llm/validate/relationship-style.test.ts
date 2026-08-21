@@ -65,8 +65,10 @@ describe('I24 relationship/style semantic soft-constraint detector', () => {
     expect(prompt).toContain('"id":"style-main"');
     expect(prompt).not.toContain('"knownTo"');
     expect(prompt).not.toContain('"version"');
+    expect(prompt).toContain('给定关系状态发生显著关系漂移，或偏离叙事风格档案');
     expect(prompt).toContain('不得检查规则、正史、POV 知情、大纲、实体引用或任何硬约束');
     expect(prompt).toContain('不得输出 hard');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
   });
 
   it('returns soft findings and delegates the warning decision to I20', async () => {

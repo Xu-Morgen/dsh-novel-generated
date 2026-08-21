@@ -39,8 +39,10 @@ describe('I26 C4 Canon parser', () => {
     const ledger = await seededLedger();
     const canon = ledger.query();
     const prompt = buildC4CanonParserPrompt({ prose: '米拉决定保留铜钥匙。', canon });
+    expect(prompt).toContain('你是小说正史解析器');
     expect(prompt).toContain('不得更新、删除或重写旧正史行');
     expect(prompt).toContain('"evt-arrival"');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
     const result = await parseC4CanonFromNarrative(backendReturning({ ops: [{
       op: 'append', event: { ...arrival, id: 'evt-decision', kind: 'decision', summary: '米拉决定保留铜钥匙', detail: '米拉决定保留铜钥匙。', participants: ['mira'] }, confidence: 'high',
     }] }), { prose: '米拉决定保留铜钥匙。', canon }, settings);

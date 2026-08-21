@@ -26,11 +26,11 @@ function fakeLlm(seen: string[], full = false) {
       const prompt = request.messages[0].content[0].text;
       seen.push(prompt);
       const output = prompt === '继续写这一幕' ? '米拉在码头找到铜钥匙。'
-        : prompt.includes('C2 状态') ? { ops: full ? [{ op: 'modify', target: 'state', field: 'storyTime', action: 'set', value: 'dawn', confidence: 'high' }] : [] }
-        : prompt.includes('C1 关系') ? { ops: full ? [{ op: 'create', relationship: { id: 'mira-lin', from: 'mira', to: 'lin', type: 'friendship', affinity: 10, trust: 20, status: 'new allies', milestones: [], knownTo: ['mira', 'lin'] }, confidence: 'high' }] : [] }
-        : prompt.includes('C3 知情') ? { ops: full ? [{ op: 'advance', targetId: 'secret-1', addHolders: ['lin'], status: 'partially-revealed', confidence: 'high' }] : [] }
-        : prompt.includes('C4 正史') ? { ops: full ? [{ op: 'append', event: { id: 'evt-key', storyTime: 'dawn', kind: 'event', summary: '米拉找到铜钥匙', detail: '米拉在码头找到铜钥匙。', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: ['state'] }, confidence: 'high' }] : [] }
-        : prompt.includes('B2 世界观') ? { ops: full ? [{ op: 'supersede', targetId: 'harbor-status', replacement: { id: 'harbor-key-route', kind: 'geography', title: '钥匙航路港', content: '码头已发现通向钥匙航路的线索。', keywords: ['码头', '钥匙'], triggerMode: 'keyword', weight: 1, parent: null, mutable: true }, confidence: 'high' }] : [] }
+        : prompt.includes('你是小说世界状态解析器') ? { ops: full ? [{ op: 'modify', target: 'state', field: 'storyTime', action: 'set', value: 'dawn', confidence: 'high' }] : [] }
+        : prompt.includes('你是小说关系解析器') ? { ops: full ? [{ op: 'create', relationship: { id: 'mira-lin', from: 'mira', to: 'lin', type: 'friendship', affinity: 10, trust: 20, status: 'new allies', milestones: [], knownTo: ['mira', 'lin'] }, confidence: 'high' }] : [] }
+        : prompt.includes('你是小说知情解析器') ? { ops: full ? [{ op: 'advance', targetId: 'secret-1', addHolders: ['lin'], status: 'partially-revealed', confidence: 'high' }] : [] }
+        : prompt.includes('你是小说正史解析器') ? { ops: full ? [{ op: 'append', event: { id: 'evt-key', storyTime: 'dawn', kind: 'event', summary: '米拉找到铜钥匙', detail: '米拉在码头找到铜钥匙。', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: ['state'] }, confidence: 'high' }] : [] }
+        : prompt.includes('你是小说世界观改写解析器') ? { ops: full ? [{ op: 'supersede', targetId: 'harbor-status', replacement: { id: 'harbor-key-route', kind: 'geography', title: '钥匙航路港', content: '码头已发现通向钥匙航路的线索。', keywords: ['码头', '钥匙'], triggerMode: 'keyword', weight: 1, parent: null, mutable: true }, confidence: 'high' }] : [] }
         : (() => { throw new Error(`Unexpected prompt: ${prompt}`); })();
       yield { type: 'text-delta', text: typeof output === 'string' ? output : JSON.stringify(output) };
       yield { type: 'finish', reason: { kind: 'stop' } };
@@ -72,6 +72,7 @@ describe('I30 Host lifecycle service', () => {
     expect(writes).toEqual(['c2', 'c1', 'c3', 'c4', 'b2']);
     expect(seen).toHaveLength(6);
     expect(seen.filter((prompt) => prompt.includes('不得输出')).length).toBe(5);
+    expect(seen.slice(1).every((prompt) => !/\b[BC][1-6]\b/.test(prompt))).toBe(true);
   });
 
   it('persists a fake-ctx.llm full fan-out through the existing C2/C1/C3/C4/B2 owners', async () => {

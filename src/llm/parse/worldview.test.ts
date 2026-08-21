@@ -40,8 +40,10 @@ describe('I29 B2 worldview supersede parser', () => {
     await repository.open();
     await repository.create(current[0]);
     const prompt = buildB2WorldviewParserPrompt({ prose: '王国覆灭。', current });
+    expect(prompt).toContain('你是小说世界观改写解析器');
     expect(prompt).toContain('不得输出状态、关系、知情、正史、大纲、角色、风格或正文改写');
     expect(prompt).toContain('不得原地更新、删除或直接创建条目');
+    expect(prompt).not.toMatch(/\b[BC][1-6]\b/);
     const output = await parseB2WorldviewFromNarrative(backendReturning({ ops: [operation] }), { prose: '王国覆灭。', current }, settings);
     expect(output.ops).toEqual([operation]);
     expect(await repository.read('north-kingdom')).toEqual(current[0]);
