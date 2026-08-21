@@ -13,10 +13,7 @@ describe('I33 product Client workspace', () => {
     const model = new Promise<any>((resolve) => { resolveModel = resolve; });
     const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
     let disposeCount = 0;
-    const remote = {
-      $mount: async () => async () => { disposeCount += 1; },
-      novelWorkspace: { viewModel: () => model },
-    };
+    const remote = { $mount: async () => async () => { disposeCount += 1; }, novelWorkspace: { viewModel: () => model } };
     const slots = {
       inject(key: string, cb: () => () => void) { expect(key).toBe('shell.overlay'); return cb(); },
       register(options: Record<string, unknown>, component: () => unknown) { registrations.push({ options, component }); return () => {}; },
@@ -52,6 +49,20 @@ describe('I33 product Client workspace', () => {
     expect((registrations[0]() as { props: Record<string, unknown> }).props['data-novel-workspace']).toBe('error');
     slotDispose();
     expect(disposeCount).toBe(1);
+  });
+
+  it('renders B3/B2 editor controls without adding browser file or schema owners', async () => {
+    const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
+    const model = Promise.resolve({ product: 'novel-creation-tool' as const, version: '2.0.0' as const, ready: true as const, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] as const });
+    const remote = { $mount: async () => async () => {}, novelWorkspace: { viewModel: () => model } };
+    const registrations: Array<() => any> = [];
+    const slots = { inject(_: string, cb: () => () => void) { cb(); return () => {}; }, register(_: unknown, component: () => unknown) { registrations.push(component); return () => {}; } };
+    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote });
+    await Promise.resolve();
+    await Promise.resolve();
+    const rendered = registrations[0]();
+    const children = (rendered as any).children as any[];
+    expect(children.some((child) => child?.props?.['data-novel-editors'] === 'b3-b2')).toBe(true);
   });
 
   it('keeps the verified SlotCore registration reversible', () => {

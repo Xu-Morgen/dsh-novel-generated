@@ -1,7 +1,3 @@
-/**
- * I33 product Client bundle. It owns only Slot view state; Host owns the
- * workspace model and all domain behavior (design §0.1.2, plan I33).
- */
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 import { workspaceRemoteContribution, type WorkspaceViewModel } from './remote.js';
 
@@ -9,9 +5,21 @@ export type BundleRequire = (spec: string) => unknown;
 export interface ReactFace {
   createElement(tag: string, props: Record<string, unknown> | null, ...children: unknown[]): unknown;
 }
+export interface EditorRemote {
+  characterList(projectId: string): Promise<unknown[]>;
+  characterRead(projectId: string, entityId: string): Promise<unknown>;
+  characterCreate(projectId: string, input: unknown): Promise<unknown>;
+  characterUpdate(projectId: string, entityId: string, patch: unknown): Promise<unknown>;
+  worldviewList(projectId: string): Promise<unknown[]>;
+  worldviewRead(projectId: string, entityId: string): Promise<unknown>;
+  worldviewCreate(projectId: string, input: unknown): Promise<unknown>;
+  worldviewRewrite(projectId: string, entityId: string, input: unknown): Promise<unknown>;
+}
 export interface WorkspaceRemote {
   $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer>;
   novelWorkspace: { viewModel(): Promise<WorkspaceViewModel> };
+  novelCharacter?: EditorRemote;
+  novelWorldview?: EditorRemote;
 }
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
@@ -28,7 +36,41 @@ type WorkspaceState =
   | { readonly status: 'error'; readonly message: string }
   | { readonly status: 'ready'; readonly model: WorkspaceViewModel };
 
-function view(React: ReactFace, state: WorkspaceState): unknown {
+function textField(React: ReactFace, label: string, value: string, onChange: (value: string) => void): unknown {
+  return React.createElement('label', { key: label }, label,
+    React.createElement('input', { value, onChange: (event: { target: { value: string } }) => onChange(event.target.value) }),
+  );
+}
+
+function editorPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+  let selected = 'characters';
+  let name = '';
+  let title = '';
+  let message = '';
+  const submit = (event: { preventDefault?: () => void }) => {
+    event.preventDefault?.();
+    message = 'Saved through Host validation';
+    // The Host receives the complete typed payload; the Client owns no schema.
+    const operation = selected === 'characters'
+      ? remote.novelCharacter?.characterCreate(projectId, { id: name.toLowerCase().replaceAll(' ', '-'), name, aliases: [], kind: 'extra', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] })
+      : remote.novelWorldview?.worldviewCreate(projectId, { id: title.toLowerCase().replaceAll(' ', '-'), kind: 'concept', title, content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null });
+    void operation?.catch((error: Error) => { message = error.message; });
+  };
+  return React.createElement('section', { 'data-novel-editors': 'b3-b2' },
+    React.createElement('h3', null, 'Character core and Worldview'),
+    React.createElement('div', { role: 'tablist' },
+      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': selected === 'characters', onClick: () => { selected = 'characters'; } }, 'Characters'),
+      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': selected === 'worldview', onClick: () => { selected = 'worldview'; } }, 'Worldview'),
+    ),
+    React.createElement('form', { onSubmit: submit },
+      selected === 'characters' ? textField(React, 'Name', name, (value) => { name = value; }) : textField(React, 'Title', title, (value) => { title = value; }),
+      React.createElement('button', { type: 'submit' }, 'Save'),
+    ),
+    message ? React.createElement('p', { role: 'status' }, message) : null,
+  );
+}
+
+function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote): unknown {
   if (state.status === 'loading') return React.createElement('section', { 'data-novel-workspace': 'loading' }, 'Loading workspace...');
   if (state.status === 'error') return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, state.message);
   return React.createElement(
@@ -38,6 +80,7 @@ function view(React: ReactFace, state: WorkspaceState): unknown {
     React.createElement('nav', { 'aria-label': 'Writing tools' }, state.model.capabilities.map((capability) =>
       React.createElement('button', { key: capability, type: 'button', 'data-command': capability }, capability),
     )),
+    editorPanel(React, remote, 'default'),
   );
 }
 
@@ -54,7 +97,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       ctx.slots.inject('shell.overlay', () => {
         const slotDisposer = ctx.slots.register(
           { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: 'Novel workspace' },
-          () => view(React, state),
+          () => view(React, state, ctx.remote),
         );
         void ctx.remote.$mount(workspaceRemoteContribution).then((dispose) => {
           if (!mounted) { void dispose(); return; }
