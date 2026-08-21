@@ -57,7 +57,7 @@ describe('I2 client manifest contract', () => {
 
   it('exposes the ./client subpath as the browser half', () => {
     expect(pkg.exports?.['./client']?.default).toBe('./lib/client.js');
-    expect(pkg.files).toContain('lib/client.js');
+    expect(pkg.files?.some((entry: unknown) => entry === 'lib' || entry === 'lib/' || entry === 'lib/client.js')).toBe(true);
   });
 
   it('pins the referenced public DSH client/typert packages at 0.1.0-rc.7', () => {

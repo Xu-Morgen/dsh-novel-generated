@@ -22,12 +22,7 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib/index.js",
-    "lib/index.d.ts",
-    "lib/remote.js",
-    "lib/remote.d.ts",
-    "lib/client.js",
-    "lib/client.d.ts",
+    "lib",
     "cordis.patch.yml"
   ],
   "dsh": {
