@@ -20,6 +20,7 @@ import { createRelationshipStyleDetectionService } from './host/relationship-sty
 import { createStateParserService } from './host/state-parser-service.js';
 import { createRelationshipParserService } from './host/relationship-parser-service.js';
 import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
+import { createWorldviewParserService } from './host/worldview-parser-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -62,6 +63,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  * - `novelKnowledgeParser` (I28): Host-only C3 recognition through `ctx.llm`.
  *   It returns strict forward operations only; KnowledgeRepository retains C3
  *   graph validation and persistence while I11 owns low-confidence confirmation.
+ * - `novelWorldviewParser` (I29): Host-only B2 recognition through `ctx.llm`.
+ *   It returns supersede proposals only; every B2 rewrite remains confirmation-first
+ *   and WorldRepository retains the rewritten-history persistence contract.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -106,6 +110,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelStateParser', createStateParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelWorldviewParser', createWorldviewParserService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).

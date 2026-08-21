@@ -135,6 +135,29 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.get('novelKnowledgeParser', false)).toBeUndefined();
   });
 
+  it('wires I29 B2 recognition as a confirmation-first supersede parser service', async () => {
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', text: JSON.stringify({ ops: [{ op: 'supersede', targetId: 'north-kingdom', replacement: { id: 'fallen-north-kingdom', kind: 'faction', title: '北境废墟', content: '王国已覆灭。', keywords: ['北境'], triggerMode: 'keyword', weight: 3, parent: null, mutable: true }, confidence: 'high' }] }) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply);
+    const parser = root.get('novelWorldviewParser') as {
+      parseB2Worldview(input: unknown, settings: unknown): Promise<{ ops: unknown[] }>;
+    };
+
+    await expect(parser.parseB2Worldview({
+      prose: '王国覆灭。',
+      current: [{ id: 'north-kingdom', version: 1, kind: 'faction', title: '北境王国', content: '北境由延续千年的王国统治。', keywords: ['北境'], triggerMode: 'keyword', weight: 3, parent: null, mutable: true, status: 'active', supersededBy: null }],
+    }, { modelRef: 'dsh/default', credentialRef: 'dsh/managed' })).resolves.toMatchObject({ ops: [{ targetId: 'north-kingdom', replacement: { id: 'fallen-north-kingdom' } }] });
+    expect(Object.keys(parser)).toEqual(['parseB2Worldview']);
+
+    await fiber.dispose();
+    expect(root.get('novelWorldviewParser', false)).toBeUndefined();
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);
