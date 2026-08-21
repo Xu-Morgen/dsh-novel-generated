@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GenerationError, collectCandidate, resolveGenerationSettings } from './index.js';
+import { asLlmBackend, GenerationError, collectCandidate, resolveGenerationSettings } from './index.js';
 import { createGenerationService } from '../../host/generation-service.js';
 
 const settings = { modelRef: 'route/default', credentialRef: 'secret/ref', temperature: 0.4 };
@@ -17,6 +17,30 @@ describe('I17 Host-only LLM port', () => {
     }, { prompt: 'continue', settings });
     expect(result).toEqual({ text: '夜色沉下来', chunks: 3 });
     expect(request).toMatchObject({ prompt: 'continue', settings });
+  });
+
+  it('adapts the current DSH GenerateOptions and terminal stream protocol', async () => {
+    let options: unknown;
+    const backend = asLlmBackend({
+      async *stream(input: unknown) {
+        options = input;
+        yield { type: 'block-start', index: 0, blockType: 'text' };
+        yield { type: 'text-delta', index: 0, text: '夜色' };
+        yield { type: 'text-delta', index: 0, text: '沉下来' };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    await expect(collectCandidate(backend, { prompt: 'continue', settings })).resolves.toEqual({ text: '夜色沉下来', chunks: 3 });
+    expect(options).toMatchObject({
+      provider: 'route', model: 'default', temperature: 0.4,
+      messages: [{ role: 'user', content: [{ type: 'text', text: 'continue' }], source: { kind: 'plugin', plugin: 'novel-creation-tool' } }],
+    });
+  });
+
+  it('fails closed for invalid model routes and DSH error finishes', async () => {
+    const backend = asLlmBackend({ async *stream() { yield { type: 'finish', reason: { kind: 'error', failure: { message: 'provider down' } } }; } });
+    await expect(collectCandidate(backend, { prompt: 'x', settings: { ...settings, modelRef: 'invalid' } })).rejects.toMatchObject({ code: 'backend' });
+    await expect(collectCandidate(backend, { prompt: 'x', settings })).rejects.toMatchObject({ code: 'backend' });
   });
 
   it('rejects raw endpoint and credential values', () => {

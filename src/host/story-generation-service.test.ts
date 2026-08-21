@@ -23,7 +23,7 @@ function sources(): StoryGenerationSources {
 describe('I19 story generation service', () => {
   it('sends the fully assembled Host prompt to the fake ctx.llm route and returns only a candidate', async () => {
     const seen: string[] = [];
-    const service = createStoryGenerationService({ stream: async function* (request: { prompt: string }) { seen.push(request.prompt); yield '候'; yield '选'; } });
+    const service = createStoryGenerationService({ stream: async function* (request: { messages: Array<{ content: Array<{ text: string }> }> }) { seen.push(request.messages[0].content[0].text); yield { type: 'text-delta', index: 0, text: '候' }; yield { type: 'text-delta', index: 0, text: '选' }; yield { type: 'finish', reason: { kind: 'stop' } }; } });
     const result = await service.generate(sources(), { modelRef: 'dsh/default', credentialRef: 'dsh/managed' });
     expect(result.candidate.text).toBe('候选');
     expect(seen).toHaveLength(1);

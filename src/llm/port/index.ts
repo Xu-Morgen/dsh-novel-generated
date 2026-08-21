@@ -28,6 +28,7 @@ export interface LlmChunk {
   readonly done?: boolean;
 }
 
+/** Internal novel-domain stream seam; all DSH adaptation belongs in `asLlmBackend`. */
 export interface LlmBackend {
   stream(request: GenerationRequest): AsyncIterable<LlmChunk | string>;
 }
@@ -45,6 +46,25 @@ export class GenerationError extends Error {
     this.code = code;
   }
 }
+
+/** Minimum structural projection of the current DSH `llm.stream(GenerateOptions)` contract. */
+interface DshLlmService {
+  stream(options: DshGenerateOptions): AsyncIterable<DshStreamChunk>;
+}
+
+interface DshGenerateOptions {
+  provider: string;
+  model: string;
+  messages: readonly [{ id: string; role: 'user'; content: readonly [{ type: 'text'; text: string }]; source: { kind: 'plugin'; plugin: string } }];
+  temperature?: number;
+  maxTokens?: number;
+  signal?: AbortSignal;
+}
+
+type DshStreamChunk =
+  | { type: 'text-delta'; text: string }
+  | { type: 'finish'; reason: { kind: string; failure?: { message?: string } } }
+  | { type: 'block-start' | 'reasoning-delta' | 'tool-call-delta' | 'block-end' | 'usage' };
 
 /**
  * Collect one streaming candidate through the injected Host LLM route.
@@ -74,8 +94,48 @@ export async function collectCandidate(
   return { text, chunks };
 }
 
-/** Minimal adapter for DSH ctx.llm implementations exposing stream(). */
+/**
+ * Adapt the exact current DSH `llm.stream(GenerateOptions)` surface to the
+ * novel-domain stream seam. DSH owns provider credentials; `credentialRef`
+ * remains a controlled project setting and is never sent as a raw key.
+ */
 export function asLlmBackend(value: unknown): LlmBackend | undefined {
   if (!value || typeof value !== 'object' || typeof (value as { stream?: unknown }).stream !== 'function') return undefined;
-  return value as LlmBackend;
+  const llm = value as DshLlmService;
+  return Object.freeze({
+    async *stream(request: GenerationRequest): AsyncIterable<LlmChunk> {
+      const { provider, model } = splitModelRef(request.settings.modelRef);
+      const options: DshGenerateOptions = {
+        provider,
+        model,
+        messages: [{
+          id: 'novel-generation-request',
+          role: 'user',
+          content: [{ type: 'text', text: request.prompt }],
+          source: { kind: 'plugin', plugin: 'novel-creation-tool' },
+        }],
+        temperature: request.settings.temperature,
+        maxTokens: request.settings.maxTokens,
+        signal: request.signal,
+      };
+      for await (const chunk of llm.stream(options)) {
+        if (chunk.type === 'text-delta') yield { text: chunk.text };
+        if (chunk.type === 'finish') {
+          if (chunk.reason.kind === 'error' || chunk.reason.kind === 'aborted') {
+            throw new Error(chunk.reason.failure?.message ?? `DSH LLM finished with ${chunk.reason.kind}`);
+          }
+          yield { done: true };
+        }
+      }
+    },
+  });
+}
+
+/** Parse the configured `provider/model` route without admitting raw endpoint syntax. */
+function splitModelRef(modelRef: string): { provider: string; model: string } {
+  const separator = modelRef.indexOf('/');
+  if (separator <= 0 || separator === modelRef.length - 1) {
+    throw new Error('Generation modelRef must use provider/model format');
+  }
+  return { provider: modelRef.slice(0, separator), model: modelRef.slice(separator + 1) };
 }
