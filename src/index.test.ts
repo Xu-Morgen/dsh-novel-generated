@@ -63,6 +63,30 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.get('novelKnowledgeLeakDetection', false)).toBeUndefined();
   });
 
+  it('wires I24 relationship/style soft detection to the Host ctx.llm service while its Fiber is live', async () => {
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({
+          violations: [{ kind: 'style-deviation', severity: 'soft', message: '时态偏离。', references: ['style-main'] }],
+        }) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply);
+    const detector = root.get('novelRelationshipStyleDetection') as {
+      detectRelationshipAndStyle(input: unknown, settings: unknown): Promise<{ adjudication: { status: string } }>;
+    };
+
+    await expect(detector.detectRelationshipAndStyle({
+      prose: '米拉现在走进码头。', relationships: [],
+      style: { id: 'style-main', version: 1, name: '港湾阴谋', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制紧张', proseStyle: '冷峻简洁', chapterFormat: '场景标题', dialogueConventions: '使用中文引号', forbidden: [] },
+    }, { modelRef: 'dsh/default', credentialRef: 'dsh/managed' })).resolves.toMatchObject({ adjudication: { status: 'warn' } });
+
+    await fiber.dispose();
+    expect(root.get('novelRelationshipStyleDetection', false)).toBeUndefined();
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);

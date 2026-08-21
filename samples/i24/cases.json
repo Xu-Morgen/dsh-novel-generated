@@ -1,0 +1,84 @@
+{
+  "iteration": "I24",
+  "version": 1,
+  "purpose": "Frozen relationship-drift and style-deviation soft-check regression corpus",
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["canonical-trust-collapse", "canonical-tense-shift", "canonical-double-warning"],
+  "heldOutCaseIds": ["heldout-rival-warmth", "heldout-person-shift", "heldout-clean-dialogue"],
+  "cases": [
+    {
+      "id": "canonical-trust-collapse",
+      "prose": "米拉毫无保留地把密钥交给林舟。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"rivalry","affinity":-60,"trust":5,"status":"公开敌对","milestones":[],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": [{"kind":"relationship-drift","severity":"soft","message":"米拉对林舟的无保留信任与既有公开敌对、极低信任关系显著漂移。","references":["mira-lin"]}]
+    },
+    {
+      "id": "canonical-tense-shift",
+      "prose": "米拉走进码头，现在她望着潮水并听见钟声。",
+      "relationships": [],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": [{"kind":"style-deviation","severity":"soft","message":"正文从既定过去时漂移到现在时。","references":["style-main"]}]
+    },
+    {
+      "id": "canonical-double-warning",
+      "prose": "我相信林舟，并把一切秘密都告诉了他；现在我冲向码头。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"enmity","affinity":-80,"trust":0,"status":"互相追捕","milestones":[],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": [
+        {"kind":"relationship-drift","severity":"soft","message":"米拉对林舟的完全信任与互相追捕、零信任关系显著漂移。","references":["mira-lin"]},
+        {"kind":"style-deviation","severity":"soft","message":"正文从既定第三人称过去时漂移到第一人称现在时。","references":["style-main"]}
+      ]
+    },
+    {
+      "id": "relationship-consistent-clean",
+      "prose": "米拉避开林舟的视线，握紧匕首后退一步。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"enmity","affinity":-75,"trust":5,"status":"彼此戒备","milestones":[],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": []
+    },
+    {
+      "id": "style-consistent-clean",
+      "prose": "米拉在雨中收起油灯，沿堤岸慢慢前行。",
+      "relationships": [],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": []
+    },
+    {
+      "id": "friendly-reconciliation-clean",
+      "prose": "米拉拍了拍林舟的肩，两人沿着旧路离开港口。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"friendship","affinity":70,"trust":85,"status":"长期盟友","milestones":["saved-harbor"],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": []
+    },
+    {
+      "id": "heldout-rival-warmth",
+      "prose": "米拉笑着拥抱林舟，答应永远与他并肩。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"rivalry","affinity":-40,"trust":15,"status":"竞逐同一目标","milestones":[],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": [{"kind":"relationship-drift","severity":"soft","message":"米拉与林舟的亲密承诺和既有竞争、低信任关系显著漂移。","references":["mira-lin"]}]
+    },
+    {
+      "id": "heldout-person-shift",
+      "prose": "我推开仓库的门，听见潮水在黑暗里拍岸。",
+      "relationships": [],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": [{"kind":"style-deviation","severity":"soft","message":"正文从既定第三人称视角漂移到第一人称。","references":["style-main"]}]
+    },
+    {
+      "id": "heldout-clean-dialogue",
+      "prose": "米拉说：“潮水退了，我们该走了。”林舟点头跟上。",
+      "relationships": [{"id":"mira-lin","version":1,"from":"mira","to":"lin","type":"allegiance","affinity":55,"trust":70,"status":"共同执行任务","milestones":[],"knownTo":["mira","lin"]}],
+      "style": {"id":"style-main","version":1,"name":"港湾阴谋","person":"third-limited","tense":"past","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": []
+    },
+    {
+      "id": "present-style-clean",
+      "prose": "米拉走进码头，望着潮水并听见远处的钟声。",
+      "relationships": [],
+      "style": {"id":"style-present","version":1,"name":"即时风暴","person":"third-limited","tense":"present","povScope":"single","tone":"克制紧张","proseStyle":"冷峻简洁","chapterFormat":"场景标题","dialogueConventions":"使用中文引号","forbidden":[]},
+      "expected": []
+    }
+  ]
+}
