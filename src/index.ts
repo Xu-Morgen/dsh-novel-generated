@@ -11,6 +11,7 @@ import { createTextService } from './host/text-service.js';
 import { createWorldviewService } from './host/worldview-service.js';
 import { createOutlineService } from './host/outline-service.js';
 import { createRelationshipService } from './host/relationship-service.js';
+import { createKnowledgeService } from './host/knowledge-service.js';
 import { createGenerationService } from './host/generation-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
@@ -33,6 +34,8 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  *   proposal→accept/reject gate shared by all later user-confirmed writes.
  * - `novelOutline` (I14/I15): Host facade over B5 outline/detail-beat storage and
  *   C6 progress/navigation; C6 never rewrites the B5 source.
+ * - `novelKnowledge` (I18): Host facade over the C3 knowledge store and POV filter;
+ *   C3 never derives visibility from C1 relationship publicity.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -67,6 +70,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelConfirmation', createConfirmationService(projectsRoot));
   ctx.provide('novelOutline', createOutlineService(projectsRoot));
   ctx.provide('novelRelationship', createRelationshipService(projectsRoot));
+  ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
   const llm = ctx.get('llm', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
 
