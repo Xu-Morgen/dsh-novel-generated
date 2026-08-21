@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i26",
+  "type": "command",
+  "source": "pnpm run verify:i26",
+  "summary": "Passed: typecheck, 42 Vitest files / 188 tests, build, and smoke:i26; frozen corpus 11/11 on controlled fake route including held-out 3/3.",
+  "verifier": "pnpm"
+}

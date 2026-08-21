@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-21-i26-c4-canon-parser",
+  "currentTodo": "Inspect task-owned diff and perform single I26 Git closeout.",
+  "completedTodos": [
+    "TaskStartSnapshot, DoD/scope fence, baseline read, immutable 11-case corpus before parser code, strict C4 append/supersede proposal schema, C4-only Host LLM parser, CanonLedger consumer fixture, ConfirmationGate pending/rejection boundary, focused tests, smoke, and verify:i26."
+  ],
+  "activeSlice": "Git closeout",
+  "evidenceRefs": [
+    "pnpm run verify:i26: passed (42 files / 188 tests; build; smoke:i26)"
+  ],
+  "blockedOn": null,
+  "nextStep": "Review diff/check hygiene, commit only I26-owned paths, and read back the commit.",
+  "updatedAt": "2026-08-21"
+}

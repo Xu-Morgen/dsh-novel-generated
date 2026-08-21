@@ -1,0 +1,22 @@
+{
+  "iteration": "I26",
+  "version": 1,
+  "purpose": "Frozen C4 Canon parser regression corpus",
+  "immutable": true,
+  "threshold": 0.85,
+  "canonicalCaseIds": ["canonical-arrival", "canonical-decision", "canonical-revelation"],
+  "heldOutCaseIds": ["heldout-dialogue", "heldout-statechange", "heldout-supersede"],
+  "cases": [
+    {"id":"canonical-arrival","prose":"黎明时，林舟抵达外城门。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-arrival","storyTime":"day 1 dawn","kind":"event","summary":"林舟抵达外城门","detail":"黎明时林舟抵达外城门。","participants":["lin"],"location":"外城门","consequences":[],"affectedLayers":["state"]},"confidence":"high"}]}},
+    {"id":"canonical-decision","prose":"米拉决定暂不交出铜钥匙。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-decision","storyTime":"day 1 dawn","kind":"decision","summary":"米拉决定保留铜钥匙","detail":"米拉决定暂不交出铜钥匙。","participants":["mira"],"location":"外城门","consequences":["evt-arrival"],"affectedLayers":["state","relationship"]},"confidence":"high"}]}},
+    {"id":"canonical-revelation","prose":"守门人承认密令的印记来自王室。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-revelation","storyTime":"day 1 dawn","kind":"revelation","summary":"守门人揭示密令印记来自王室","detail":"守门人承认密令的印记来自王室。","participants":["guard","lin","mira"],"location":"外城门","consequences":[],"affectedLayers":["knowledge"]},"confidence":"medium"}]}},
+    {"id":"dialogue-event","prose":"林舟与守门人约定日落后在钟楼相见。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-dialogue","storyTime":"day 1 dawn","kind":"dialogue","summary":"林舟与守门人约定钟楼会面","detail":"林舟与守门人约定日落后在钟楼相见。","participants":["lin","guard"],"location":"外城门","consequences":[],"affectedLayers":["relationship"]},"confidence":"medium"}]}},
+    {"id":"statechange-event","prose":"暴雨淹没了码头，渡船全部停航。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-storm","storyTime":"day 1 noon","kind":"statechange","summary":"暴雨导致码头渡船停航","detail":"暴雨淹没码头，渡船全部停航。","participants":[],"location":"码头","consequences":[],"affectedLayers":["state"]},"confidence":"high"}]}},
+    {"id":"low-confidence-fact","prose":"阴影里似乎有人看见米拉藏起了一封信。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-uncertain-letter","storyTime":"day 1 noon","kind":"event","summary":"疑似有人目击米拉藏信","detail":"阴影里似乎有人看见米拉藏起一封信。","participants":["mira"],"location":"码头","consequences":[],"affectedLayers":["knowledge"]},"confidence":"low"}]}},
+    {"id":"no-canon-change","prose":"风掠过空荡的街道，钟声在远处回响。","current":[],"expected":{"ops":[]}},
+    {"id":"multi-append","prose":"林舟点燃信号火，米拉随即看见塔楼回应的灯光。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-signal-fire","storyTime":"day 1 night","kind":"event","summary":"林舟点燃信号火","detail":"林舟点燃信号火。","participants":["lin"],"location":"钟楼","consequences":["evt-signal-answer"],"affectedLayers":["state"]},"confidence":"high"},{"op":"append","event":{"id":"evt-signal-answer","storyTime":"day 1 night","kind":"revelation","summary":"米拉看见塔楼回应灯光","detail":"米拉看见塔楼回应的灯光。","participants":["mira"],"location":"钟楼","consequences":[],"affectedLayers":["knowledge"]},"confidence":"medium"}]}},
+    {"id":"heldout-dialogue","prose":"米拉向林舟承诺会在午夜前带来地图。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-promise","storyTime":"day 1 evening","kind":"dialogue","summary":"米拉承诺午夜前带来地图","detail":"米拉向林舟承诺会在午夜前带来地图。","participants":["mira","lin"],"location":"钟楼","consequences":[],"affectedLayers":["relationship"]},"confidence":"high"}]}},
+    {"id":"heldout-statechange","prose":"城门在宵禁钟声后关闭，所有人被困在城外。","current":[],"expected":{"ops":[{"op":"append","event":{"id":"evt-curfew","storyTime":"day 1 night","kind":"statechange","summary":"宵禁后城门关闭","detail":"宵禁钟声后城门关闭，所有人被困在城外。","participants":["lin","mira"],"location":"外城门","consequences":[],"affectedLayers":["state"]},"confidence":"medium"}]}},
+    {"id":"heldout-supersede","prose":"更正：林舟抵达的是内城门，并非外城门。","current":[{"id":"evt-arrival","seq":0,"storyTime":"day 1 dawn","kind":"event","summary":"林舟抵达外城门","detail":"黎明时林舟抵达外城门。","participants":["lin"],"location":"外城门","consequences":[],"affectedLayers":["state"],"immutable":true,"supersededBy":null}],"expected":{"ops":[{"op":"supersede","targetId":"evt-arrival","correction":{"id":"evt-arrival-fix","storyTime":"day 1 dawn","summary":"林舟抵达内城门","detail":"更正：林舟抵达的是内城门，并非外城门。","participants":["lin"],"location":"内城门","consequences":[],"affectedLayers":["state"]},"confidence":"high"}]}}
+  ]
+}

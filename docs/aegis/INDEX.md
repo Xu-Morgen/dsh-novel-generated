@@ -64,3 +64,17 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/drift-check-draft.json | I22 知情泄漏硬约束检测器 drift check draft |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/gate-input-pack.json | 2026-08-21-i22-knowledge-leak-hard-detector gate input pack |
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i22-knowledge-leak-hard-detector/proof-bundle.md | 2026-08-21-i22-knowledge-leak-hard-detector proof bundle |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/10-intent.md | I26 C4 正史 parser intent |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/20-checkpoint.md | I26 C4 正史 parser checkpoint |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/90-evidence.md | I26 C4 正史 parser evidence |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/99-reflection.md | I26 C4 正史 parser reflection |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/task-intent-draft.json | I26 C4 正史 parser task intent draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/baseline-read-set-hint.json | I26 C4 正史 parser baseline read-set hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/baseline-usage-draft.json | I26 C4 正史 parser baseline usage draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/impact-statement-draft.json | I26 C4 正史 parser impact statement draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/todo-checkpoint-draft.json | I26 C4 正史 parser todo checkpoint draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/drift-check-draft.json | I26 C4 正史 parser drift check draft |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/resume-state-hint.json | 2026-08-21-i26-c4-canon-parser resume state hint |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/evidence-bundle-draft-verify-i26.json | 2026-08-21-i26-c4-canon-parser evidence verify-i26 |
+| 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i26-c4-canon-parser/gate-input-pack.json | 2026-08-21-i26-c4-canon-parser gate input pack |
+| 2026-08-21 | work | docs/aegis/work/2026-08-21-i26-c4-canon-parser/proof-bundle.md | 2026-08-21-i26-c4-canon-parser proof bundle |

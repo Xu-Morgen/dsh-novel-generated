@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "完成 I26：将已接受正文解析为 C4 CanonEvent append/supersede proposal，并严格保持账本 append-only。",
+  "goal": "完成 I26：将已接受正文解析为 C4 CanonEvent append/supersede proposal，并严格保持账本 append-only。",
+  "successEvidence": [],
+  "stopCondition": "Stop when success evidence is satisfied or a blocker/risk requires pause.",
+  "nonGoals": [],
+  "scope": "I26 冻结样本、C4 parser/apply seam、测试、smoke、verify 脚本和工作记录。",
+  "changeKinds": [
+    "code"
+  ],
+  "riskHints": []
+}
