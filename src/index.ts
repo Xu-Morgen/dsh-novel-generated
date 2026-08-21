@@ -23,6 +23,7 @@ import { createStateParserService } from './host/state-parser-service.js';
 import { createRelationshipParserService } from './host/relationship-parser-service.js';
 import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
 import { createWorldviewParserService } from './host/worldview-parser-service.js';
+import { createExtensionService } from './host/extension-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js';
 
 /**
@@ -49,6 +50,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData } from './remote.js
  * - `novelGeneration` (I17): Host-only ctx.llm candidate collection.
  * - `novelSettings` (I31): Host-only persisted A2 template/preset/route settings;
  *   it resolves SecretRefs through the Host seam and delegates through the existing ctx.llm adapter.
+ * - `novelExtension` (I32): Fiber-owned internal Provider/Injector/Validator/
+ *   Parser/relationship-rule/backend-strategy registry; it grants no independent
+ *   file, credential, LLM, UI, or composition ownership (design §11.1).
  * - `novelStoryGeneration` (I19): full navigation/context/history candidate path;
  *   it deliberately has no parser or writeback operation.
  * - `novelConsistencyDetection` (I21): Host-only B1 immutable/C4 semantic
@@ -111,6 +115,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const credentials = ctx.get('credentials', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelSettings', createSettingsService(llm, config.settingsRoot, credentials, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelExtension', createExtensionService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryGeneration', createStoryGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelStoryLifecycle', createStoryLifecycleService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelConsistencyDetection', createConsistencyDetectionService(llm, (dispose) => ctx.effect(() => dispose)));

@@ -158,6 +158,23 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.get('novelWorldviewParser', false)).toBeUndefined();
   });
 
+  it('wires the I32 internal Extension registry to the Host Fiber and removes it on dispose', async () => {
+    const root = new Context();
+    const fiber = await root.plugin(apply);
+    const extensions = root.get('novelExtension') as {
+      register(input: unknown): { release(): void };
+      seams(): { validators: unknown[] };
+    };
+
+    extensions.register({ id: 'fiber-validator', kind: 'validator', check: () => [] });
+    expect(extensions.seams().validators).toHaveLength(1);
+    expect(root.get('relationshipEngine', false)).toBeUndefined();
+
+    await fiber.dispose();
+    expect(root.get('novelExtension', false)).toBeUndefined();
+    expect(() => extensions.seams()).toThrow(/disposed/);
+  });
+
   it('removes the novelCreation service after Fiber dispose', async () => {
     const root = new Context();
     const fiber = await root.plugin(apply);
