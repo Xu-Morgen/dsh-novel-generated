@@ -1,0 +1,5 @@
+[
+  {"id":"held-01","sourceLayer":"B1","sourceId":"rule-held-01","title":"烽火规则","content":"烽火只能在黄昏点燃。","tags":["law"]},
+  {"id":"held-02","sourceLayer":"B2","sourceId":"world-held-01","title":"盐港","content":"盐港位于白崖以南。","tags":["geography"]},
+  {"id":"held-03","sourceLayer":"B2","sourceId":"world-held-02","title":"鸦庭","content":"鸦庭不承认旧王的继承权。","tags":["faction"]}
+]

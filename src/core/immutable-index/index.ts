@@ -3,7 +3,8 @@ import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { ruleSchema, type Rule } from '../schema/rules.js';
 import { worldEntrySchema, type WorldEntry } from '../schema/worldview.js';
-import { readYaml } from '../io/yaml.js';
+import { classifiedSettingsFileSchema, classifierCandidateSchema, settingEntrySchema, type SettingEntry as ClassifiedSettingEntry } from '../schema/classifier.js';
+import { readYaml, writeYaml } from '../io/yaml.js';
 
 /** I40 indexed SettingEntry contract (design §10.4). The YAML documents remain authoritative. */
 export interface SettingEntry {
@@ -27,6 +28,7 @@ export interface ImmutableSettingQuery {
 }
 
 export const IMMUTABLE_INDEX_FILE = 'settings-index.sqlite';
+export const CLASSIFIED_SETTINGS_FILE = 'classified-settings.yaml';
 
 /**
  * Rebuildable exact index over B1 immutable rules and B2 immutable worldview
@@ -57,6 +59,26 @@ export class ImmutableSettingsIndex {
       this.database = new DatabaseSync(this.databasePath);
       this.ensureSchema();
     }
+  }
+
+  /** Fail closed when a candidate references a source not present in authoritative YAML. */
+  async assertSources(sourceIds: readonly string[]): Promise<void> {
+    const sources = await this.readAuthoritativeSourceIds();
+    for (const sourceId of sourceIds) if (!sources.has(sourceId)) throw new Error(`Dangling classifier sourceId: ${sourceId}`);
+  }
+
+  async writeClassified(candidates: readonly { entry: ClassifiedSettingEntry; sourceIds: readonly string[]; sourceEvidence: readonly { sourceId: string; quote: string }[] }[]): Promise<void> {
+    const parsed = candidates.map((candidate) => ({
+      entry: settingEntrySchema.parse(candidate.entry),
+      sourceIds: [...candidate.sourceIds],
+      sourceEvidence: [...candidate.sourceEvidence],
+    }));
+    const validated = parsed.map((candidate) => classifierCandidateSchema.parse(candidate));
+    await this.assertSources(validated.flatMap((candidate) => candidate.sourceIds));
+    const existing = await this.readClassifiedCandidates();
+    const byId = new Map(existing.map((candidate) => [candidate.entry.id, candidate]));
+    for (const candidate of validated) byId.set(candidate.entry.id, candidate);
+    await writeYaml(join(this.projectRoot, CLASSIFIED_SETTINGS_FILE), { candidates: [...byId.values()].sort((a, b) => a.entry.id.localeCompare(b.entry.id)) });
   }
 
   async sync(): Promise<{ added: number; updated: number; removed: number; total: number }> {
@@ -116,7 +138,23 @@ export class ImmutableSettingsIndex {
       if (entry.mutable) continue;
       entries.push({ id: `B2:${entry.id}`, sourceLayer: 'B2', sourceId: entry.id, title: entry.title, content: entry.content, tags: [entry.kind, ...entry.keywords], immutable: true, supersededBy: entry.supersededBy ?? undefined, version: entry.version });
     }
+    entries.push(...(await this.readClassifiedCandidates()).map((candidate) => candidate.entry));
     return entries;
+  }
+
+  private async readClassifiedCandidates(): Promise<Array<{ entry: ClassifiedSettingEntry; sourceIds: string[]; sourceEvidence: Array<{ sourceId: string; quote: string }> }>> {
+    try { return classifiedSettingsFileSchema.parse(await readYaml<unknown>(join(this.projectRoot, CLASSIFIED_SETTINGS_FILE))).candidates; }
+    catch (error) {
+      if (error instanceof Error && (error.cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return [];
+      throw new Error(`Invalid classified settings document: ${CLASSIFIED_SETTINGS_FILE}`, { cause: error });
+    }
+  }
+
+  private async readAuthoritativeSourceIds(): Promise<Set<string>> {
+    const ids = new Set<string>();
+    for (const file of (await this.files('rules')).sort()) ids.add(ruleSchema.parse(await readYaml<unknown>(join(this.projectRoot, 'rules', file))).id);
+    for (const file of (await this.files('worldview')).sort()) ids.add(worldEntrySchema.parse(await readYaml<unknown>(join(this.projectRoot, 'worldview', file))).id);
+    return ids;
   }
 
   private async files(directory: string): Promise<string[]> {

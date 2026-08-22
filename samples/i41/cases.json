@@ -1,0 +1,12 @@
+[
+  {"id":"case-01","sourceLayer":"B1","sourceId":"rule-01","title":"海关禁令","content":"不可越过海关。","tags":["law"]},
+  {"id":"case-02","sourceLayer":"B1","sourceId":"rule-02","title":"魔法禁令","content":"人类不能施放魔法。","tags":["law"]},
+  {"id":"case-03","sourceLayer":"B1","sourceId":"rule-03","title":"夜禁","content":"钟声后城门关闭。","tags":["law"]},
+  {"id":"case-04","sourceLayer":"B1","sourceId":"rule-04","title":"王室印记","content":"王室文件必须有银印。","tags":["law"]},
+  {"id":"case-05","sourceLayer":"B1","sourceId":"rule-05","title":"航道规则","content":"冬季船只只能走东航道。","tags":["law"]},
+  {"id":"case-06","sourceLayer":"B2","sourceId":"world-01","title":"北境史","content":"北境由旧王统治。","tags":["history"]},
+  {"id":"case-07","sourceLayer":"B2","sourceId":"world-02","title":"灰塔","content":"灰塔位于盐沼中央。","tags":["geography"]},
+  {"id":"case-08","sourceLayer":"B2","sourceId":"world-03","title":"黑潮会","content":"黑潮会控制南港。","tags":["faction"]},
+  {"id":"case-09","sourceLayer":"B2","sourceId":"world-04","title":"月砂","content":"月砂是北境唯一的药材。","tags":["concept"]},
+  {"id":"case-10","sourceLayer":"B2","sourceId":"world-05","title":"旧桥","content":"旧桥连接内城与码头。","tags":["geography"]}
+]
