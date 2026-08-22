@@ -19,6 +19,13 @@ export interface EditorRemote {
   outlineBeatCards(projectId: string): Promise<unknown[]>;
   relationshipRead(projectId: string): Promise<unknown[]>;
   relationshipSave(projectId: string, input: unknown): Promise<unknown>;
+  stateCurrent(projectId: string): Promise<unknown>;
+  stateSnapshots(projectId: string): Promise<unknown[]>;
+  stateRollback(projectId: string, seq: number): Promise<unknown>;
+  stateDiff(projectId: string, fromSeq: number, toSeq: number): Promise<unknown>;
+  canonQuery(projectId: string, filter?: unknown): Promise<unknown[]>;
+  canonCorrectionPropose(projectId: string, targetId: string, input: unknown): Promise<unknown>;
+  canonCorrectionAccept(projectId: string, proposalId: string): Promise<unknown>;
 }
 export interface WorkspaceRemote {
   $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer>;
@@ -27,6 +34,8 @@ export interface WorkspaceRemote {
   novelWorldview?: EditorRemote;
   novelOutline?: EditorRemote;
   novelRelationship?: EditorRemote;
+  novelState?: EditorRemote;
+  novelCanon?: EditorRemote;
 }
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
@@ -104,6 +113,52 @@ function outlineRelationshipPanel(React: ReactFace, remote: WorkspaceRemote, pro
   );
 }
 
+function stateCanonPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+  let snapshots: unknown[] = [];
+  let canon: unknown[] = [];
+  let selectedSeq = 0;
+  let targetId = '';
+  let correction = '';
+  let proposalId = '';
+  let message = '';
+  const load = () => {
+    void Promise.all([remote.novelState?.stateSnapshots(projectId), remote.novelCanon?.canonQuery(projectId, { superseded: 'all' })])
+      .then(([nextSnapshots, nextCanon]) => { snapshots = nextSnapshots ?? []; canon = nextCanon ?? []; message = 'Loaded from Host'; }, (error: Error) => { message = error.message; });
+  };
+  const rollback = () => {
+    void remote.novelState?.stateRollback(projectId, selectedSeq).then(() => { message = `Rolled back through StateEngine to snapshot ${selectedSeq}`; load(); }, (error: Error) => { message = error.message; });
+  };
+  const propose = (event: { preventDefault?: () => void }) => {
+    event.preventDefault?.();
+    let parsed: unknown;
+    try { parsed = JSON.parse(correction); } catch { message = 'Host rejected invalid correction JSON'; return; }
+    void remote.novelCanon?.canonCorrectionPropose(projectId, targetId, parsed).then((record: unknown) => { proposalId = (record as { id: string }).id; message = 'Correction is pending ConfirmationGate acceptance'; }, (error: Error) => { message = error.message; });
+  };
+  const accept = () => {
+    void remote.novelCanon?.canonCorrectionAccept(projectId, proposalId).then(() => { message = 'Correction appended as a supersede event'; load(); }, (error: Error) => { message = error.message; });
+  };
+  load();
+  return React.createElement('section', { 'data-novel-editors': 'c2-c4' },
+    React.createElement('h3', null, 'State snapshots and Canon ledger'),
+    React.createElement('div', { 'data-novel-state': 'snapshots' },
+      React.createElement('button', { type: 'button', onClick: load }, 'Refresh snapshots and Canon'),
+      React.createElement('select', { value: selectedSeq, onChange: (event: { target: { value: string } }) => { selectedSeq = Number(event.target.value); } },
+        snapshots.map((snapshot: any) => React.createElement('option', { key: snapshot.seq, value: snapshot.seq }, `Snapshot ${snapshot.seq}`)),
+      ),
+      React.createElement('button', { type: 'button', onClick: rollback }, 'Rollback through StateEngine'),
+    ),
+    React.createElement('ol', { 'data-novel-canon': 'readonly' }, canon.map((event: any) => React.createElement('li', { key: event.id }, `${event.seq}: ${event.summary}${event.supersededBy ? ' (superseded)' : ''}`))),
+    React.createElement('form', { onSubmit: propose, 'data-novel-canon-correction': 'gate-required' },
+      React.createElement('input', { placeholder: 'Canon event id', value: targetId, onChange: (event: { target: { value: string } }) => { targetId = event.target.value; } }),
+      React.createElement('textarea', { placeholder: 'Correction JSON', value: correction, onChange: (event: { target: { value: string } }) => { correction = event.target.value; } }),
+      React.createElement('button', { type: 'submit' }, 'Propose correction'),
+    ),
+    React.createElement('input', { placeholder: 'Pending proposal id', value: proposalId, onChange: (event: { target: { value: string } }) => { proposalId = event.target.value; } }),
+    React.createElement('button', { type: 'button', onClick: accept }, 'Accept correction through ConfirmationGate'),
+    message ? React.createElement('p', { role: 'status' }, message) : null,
+  );
+}
+
 function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote): unknown {
   if (state.status === 'loading') return React.createElement('section', { 'data-novel-workspace': 'loading' }, 'Loading workspace...');
   if (state.status === 'error') return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, state.message);
@@ -116,6 +171,7 @@ function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote):
     )),
     editorPanel(React, remote, 'default'),
     outlineRelationshipPanel(React, remote, 'default'),
+    stateCanonPanel(React, remote, 'default'),
   );
 }
 

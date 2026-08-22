@@ -103,9 +103,12 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const worldviewService = createWorldviewService(projectsRoot);
   const outlineService = createOutlineService(projectsRoot);
   const relationshipService = createRelationshipService(projectsRoot);
+  const stateService = createStateService(projectsRoot);
+  const canonService = createCanonService(projectsRoot);
+  const confirmationService = createConfirmationService(projectsRoot);
   ctx.provide('novelProject', createProjectService(projectsRoot));
-  ctx.provide('novelState', createStateService(projectsRoot));
-  ctx.provide('novelCanon', createCanonService(projectsRoot));
+  ctx.provide('novelState', stateService);
+  ctx.provide('novelCanon', canonService);
   ctx.provide('novelText', createTextService(projectsRoot));
   ctx.provide('novelRule', createRuleService(projectsRoot));
   ctx.provide('novelWorldview', worldviewService);
@@ -133,7 +136,10 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
-  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService(characterService, worldviewService, outlineService, relationshipService));
+  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService(
+    characterService, worldviewService, outlineService, relationshipService,
+    stateService, canonService, confirmationService,
+  ));
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {
     ctx.effect(() => typert.register(probeContribution));

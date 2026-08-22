@@ -7,6 +7,7 @@ import { projectDirectory, validateProjectId } from '../core/io/path.js';
 export interface NovelStateService {
   open(projectId: string, initial: Omit<WorldState, 'seq'>): Promise<void>;
   current(projectId: string): WorldState;
+  snapshots(projectId: string): WorldState[];
   transaction(projectId: string, mutator: StateMutator): Promise<WorldState>;
   rollback(projectId: string, seq: number): Promise<WorldState>;
   diff(projectId: string, fromSeq: number, toSeq: number): StateDiff;
@@ -26,6 +27,7 @@ export function createStateService(projectsRoot = join(homedir(), '.dsh', 'novel
       engines.set(projectId, await StateEngine.open(join(projectDirectory(projectsRoot, projectId), 'state'), initial));
     },
     current: (projectId) => get(projectId).current(),
+    snapshots: (projectId) => get(projectId).snapshotsList(),
     transaction: (projectId, mutator) => get(projectId).transaction(mutator),
     rollback: (projectId, seq) => get(projectId).rollback(seq),
     diff: (projectId, fromSeq, toSeq) => get(projectId).diff(fromSeq, toSeq),

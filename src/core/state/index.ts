@@ -80,6 +80,9 @@ export class StateEngine {
   /** Return a defensive copy of the current snapshot. */
   current(): WorldState { return clone(this.snapshots.at(-1)!); }
 
+  /** Return defensive copies of every retained snapshot for the C2 read panel. */
+  snapshotsList(): WorldState[] { return this.snapshots.map((snapshot) => clone(snapshot)); }
+
   /** Return a defensive copy of a historical snapshot. */
   snapshot(seq: number): WorldState {
     if (!Number.isInteger(seq) || seq < 0) throw new Error('Invalid snapshot sequence');

@@ -8,6 +8,14 @@ import type { CharacterCore, CharacterCoreInput, CharacterCorePatch } from './co
 import type { WorldEntry, WorldEntryInput } from './core/schema/worldview.js';
 import type { Outline, OutlineBeatCard, OutlineInput } from './core/schema/outline.js';
 import type { Relationship, RelationshipInput } from './core/schema/relationship.js';
+import type { NovelStateService } from './host/state-service.js';
+import type { NovelCanonService } from './host/canon-service.js';
+import type { NovelConfirmationService } from './host/confirmation-service.js';
+import type { WorldState } from './core/schema/state.js';
+import type { CanonEventView, CanonQuery } from './core/canon/index.js';
+import type { StateDiff } from './core/state/index.js';
+import type { CanonCorrectionInput } from './core/schema/canon.js';
+import type { ConfirmationRecord } from './core/schema/confirm.js';
 
 /** I2 gate probe identity retained for the public contract regression. */
 export const NOVEL_PROBE_NAMESPACE = 'novelProbe';
@@ -48,6 +56,12 @@ const projectParameter = jsonParameter('projectId');
 const entityParameter = jsonParameter('entityId');
 const inputParameter = jsonParameter('input');
 const patchParameter = jsonParameter('patch');
+const seqParameter = jsonParameter('seq');
+const fromSeqParameter = jsonParameter('fromSeq');
+const toSeqParameter = jsonParameter('toSeq');
+const filterParameter = jsonParameter('filter');
+const targetIdParameter = jsonParameter('targetId');
+const proposalIdParameter = jsonParameter('proposalId');
 
 function editorInvocation(
   service: string,
@@ -75,11 +89,20 @@ export const outlineSaveInvocation = editorInvocation('novelOutline', 'save', [p
 export const outlineBeatCardsInvocation = editorInvocation('novelOutline', 'beatCards', [projectParameter]);
 export const relationshipReadInvocation = editorInvocation('novelRelationship', 'read', [projectParameter]);
 export const relationshipSaveInvocation = editorInvocation('novelRelationship', 'save', [projectParameter, inputParameter]);
+export const stateCurrentInvocation = editorInvocation('novelState', 'current', [projectParameter]);
+export const stateSnapshotsInvocation = editorInvocation('novelState', 'snapshots', [projectParameter]);
+export const stateRollbackInvocation = editorInvocation('novelState', 'rollback', [projectParameter, seqParameter]);
+export const stateDiffInvocation = editorInvocation('novelState', 'diff', [projectParameter, fromSeqParameter, toSeqParameter]);
+export const canonQueryInvocation = editorInvocation('novelCanon', 'query', [projectParameter, filterParameter]);
+export const canonCorrectionProposeInvocation = editorInvocation('novelCanon', 'correctionPropose', [projectParameter, targetIdParameter, inputParameter]);
+export const canonCorrectionAcceptInvocation = editorInvocation('novelCanon', 'correctionAccept', [projectParameter, proposalIdParameter]);
 export const editorInvocations = [
   characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation,
   worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation,
   outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation,
   relationshipReadInvocation, relationshipSaveInvocation,
+  stateCurrentInvocation, stateSnapshotsInvocation, stateRollbackInvocation, stateDiffInvocation,
+  canonQueryInvocation, canonCorrectionProposeInvocation, canonCorrectionAcceptInvocation,
 ] as const;
 export const workspaceContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [],
@@ -104,6 +127,13 @@ export interface WorkspaceEditorService {
   outlineBeatCards(projectId: string): Promise<OutlineBeatCard[]>;
   relationshipRead(projectId: string): Promise<Relationship[]>;
   relationshipSave(projectId: string, input: RelationshipInput): Promise<Relationship>;
+  stateCurrent(projectId: string): WorldState;
+  stateSnapshots(projectId: string): WorldState[];
+  stateRollback(projectId: string, seq: number): Promise<WorldState>;
+  stateDiff(projectId: string, fromSeq: number, toSeq: number): StateDiff;
+  canonQuery(projectId: string, filter?: CanonQuery): CanonEventView[];
+  canonCorrectionPropose(projectId: string, targetId: string, input: CanonCorrectionInput): Promise<ConfirmationRecord>;
+  canonCorrectionAccept(projectId: string, proposalId: string): Promise<{ confirmation: ConfirmationRecord; event: unknown }>;
 }
 
 /** Host-only adapter that keeps existing domain Services as the sole write owner. */
@@ -112,6 +142,9 @@ export function createWorkspaceEditorService(
   worldview: NovelWorldviewService,
   outline?: NovelOutlineService,
   relationship?: NovelRelationshipService,
+  state?: NovelStateService,
+  canon?: NovelCanonService,
+  confirmation?: NovelConfirmationService,
 ): WorkspaceEditorService {
   if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
   return {
@@ -129,6 +162,44 @@ export function createWorkspaceEditorService(
     outlineBeatCards: (projectId) => outline.beatCards(projectId),
     relationshipRead: (projectId) => relationship.read(projectId),
     relationshipSave: (projectId, input) => relationship.save(projectId, input),
+    stateCurrent: (projectId) => {
+      if (!state) throw new Error('C2 Host service is required');
+      return state.current(projectId);
+    },
+    stateSnapshots: (projectId) => {
+      if (!state) throw new Error('C2 Host service is required');
+      return state.snapshots(projectId);
+    },
+    stateRollback: (projectId, seq) => {
+      if (!state) throw new Error('C2 Host service is required');
+      return state.rollback(projectId, seq);
+    },
+    stateDiff: (projectId, fromSeq, toSeq) => {
+      if (!state) throw new Error('C2 Host service is required');
+      return state.diff(projectId, fromSeq, toSeq);
+    },
+    canonQuery: (projectId, filter) => {
+      if (!canon) throw new Error('C4 Host service is required');
+      return canon.query(projectId, filter);
+    },
+    canonCorrectionPropose: (projectId, targetId, input) => {
+      if (!confirmation) throw new Error('Confirmation Host service is required');
+      return confirmation.propose(projectId, {
+        id: input.id,
+        kind: 'canon-supersede',
+        payload: { targetId, correction: input },
+      });
+    },
+    canonCorrectionAccept: async (projectId, proposalId) => {
+      if (!confirmation || !canon) throw new Error('C4 and Confirmation Host services are required');
+      const confirmationRecord = await confirmation.accept(projectId, proposalId);
+      if (confirmationRecord.kind !== 'canon-supersede') throw new Error('Invalid canon correction proposal kind');
+      const payload = confirmationRecord.payload as { targetId?: string; correction?: CanonCorrectionInput };
+      if (!payload.targetId || !payload.correction) throw new Error('Invalid canon correction proposal payload');
+      const existing = canon.query(projectId).find((event) => event.id === payload.correction?.id);
+      if (existing) return { confirmation: confirmationRecord, event: existing };
+      return { confirmation: confirmationRecord, event: await canon.supersede(projectId, payload.targetId, payload.correction) };
+    },
   };
 }
 
