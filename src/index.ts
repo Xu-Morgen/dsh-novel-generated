@@ -24,6 +24,7 @@ import { createRelationshipParserService } from './host/relationship-parser-serv
 import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
 import { createWorldviewParserService } from './host/worldview-parser-service.js';
 import { createExtensionService } from './host/extension-service.js';
+import { createHostImportService } from './host/import-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NAMESPACE, workspaceContribution, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -132,6 +133,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelWorldviewParser', createWorldviewParserService(llm, (dispose) => ctx.effect(() => dispose)));
+  ctx.provide('novelImport', createHostImportService());
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
