@@ -25,6 +25,7 @@ import { createKnowledgeParserService } from './host/knowledge-parser-service.js
 import { createWorldviewParserService } from './host/worldview-parser-service.js';
 import { createExtensionService } from './host/extension-service.js';
 import { createHostImportService } from './host/import-service.js';
+import { createSplitAgentService } from './host/split-agent-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NAMESPACE, workspaceContribution, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -75,6 +76,9 @@ import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NA
  * - `novelWorldviewParser` (I29): Host-only B2 recognition through `ctx.llm`.
  *   It returns supersede proposals only; every B2 rewrite remains confirmation-first
  *   and WorldRepository retains the rewritten-history persistence contract.
+ * - `novelImport` (I37): Host-only controlled text import and pending candidates.
+ * - `novelSplitAgent` (I38): Host-routed B5/B2/detail-beat candidates; every
+ *   result remains confirmation-first and never writes C1/C2/C3/C4.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -134,6 +138,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelWorldviewParser', createWorldviewParserService(llm, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelImport', createHostImportService());
+  ctx.provide('novelSplitAgent', createSplitAgentService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
