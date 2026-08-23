@@ -1,5 +1,6 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry';
+import { z } from 'zod';
 import type { NovelCharacterService } from './host/character-service.js';
 import type { NovelWorldviewService } from './host/worldview-service.js';
 import type { NovelOutlineService } from './host/outline-service.js';
@@ -16,6 +17,45 @@ import type { CanonEventView, CanonQuery } from './core/canon/index.js';
 import type { StateDiff } from './core/state/index.js';
 import type { CanonCorrectionInput } from './core/schema/canon.js';
 import type { ConfirmationRecord } from './core/schema/confirm.js';
+import { characterCoreSchema } from './core/schema/characters.js';
+import { worldEntrySchema } from './core/schema/worldview.js';
+import { outlineSchema, detailBeatSchema } from './core/schema/outline.js';
+import { relationshipSchema } from './core/schema/relationship.js';
+import { worldStateSchema } from './core/schema/state.js';
+import { canonEventSchema } from './core/schema/canon.js';
+import { confirmationRecordSchema } from './core/schema/confirm.js';
+
+/**
+ * Wire codecs. The DSH client gateway (`dsh-api-gateway`) rejects `src-json`
+ * markers, so every parameter and result carries a `strict` codec. Results use
+ * the domain schemas (typed reads); scalar ids/sequences use `string`/`number`;
+ * complex `input`/`patch`/`filter` objects stay `unknown` because the Host owns
+ * domain validation and the Client owns no schema (design §0.1.2).
+ */
+const strictCodec = (typeSymbol: string, schema: { parse(value: unknown): unknown }): TypertCodec =>
+  ({ mode: 'strict', typeSymbol, schema });
+const stringCodec = strictCodec('novel-creation-tool#string', z.string());
+const numberCodec = strictCodec('novel-creation-tool#number', z.number());
+const jsonCodec = strictCodec('novel-creation-tool#json', z.unknown());
+
+/** C4 stored event plus its derived correction marker (see `CanonEventView`). */
+const canonEventViewSchema = canonEventSchema.extend({ supersededBy: z.string().nullable() });
+/** I14 downstream beat/scene-card view (see `OutlineBeatCard`). */
+const outlineBeatCardSchema = z.object({
+  actId: z.string(), beatId: z.string(), beatTitle: z.string(), detailBeat: detailBeatSchema,
+});
+/** C2 snapshot diff view (see `StateDiff`; `before`/`after` are arbitrary values). */
+const stateDiffSchema = z.object({
+  fromSeq: z.number(), toSeq: z.number(),
+  changes: z.array(z.object({ path: z.string(), before: z.unknown(), after: z.unknown() })),
+});
+const workspaceViewModelSchema = z.object({
+  product: z.literal('novel-creation-tool'), version: z.literal('2.0.0'), ready: z.literal(true),
+  capabilities: z.array(z.enum(['generate', 'rewrite', 'continue', 'inspire'])),
+});
+const probeDataSchema = z.object({ marker: z.string(), ready: z.boolean() });
+const worldviewRewriteResultSchema = z.object({ superseded: worldEntrySchema, replacement: worldEntrySchema });
+const canonCorrectionAcceptResultSchema = z.object({ confirmation: confirmationRecordSchema, event: z.unknown() });
 
 /** I2 gate probe identity retained for the public contract regression. */
 export const NOVEL_PROBE_NAMESPACE = 'novelProbe';
@@ -25,7 +65,7 @@ export function probeData(): ProbeData { return { marker: PROBE_MARKER, ready: t
 export const probeInvocation: InvocationDescriptor = {
   id: 'novel-creation-tool/novelProbe/probe', service: NOVEL_PROBE_NAMESPACE,
   namespace: NOVEL_PROBE_NAMESPACE, method: 'probe', invocation: { kind: 'direct' },
-  parameters: [], result: { mode: 'src-json' },
+  parameters: [], result: strictCodec('novel-creation-tool#probeData', probeDataSchema),
 };
 export const probeContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [],
@@ -46,56 +86,62 @@ export const NOVEL_WORKSPACE_NAMESPACE = 'novelWorkspace';
 export const workspaceViewModelInvocation: InvocationDescriptor = {
   id: 'novel-creation-tool/novelWorkspace/viewModel', service: NOVEL_WORKSPACE_NAMESPACE,
   namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'viewModel', invocation: { kind: 'direct' },
-  parameters: [], result: { mode: 'src-json' },
+  parameters: [], result: strictCodec('novel-creation-tool#workspaceViewModel', workspaceViewModelSchema),
 };
 
-const jsonParameter = (name: string): InvocationParameterDescriptor => ({
-  name, wire: name, source: 'json', codec: { mode: 'src-json' },
+const param = (name: string, codec: TypertCodec = jsonCodec): InvocationParameterDescriptor => ({
+  name, wire: name, source: 'json', codec,
 });
-const projectParameter = jsonParameter('projectId');
-const entityParameter = jsonParameter('entityId');
-const inputParameter = jsonParameter('input');
-const patchParameter = jsonParameter('patch');
-const seqParameter = jsonParameter('seq');
-const fromSeqParameter = jsonParameter('fromSeq');
-const toSeqParameter = jsonParameter('toSeq');
-const filterParameter = jsonParameter('filter');
-const targetIdParameter = jsonParameter('targetId');
-const proposalIdParameter = jsonParameter('proposalId');
+const projectParameter = param('projectId', stringCodec);
+const entityParameter = param('entityId', stringCodec);
+const inputParameter = param('input');
+const patchParameter = param('patch');
+const seqParameter = param('seq', numberCodec);
+const fromSeqParameter = param('fromSeq', numberCodec);
+const toSeqParameter = param('toSeq', numberCodec);
+const filterParameter = param('filter');
+const targetIdParameter = param('targetId', stringCodec);
+const proposalIdParameter = param('proposalId', stringCodec);
 
 function editorInvocation(
   service: string,
   method: string,
   parameters: readonly InvocationParameterDescriptor[],
+  resultSchema: { parse(value: unknown): unknown },
 ): InvocationDescriptor {
   return {
     id: `novel-creation-tool/${service}/${method}`,
     service, namespace: service, method, invocation: { kind: 'direct' },
-    parameters, result: { mode: 'src-json' },
+    parameters, result: strictCodec(`novel-creation-tool#${method}:result`, resultSchema),
   };
 }
 
-/** Explicit I34 Host-for-Client contract; no Client-side domain validation is implied. */
-export const characterListInvocation = editorInvocation('novelCharacter', 'list', [projectParameter]);
-export const characterReadInvocation = editorInvocation('novelCharacter', 'read', [projectParameter, entityParameter]);
-export const characterCreateInvocation = editorInvocation('novelCharacter', 'create', [projectParameter, inputParameter]);
-export const characterUpdateInvocation = editorInvocation('novelCharacter', 'update', [projectParameter, entityParameter, patchParameter]);
-export const worldviewListInvocation = editorInvocation('novelWorldview', 'list', [projectParameter]);
-export const worldviewReadInvocation = editorInvocation('novelWorldview', 'read', [projectParameter, entityParameter]);
-export const worldviewCreateInvocation = editorInvocation('novelWorldview', 'create', [projectParameter, inputParameter]);
-export const worldviewRewriteInvocation = editorInvocation('novelWorldview', 'rewrite', [projectParameter, entityParameter, inputParameter]);
-export const outlineReadInvocation = editorInvocation('novelOutline', 'read', [projectParameter]);
-export const outlineSaveInvocation = editorInvocation('novelOutline', 'save', [projectParameter, inputParameter]);
-export const outlineBeatCardsInvocation = editorInvocation('novelOutline', 'beatCards', [projectParameter]);
-export const relationshipReadInvocation = editorInvocation('novelRelationship', 'read', [projectParameter]);
-export const relationshipSaveInvocation = editorInvocation('novelRelationship', 'save', [projectParameter, inputParameter]);
-export const stateCurrentInvocation = editorInvocation('novelState', 'current', [projectParameter]);
-export const stateSnapshotsInvocation = editorInvocation('novelState', 'snapshots', [projectParameter]);
-export const stateRollbackInvocation = editorInvocation('novelState', 'rollback', [projectParameter, seqParameter]);
-export const stateDiffInvocation = editorInvocation('novelState', 'diff', [projectParameter, fromSeqParameter, toSeqParameter]);
-export const canonQueryInvocation = editorInvocation('novelCanon', 'query', [projectParameter, filterParameter]);
-export const canonCorrectionProposeInvocation = editorInvocation('novelCanon', 'correctionPropose', [projectParameter, targetIdParameter, inputParameter]);
-export const canonCorrectionAcceptInvocation = editorInvocation('novelCanon', 'correctionAccept', [projectParameter, proposalIdParameter]);
+/**
+ * Explicit I34 Host-for-Client contract; no Client-side domain validation is
+ * implied. Every editor method lives on the single `novelWorkspace` service
+ * (the Host-owned adapter), so the wire `namespace` and `service` are both
+ * `novelWorkspace` and the `method` is the adapter's own export name.
+ */
+export const characterListInvocation = editorInvocation('novelWorkspace', 'characterList', [projectParameter], z.array(characterCoreSchema));
+export const characterReadInvocation = editorInvocation('novelWorkspace', 'characterRead', [projectParameter, entityParameter], characterCoreSchema);
+export const characterCreateInvocation = editorInvocation('novelWorkspace', 'characterCreate', [projectParameter, inputParameter], characterCoreSchema);
+export const characterUpdateInvocation = editorInvocation('novelWorkspace', 'characterUpdate', [projectParameter, entityParameter, patchParameter], characterCoreSchema);
+export const worldviewListInvocation = editorInvocation('novelWorkspace', 'worldviewList', [projectParameter], z.array(worldEntrySchema));
+export const worldviewReadInvocation = editorInvocation('novelWorkspace', 'worldviewRead', [projectParameter, entityParameter], worldEntrySchema);
+export const worldviewCreateInvocation = editorInvocation('novelWorkspace', 'worldviewCreate', [projectParameter, inputParameter], worldEntrySchema);
+export const worldviewRewriteInvocation = editorInvocation('novelWorkspace', 'worldviewRewrite', [projectParameter, entityParameter, inputParameter], worldviewRewriteResultSchema);
+export const outlineReadInvocation = editorInvocation('novelWorkspace', 'outlineRead', [projectParameter], outlineSchema);
+export const outlineSaveInvocation = editorInvocation('novelWorkspace', 'outlineSave', [projectParameter, inputParameter], outlineSchema);
+export const outlineBeatCardsInvocation = editorInvocation('novelWorkspace', 'outlineBeatCards', [projectParameter], z.array(outlineBeatCardSchema));
+export const relationshipReadInvocation = editorInvocation('novelWorkspace', 'relationshipRead', [projectParameter], z.array(relationshipSchema));
+export const relationshipSaveInvocation = editorInvocation('novelWorkspace', 'relationshipSave', [projectParameter, inputParameter], relationshipSchema);
+export const stateCurrentInvocation = editorInvocation('novelWorkspace', 'stateCurrent', [projectParameter], worldStateSchema);
+export const stateSnapshotsInvocation = editorInvocation('novelWorkspace', 'stateSnapshots', [projectParameter], z.array(worldStateSchema));
+export const stateRollbackInvocation = editorInvocation('novelWorkspace', 'stateRollback', [projectParameter, seqParameter], worldStateSchema);
+export const stateDiffInvocation = editorInvocation('novelWorkspace', 'stateDiff', [projectParameter, fromSeqParameter, toSeqParameter], stateDiffSchema);
+export const canonQueryInvocation = editorInvocation('novelWorkspace', 'canonQuery', [projectParameter, filterParameter], z.array(canonEventViewSchema));
+export const canonCorrectionProposeInvocation = editorInvocation('novelWorkspace', 'canonCorrectionPropose', [projectParameter, targetIdParameter, inputParameter], confirmationRecordSchema);
+export const canonCorrectionAcceptInvocation = editorInvocation('novelWorkspace', 'canonCorrectionAccept', [projectParameter, proposalIdParameter], canonCorrectionAcceptResultSchema);
 export const editorInvocations = [
   characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation,
   worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation,
@@ -110,6 +156,18 @@ export const workspaceContribution: TypertContribution = {
 };
 export const workspaceRemoteContribution: TypertRemoteContribution = {
   package: 'novel-creation-tool', descriptors: [workspaceViewModelInvocation, ...editorInvocations],
+};
+
+/**
+ * Single Host face for the package. The Typert registry rejects a duplicate
+ * `<package>#<face>` identity, so the I2 probe and the I33+ workspace
+ * invocations must be registered as one contribution (see §0.1.3 I2 and the
+ * `register()` contract in `dsh-typert-registry`).
+ */
+export const hostContribution: TypertContribution = {
+  package: 'novel-creation-tool', face: 'host', schemas: [],
+  model: { services: [], events: [], objects: [] },
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations],
 };
 
 export interface WorkspaceEditorService {
@@ -206,4 +264,19 @@ export function createWorkspaceEditorService(
 export function workspaceViewModel(): WorkspaceViewModel {
   return { product: 'novel-creation-tool', version: '2.0.0', ready: true,
     capabilities: ['generate', 'rewrite', 'continue', 'inspire'] };
+}
+
+/**
+ * Attach the `typertRemote` binding the DSH gateway requires to dispatch a
+ * strict descriptor to a Host service (see `dsh-api-gateway` `validateBinding`).
+ * The service object is returned unchanged for chaining into `ctx.provide`.
+ */
+export function bindRemote<T extends object>(service: T, serviceKey: string, namespace: string): T {
+  Object.defineProperty(service, 'typertRemote', {
+    value: { service, serviceKey, namespace },
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
+  return service;
 }

@@ -32,7 +32,7 @@ import { createLocalizedEditService } from './host/edit-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
-import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NAMESPACE, workspaceContribution, createWorkspaceEditorService } from './remote.js';
+import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 
 /**
  * I1 Host plugin extended by I2 (design §0.1.3 I2): proves the ordinary
@@ -155,13 +155,15 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
-  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService(
+  const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService,
-  ));
+  );
+  // The DSH gateway dispatches strict descriptors only to services carrying the
+  // `typertRemote` binding; attach it before providing (design §0.1.2).
+  ctx.provide(NOVEL_WORKSPACE_NAMESPACE, bindRemote(workspaceService, NOVEL_WORKSPACE_NAMESPACE, NOVEL_WORKSPACE_NAMESPACE));
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {
-    ctx.effect(() => typert.register(probeContribution));
-    ctx.effect(() => typert.register(workspaceContribution));
+    ctx.effect(() => typert.register(hostContribution));
   }
 }

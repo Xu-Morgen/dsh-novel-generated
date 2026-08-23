@@ -9,12 +9,12 @@ const relationship = { read: async () => [], save: async () => ({}) } as any;
 describe('I36 C2/C4 read-only and confirmation contract', () => {
   it('publishes rollback/query/propose/accept but no canon update or delete descriptor', () => {
     const names = editorInvocations.map((item) => `${item.namespace}/${item.method}`);
-    expect(names).toContain('novelState/rollback');
-    expect(names).toContain('novelCanon/query');
-    expect(names).toContain('novelCanon/correctionPropose');
-    expect(names).toContain('novelCanon/correctionAccept');
-    expect(names).not.toContain('novelCanon/update');
-    expect(names).not.toContain('novelCanon/delete');
+    expect(names).toContain('novelWorkspace/stateRollback');
+    expect(names).toContain('novelWorkspace/canonQuery');
+    expect(names).toContain('novelWorkspace/canonCorrectionPropose');
+    expect(names).toContain('novelWorkspace/canonCorrectionAccept');
+    expect(names).not.toContain('novelWorkspace/update');
+    expect(names).not.toContain('novelWorkspace/delete');
   });
 
   it('keeps rollback and supersede writes in Host services', async () => {

@@ -10,16 +10,16 @@ import {
 describe('I34 B3/B2 Host Remote editor contract', () => {
   it('exports list/read/create/update/rewrite descriptors with JSON-only boundary args', () => {
     expect(editorInvocations.map((item) => `${item.namespace}/${item.method}`)).toEqual([
-      'novelCharacter/list', 'novelCharacter/read', 'novelCharacter/create', 'novelCharacter/update',
-      'novelWorldview/list', 'novelWorldview/read', 'novelWorldview/create', 'novelWorldview/rewrite',
-      'novelOutline/read', 'novelOutline/save', 'novelOutline/beatCards',
-      'novelRelationship/read', 'novelRelationship/save',
-      'novelState/current', 'novelState/snapshots', 'novelState/rollback', 'novelState/diff',
-      'novelCanon/query', 'novelCanon/correctionPropose', 'novelCanon/correctionAccept',
+      'novelWorkspace/characterList', 'novelWorkspace/characterRead', 'novelWorkspace/characterCreate', 'novelWorkspace/characterUpdate',
+      'novelWorkspace/worldviewList', 'novelWorkspace/worldviewRead', 'novelWorkspace/worldviewCreate', 'novelWorkspace/worldviewRewrite',
+      'novelWorkspace/outlineRead', 'novelWorkspace/outlineSave', 'novelWorkspace/outlineBeatCards',
+      'novelWorkspace/relationshipRead', 'novelWorkspace/relationshipSave',
+      'novelWorkspace/stateCurrent', 'novelWorkspace/stateSnapshots', 'novelWorkspace/stateRollback', 'novelWorkspace/stateDiff',
+      'novelWorkspace/canonQuery', 'novelWorkspace/canonCorrectionPropose', 'novelWorkspace/canonCorrectionAccept',
     ]);
     expect(characterListInvocation.parameters[0]).toMatchObject({ name: 'projectId', wire: 'projectId', source: 'json' });
     expect(characterCreateInvocation.parameters[1]).toMatchObject({ name: 'input', wire: 'input', source: 'json' });
-    expect(editorInvocations.every((item) => item.parameters.every((parameter) => parameter.codec.mode === 'src-json'))).toBe(true);
+    expect(editorInvocations.every((item) => item.parameters.every((parameter) => parameter.codec.mode === 'strict'))).toBe(true);
   });
 
   it('forwards every editor operation to the existing Host services', async () => {
@@ -58,7 +58,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     expect(root.typert.local.get(`${NOVEL_WORKSPACE_NAMESPACE}/viewModel`)).toBeDefined();
     expect(workspaceRemoteContribution.descriptors).toHaveLength(21);
     disposer();
-    expect(root.typert.local.get('novelCharacter/create')).toBeUndefined();
+    expect(root.typert.local.get('novelWorkspace/characterCreate')).toBeUndefined();
     await root.fiber.dispose();
   });
 });

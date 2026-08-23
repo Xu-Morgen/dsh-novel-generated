@@ -1,4 +1,5 @@
 import { Context } from '@deepseek-ai/cordis';
+import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 
 import { apply } from './index.js';
@@ -193,5 +194,25 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     const second = await root.plugin(apply);
     expect(root.get('novelCreation')).toEqual({ version: '2.0.0', ready: true });
     await second.dispose();
+  });
+
+  it('registers a single combined host face against the real Typert registry', async () => {
+    const root = new Context();
+    await root.plugin(TypertRegistry);
+    const fiber = await root.plugin(apply);
+
+    // The I2 probe and I33+ workspace invocations share one `novel-creation-tool#host`
+    // package face; a second registration with the same face would reject the boot.
+    expect(root.typert.local.get('novelProbe/probe')).toBeDefined();
+    expect(root.typert.local.get('novelWorkspace/viewModel')).toBeDefined();
+    expect(root.typert.local.get('novelWorkspace/characterList')).toBeDefined();
+    // The gateway dispatches strict descriptors only to a service carrying the
+    // `typertRemote` binding; assert the single workspace service exposes it.
+    expect((root.get('novelWorkspace') as { typertRemote?: unknown }).typertRemote).toMatchObject({
+      serviceKey: 'novelWorkspace', namespace: 'novelWorkspace',
+    });
+
+    await fiber.dispose();
+    expect(root.typert.local.get('novelProbe/probe')).toBeUndefined();
   });
 });
