@@ -13,8 +13,9 @@
 | v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
 | v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
 | **v2.0** | **架构重置**：将 v1.x 的独立 Node/Vite 应用方向记为历史且已被取代；DeepSeek Harness（DSH）成为唯一运行宿主和主交付形态，产品作为 ordinary persistent plugin（普通持久插件）交付；生产安装/组合合同唯一见 §0.1.1。13 层叙事模型、引擎、存储、导入导出、编辑与 agent 产品设计继续有效，唯有与宿主边界冲突的实现方式失效。 |
+| **v2.0（增补 2026-08-24）** | 新增 §14.6「创作台」UI 重设计：在 I33–I36 已交付的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），记录决策 D11–D14 与迭代 I46–I49；§0.1 宿主基线不变，A-7 novel 自有主题系统仍后置。 |
 
-> **v2.0 supersession / 同步完成状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.0 当前执行材料；I1–I45 可仅依其 v2.0 迭代卡片执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
+> **v2.0 supersession / 同步完成状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.0 当前执行材料；I1–I49 可仅依其 v2.0 迭代卡片执行（I46–I49 为 2026-08-24 增补的创作台 UI 重设计）。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -846,6 +847,10 @@ project/
 | D8 | 不变设定如何存储 | 数据库主存储 / 索引层 | ✅ 已定（v1.2）：文件仍是 source of truth，SQLite 作「不变设定索引层」（§10.4） |
 | D9 | 关系引擎的定位 | 移除 / 主路径 / 可选增强 | ✅ 已定（v1.2）：**后置为可选可解释性增强**，主路径由解析 agent 写入 |
 | D10 | 细纲如何建模 | 新层 / 子结构 | ✅ 已定（v1.2）：大纲 beat 下的「细纲·场景卡」子结构（§5.7），不新增层 |
+| D11 | 创作台 Slot 落点与入口 | `shell.overlay` 单层 / 替换 `sidebar` 或 `details` 单槽 / overlay + 侧栏入口 | ✅ 已定（I46）：保留 `shell.overlay`（运行时唯一可叠加的 list 槽）作创作台主体，重做为「品牌头栏 + 左侧层级导航 + 内容区」浮动面板；另在 `sidebar.footer.action` 注册「创作台」启动入口提升可发现性。不替换 root/sidebar/conversation/details 单槽。 |
+| D12 | 创作台主题与明暗 | novel 自有主题引擎（A-7）/ 借用宿主主题 token | ✅ 已定（I46）：视觉体系消费宿主 `ctx.theme` 的 `--dsw-alias-*` token 自动明暗适配，另加一层包内品牌色（纸/墨/朱砂）；不新建 novel 自有主题引擎或设置页，A-7 仍后置。 |
+| D13 | 创作台渲染与样式 | 引入 JSX runtime / 保持 `React.createElement` + 包内 `<style>` | ✅ 已定（I46）：保持 `React.createElement`（+ 小型 `el()` 助手），不引入 JSX runtime，避免重开 I2 已证明的 `window.__ModuleLoader__` 公开契约；样式为包内 `<style>` 注入、归属 Fiber 生命周期。 |
+| D14 | 创作台迭代切分 | 一次重写 / 分四迭代 | ✅ 已定：I46 地基 + 视觉体系；I47 B3/B2 表单；I48 B5/C1 结构化编辑；I49 C2/C4 面板。一迭代一任务一 commit。 |
 
 ---
 
@@ -903,6 +908,17 @@ project/
 
 - **续写 agent**：用户显式调用，基于当前状态/正史/大纲/细纲续写下一段，输出走标准「校验 → 用户裁决 → 解析写回」。
 - **灵感 agent**：用户显式调用（「灵感时刻」），产出 2–3 个可选发展方向（不写回正史，仅作选项）；用户选定后可选「随剧情调整大纲与细纲」（写 B5/C6 的偏差或细纲改动，走用户确认）。
+
+### 14.6 创作台 UI 重设计（I46–I49，v2.0 增补）
+
+> 定位：在 I33–I36 已交付并验证的 Slot 工作区之上，把「三裸面板 + JSON 文本框」升级为可识别、美观的分层编辑创作台。不改变 §14.1 的职责边界（Client 只做设定/状态精确调整与生成触发，数据一律走 Host Remote），不触碰 §0.1 宿主基线。
+
+- **落点与入口（D11）**：创作台主体注册到 `shell.overlay`，形态为品牌头栏 + 左侧层级导航 + 内容区的浮动面板，带折叠/关闭；另在 `sidebar.footer.action` 注册「创作台」启动按钮作为可发现入口。不替换 root/sidebar/conversation/details 单槽。
+- **信息架构（六层一桌）**：左侧层级导航对应六层——B3 角色、B2 世界观、B5 大纲（含细纲）、C1 关系、C2 状态、C4 正史；主区为「列表 + 详情」。B5/C1 由裸 JSON 文本框改为结构化编辑器（幕→节→细纲场景卡 / 关系对），Client 侧序列化后仍走既有 `outlineSave`/`relationshipSave` 整文档契约，Host 契约不变。
+- **视觉体系（编辑台/书斋）**：砚台三色——纸（暖白底）、墨（近黑暖灰字）、朱砂（印泥红强调色，用于品牌标记/激活导航/主按钮）；层级标题与品牌用系统衬线栈（`Georgia, 'Songti SC', 'SimSun', serif`，零外部字体与网络资产）建立文学感，表单正文用系统无衬线 UI 栈；8px 网格、宽松留白、1px 细边、分层卡片与软阴影。中性色/边框/hover/状态色消费宿主 `--dsw-alias-*` token，明暗经 `body[data-ds-dark-theme]` 自动适配（D12）。
+- **样式 seam（D13）**：样式写为包内 `<style>`（独立 `src/client/styles.ts` 常量），在 `apply()` 内经 `ctx.effect` 持有 disposer，Fiber 卸载即回收；渲染保持 `React.createElement` + `el()` 助手，不引入 JSX runtime。
+- **测试契约**：测试锚点从旧 `data-novel-editors` 迁移到稳定新契约 `data-novel-workspace`（loading/ready/error）+ `data-novel-layer="characters|worldview|outline|relationship|state|canon"` + 每层 loading/error/empty 断言。
+- **范围外（保持后置）**：novel 自有主题引擎/深色模式（A-7）、items/factions 大对象编辑（P2）、独立页面/SPA。
 
 ---
 

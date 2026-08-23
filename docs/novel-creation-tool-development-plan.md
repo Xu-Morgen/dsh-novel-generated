@@ -14,7 +14,7 @@
 
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
-- 重新排期为 **9 个阶段、45 个迭代（I1–I45）**，第一阶段先证明插件包、profile 安装、bundle composition 与 Fiber 生命周期。
+- 重新排期为 **10 个阶段、49 个迭代（I1–I49）**，第一阶段先证明插件包、profile 安装、bundle composition 与 Fiber 生命周期；阶段 9（I46–I49）在 I33–I36 之上重做创作台 UI 的视觉体系与信息架构。
 
 ### 0.2 Goal
 
@@ -65,7 +65,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I45）
+### 0.7 全局执行纪律（贯穿 I1–I49）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -450,9 +450,47 @@ TDD Route:
 
 ---
 
-## 10. 完成线
+## 10. 阶段 9：创作台 UI 重设计
 
-I45 通过时，v2.0 核心完成：
+**阶段门**：`pnpm run verify:stage-9`（I46–I49 全绿）。
+
+### I46：创作台地基 + 视觉体系
+
+- **目标**：在已核验 Slot 上把工作区升级为「创作台」——品牌头栏 + 左侧层级导航 + 内容区浮动面板，建立「编辑台/书斋」视觉体系，并注册可发现入口。
+- **明确不做**：六层真实表单内容（I47–I49）、JSX runtime、novel 自有主题引擎、独立页面/SPA、新增 Host 能力或持久化。
+- **交付物**：`shell.overlay` 创作台面板（折叠/关闭）、`sidebar.footer.action` 启动入口、`src/client/styles.ts` 包内样式（消费 `--dsw-alias-*`）、`el()` 助手与组件基础、六层空态占位、迁移后的测试锚点。
+- **验收**：selected-profile boot 渲染创作台；明暗随宿主主题切换；Fiber 卸载后 Slot/样式/监听归零；新锚点 `data-novel-workspace` + `data-novel-layer` 三态与空态断言绿；无 standalone/JSX/新增 Host seam。
+- **验证**：`pnpm run verify:i46`。
+
+### I47：B3/B2 编辑面板
+
+- **目标**：角色核心真表单与世界观列表/详情/改写编辑，替换旧单字段表单。
+- **明确不做**：大纲/关系/状态/正史面板、Client 侧领域校验 owner、直接文件读写。
+- **交付物**：角色列表 + 详情表单（name/kind/personality/background/motivation/goals/flaws/abilities/speechStyle/arc）；世界观列表 + 详情 + 改写（supersede）入口。
+- **验收**：CRUD 仅经 Host Remote 持久化；角色全字段与世界观层级/改写 round-trip；非法写展示 Host 错误；Client bundle 无 fs API。
+- **验证**：`pnpm run verify:i47`。
+
+### I48：B5/C1 结构化编辑器
+
+- **目标**：大纲（幕→节→细纲场景卡）与关系对的结构化编辑，替换裸 JSON 文本框。
+- **明确不做**：状态回滚、正史更正、第 14 层、重复领域校验 owner。
+- **交付物**：大纲层级编辑器 + 细纲场景卡视图；关系列表 + 编辑器（from/to/type/affinity/trust/milestones/knownTo）。
+- **验收**：经 Host `outlineSave`/`relationshipSave` 契约读写；非法引用/越界显示 Host 错误；重载一致；序列化后与既有契约兼容。
+- **验证**：`pnpm run verify:i48`。
+
+### I49：C2/C4 面板
+
+- **目标**：状态快照时间线/回滚/diff 与正史只读 + supersede 更正入口。
+- **明确不做**：正史直接编辑、Client 侧回滚/写回逻辑、绕过 ConfirmationGate。
+- **交付物**：C2 快照时间线 + 回滚 + diff 视图；C4 只读账本（带只读徽标）+ supersede 更正表单（propose→accept）。
+- **验收**：回滚走 StateEngine；正史无普通写入口；更正走 Gate 且确认后才追加 supersede；卸载无残留订阅。
+- **验证**：`pnpm run verify:i49`。
+
+---
+
+## 11. 完成线
+
+I45 通过时 v2.0 核心闭环完成，I49 通过时创作台 UI 重设计完成：
 
 - ordinary persistent DSH/Cordis Host+Client 插件可安装、装载、升级、卸载；
 - Host 是作品文件与 LLM 唯一 owner；Client 只经 DSH Slot 与受管 Remote 工作；
@@ -460,15 +498,17 @@ I45 通过时，v2.0 核心完成：
 - `生成→校验→裁决→解析→原子写回` 闭环成立；
 - 所有用户确认统一经 ConfirmationGate；
 - 卸载不删除作品数据且零运行时残留。
+- 创作台以「编辑台/书斋」视觉体系 + 六层 IA（B3/B2/B5/C1/C2/C4）提供可识别、美观的分层编辑，复用宿主主题 token 自动明暗适配。
 
 导入导出、SQLite 索引、向量检索、高级编辑器与写作辅助已纳入；语义向量检索、C2 items/factions、ST 迁移与 UI 主题继续后置为 backlog。
 
 ---
 
-## 11. Risks 与 Retirement
+## 12. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移**：任何 DSH/Cordis 升级进入专门兼容性迭代，重跑 selected-profile boot 与完整 Client gate。
 - **旧路径残留**：旧 I1a/I1b 独立 Vite/浏览器 LLM 路径必须零引用；不保留双主路径兼容层。
 - **作品数据安全**：卸载/回退不删除作品 source of truth；只退役 tracked 固定 mock 产物，不触碰未跟踪存档或真实作品目录。
+- **创作台 UI 重设计风险**：I46 将测试锚点从 `data-novel-editors` 迁移到新契约并重写 `client.test.ts`；I33–I36 既有 Host 契约（`novelWorkspace` Remote）不得回退，样式必须归属 Fiber 并在卸载后归零。
 - **Historical record**：Git 历史保留旧提交；v2.0 文档记录旧路线已失效，不把死代码留在主分支。

@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v2.0：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
 2. 本文件 v2.0：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.0：I1–I45 的执行卡片、交付物与命令细节；完成 v2.0 同步前不得作为执行入口。
+3. `docs/novel-creation-tool-development-plan.md` v2.0：I1–I49 的执行卡片、交付物与命令细节；完成 v2.0 同步前不得作为执行入口。
 4. `AGENTS.md` v2.0：执行纪律；完成 v2.0 同步前不得以其中的 v1.x 内容启动迭代。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 
@@ -21,8 +21,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、原子写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I45**。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R9 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
+- 当前迭代身份只有本文件定义的 **I1–I49**。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R10 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -48,6 +48,7 @@
 | Stage 6 DSH Slot 创作工作区 | I33–I36 | `pnpm run verify:stage-6` |
 | Stage 7 导入、可移植与索引 | I37–I40 | `pnpm run verify:stage-7` |
 | Stage 8 索引分类与写作辅助 | I41–I45 | `pnpm run verify:stage-8` |
+| Stage 9 创作台 UI 重设计 | I46–I49 | `pnpm run verify:stage-9` |
 
 ---
 
@@ -190,6 +191,21 @@
 
 ---
 
+## R10. 创作台 UI 重设计（视觉与信息架构）
+
+> 定位：在 I33–I36 已交付并验证的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），提升用户可识别度与美观度；不改变 Client 职责边界（H0-5）与 Host 数据所有权（H0-4），不新增 Host 能力或持久化。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R10-1 | 创作台为可识别、美观的分层编辑面板：品牌头栏 + 左侧层级导航 + 内容区，六层一桌（B3/B2/B5/C1/C2/C4）；保留 `shell.overlay` 落点并新增 `sidebar.footer.action` 启动入口，不替换 root/sidebar/conversation/details 单槽。 | 渲染断言含品牌头栏与六层导航；启动入口可发现；单槽未被替换。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
+| R10-2 | 视觉体系为编辑台/书斋：纸/墨/朱砂三色 + 系统衬线标题层级 + 8px 网格；中性色/边框/hover/状态色消费宿主 `--dsw-alias-*` token，明暗随宿主主题自动适配。 | 样式常量引用 `--dsw-alias-*` 断言；明暗切换夹具；零外部字体/网络资产。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
+| R10-3 | 渲染保持 `React.createElement` + 包内 `<style>`（归属 Fiber），不引入 JSX runtime；样式随卸载回收。 | 构建扫描无 JSX runtime；Fiber 卸载后 Slot/样式/监听归零。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
+| R10-4 | B3/B2 列表/详情编辑：角色真表单与世界观改写（supersede），数据仅经 Host Remote。 | round-trip + 非法写展示 Host 错误；无 fs API。 | I47 | `pnpm run verify:i47`; `pnpm run verify:stage-9` |
+| R10-5 | B5/C1 结构化编辑器替换裸 JSON：大纲（幕→节→细纲）与关系对，序列化后仍走既有 Host 契约。 | 结构化编辑 round-trip；序列化与既有 `outlineSave`/`relationshipSave` 兼容。 | I48 | `pnpm run verify:i48`; `pnpm run verify:stage-9` |
+| R10-6 | C2 快照时间线/回滚/diff 与 C4 只读账本 + supersede 更正（走 ConfirmationGate）。 | 回滚走 StateEngine；正史无普通写入口；更正确认后才追加。 | I49 | `pnpm run verify:i49`; `pnpm run verify:stage-9` |
+
+---
+
 ## 覆盖矩阵
 
 ### M-H0. 宿主覆盖矩阵
@@ -212,14 +228,14 @@
 | A1 | I1, I3 | I12 | I30 |
 | A2 | I31 | I31–I32 | I33 |
 | B1 | I7 | I13, I21 | I32 |
-| B2 | I8 | I13 | I28–I29, I34, I38 |
-| B3 | I9 | I13 | I34 |
+| B2 | I8 | I13 | I28–I29, I34, I38, I47 |
+| B3 | I9 | I13 | I34, I47 |
 | B4 | I10 | I13, I20, I24 | I31 |
-| B5 | I14 | I15 | I35, I38, I43, I45 |
-| C1 | I16 | I16 | I27, I35 |
-| C2 | I4 | I13 | I25, I36 |
+| B5 | I14 | I15 | I35, I38, I43, I45, I48 |
+| C1 | I16 | I16 | I27, I35, I48 |
+| C2 | I4 | I13 | I25, I36, I49 |
 | C3 | I18 | I18, I22 | I28 |
-| C4 | I5 | I18, I21 | I26, I36, I39 |
+| C4 | I5 | I18, I21 | I26, I36, I39, I49 |
 | C5 | I6 | I18–I19 | I42–I44 |
 | C6 | I15 | I15 | I35, I45 |
 
@@ -238,7 +254,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I45 全覆盖矩阵
+### M-P. 产品能力与 I1–I49 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -287,6 +303,10 @@
 | chapter wordTarget/final export | I43 | R8, R9 |
 | continuation | I44 | R9 |
 | inspiration | I45 | R9 |
+| 创作台地基 + 视觉体系 | I46 | R10 |
+| B3/B2 编辑面板 | I47 | R10 |
+| B5/C1 结构化编辑器 | I48 | R10 |
+| C2/C4 面板 | I49 | R10 |
 
 ---
 
@@ -299,12 +319,12 @@
 | N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM/文件 seam 或 DSH 之外的受支持主路径。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
 | N-5 | 自动强制改写大纲 | 偏差先记录；接受新方向或调整细纲必须由用户选择并经 ConfirmationGate。 |
-| N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。 |
+| N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
 
 ---
 
 ## 结论
 
-**直接结论：设计 v2.0 中所有保留的宿主与产品需求，均已由新的 I1–I45 覆盖，并具有可机器执行的 `pnpm run verify:iN` 与阶段 `pnpm run verify:stage-N` 证据要求。**
+**直接结论：设计 v2.0 中所有保留的宿主与产品需求，均已由新的 I1–I49 覆盖，并具有可机器执行的 `pnpm run verify:iN` 与阶段 `pnpm run verify:stage-N` 证据要求。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only，并在公共 out-of-tree Client/Remote/Slot 合同无法证明时停止。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
