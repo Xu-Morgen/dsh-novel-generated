@@ -1,0 +1,12 @@
+[
+  { "id": "continuation-01", "accepted": true },
+  { "id": "continuation-02", "accepted": true },
+  { "id": "continuation-03", "accepted": true },
+  { "id": "continuation-04", "accepted": true },
+  { "id": "continuation-05", "accepted": true },
+  { "id": "continuation-06", "accepted": true },
+  { "id": "continuation-07", "accepted": true },
+  { "id": "continuation-08", "accepted": true },
+  { "id": "continuation-09", "accepted": true },
+  { "id": "continuation-10", "accepted": false }
+]
