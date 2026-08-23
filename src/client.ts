@@ -27,9 +27,9 @@ export interface EditorRemote {
   canonCorrectionPropose(projectId: string, targetId: string, input: unknown): Promise<unknown>;
   canonCorrectionAccept(projectId: string, proposalId: string): Promise<unknown>;
 }
-export interface WorkspaceRemote {
-  $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer>;
-  novelWorkspace: EditorRemote & { viewModel(): Promise<unknown> };
+/** The mounted `remote.novelWorkspace` namespace service surface. */
+export interface WorkspaceNamespace extends EditorRemote {
+  viewModel(): Promise<unknown>;
 }
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
@@ -38,7 +38,11 @@ export interface WorkspaceSlots {
 export interface ClientPluginEntry {
   readonly name: string;
   readonly inject: readonly string[];
-  apply(ctx: { slots: WorkspaceSlots; remote: WorkspaceRemote }): void;
+  apply(ctx: {
+    slots: WorkspaceSlots;
+    remote: { $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer> };
+    get(name: string, silent?: boolean): unknown;
+  }): void;
 }
 
 type WorkspaceState =
@@ -65,7 +69,7 @@ function textField(React: ReactFace, label: string, value: string, onChange: (va
   );
 }
 
-function editorPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+function editorPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
   let selected = 'characters';
   let name = '';
   let title = '';
@@ -74,8 +78,8 @@ function editorPanel(React: ReactFace, remote: WorkspaceRemote, projectId: strin
     event.preventDefault?.();
     // The Host receives the complete typed payload; the Client owns no schema.
     const operation = selected === 'characters'
-      ? unwrap(remote.novelWorkspace.characterCreate(projectId, { id: name.toLowerCase().replaceAll(' ', '-'), name, aliases: [], kind: 'extra', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }))
-      : unwrap(remote.novelWorkspace.worldviewCreate(projectId, { id: title.toLowerCase().replaceAll(' ', '-'), kind: 'concept', title, content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }));
+      ? unwrap(workspace.characterCreate(projectId, { id: name.toLowerCase().replaceAll(' ', '-'), name, aliases: [], kind: 'extra', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }))
+      : unwrap(workspace.worldviewCreate(projectId, { id: title.toLowerCase().replaceAll(' ', '-'), kind: 'concept', title, content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }));
     void operation.then(() => { message = 'Saved through Host validation'; }, (error: Error) => { message = error.message; });
   };
   return React.createElement('section', { 'data-novel-editors': 'b3-b2' },
@@ -92,7 +96,7 @@ function editorPanel(React: ReactFace, remote: WorkspaceRemote, projectId: strin
   );
 }
 
-function outlineRelationshipPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+function outlineRelationshipPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
   let mode = 'outline';
   let payload = '';
   let message = '';
@@ -101,8 +105,8 @@ function outlineRelationshipPanel(React: ReactFace, remote: WorkspaceRemote, pro
     let parsed: unknown;
     try { parsed = JSON.parse(payload); } catch { message = 'Host rejected invalid JSON payload'; return; }
     const operation = mode === 'outline'
-      ? unwrap(remote.novelWorkspace.outlineSave(projectId, parsed))
-      : unwrap(remote.novelWorkspace.relationshipSave(projectId, parsed));
+      ? unwrap(workspace.outlineSave(projectId, parsed))
+      : unwrap(workspace.relationshipSave(projectId, parsed));
     void operation.then(() => { message = 'Saved through Host validation'; }, (error: Error) => { message = error.message; });
   };
   return React.createElement('section', { 'data-novel-editors': 'b5-c1' },
@@ -119,7 +123,7 @@ function outlineRelationshipPanel(React: ReactFace, remote: WorkspaceRemote, pro
   );
 }
 
-function stateCanonPanel(React: ReactFace, remote: WorkspaceRemote, projectId: string): unknown {
+function stateCanonPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
   let snapshots: unknown[] = [];
   let canon: unknown[] = [];
   let selectedSeq = 0;
@@ -128,20 +132,20 @@ function stateCanonPanel(React: ReactFace, remote: WorkspaceRemote, projectId: s
   let proposalId = '';
   let message = '';
   const load = () => {
-    void Promise.all([unwrap(remote.novelWorkspace.stateSnapshots(projectId)), unwrap(remote.novelWorkspace.canonQuery(projectId, { superseded: 'all' }))])
+    void Promise.all([unwrap(workspace.stateSnapshots(projectId)), unwrap(workspace.canonQuery(projectId, { superseded: 'all' }))])
       .then(([nextSnapshots, nextCanon]) => { snapshots = (nextSnapshots as unknown[]) ?? []; canon = (nextCanon as unknown[]) ?? []; message = 'Loaded from Host'; }, (error: Error) => { message = error.message; });
   };
   const rollback = () => {
-    void unwrap(remote.novelWorkspace.stateRollback(projectId, selectedSeq)).then(() => { message = `Rolled back through StateEngine to snapshot ${selectedSeq}`; load(); }, (error: Error) => { message = error.message; });
+    void unwrap(workspace.stateRollback(projectId, selectedSeq)).then(() => { message = `Rolled back through StateEngine to snapshot ${selectedSeq}`; load(); }, (error: Error) => { message = error.message; });
   };
   const propose = (event: { preventDefault?: () => void }) => {
     event.preventDefault?.();
     let parsed: unknown;
     try { parsed = JSON.parse(correction); } catch { message = 'Host rejected invalid correction JSON'; return; }
-    void unwrap(remote.novelWorkspace.canonCorrectionPropose(projectId, targetId, parsed)).then((record: unknown) => { proposalId = (record as { id: string }).id; message = 'Correction is pending ConfirmationGate acceptance'; }, (error: Error) => { message = error.message; });
+    void unwrap(workspace.canonCorrectionPropose(projectId, targetId, parsed)).then((record: unknown) => { proposalId = (record as { id: string }).id; message = 'Correction is pending ConfirmationGate acceptance'; }, (error: Error) => { message = error.message; });
   };
   const accept = () => {
-    void unwrap(remote.novelWorkspace.canonCorrectionAccept(projectId, proposalId)).then(() => { message = 'Correction appended as a supersede event'; load(); }, (error: Error) => { message = error.message; });
+    void unwrap(workspace.canonCorrectionAccept(projectId, proposalId)).then(() => { message = 'Correction appended as a supersede event'; load(); }, (error: Error) => { message = error.message; });
   };
   load();
   return React.createElement('section', { 'data-novel-editors': 'c2-c4' },
@@ -165,9 +169,10 @@ function stateCanonPanel(React: ReactFace, remote: WorkspaceRemote, projectId: s
   );
 }
 
-function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote): unknown {
+function view(React: ReactFace, state: WorkspaceState, workspace: WorkspaceNamespace | undefined): unknown {
   if (state.status === 'loading') return React.createElement('section', { 'data-novel-workspace': 'loading' }, 'Loading workspace...');
   if (state.status === 'error') return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, state.message);
+  if (!workspace) return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, 'Workspace unavailable');
   return React.createElement(
     'section', { 'data-novel-workspace': 'ready' },
     React.createElement('h2', null, 'Novel Creation Workspace'),
@@ -175,9 +180,9 @@ function view(React: ReactFace, state: WorkspaceState, remote: WorkspaceRemote):
     React.createElement('nav', { 'aria-label': 'Writing tools' }, state.model.capabilities.map((capability) =>
       React.createElement('button', { key: capability, type: 'button', 'data-command': capability }, capability),
     )),
-    editorPanel(React, remote, 'default'),
-    outlineRelationshipPanel(React, remote, 'default'),
-    stateCanonPanel(React, remote, 'default'),
+    editorPanel(React, workspace, 'default'),
+    outlineRelationshipPanel(React, workspace, 'default'),
+    stateCanonPanel(React, workspace, 'default'),
   );
 }
 
@@ -186,20 +191,26 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
   const React = require('react') as ReactFace;
   return {
     name: 'novel-creation-tool-client',
-    inject: ['slots', 'remote', 'remote.novelWorkspace'],
+    inject: ['slots', 'remote'],
     apply(ctx): void {
       let state: WorkspaceState = { status: 'loading' };
+      let workspace: WorkspaceNamespace | undefined;
       let mounted = false;
       let remoteDisposer: TypertDisposer | undefined;
       ctx.slots.inject('shell.overlay', () => {
         const slotDisposer = ctx.slots.register(
           { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: 'Novel workspace' },
-          () => view(React, state, ctx.remote),
+          () => view(React, state, workspace),
         );
+        // Self-mount the namespace, then resolve it through `ctx.get` instead of
+        // `inject`: injecting `remote.novelWorkspace` here would deadlock, because
+        // that service only exists after `$mount` completes.
         void ctx.remote.$mount(workspaceRemoteContribution).then((dispose) => {
           if (!mounted) { void dispose(); return; }
           remoteDisposer = dispose;
-          return unwrap(ctx.remote.novelWorkspace.viewModel()).then(
+          workspace = ctx.get('remote.novelWorkspace', false) as WorkspaceNamespace | undefined;
+          if (!workspace) { state = { status: 'error', message: 'Workspace unavailable' }; return; }
+          return unwrap(workspace.viewModel()).then(
             (model) => { state = { status: 'ready', model: model as WorkspaceViewModel }; },
             () => { state = { status: 'error', message: 'Workspace unavailable' }; },
           );

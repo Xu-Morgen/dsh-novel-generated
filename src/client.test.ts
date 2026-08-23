@@ -38,14 +38,15 @@ describe('I33 product Client workspace', () => {
     const model = new Promise<any>((resolve) => { resolveModel = resolve; });
     const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
     let disposeCount = 0;
-    const remote = { $mount: async () => async () => { disposeCount += 1; }, novelWorkspace: makeWorkspace(() => model) };
+    const remote = { $mount: async () => async () => { disposeCount += 1; } };
+    const get = (name: string) => (name === 'remote.novelWorkspace' ? makeWorkspace(() => model) : undefined);
     const slots = {
       inject(key: string, cb: () => () => void) { expect(key).toBe('shell.overlay'); return cb(); },
       register(options: Record<string, unknown>, component: () => unknown) { registrations.push({ options, component }); return () => {}; },
     };
     const entry = factory((spec) => spec === 'react' ? fakeReact : undefined);
-    entry.apply({ slots, remote });
-    expect(entry.inject).toEqual(['slots', 'remote', 'remote.novelWorkspace']);
+    entry.apply({ slots, remote, get });
+    expect(entry.inject).toEqual(['slots', 'remote']);
     expect(registrations).toHaveLength(1);
     expect((registrations[0].component() as { props: Record<string, unknown> }).props['data-novel-workspace']).toBe('loading');
     resolveModel({ ok: true, value: { product: 'novel-creation-tool', version: '2.0.0', ready: true, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] } });
@@ -62,13 +63,14 @@ describe('I33 product Client workspace', () => {
     let rejectModel!: (error: Error) => void;
     const model = new Promise<never>((_, reject) => { rejectModel = reject; });
     let disposeCount = 0;
-    const remote = { $mount: async () => async () => { disposeCount += 1; }, novelWorkspace: makeWorkspace(() => model) };
+    const remote = { $mount: async () => async () => { disposeCount += 1; } };
+    const get = (name: string) => (name === 'remote.novelWorkspace' ? makeWorkspace(() => model) : undefined);
     let slotDispose!: () => void;
     const slots = {
       inject(_: string, cb: () => () => void) { slotDispose = cb(); return () => {}; },
       register(_: unknown, component: () => unknown) { registrations.push(component); return () => {}; },
     };
-    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote });
+    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote, get });
     rejectModel(new Error('offline'));
     await Promise.resolve();
     await Promise.resolve();
@@ -81,10 +83,11 @@ describe('I33 product Client workspace', () => {
   it('renders B3/B2 editor controls without adding browser file or schema owners', async () => {
     const fakeReact = { createElement: (tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children }) };
     const model = Promise.resolve({ ok: true, value: { product: 'novel-creation-tool' as const, version: '2.0.0' as const, ready: true as const, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] as const } });
-    const remote = { $mount: async () => async () => {}, novelWorkspace: makeWorkspace(() => model) };
+    const remote = { $mount: async () => async () => {} };
+    const get = (name: string) => (name === 'remote.novelWorkspace' ? makeWorkspace(() => model) : undefined);
     const registrations: Array<() => any> = [];
     const slots = { inject(_: string, cb: () => () => void) { cb(); return () => {}; }, register(_: unknown, component: () => unknown) { registrations.push(component); return () => {}; } };
-    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote });
+    factory((spec) => spec === 'react' ? fakeReact : undefined).apply({ slots, remote, get });
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
