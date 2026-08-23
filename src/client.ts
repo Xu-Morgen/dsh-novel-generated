@@ -1,5 +1,6 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 import { workspaceRemoteContribution, type WorkspaceViewModel } from './remote.js';
+import { WORKBENCH_STYLES } from './client/styles.js';
 
 export type BundleRequire = (spec: string) => unknown;
 export interface ReactFace {
@@ -42,13 +43,52 @@ export interface ClientPluginEntry {
     slots: WorkspaceSlots;
     remote: { $mount(contribution: TypertRemoteContribution): Promise<TypertDisposer> };
     get(name: string, silent?: boolean): unknown;
+    /** Cordis effect: runs `callback` once, disposes its return on Fiber unload (H0-6). */
+    effect(callback: () => void | (() => void), label?: string): () => void;
   }): void;
 }
+
+/** Minimal browser DOM surface for package-owned `<style>` injection (R10-3). */
+interface WorkbenchStyleElement {
+  setAttribute(name: string, value: string): void;
+  remove(): void;
+  textContent: string;
+}
+declare const document: {
+  createElement(tag: 'style'): WorkbenchStyleElement;
+  readonly head: { appendChild(node: WorkbenchStyleElement): unknown };
+};
 
 type WorkspaceState =
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
   | { readonly status: 'ready'; readonly model: WorkspaceViewModel };
+
+/**
+ * I46「创作台」六层信息架构（design §14.6 / R10-1）。每层只占一个空态占位；
+ * 真实表单内容分别在 I47（B3/B2）、I48（B5/C1）、I49（C2/C4）交付，本迭代不
+ * 实现任何真实字段。`id` 即测试契约 `data-novel-layer` 的取值。
+ */
+const LAYERS = [
+  { id: 'characters', label: '角色', title: '角色核心（B3）', hint: '角色列表与详情表单将在 I47 交付。' },
+  { id: 'worldview', label: '世界观', title: '世界观（B2）', hint: '世界观条目与改写（supersede）将在 I47 交付。' },
+  { id: 'outline', label: '大纲', title: '大纲与细纲（B5）', hint: '幕→节→细纲结构化编辑将在 I48 交付。' },
+  { id: 'relationship', label: '关系', title: '关系（C1）', hint: '关系对结构化编辑将在 I48 交付。' },
+  { id: 'state', label: '状态', title: '状态快照（C2）', hint: '快照时间线 / 回滚 / diff 将在 I49 交付。' },
+  { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正将在 I49 交付。' },
+] as const;
+type LayerId = (typeof LAYERS)[number]['id'];
+
+/** 面板交互态：overlay 面板与侧栏启动入口共享（关闭后由启动入口重开）。 */
+interface WorkbenchUI {
+  readonly open: boolean;
+  readonly collapsed: boolean;
+  readonly activeLayer: LayerId;
+  collapse(): void;
+  close(): void;
+  launch(): void;
+  activate(id: LayerId): void;
+}
 
 /** Unwrap a DSH RemoteResult envelope: resolve to `value`, reject on `!ok`. */
 function unwrap(promise: Promise<unknown> | undefined): Promise<unknown> {
@@ -63,127 +103,94 @@ function unwrap(promise: Promise<unknown> | undefined): Promise<unknown> {
   });
 }
 
-function textField(React: ReactFace, label: string, value: string, onChange: (value: string) => void): unknown {
-  return React.createElement('label', { key: label }, label,
-    React.createElement('input', { value, onChange: (event: { target: { value: string } }) => onChange(event.target.value) }),
+/**
+ * 小型 `el()` 助手（D13）：薄封装 `React.createElement`，不引入 JSX runtime。
+ * 组件仍以 `React.createElement` 为唯一渲染原语，`el()` 只省去 `null` props。
+ */
+type El = (tag: string, props?: Record<string, unknown> | null, ...children: unknown[]) => unknown;
+function el(React: ReactFace): El {
+  return (tag, props, ...children) => React.createElement(tag, props ?? null, ...children);
+}
+
+/** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。 */
+function brandHeader(h: El, subtitle: string | undefined, ui: WorkbenchUI): unknown {
+  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '' },
+    h('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
+    h('div', null,
+      h('h2', { className: 'nv-workbench__title' }, '创作台'),
+      subtitle === undefined ? null : h('span', { className: 'nv-workbench__subtitle' }, subtitle),
+    ),
+    h('button', { type: 'button', className: 'nv-workbench__toggle', 'aria-expanded': String(!ui.collapsed), onClick: () => ui.collapse() }, ui.collapsed ? '展开' : '折叠'),
+    h('button', { type: 'button', className: 'nv-workbench__close', 'aria-label': '关闭创作台', onClick: () => ui.close() }, '关闭'),
   );
 }
 
-function editorPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
-  let selected = 'characters';
-  let name = '';
-  let title = '';
-  let message = '';
-  const submit = (event: { preventDefault?: () => void }) => {
-    event.preventDefault?.();
-    // The Host receives the complete typed payload; the Client owns no schema.
-    const operation = selected === 'characters'
-      ? unwrap(workspace.characterCreate(projectId, { id: name.toLowerCase().replaceAll(' ', '-'), name, aliases: [], kind: 'extra', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }))
-      : unwrap(workspace.worldviewCreate(projectId, { id: title.toLowerCase().replaceAll(' ', '-'), kind: 'concept', title, content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }));
-    void operation.then(() => { message = 'Saved through Host validation'; }, (error: Error) => { message = error.message; });
-  };
-  return React.createElement('section', { 'data-novel-editors': 'b3-b2' },
-    React.createElement('h3', null, 'Character core and Worldview'),
-    React.createElement('div', { role: 'tablist' },
-      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': selected === 'characters', onClick: () => { selected = 'characters'; } }, 'Characters'),
-      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': selected === 'worldview', onClick: () => { selected = 'worldview'; } }, 'Worldview'),
-    ),
-    React.createElement('form', { onSubmit: submit },
-      selected === 'characters' ? textField(React, 'Name', name, (value) => { name = value; }) : textField(React, 'Title', title, (value) => { title = value; }),
-      React.createElement('button', { type: 'submit' }, 'Save'),
-    ),
-    message ? React.createElement('p', { role: 'status' }, message) : null,
+/** 左侧层级导航：六层一桌，激活项打朱砂。 */
+function layerNav(h: El, ui: WorkbenchUI): unknown {
+  return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
+    LAYERS.map((layer) => h('button', {
+      key: layer.id,
+      type: 'button',
+      className: 'nv-workbench__nav-item' + (ui.activeLayer === layer.id ? ' is-active' : ''),
+      'data-novel-layer': layer.id,
+      'aria-current': ui.activeLayer === layer.id ? 'page' : undefined,
+      onClick: () => ui.activate(layer.id),
+    }, layer.label)),
   );
 }
 
-function outlineRelationshipPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
-  let mode = 'outline';
-  let payload = '';
-  let message = '';
-  const save = (event: { preventDefault?: () => void }) => {
-    event.preventDefault?.();
-    let parsed: unknown;
-    try { parsed = JSON.parse(payload); } catch { message = 'Host rejected invalid JSON payload'; return; }
-    const operation = mode === 'outline'
-      ? unwrap(workspace.outlineSave(projectId, parsed))
-      : unwrap(workspace.relationshipSave(projectId, parsed));
-    void operation.then(() => { message = 'Saved through Host validation'; }, (error: Error) => { message = error.message; });
-  };
-  return React.createElement('section', { 'data-novel-editors': 'b5-c1' },
-    React.createElement('h3', null, 'Outline, scene cards, and relationships'),
-    React.createElement('div', { role: 'tablist' },
-      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'outline', onClick: () => { mode = 'outline'; } }, 'Outline / scene cards'),
-      React.createElement('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'relationship', onClick: () => { mode = 'relationship'; } }, 'Relationships'),
-    ),
-    React.createElement('form', { onSubmit: save },
-      React.createElement('textarea', { value: payload, placeholder: 'Host-validated JSON payload', onChange: (event: { target: { value: string } }) => { payload = event.target.value; } }),
-      React.createElement('button', { type: 'submit' }, 'Save'),
-    ),
-    message ? React.createElement('p', { role: 'alert' }, message) : null,
+/** 单层空态占位（I46 只占位，真实表单在 I47–I49）。 */
+function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
+  return h('section', {
+    className: 'nv-workbench__empty',
+    'data-novel-layer-panel': layer.id,
+    'data-novel-layer-state': 'empty',
+  },
+    h('h3', { className: 'nv-workbench__empty-title' }, layer.title),
+    h('p', { className: 'nv-workbench__empty-hint' }, layer.hint),
   );
 }
 
-function stateCanonPanel(React: ReactFace, workspace: WorkspaceNamespace, projectId: string): unknown {
-  let snapshots: unknown[] = [];
-  let canon: unknown[] = [];
-  let selectedSeq = 0;
-  let targetId = '';
-  let correction = '';
-  let proposalId = '';
-  let message = '';
-  const load = () => {
-    void Promise.all([unwrap(workspace.stateSnapshots(projectId)), unwrap(workspace.canonQuery(projectId, { superseded: 'all' }))])
-      .then(([nextSnapshots, nextCanon]) => { snapshots = (nextSnapshots as unknown[]) ?? []; canon = (nextCanon as unknown[]) ?? []; message = 'Loaded from Host'; }, (error: Error) => { message = error.message; });
-  };
-  const rollback = () => {
-    void unwrap(workspace.stateRollback(projectId, selectedSeq)).then(() => { message = `Rolled back through StateEngine to snapshot ${selectedSeq}`; load(); }, (error: Error) => { message = error.message; });
-  };
-  const propose = (event: { preventDefault?: () => void }) => {
-    event.preventDefault?.();
-    let parsed: unknown;
-    try { parsed = JSON.parse(correction); } catch { message = 'Host rejected invalid correction JSON'; return; }
-    void unwrap(workspace.canonCorrectionPropose(projectId, targetId, parsed)).then((record: unknown) => { proposalId = (record as { id: string }).id; message = 'Correction is pending ConfirmationGate acceptance'; }, (error: Error) => { message = error.message; });
-  };
-  const accept = () => {
-    void unwrap(workspace.canonCorrectionAccept(projectId, proposalId)).then(() => { message = 'Correction appended as a supersede event'; load(); }, (error: Error) => { message = error.message; });
-  };
-  load();
-  return React.createElement('section', { 'data-novel-editors': 'c2-c4' },
-    React.createElement('h3', null, 'State snapshots and Canon ledger'),
-    React.createElement('div', { 'data-novel-state': 'snapshots' },
-      React.createElement('button', { type: 'button', onClick: load }, 'Refresh snapshots and Canon'),
-      React.createElement('select', { value: selectedSeq, onChange: (event: { target: { value: string } }) => { selectedSeq = Number(event.target.value); } },
-        snapshots.map((snapshot: any) => React.createElement('option', { key: snapshot.seq, value: snapshot.seq }, `Snapshot ${snapshot.seq}`)),
-      ),
-      React.createElement('button', { type: 'button', onClick: rollback }, 'Rollback through StateEngine'),
-    ),
-    React.createElement('ol', { 'data-novel-canon': 'readonly' }, canon.map((event: any) => React.createElement('li', { key: event.id }, `${event.seq}: ${event.summary}${event.supersededBy ? ' (superseded)' : ''}`))),
-    React.createElement('form', { onSubmit: propose, 'data-novel-canon-correction': 'gate-required' },
-      React.createElement('input', { placeholder: 'Canon event id', value: targetId, onChange: (event: { target: { value: string } }) => { targetId = event.target.value; } }),
-      React.createElement('textarea', { placeholder: 'Correction JSON', value: correction, onChange: (event: { target: { value: string } }) => { correction = event.target.value; } }),
-      React.createElement('button', { type: 'submit' }, 'Propose correction'),
-    ),
-    React.createElement('input', { placeholder: 'Pending proposal id', value: proposalId, onChange: (event: { target: { value: string } }) => { proposalId = event.target.value; } }),
-    React.createElement('button', { type: 'button', onClick: accept }, 'Accept correction through ConfirmationGate'),
-    message ? React.createElement('p', { role: 'status' }, message) : null,
+/** 内容区：当前激活层的空态面板。 */
+function contentArea(h: El, ui: WorkbenchUI): unknown {
+  const layer = LAYERS.find((item) => item.id === ui.activeLayer) ?? LAYERS[0];
+  return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
+    emptyState(h, layer),
   );
 }
 
-function view(React: ReactFace, state: WorkspaceState, workspace: WorkspaceNamespace | undefined): unknown {
-  if (state.status === 'loading') return React.createElement('section', { 'data-novel-workspace': 'loading' }, 'Loading workspace...');
-  if (state.status === 'error') return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, state.message);
-  if (!workspace) return React.createElement('section', { 'data-novel-workspace': 'error', role: 'alert' }, 'Workspace unavailable');
-  return React.createElement(
-    'section', { 'data-novel-workspace': 'ready' },
-    React.createElement('h2', null, 'Novel Creation Workspace'),
-    React.createElement('p', null, `Ready · ${state.model.version}`),
-    React.createElement('nav', { 'aria-label': 'Writing tools' }, state.model.capabilities.map((capability) =>
-      React.createElement('button', { key: capability, type: 'button', 'data-command': capability }, capability),
-    )),
-    editorPanel(React, workspace, 'default'),
-    outlineRelationshipPanel(React, workspace, 'default'),
-    stateCanonPanel(React, workspace, 'default'),
+/** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
+function workbenchView(React: ReactFace, state: WorkspaceState, workspace: WorkspaceNamespace | undefined, ui: WorkbenchUI): unknown {
+  const h = el(React);
+  if (!ui.open) return null;
+  const ready = state.status === 'ready' && workspace !== undefined;
+  const effectiveStatus: WorkspaceState['status'] = ready ? 'ready'
+    : state.status === 'error' ? 'error' : state.status;
+  const message = state.status === 'error' ? state.message
+    : (effectiveStatus === 'error' ? '创作台远程服务不可用' : undefined);
+  const subtitle = ready ? `已就绪 · ${state.model.version}` : undefined;
+  const body = effectiveStatus === 'ready'
+    ? h('div', { className: 'nv-workbench__body' }, layerNav(h, ui), contentArea(h, ui))
+    : h('section', {
+      className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
+      'data-novel-workspace-state': effectiveStatus,
+      role: effectiveStatus === 'error' ? 'alert' : undefined,
+    }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
+  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus },
+    brandHeader(h, subtitle, ui),
+    ui.collapsed ? null : body,
   );
+}
+
+/** 侧栏启动入口（D11）：可发现的「创作台」按钮，点击后（重新）打开 overlay 面板。 */
+function launchButton(React: ReactFace, launch: () => void): unknown {
+  const h = el(React);
+  return h('button', {
+    type: 'button',
+    className: 'nv-launch',
+    'data-novel-launch': '',
+    onClick: () => launch(),
+  }, '创作台');
 }
 
 /** Public bundle factory; React and Remote are supplied by the DSH client shell. */
@@ -197,10 +204,32 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let workspace: WorkspaceNamespace | undefined;
       let mounted = false;
       let remoteDisposer: TypertDisposer | undefined;
+      let open = true;
+      let collapsed = false;
+      let activeLayer: LayerId = 'characters';
+      const ui: WorkbenchUI = {
+        get open() { return open; },
+        get collapsed() { return collapsed; },
+        get activeLayer() { return activeLayer; },
+        collapse() { collapsed = !collapsed; },
+        close() { open = false; },
+        launch() { open = true; collapsed = false; },
+        activate(id) { activeLayer = id; },
+      };
+
+      // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
+      ctx.effect(() => {
+        const tag = document.createElement('style');
+        tag.setAttribute('data-novel-workbench', 'styles');
+        tag.textContent = WORKBENCH_STYLES;
+        document.head.appendChild(tag);
+        return () => { tag.remove(); };
+      }, 'novel-creation-tool: workbench styles');
+
       ctx.slots.inject('shell.overlay', () => {
         const slotDisposer = ctx.slots.register(
-          { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: 'Novel workspace' },
-          () => view(React, state, workspace),
+          { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
+          () => workbenchView(React, state, workspace, ui),
         );
         // Self-mount the namespace, then resolve it through `ctx.get` instead of
         // `inject`: injecting `remote.novelWorkspace` here would deadlock, because
@@ -209,12 +238,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (!mounted) { void dispose(); return; }
           remoteDisposer = dispose;
           workspace = ctx.get('remote.novelWorkspace', false) as WorkspaceNamespace | undefined;
-          if (!workspace) { state = { status: 'error', message: 'Workspace unavailable' }; return; }
+          if (!workspace) { state = { status: 'error', message: '创作台远程服务不可用' }; return; }
           return unwrap(workspace.viewModel()).then(
             (model) => { state = { status: 'ready', model: model as WorkspaceViewModel }; },
-            () => { state = { status: 'error', message: 'Workspace unavailable' }; },
+            () => { state = { status: 'error', message: '创作台远程服务不可用' }; },
           );
-        }, () => { state = { status: 'error', message: 'Workspace unavailable' }; });
+        }, () => { state = { status: 'error', message: '创作台远程服务不可用' }; });
         mounted = true;
         return () => {
           mounted = false;
@@ -222,6 +251,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (remoteDisposer) void remoteDisposer();
         };
       });
+
+      ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register(
+        { name: 'sidebar.footer.action', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
+        () => launchButton(React, ui.launch),
+      ));
     },
   };
 }
