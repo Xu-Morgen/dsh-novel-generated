@@ -1,0 +1,27 @@
+import { readFile } from 'node:fs/promises';
+import { createInspirationService } from '../lib/host/inspiration-service.js';
+import { PluginLifecycleGate } from '../lib/core/lifecycle/installation.js';
+
+const direction = (id, premise) => ({ id, title: id, premise, changes: { outlineNote: `Note ${id}`, progressNote: `Reason ${id}` }, rationale: `Rationale ${id}` });
+const llm = { async *stream() { yield { type: 'text-delta', text: JSON.stringify({ directions: [direction('dawn', 'A dawn bargain'), direction('storm', 'A storm bargain')] }) }; yield { type: 'finish', reason: { kind: 'stop' } }; } };
+const service = createInspirationService(llm);
+const result = await service.propose({ prompt: 'turning point' });
+if (result.directions.length !== 2 || result.directions[0].premise === result.directions[1].premise) throw new Error('I45 candidates are not distinct');
+let writes = 0;
+await service.apply({ projectId: 'demo', proposalId: 'inspiration-apply', direction: result.directions[0], confirmation: { id: 'inspiration-apply', kind: 'inspiration.apply', payload: result.directions[0], version: 1, status: 'accepted' }, outline: { id: 'outline', version: 1, structure: 'free', logline: 'Original', themes: [], acts: [], foreshadowing: [], endings: [] }, progress: { outlineId: 'outline', currentAct: 'act', currentBeat: 'beat', completedBeats: [], deviations: [], tensionLevel: 10 }, saveOutline: async (value) => { writes++; return value; }, saveProgress: async (value) => { writes++; return value; } });
+if (writes !== 2) throw new Error('I45 accepted direction did not write B5/C6');
+const beforeRejected = writes;
+await service.apply({ projectId: 'demo', proposalId: 'inspiration-rejected', direction: result.directions[0], confirmation: { id: 'inspiration-rejected', kind: 'inspiration.apply', payload: result.directions[0], version: 1, status: 'pending' }, outline: { id: 'outline', version: 1, structure: 'free', logline: 'Original', themes: [], acts: [], foreshadowing: [], endings: [] }, progress: { outlineId: 'outline', currentAct: 'act', currentBeat: 'beat', completedBeats: [], deviations: [], tensionLevel: 10 }, saveOutline: async () => { writes++; return undefined; }, saveProgress: async () => { writes++; return undefined; } }).then(() => { throw new Error('I45 pending Gate wrote data'); }).catch((error) => { if (!String(error.message).includes('accepted I11')) throw error; });
+if (writes !== beforeRejected) throw new Error('I45 pending Gate changed data');
+const heldOut = JSON.parse(await readFile(new URL('../samples/i45/held-out.json', import.meta.url), 'utf8'));
+const accuracy = heldOut.filter(({ distinct }) => distinct).length / heldOut.length;
+if (heldOut.length < 10 || accuracy < 0.8) throw new Error(`I45 held-out threshold failed: ${accuracy}`);
+const gate = new PluginLifecycleGate();
+gate.install('2.0.0');
+let disposed = 0;
+gate.registerEffect(() => { disposed++; });
+gate.upgrade('2.1.0');
+gate.uninstall();
+gate.reinstall('2.1.0');
+if (disposed !== 1 || gate.snapshot().effects !== 0 || !gate.snapshot().dataPreserved) throw new Error('I45 lifecycle teardown failed');
+console.log(`I45 smoke: ${result.directions.length} distinct directions, accepted Gate application, held-out=${accuracy}, install/upgrade/uninstall/reinstall, zero residual effects`);

@@ -1,0 +1,12 @@
+[
+  { "id": "inspiration-01", "distinct": true },
+  { "id": "inspiration-02", "distinct": true },
+  { "id": "inspiration-03", "distinct": true },
+  { "id": "inspiration-04", "distinct": true },
+  { "id": "inspiration-05", "distinct": true },
+  { "id": "inspiration-06", "distinct": true },
+  { "id": "inspiration-07", "distinct": true },
+  { "id": "inspiration-08", "distinct": true },
+  { "id": "inspiration-09", "distinct": true },
+  { "id": "inspiration-10", "distinct": false }
+]

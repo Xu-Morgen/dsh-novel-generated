@@ -31,6 +31,7 @@ import { createClassifierService } from './host/classifier-service.js';
 import { createLocalizedEditService } from './host/edit-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
+import { createInspirationService } from './host/inspiration-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeContribution, probeData, NOVEL_WORKSPACE_NAMESPACE, workspaceContribution, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -149,6 +150,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelLocalizedEdit', createLocalizedEditService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelChapterWriting', createChapterWritingService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
+   ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
