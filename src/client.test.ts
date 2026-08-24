@@ -19,17 +19,27 @@ const fakeReact = {
     ({ tag, props, children }),
 };
 
+/** Overridable subset of the `novelWorkspace` remote for I47 round-trip tests. */
+interface WorkspaceOverrides {
+  characterList?: () => Promise<unknown[]>;
+  characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
+  characterUpdate?: (projectId: string, id: string, patch: unknown) => Promise<unknown>;
+  worldviewList?: () => Promise<unknown[]>;
+  worldviewCreate?: (projectId: string, input: unknown) => Promise<unknown>;
+  worldviewRewrite?: (projectId: string, id: string, input: unknown) => Promise<unknown>;
+}
+
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
-const makeWorkspace = (viewModel: () => Promise<unknown>) => ({
+const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}) => ({
   viewModel,
-  characterList: async () => [],
+  characterList: overrides.characterList ?? (async () => []),
   characterRead: async () => ({}),
-  characterCreate: async () => ({}),
-  characterUpdate: async () => ({}),
-  worldviewList: async () => [],
+  characterCreate: overrides.characterCreate ?? (async () => ({})),
+  characterUpdate: overrides.characterUpdate ?? (async () => ({})),
+  worldviewList: overrides.worldviewList ?? (async () => []),
   worldviewRead: async () => ({}),
-  worldviewCreate: async () => ({}),
-  worldviewRewrite: async () => ({}),
+  worldviewCreate: overrides.worldviewCreate ?? (async () => ({})),
+  worldviewRewrite: overrides.worldviewRewrite ?? (async () => ({})),
   outlineRead: async () => ({}),
   outlineSave: async () => ({}),
   outlineBeatCards: async () => [],
@@ -84,7 +94,7 @@ function layerButtons(node: unknown): FakeNode[] {
  * fake slots/remote/effect. Returns everything a test needs to drive state and
  * assert Fiber-unload cleanup (Slot/样式/监听归零, R10-3).
  */
-function mount(viewModel: () => Promise<unknown>) {
+function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}) {
   const registrations: Record<string, Array<{ options: Record<string, unknown>; component: () => unknown }>> = {};
   const overlayCleanups: Array<() => void> = [];
   const footerCleanups: Array<() => void> = [];
@@ -122,7 +132,7 @@ function mount(viewModel: () => Promise<unknown>) {
     styleEffects.push(cb() ?? (() => {}));
     return () => {};
   };
-  const workspace = makeWorkspace(viewModel);
+  const workspace = makeWorkspace(viewModel, overrides);
   const remote = { $mount: async () => async () => {} };
   const get = (name: string) => (name === 'remote.novelWorkspace' ? workspace : undefined);
   const entry = factory((spec) => (spec === 'react' ? fakeReact : undefined));
@@ -130,7 +140,11 @@ function mount(viewModel: () => Promise<unknown>) {
   return { entry, registrations, overlayCleanups, footerCleanups, styleEffects, styleNodes };
 }
 
-const flush = async (): Promise<void> => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
+const flush = async (): Promise<void> => {
+  for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
+  await new Promise((resolve) => { setTimeout(resolve, 0); });
+  for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
+};
 
 afterEach(() => { delete (globalThis as unknown as { document?: unknown }).document; });
 
@@ -179,7 +193,7 @@ describe('I46 创作台 workbench shell', () => {
     expect(collect(tree, 'section').some((n) => n.props?.role === 'alert')).toBe(true);
   });
 
-  it('renders an empty placeholder per layer and navigates across all six layers', async () => {
+  it('renders a real B3/B2 form panel and empty placeholders for the deferred layers, and navigates across all six', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
@@ -188,7 +202,8 @@ describe('I46 创作台 workbench shell', () => {
       collect(tree, 'section').find((n) => n.props?.['data-novel-layer-panel'] !== undefined);
 
     expect(panel(render())?.props?.['data-novel-layer-panel']).toBe('characters');
-    expect(panel(render())?.props?.['data-novel-layer-state']).toBe('empty');
+    // I47：角色层渲染真表单（ready），非空态占位；其余四层仍 empty。
+    expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
 
     const ids = ['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'];
     for (const id of ids) {
@@ -196,7 +211,11 @@ describe('I46 创作台 workbench shell', () => {
       expect(button, `nav button for ${id}`).toBeDefined();
       (button?.props?.onClick as () => void)();
       expect(panel(render())?.props?.['data-novel-layer-panel']).toBe(id);
-      expect(panel(render())?.props?.['data-novel-layer-state']).toBe('empty');
+      if (id === 'characters' || id === 'worldview') {
+        expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
+      } else {
+        expect(panel(render())?.props?.['data-novel-layer-state']).toBe('empty');
+      }
     }
   });
 
@@ -279,6 +298,190 @@ describe('I46 visual system and Fiber cleanup (R10-2 / R10-3)', () => {
     }
     expect(client).toContain('React.createElement');
     expect(client).toContain('function el(');
+  });
+});
+
+describe('I47 B3/B2 真表单 (R10-4)', () => {
+  /** Find the first element with the given data attribute value. */
+  const byData = (tree: FakeNode, attr: string, value: string): FakeNode | undefined => {
+    let found: FakeNode | undefined;
+    const visit = (current: unknown): void => {
+      if (found || current == null || typeof current !== 'object') return;
+      if (Array.isArray(current)) { for (const item of current) visit(item); return; }
+      const n = current as FakeNode;
+      if (n.props?.[attr] === value) { found = n; return; }
+      for (const child of n.children ?? []) visit(child);
+    };
+    visit(tree);
+    return found;
+  };
+
+  it('renders the character list and a full-field form, and create goes only through Host Remote', async () => {
+    const calls: Array<{ method: string; projectId: string; input: unknown }> = [];
+    const created: unknown = {
+      id: 'mara', name: 'Mara', aliases: [], kind: 'protagonist',
+      personality: '冷静', background: '孤儿', motivation: '复仇', goals: ['活下去'],
+      flaws: ['多疑'], abilities: ['剑术'], speechStyle: '简短',
+      staticTraits: [], arc: { startingPoint: '起点', desiredEnd: '终点', keyBeats: [] },
+      relationships: [], knowledgeIds: [],
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        characterList: async () => [],
+        characterCreate: async (projectId, input) => { calls.push({ method: 'create', projectId, input }); return created; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    // characters 层默认激活，列表为空但表单（新建）仍渲染。
+    expect(byData(render(), 'data-novel-layer-panel', 'characters')).toBeDefined();
+    expect(byData(render(), 'data-novel-character-new', '')).toBeDefined();
+
+    // 填充名称并触发保存（新建路径走 characterCreate）。
+    const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
+    const save = byData(render(), 'data-novel-character-save', '') as FakeNode;
+    expect(save.props?.disabled).toBe(false);
+    (save.props?.onClick as () => void)();
+    await flush();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].method).toBe('create');
+    expect(calls[0].projectId).toBe('default');
+    expect(calls[0].input).toMatchObject({
+      id: 'mara', name: 'Mara', kind: 'extra',
+      personality: '', background: '', motivation: '',
+      goals: [], flaws: [], abilities: [], speechStyle: '',
+    });
+  });
+
+  it('round-trips a character update through Host Remote and reloads the list', async () => {
+    const existing = {
+      id: 'mara', name: 'Mara', aliases: [], kind: 'protagonist',
+      personality: '冷静', background: '孤儿', motivation: '复仇', goals: ['活下去'],
+      flaws: ['多疑'], abilities: ['剑术'], speechStyle: '简短',
+      staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] },
+      relationships: [], knowledgeIds: [],
+    };
+    const updateCalls: Array<{ id: string; patch: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        characterList: async () => [existing],
+        characterUpdate: async (_projectId, id, patch) => { updateCalls.push({ id, patch }); return { ...existing, name: 'Mara II', ...(patch as object) }; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    // 点选列表项载入详情。
+    const item = byData(render(), 'data-novel-character-id', 'mara') as FakeNode;
+    (item.props?.onClick as () => void)();
+
+    // 修改姓名后保存，走 characterUpdate。
+    const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara II' } });
+    ((byData(render(), 'data-novel-character-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0].id).toBe('mara');
+    expect(updateCalls[0].patch).toMatchObject({ id: 'mara', name: 'Mara II' });
+  });
+
+  it('shows the Host error when an illegal character write is rejected', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        characterList: async () => [],
+        characterCreate: async () => { throw new Error('Host rejected: name required'); },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'X' } });
+    ((byData(render(), 'data-novel-character-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    const error = byData(render(), 'data-novel-error', 'character') as FakeNode;
+    expect(error).toBeDefined();
+    expect(error.props?.role).toBe('alert');
+    expect((error.children ?? []).join('')).toContain('Host rejected');
+  });
+
+  it('worldview rewrite goes through worldviewRewrite (supersede), never in-place create', async () => {
+    const existing = {
+      id: 'realm', kind: 'concept', title: '王国', content: '旧设定',
+      keywords: [], triggerMode: 'constant', weight: 0, parent: null,
+      mutable: true, status: 'active', supersededBy: null,
+    };
+    const rewriteCalls: Array<{ id: string; input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        worldviewList: async () => [existing],
+        worldviewRewrite: async (_projectId, id, input) => {
+          rewriteCalls.push({ id, input });
+          return { superseded: { ...existing, status: 'rewritten', supersededBy: (input as { id?: string }).id }, replacement: input };
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    // 切到世界观层。
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'worldview')?.props?.onClick as () => void)();
+
+    const item = byData(render(), 'data-novel-worldview-id', 'realm') as FakeNode;
+    (item.props?.onClick as () => void)();
+
+    // 修改内容后保存，字段标注为「改写」且走 worldviewRewrite。
+    const content = collect(render(), 'textarea')[0];
+    (content.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '新设定' } });
+    const save = byData(render(), 'data-novel-worldview-save', '') as FakeNode;
+    expect((save.children ?? []).join('')).toBe('改写');
+    (save.props?.onClick as () => void)();
+    await flush();
+
+    expect(rewriteCalls).toHaveLength(1);
+    expect(rewriteCalls[0].id).toBe('realm');
+    expect(rewriteCalls[0].input).toMatchObject({ title: '王国', content: '新设定' });
+  });
+
+  it('shows the Host error when an illegal worldview write is rejected', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        worldviewList: async () => [],
+        worldviewCreate: async () => { throw new Error('Host rejected: title required'); },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    // 切到世界观层。
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'worldview')?.props?.onClick as () => void)();
+
+    // 新建条目：输入标题后保存，Host 拒绝并回传错误。
+    const titleInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (titleInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '王国' } });
+    ((byData(render(), 'data-novel-worldview-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    const error = byData(render(), 'data-novel-error', 'worldview') as FakeNode;
+    expect(error).toBeDefined();
+    expect(error.props?.role).toBe('alert');
+    expect((error.children ?? []).join('')).toContain('Host rejected');
+  });
+
+  it('owns no fs API: the client source imports no node:fs and no browser LLM seam', () => {
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const source = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
+    expect(source).not.toMatch(/node:fs|fs\.readFile|window\.fetch|OPENAI_API_KEY|harness\.handle|host\.call/);
   });
 });
 
