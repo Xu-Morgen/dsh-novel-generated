@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { ConfirmationGate } from '../confirm/index.js';
 import { readYaml } from '../io/yaml.js';
 
@@ -147,9 +147,16 @@ function validateArchive(value: unknown): asserts value is PortableArchive {
 
 async function collectFiles(root: string, path: string, output: Record<string, string>): Promise<void> {
   const absolute = join(root, path);
-  try { if ((await stat(absolute)).isDirectory()) { for (const file of await filesUnder(absolute)) output[relative(root, file)] = await readFile(file, 'utf8'); } else output[path] = await readFile(absolute, 'utf8'); }
+  try { if ((await stat(absolute)).isDirectory()) { for (const file of await filesUnder(absolute)) output[portableKey(relative(root, file))] = await readFile(file, 'utf8'); } else output[portableKey(path)] = await readFile(absolute, 'utf8'); }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
 }
+
+/**
+ * Archive keys are a transport contract and must be OS-portable: normalize the
+ * platform separator to `/` so a Windows export round-trips to POSIX import
+ * (and vice versa). See design §I39 deterministic round-trip.
+ */
+function portableKey(path: string): string { return sep === '/' ? path : path.split(sep).join('/'); }
 async function filesUnder(root: string): Promise<string[]> {
   try {
     const entries = await readdir(root, { withFileTypes: true });
