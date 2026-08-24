@@ -20,6 +20,8 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
+interface MountOptions { deferStoreInjection?: boolean }
+
 interface WorkspaceOverrides {
   characterList?: () => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
@@ -101,10 +103,12 @@ function layerButtons(node: unknown): FakeNode[] {
 
 /**
  * Mount the Client plugin against a minimal fake runtime: fake React, fake DOM,
- * fake slots/remote/effect. Returns everything a test needs to drive state and
- * assert Fiber-unload cleanup (Slot/样式/监听归零, R10-3).
+ * fake slots/remote/effect, plus a fake `defineStore` engine and a store-binding
+ * wrapper that emulates what the renderer does (bind `useStore`/`actions`, run the
+ * `inject` factory). Returns everything a test needs to drive state and assert
+ * Fiber-unload cleanup (Slot/样式/监听归零, R10-3).
  */
-function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}) {
+function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}, mountOptions: MountOptions = {}) {
   const registrations: Record<string, Array<{ options: Record<string, unknown>; component: () => unknown }>> = {};
   const overlayCleanups: Array<() => void> = [];
   const footerCleanups: Array<() => void> = [];
@@ -122,6 +126,29 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   };
   (globalThis as unknown as { document: unknown }).document = fakeDocument;
 
+  // Fake `defineStore` mirrors the real handle → create(scopeKey) → instance
+  // contract. Every create gets fresh state and baked actions.
+  const defineStore = (spec: { init: () => unknown; actions: Record<string, (d: never, ...params: never[]) => void> }) => ({
+    create() {
+      let state = spec.init();
+      const listeners = new Set<() => void>();
+      const actions: Record<string, unknown> = {};
+      for (const key of Object.keys(spec.actions)) {
+        actions[key] = (...params: unknown[]) => {
+          const draft = structuredClone(state) as Record<string, unknown>;
+          (spec.actions[key] as (d: unknown, ...p: unknown[]) => void)(draft, ...params);
+          state = draft as never;
+          for (const fn of listeners) fn();
+        };
+      }
+      return {
+        actions,
+        getSnapshot: () => state,
+        subscribe: (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; },
+      };
+    },
+  });
+
   const slots = {
     inject(key: string, cb: () => () => void) {
       const dispose = cb() ?? (() => {});
@@ -130,10 +157,33 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
     },
     register(options: Record<string, unknown>, component: () => unknown) {
       const name = options.name as string;
-      (registrations[name] ??= []).push({ options, component });
+      // Emulate the renderer's handle lifecycle. Normal tests schedule the first
+      // instance on a microtask; the race test defers it until first render so a
+      // fast Remote response can arrive before actions injection.
+      let wrapped = component;
+      const storeFactory = options.store as unknown as (() => { create(scopeKey?: string): { actions: Record<string, unknown>; getSnapshot: () => unknown } }) | undefined;
+      if (storeFactory !== undefined) {
+        let instance: { actions: Record<string, unknown>; getSnapshot: () => unknown } | undefined;
+        const ensureInstance = () => {
+          if (instance !== undefined) return instance;
+          instance = storeFactory().create();
+          const inject = options.inject as unknown as ((actions: unknown) => Record<string, unknown>) | undefined;
+          if (inject !== undefined) inject(instance.actions);
+          return instance;
+        };
+        if (mountOptions.deferStoreInjection !== true) queueMicrotask(ensureInstance);
+        wrapped = () => {
+          const current = ensureInstance();
+          return (component as unknown as (props: unknown) => unknown)({
+            useStore: (sel: (s: unknown) => unknown) => sel(current.getSnapshot()),
+            actions: current.actions,
+          });
+        };
+      }
+      (registrations[name] ??= []).push({ options, component: wrapped });
       return () => {
         const list = registrations[name];
-        const index = list.findIndex((entry) => entry.component === component);
+        const index = list.findIndex((entry) => entry.component === wrapped);
         if (index >= 0) list.splice(index, 1);
       };
     },
@@ -145,7 +195,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const workspace = makeWorkspace(viewModel, overrides);
   const remote = { $mount: async () => async () => {} };
   const get = (name: string) => (name === 'remote.novelWorkspace' ? workspace : undefined);
-  const entry = factory((spec) => (spec === 'react' ? fakeReact : undefined));
+  const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
   return { entry, registrations, overlayCleanups, footerCleanups, styleEffects, styleNodes };
 }
@@ -182,6 +232,46 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'characters', 'worldview', 'outline', 'relationship', 'state', 'canon',
     ]);
+  });
+
+  it('fails loud when the required DSH defineStore runtime is unavailable', () => {
+    expect(() => factory((spec) => (spec === 'react' ? fakeReact : undefined))).toThrow('defineStore is unavailable');
+  });
+
+  it('queues the real reload when Remote resolves before renderer actions injection', async () => {
+    let characterLoads = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { characterList: async () => { characterLoads += 1; return []; } },
+      { deferStoreInjection: true },
+    );
+    await flush();
+    expect(characterLoads).toBe(0);
+
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    expect(render().props?.['data-novel-workspace']).toBe('ready');
+    await flush();
+    expect(characterLoads).toBe(1);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+  });
+
+  it('drops pending Remote work when the overlay Fiber disposes before resolution', async () => {
+    let resolveModel!: (value: unknown) => void;
+    let modelStarts = 0;
+    let characterLoads = 0;
+    const model = new Promise<unknown>((resolve) => { resolveModel = resolve; });
+    const { overlayCleanups } = mount(
+      () => { modelStarts += 1; return model; },
+      { characterList: async () => { characterLoads += 1; return []; } },
+      { deferStoreInjection: true },
+    );
+    for (let index = 0; index < 4; index += 1) await Promise.resolve();
+    expect(modelStarts).toBe(1);
+
+    overlayCleanups[0]();
+    resolveModel({ ok: true, value: READY_MODEL });
+    await flush();
+    expect(characterLoads).toBe(0);
   });
 
   it('shows the loading state before the Host view model resolves', async () => {
@@ -362,6 +452,27 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
       personality: '', background: '', motivation: '',
       goals: [], flaws: [], abilities: [], speechStyle: '',
     });
+  });
+
+  it('surfaces a post-save refresh rejection instead of leaving the layer loading', async () => {
+    let reads = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        characterList: async () => { reads += 1; if (reads > 1) throw new Error('Host refresh failed'); return []; },
+        characterCreate: async (_projectId, input) => input,
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const nameInput = collect(render(), 'input').find((node) => node.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
+    ((byData(render(), 'data-novel-character-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    const error = byData(render(), 'data-novel-layer-state', 'error') as FakeNode;
+    expect(error.props?.role).toBe('alert');
+    expect((error.children ?? []).join('')).toContain('Host refresh failed');
   });
 
   it('round-trips a character update through Host Remote and reloads the list', async () => {
@@ -549,6 +660,8 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     expect(saveCalls).toHaveLength(1);
     expect(saveCalls[0].projectId).toBe('default');
     expect(saveCalls[0].input).toMatchObject({ logline: 'A new saga.', structure: 'free' });
+    expect(byData(render(), 'data-novel-layer-state', 'ready')).toBeDefined();
+    expect(byData(render(), 'data-novel-outline-save', '')).toBeDefined();
   });
 
   it('shows the Host error when an illegal outline write is rejected', async () => {

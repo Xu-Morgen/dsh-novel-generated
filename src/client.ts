@@ -48,6 +48,57 @@ export interface ClientPluginEntry {
   }): void;
 }
 
+/**
+ * `defineStore` contract supplied by the DSH client runtime (the same React-free
+ * engine the official UI plugins use). `spec` carries `init` (fresh state per
+ * instance) and an `actions` table of immer-draft transforms; `create(scopeKey)`
+ * returns a bare `{ getSnapshot, subscribe, actions }` instance. The renderer
+ * binds `useStore` from this instance and hands baked `actions` to the component.
+ */
+export type BakedStoreActions<T, A> = {
+  [K in keyof A]: A[K] extends (draft: T, ...params: infer P) => void ? (...params: P) => void : never;
+};
+export interface StoreInstance<T, A> {
+  readonly actions: BakedStoreActions<T, A>;
+  getSnapshot(): T;
+  subscribe(listener: () => void): () => void;
+}
+export interface StoreHandle<T, A> {
+  create(scopeKey?: string): StoreInstance<T, A>;
+}
+export interface DefineStore {
+  <T, A extends Record<string, (draft: T, ...params: never[]) => void>>(spec: {
+    init: () => T;
+    persist?: string;
+    actions: A;
+  }): StoreHandle<T, A>;
+}
+/** Baked action callback set the store hands to the component (draft stripped). */
+export type WorkbenchActions = {
+  open(): void;
+  close(): void;
+  collapse(): void;
+  activate(id: string): void;
+  ready(model: WorkspaceViewModel): void;
+  fail(message: string): void;
+  setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
+  setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
+  setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
+  setRelationship(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
+  setState(status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string): void;
+  setCanon(status: 'loading' | 'ready' | 'error', events: unknown[], message?: string): void;
+  characterDraft(patch: Partial<CharacterEditor>): void;
+  worldDraft(patch: Partial<WorldEditor>): void;
+  outlineDraft(patch: Partial<OutlineEditor>): void;
+  relationshipDraft(patch: Partial<RelationshipEditor>): void;
+  stateDraft(patch: Partial<StateEditor>): void;
+  canonDraft(patch: Partial<CanonEditor>): void;
+  characterMutate(update: (draft: CharacterShape) => CharacterShape): void;
+  worldMutate(update: (draft: WorldShape) => WorldShape): void;
+  outlineMutate(update: (draft: OutlineShape) => OutlineShape): void;
+  relationshipMutate(update: (draft: RelationshipShape) => RelationshipShape): void;
+};
+
 /** Minimal browser DOM surface for package-owned `<style>` injection (R10-3). */
 interface WorkbenchStyleElement {
   setAttribute(name: string, value: string): void;
@@ -59,15 +110,15 @@ declare const document: {
   readonly head: { appendChild(node: WorkbenchStyleElement): unknown };
 };
 
-type WorkspaceState =
+type WorkspaceStatus =
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
   | { readonly status: 'ready'; readonly model: WorkspaceViewModel };
 
 /**
  * I46「创作台」六层信息架构（design §14.6 / R10-1）。前两层（B3 角色、B2 世界观）
- * 自 I47 起渲染真表单；后四层仍为空态占位，真实内容分别在 I48（B5/C1）、
- * I49（C2/C4）交付。`id` 即测试契约 `data-novel-layer` 的取值。
+ * 自 I47 起渲染真表单；后四层是 I48（B5/C1）与 I49（C2/C4）的真面板。`id` 即测试
+ * 契约 `data-novel-layer` 的取值。
  */
 const LAYERS = [
   { id: 'characters', label: '角色', title: '角色核心（B3）', hint: '角色列表与详情表单（I47）。' },
@@ -78,17 +129,6 @@ const LAYERS = [
   { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正（I49）。' },
 ] as const;
 type LayerId = (typeof LAYERS)[number]['id'];
-
-/** 面板交互态：overlay 面板与侧栏启动入口共享（关闭后由启动入口重开）。 */
-interface WorkbenchUI {
-  readonly open: boolean;
-  readonly collapsed: boolean;
-  readonly activeLayer: LayerId;
-  collapse(): void;
-  close(): void;
-  launch(): void;
-  activate(id: LayerId): void;
-}
 
 /** Unwrap a DSH RemoteResult envelope: resolve to `value`, reject on `!ok`. */
 function unwrap(promise: Promise<unknown> | undefined): Promise<unknown> {
@@ -113,7 +153,7 @@ function el(React: ReactFace): El {
 }
 
 /** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。 */
-function brandHeader(h: El, subtitle: string | undefined, ui: WorkbenchUI): unknown {
+function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }): unknown {
   return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '' },
     h('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
     h('div', null,
@@ -126,15 +166,15 @@ function brandHeader(h: El, subtitle: string | undefined, ui: WorkbenchUI): unkn
 }
 
 /** 左侧层级导航：六层一桌，激活项打朱砂。 */
-function layerNav(h: El, ui: WorkbenchUI): unknown {
+function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
     LAYERS.map((layer) => h('button', {
       key: layer.id,
       type: 'button',
-      className: 'nv-workbench__nav-item' + (ui.activeLayer === layer.id ? ' is-active' : ''),
+      className: 'nv-workbench__nav-item' + (activeLayer === layer.id ? ' is-active' : ''),
       'data-novel-layer': layer.id,
-      'aria-current': ui.activeLayer === layer.id ? 'page' : undefined,
-      onClick: () => ui.activate(layer.id),
+      'aria-current': activeLayer === layer.id ? 'page' : undefined,
+      onClick: () => activate(layer.id),
     }, layer.label)),
   );
 }
@@ -181,8 +221,6 @@ interface CharacterLayerState {
 }
 /** Host-validated create/update copy of a character form model. */
 function characterCreateInput(draft: CharacterShape): unknown {
-  // `staticTraits`, `relationships`, `knowledgeIds` are forward refs / optional
-  // values sent verbatim; the Host owns their validation (design §0.1.2).
   return {
     id: draft.id,
     name: draft.name,
@@ -216,7 +254,7 @@ function characterText(h: El, label: string, value: string, onChange: (value: st
   );
 }
 
-/** 持久化角色表单态：跨渲染复用，避免每次 `createElement` 重建丢失输入。 */
+/** 持久化角色表单态（存于 store，任何变更经 actions 触发重渲染）。 */
 interface CharacterEditor {
   selectedId: string | undefined;
   draft: CharacterShape;
@@ -231,39 +269,23 @@ interface WorldEditor {
   error: string;
 }
 
-/** 角色列表表单：列出全部 CharacterCore，可点选载入详情。 */
-function characterLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: CharacterLayerState, editor: CharacterEditor, reload: () => void): unknown {
-  const loadDraft = (character: CharacterShape): void => {
-    editor.selectedId = character.id;
-    editor.draft = { ...character };
-    editor.dirty = false;
-    editor.error = '';
-  };
-  const newDraft = (): void => {
-    editor.selectedId = undefined;
-    editor.draft = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] };
-    editor.dirty = false;
-    editor.error = '';
-  };
-  const save = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.draft.name.trim() === '') { editor.error = '角色名不能为空'; return; }
-    const effectiveId = editor.selectedId ?? slug(editor.draft.name);
-    if (editor.selectedId === undefined) {
-      void unwrap(workspace.characterCreate(projectId, characterCreateInput({ ...editor.draft, id: effectiveId })))
-        .then((created) => { editor.draft = created as CharacterShape; editor.selectedId = (created as CharacterShape).id; editor.dirty = false; editor.error = ''; reload(); })
-        .catch((cause: Error) => { editor.error = cause.message; });
-    } else {
-      void unwrap(workspace.characterUpdate(projectId, editor.selectedId, characterCreateInput({ ...editor.draft, id: editor.selectedId })))
-        .then((updated) => { editor.draft = { ...(updated as CharacterShape) }; editor.dirty = false; editor.error = ''; reload(); })
-        .catch((cause: Error) => { editor.error = cause.message; });
-    }
-  };
-  const mutate = (update: (draft: CharacterShape) => CharacterShape): void => {
-    editor.draft = update(editor.draft);
-    editor.dirty = true;
-  };
+/** 角色编辑动作接口：render 助手只经它写入 store。 */
+interface CharacterEditOps {
+  select(character: CharacterShape): void;
+  newDraft(): void;
+  mutate(update: (draft: CharacterShape) => CharacterShape): void;
+  save(): void;
+}
+/** 世界观编辑动作接口。 */
+interface WorldEditOps {
+  select(entry: WorldShape): void;
+  newDraft(): void;
+  mutate(update: (draft: WorldShape) => WorldShape): void;
+  save(): void;
+}
 
+/** 角色列表表单：列出全部 CharacterCore，可点选载入详情。 */
+function characterLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: CharacterLayerState, editor: CharacterEditor, ops: CharacterEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'loading' }, '正在装载角色…');
   }
@@ -274,7 +296,7 @@ function characterLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
   const editing = editor.selectedId !== undefined;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-character-new': '', onClick: newDraft }, '新建角色'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-character-new': '', onClick: ops.newDraft }, '新建角色'),
     ),
     layerState.list.map((character) => h('button', {
       key: character.id,
@@ -282,36 +304,36 @@ function characterLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
       role: 'listitem',
       className: 'nv-editor__item' + (editor.selectedId === character.id ? ' is-active' : ''),
       'data-novel-character-id': character.id,
-      onClick: () => loadDraft(character),
+      onClick: () => ops.select(character),
     }, character.name)),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title' }, editing ? `编辑角色：${d.name}` : '新建角色'),
     h('div', { className: 'nv-form' },
-      characterText(h, '名称', d.name, (value) => mutate((draft) => ({ ...draft, name: value }))),
+      characterText(h, '名称', d.name, (value) => ops.mutate((draft) => ({ ...draft, name: value }))),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '类型'),
-        h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, kind: event.target.value })) },
+        h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value })) },
           ['protagonist', 'antagonist', 'supporting', 'extra', 'pov'].map((kind) => h('option', { key: kind, value: kind }, kind)),
         ),
       ),
-      listField(h, '别名', d.aliases ?? [], (value) => mutate((draft) => ({ ...draft, aliases: value }))),
-      characterText(h, '性格', d.personality ?? '', (value) => mutate((draft) => ({ ...draft, personality: value })), true),
-      characterText(h, '背景', d.background ?? '', (value) => mutate((draft) => ({ ...draft, background: value })), true),
-      characterText(h, '动机', d.motivation ?? '', (value) => mutate((draft) => ({ ...draft, motivation: value })), true),
-      listField(h, '目标', d.goals ?? [], (value) => mutate((draft) => ({ ...draft, goals: value }))),
-      listField(h, '缺陷', d.flaws ?? [], (value) => mutate((draft) => ({ ...draft, flaws: value }))),
-      listField(h, '能力', d.abilities ?? [], (value) => mutate((draft) => ({ ...draft, abilities: value }))),
-      characterText(h, '口吻', d.speechStyle ?? '', (value) => mutate((draft) => ({ ...draft, speechStyle: value })), true),
+      listField(h, '别名', d.aliases ?? [], (value) => ops.mutate((draft) => ({ ...draft, aliases: value }))),
+      characterText(h, '性格', d.personality ?? '', (value) => ops.mutate((draft) => ({ ...draft, personality: value })), true),
+      characterText(h, '背景', d.background ?? '', (value) => ops.mutate((draft) => ({ ...draft, background: value })), true),
+      characterText(h, '动机', d.motivation ?? '', (value) => ops.mutate((draft) => ({ ...draft, motivation: value })), true),
+      listField(h, '目标', d.goals ?? [], (value) => ops.mutate((draft) => ({ ...draft, goals: value }))),
+      listField(h, '缺陷', d.flaws ?? [], (value) => ops.mutate((draft) => ({ ...draft, flaws: value }))),
+      listField(h, '能力', d.abilities ?? [], (value) => ops.mutate((draft) => ({ ...draft, abilities: value }))),
+      characterText(h, '口吻', d.speechStyle ?? '', (value) => ops.mutate((draft) => ({ ...draft, speechStyle: value })), true),
       h('fieldset', { className: 'nv-fieldset' },
         h('legend', { className: 'nv-fieldset__legend' }, '弧光'),
-        characterText(h, '起点', d.arc?.startingPoint ?? '', (value) => mutate((draft) => ({ ...draft, arc: { ...draft.arc, startingPoint: value } }))),
-        characterText(h, '归宿', d.arc?.desiredEnd ?? '', (value) => mutate((draft) => ({ ...draft, arc: { ...draft.arc, desiredEnd: value } }))),
-        listField(h, '关键节拍', d.arc?.keyBeats ?? [], (value) => mutate((draft) => ({ ...draft, arc: { ...draft.arc, keyBeats: value } }))),
+        characterText(h, '起点', d.arc?.startingPoint ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, startingPoint: value } }))),
+        characterText(h, '归宿', d.arc?.desiredEnd ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, desiredEnd: value } }))),
+        listField(h, '关键节拍', d.arc?.keyBeats ?? [], (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, keyBeats: value } }))),
       ),
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: save, disabled: !editor.dirty }, '保存'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: ops.save, disabled: !editor.dirty }, '保存'),
     ),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'character', role: 'alert' }, editor.error) : null,
   );
@@ -380,43 +402,7 @@ function worldviewInput(draft: WorldShape): unknown {
   };
 }
 
-function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: WorldLayerState, editor: WorldEditor, reload: () => void): unknown {
-  const loadDraft = (entry: WorldShape): void => {
-    editor.selectedId = entry.id;
-    editor.draft = { ...entry };
-    editor.dirty = false;
-    editor.error = '';
-  };
-  const newDraft = (): void => {
-    editor.selectedId = undefined;
-    editor.draft = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null };
-    editor.dirty = false;
-    editor.error = '';
-  };
-  const save = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if ((editor.draft.title ?? '').trim() === '') { editor.error = '标题不能为空'; return; }
-    if (editor.selectedId === undefined) {
-      const effectiveId = slug(editor.draft.title ?? 'untitled');
-      void unwrap(workspace.worldviewCreate(projectId, worldviewInput({ ...editor.draft, id: effectiveId })))
-        .then((created) => { editor.draft = created as WorldShape; editor.selectedId = (created as WorldShape).id; editor.dirty = false; editor.error = ''; reload(); })
-        .catch((cause: Error) => { editor.error = cause.message; });
-    } else {
-      // 世界观「改写」= 提交替换内容走 `worldviewRewrite`（supersede，非就地覆写）。
-      const replacementId = slug(editor.draft.title ?? editor.selectedId);
-      void unwrap(workspace.worldviewRewrite(projectId, editor.selectedId, worldviewInput({ ...editor.draft, id: replacementId })))
-        .then((result) => {
-          const replacement = (result as { replacement: WorldShape }).replacement;
-          editor.draft = replacement; editor.selectedId = replacement.id; editor.dirty = false; editor.error = ''; reload();
-        })
-        .catch((cause: Error) => { editor.error = cause.message; });
-    }
-  };
-  const mutate = (update: (draft: WorldShape) => WorldShape): void => {
-    editor.draft = update(editor.draft);
-    editor.dirty = true;
-  };
-
+function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: WorldLayerState, editor: WorldEditor, ops: WorldEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'loading' }, '正在装载世界观…');
   }
@@ -426,7 +412,7 @@ function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
   const d = editor.draft;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-worldview-new': '', onClick: newDraft }, '新建条目'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-worldview-new': '', onClick: ops.newDraft }, '新建条目'),
     ),
     layerState.list.map((entry) => h('button', {
       key: entry.id,
@@ -434,7 +420,7 @@ function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
       role: 'listitem',
       className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''),
       'data-novel-worldview-id': entry.id,
-      onClick: () => loadDraft(entry),
+      onClick: () => ops.select(entry),
     }, entry.title ?? entry.id)),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
@@ -442,43 +428,43 @@ function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '标题'),
-        h('input', { type: 'text', className: 'nv-field__input', value: d.title ?? '', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, title: event.target.value })) }),
+        h('input', { type: 'text', className: 'nv-field__input', value: d.title ?? '', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, title: event.target.value })) }),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '类型'),
-        h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, kind: event.target.value })) },
+        h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value })) },
           ['geography', 'history', 'faction', 'culture', 'race', 'concept', 'artifact'].map((kind) => h('option', { key: kind, value: kind }, kind)),
         ),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '内容'),
-        h('textarea', { className: 'nv-field__input', value: d.content ?? '', rows: 4, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, content: event.target.value })) }),
+        h('textarea', { className: 'nv-field__input', value: d.content ?? '', rows: 4, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, content: event.target.value })) }),
       ),
-      listField(h, '触发词', d.keywords ?? [], (value) => mutate((draft) => ({ ...draft, keywords: value }))),
+      listField(h, '触发词', d.keywords ?? [], (value) => ops.mutate((draft) => ({ ...draft, keywords: value }))),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '触发方式'),
-        h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, triggerMode: event.target.value })) },
+        h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, triggerMode: event.target.value })) },
           ['keyword', 'regex', 'constant'].map((mode) => h('option', { key: mode, value: mode }, mode)),
         ),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '权重'),
-        h('input', { type: 'number', className: 'nv-field__input', value: String(d.weight ?? 0), onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, weight: Number.parseInt(event.target.value, 10) || 0 })) }),
+        h('input', { type: 'number', className: 'nv-field__input', value: String(d.weight ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, weight: Number.parseInt(event.target.value, 10) || 0 })) }),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '父条目（可空）'),
-        h('input', { type: 'text', className: 'nv-field__input', value: d.parent ?? '', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, parent: event.target.value === '' ? null : event.target.value })) }),
+        h('input', { type: 'text', className: 'nv-field__input', value: d.parent ?? '', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, parent: event.target.value === '' ? null : event.target.value })) }),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '可否改写'),
-        h('input', { type: 'checkbox', className: 'nv-field__check', checked: d.mutable ?? true, onChange: (event: { target: { checked: boolean } }) => mutate((draft) => ({ ...draft, mutable: event.target.checked })) }),
+        h('input', { type: 'checkbox', className: 'nv-field__check', checked: d.mutable ?? true, onChange: (event: { target: { checked: boolean } }) => ops.mutate((draft) => ({ ...draft, mutable: event.target.checked })) }),
       ),
       editor.selectedId !== undefined && d.status === 'rewritten'
         ? h('p', { className: 'nv-editor__badge', 'data-novel-worldview-rewritten': '' }, `已被 ${d.supersededBy ?? '?'} 改写`)
         : null,
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-worldview-save': '', onClick: save, disabled: !editor.dirty },
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-worldview-save': '', onClick: ops.save, disabled: !editor.dirty },
         editor.selectedId === undefined ? '创建' : '改写'),
     ),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'worldview', role: 'alert' }, editor.error) : null,
@@ -491,8 +477,7 @@ function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
 /**
  * I48 B5 大纲结构化编辑器（design §5.7 / R10-5）。替换裸 JSON 文本框：幕→节→
  * 细纲场景卡的三级层级编辑。所有读写只经 Host `outlineRead`/`outlineSave`/
- * `outlineBeatCards`，Client 不拥有领域校验（design §0.1.2），非法引用/越界由
- * Host 拒绝并回传错误。
+ * `outlineBeatCards`，Client 不拥有领域校验（design §0.1.2）。
  */
 interface OutlineActShape {
   id: string;
@@ -548,6 +533,35 @@ interface OutlineEditor {
   selectedBeatId: string | undefined;
   selectedDetailId: string | undefined;
 }
+type OutlineEditOps = {
+  mutate(update: (draft: OutlineShape) => OutlineShape): void;
+  selectAct(id: string): void;
+  selectBeat(actId: string, beatId: string): void;
+  selectDetail(id: string): void;
+  addAct(): void;
+  removeAct(actId: string): void;
+  addBeat(actId: string): void;
+  removeBeat(actId: string, beatId: string): void;
+  save(): void;
+};
+
+/** 按 id 就地 upsert 列表中的条目（同 id 覆盖，否则追加）。 */
+function upsert<T>(list: T[], item: T): T[] {
+  const index = list.findIndex((entry) => (entry as { id?: string }).id === (item as { id?: string }).id);
+  if (index >= 0) { const next = list.slice(); next[index] = item; return next; }
+  return list.concat(item);
+}
+/** 找到大纲中指定幕，缺失时给一个空的骨架幕（供新建/编辑兜底）。 */
+function currentAct(draft: OutlineShape, actId: string): OutlineActShape {
+  return (draft.acts ?? []).find((act) => act.id === actId)
+    ?? { id: actId, index: (draft.acts ?? []).length, title: '', goal: '', beats: [] };
+}
+/** 找到幕下指定节，缺失时给一个空的骨架节。 */
+function currentBeat(act: OutlineActShape, beatId: string): OutlineBeatShape {
+  return (act.beats ?? []).find((beat) => beat.id === beatId)
+    ?? { id: beatId, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] };
+}
+
 /** 空白大纲 → 可编辑骨架；id 由用户输入补全，Host 仍拥有最终校验。 */
 function emptyOutline(): OutlineShape {
   return {
@@ -602,61 +616,18 @@ function sceneCards(h: El, beat: OutlineBeatShape, selectedDetailId: string | un
 }
 
 /** 大纲层级编辑器：左树（幕/节）+ 中间 edit 表单 + 底部 scene 卡片。 */
-function outlineLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, reload: () => void): unknown {
+function outlineLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, ops: OutlineEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'loading' }, '正在装载大纲…');
   }
   if (layerState.status === 'error') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '大纲读取失败');
   }
-  const mutate = (update: (draft: OutlineShape) => OutlineShape): void => {
-    editor.draft = update(editor.draft);
-    editor.dirty = true;
-  };
-  const upsert = <T,>(list: T[], item: T): T[] => {
-    const index = list.findIndex((entry) => (entry as { id?: string }).id === (item as { id?: string }).id);
-    if (index >= 0) { const next = list.slice(); next[index] = item; return next; }
-    return list.concat(item);
-  };
-  const setAct = (actId: string, update: (act: OutlineActShape) => OutlineActShape): void => mutate((draft) => ({ ...draft, acts: upsert(draft.acts ?? [], update(currentAct(draft, actId))) }));
-  const setBeat = (actId: string, beatId: string, update: (beat: OutlineBeatShape) => OutlineBeatShape): void => mutate((draft) => {
+  const setAct = (actId: string, update: (act: OutlineActShape) => OutlineActShape): void => ops.mutate((draft) => ({ ...draft, acts: upsert(draft.acts ?? [], update(currentAct(draft, actId))) }));
+  const setBeat = (actId: string, beatId: string, update: (beat: OutlineBeatShape) => OutlineBeatShape): void => ops.mutate((draft) => {
     const act = currentAct(draft, actId);
     return { ...draft, acts: upsert(draft.acts ?? [], { ...act, beats: upsert(act.beats ?? [], update(currentBeat(act, beatId))) }) };
   });
-  const currentAct = (draft: OutlineShape, actId: string): OutlineActShape =>
-    (draft.acts ?? []).find((act) => act.id === actId)
-    ?? { id: actId, index: (draft.acts ?? []).length, title: '', goal: '', beats: [] };
-  const currentBeat = (act: OutlineActShape, beatId: string): OutlineBeatShape =>
-    (act.beats ?? []).find((beat) => beat.id === beatId)
-    ?? { id: beatId, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] };
-  const addAct = (): void => {
-    const id = `act-${(editor.draft.acts ?? []).length + 1}`;
-    mutate((draft) => ({ ...draft, acts: (draft.acts ?? []).concat({ id, index: (draft.acts ?? []).length, title: '', goal: '', beats: [] }) }));
-    editor.selectedActId = id; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined;
-  };
-  const removeAct = (actId: string): void => {
-    const acts = (editor.draft.acts ?? []).filter((act) => act.id !== actId)
-      .map((act, index) => ({ ...act, index }));
-    mutate((draft) => ({ ...draft, acts }));
-    if (editor.selectedActId === actId) { editor.selectedActId = undefined; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; }
-  };
-  const addBeat = (actId: string): void => {
-    const count = currentAct(editor.draft, actId).beats?.length ?? 0;
-    const id = `beat-${count + 1}`;
-    setBeat(actId, id, () => ({ id, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }));
-    editor.selectedActId = actId; editor.selectedBeatId = id; editor.selectedDetailId = undefined;
-  };
-  const removeBeat = (actId: string, beatId: string): void => {
-    setAct(actId, (act) => ({ ...act, beats: (act.beats ?? []).filter((beat) => beat.id !== beatId) }));
-    if (editor.selectedBeatId === beatId) { editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; }
-  };
-  const save = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.draft.logline.trim() === '') { editor.error = '一句话梗概（logline）不能为空'; return; }
-    void unwrap(workspace.outlineSave(projectId, outlineInput(editor.draft)))
-      .then((saved) => { editor.draft = { ...(saved as OutlineShape) }; editor.dirty = false; editor.error = ''; reload(); })
-      .catch((cause: Error) => { editor.error = cause.message; });
-  };
 
   const act = editor.selectedActId !== undefined
     ? (editor.draft.acts ?? []).find((item) => item.id === editor.selectedActId) : undefined;
@@ -697,37 +668,37 @@ function outlineLayer(h: El, projectId: string, workspace: WorkspaceNamespace | 
         ),
       ),
       h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'),
-      sceneCards(h, beat, editor.selectedDetailId, (id) => { editor.selectedDetailId = id; }),
+      sceneCards(h, beat, editor.selectedDetailId, ops.selectDetail),
     );
 
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'ready' },
     h('div', { className: 'nv-outline__toolbar' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '结构'),
-        h('select', { className: 'nv-field__input', value: editor.draft.structure, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, structure: event.target.value })) },
+        h('select', { className: 'nv-field__input', value: editor.draft.structure, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, structure: event.target.value })) },
           ['three-act', 'hero-journey', 'serial', 'free'].map((s) => h('option', { key: s, value: s }, s)),
         ),
       ),
-      characterText(h, '一句话梗概', editor.draft.logline, (value) => mutate((draft) => ({ ...draft, logline: value }))),
-      listField(h, '主题', editor.draft.themes ?? [], (value) => mutate((draft) => ({ ...draft, themes: value }))),
+      characterText(h, '一句话梗概', editor.draft.logline, (value) => ops.mutate((draft) => ({ ...draft, logline: value }))),
+      listField(h, '主题', editor.draft.themes ?? [], (value) => ops.mutate((draft) => ({ ...draft, themes: value }))),
     ),
     h('div', { className: 'nv-outline__columns' },
       h('div', { className: 'nv-editor__list' },
         h('div', { className: 'nv-editor__toolbar' },
-          h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-act': '', onClick: addAct }, '+ 幕'),
+          h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-act': '', onClick: ops.addAct }, '+ 幕'),
         ),
         (editor.draft.acts ?? []).map((a) => h('div', { key: a.id, className: 'nv-outline__act' },
           h('button', {
             type: 'button', className: 'nv-editor__item' + (editor.selectedActId === a.id ? ' is-active' : ''),
-            'data-novel-outline-act': a.id, onClick: () => { editor.selectedActId = a.id; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; },
+            'data-novel-outline-act': a.id, onClick: () => ops.selectAct(a.id),
           }, `幕${a.index} · ${a.title || a.id}`),
-          h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-remove-act': a.id, onClick: () => removeAct(a.id) }, '删'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-remove-act': a.id, onClick: () => ops.removeAct(a.id) }, '删'),
           h('div', { className: 'nv-outline__beats' },
             (a.beats ?? []).map((b) => h('button', {
               key: b.id, type: 'button', className: 'nv-editor__item nv-outline__beat' + (editor.selectedBeatId === b.id ? ' is-active' : ''),
-              'data-novel-outline-beat': b.id, onClick: () => { editor.selectedActId = a.id; editor.selectedBeatId = b.id; editor.selectedDetailId = undefined; },
+              'data-novel-outline-beat': b.id, onClick: () => ops.selectBeat(a.id, b.id),
             }, `节 · ${b.title || b.id}`)),
-            h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-beat': a.id, onClick: () => addBeat(a.id) }, '+ 节'),
+            h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-beat': a.id, onClick: () => ops.addBeat(a.id) }, '+ 节'),
           ),
         )),
       ),
@@ -737,7 +708,7 @@ function outlineLayer(h: El, projectId: string, workspace: WorkspaceNamespace | 
       ),
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-save': '', onClick: save, disabled: !editor.dirty }, '保存大纲'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-save': '', onClick: ops.save, disabled: !editor.dirty }, '保存大纲'),
     ),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'outline', role: 'alert' }, editor.error) : null,
   );
@@ -772,6 +743,12 @@ interface RelationshipEditor {
   dirty: boolean;
   error: string;
 }
+interface RelationshipEditOps {
+  select(entry: RelationshipShape): void;
+  newDraft(): void;
+  mutate(update: (draft: RelationshipShape) => RelationshipShape): void;
+  save(): void;
+}
 function relationshipInput(draft: RelationshipShape): unknown {
   return {
     id: draft.id, from: draft.from, to: draft.to, type: draft.type ?? 'friendship',
@@ -782,25 +759,7 @@ function relationshipInput(draft: RelationshipShape): unknown {
 function newRelationshipDraft(): RelationshipShape {
   return { id: '', from: '', to: '', type: 'friendship', affinity: 0, trust: 0, status: 'active', milestones: [], knownTo: [] };
 }
-function relationshipLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: RelationshipLayerState, editor: RelationshipEditor, reload: () => void): unknown {
-  const loadDraft = (entry: RelationshipShape): void => {
-    editor.selectedId = entry.id; editor.draft = { ...entry }; editor.dirty = false; editor.error = '';
-  };
-  const newDraft = (): void => {
-    editor.selectedId = undefined; editor.draft = newRelationshipDraft(); editor.dirty = false; editor.error = '';
-  };
-  const mutate = (update: (draft: RelationshipShape) => RelationshipShape): void => {
-    editor.draft = update(editor.draft); editor.dirty = true;
-  };
-  const save = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.draft.from.trim() === '' || editor.draft.to.trim() === '') { editor.error = '关系两端（from/to）不能为空'; return; }
-    const effectiveId = editor.selectedId ?? `${slug(editor.draft.from)}+${slug(editor.draft.to)}`;
-    void unwrap(workspace.relationshipSave(projectId, relationshipInput({ ...editor.draft, id: effectiveId })))
-      .then((saved) => { editor.draft = { ...(saved as RelationshipShape) }; editor.selectedId = (saved as RelationshipShape).id; editor.dirty = false; editor.error = ''; reload(); })
-      .catch((cause: Error) => { editor.error = cause.message; });
-  };
-
+function relationshipLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: RelationshipLayerState, editor: RelationshipEditor, ops: RelationshipEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'loading' }, '正在装载关系…');
   }
@@ -810,43 +769,43 @@ function relationshipLayer(h: El, projectId: string, workspace: WorkspaceNamespa
   const d = editor.draft;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-relationship-new': '', onClick: newDraft }, '新建关系'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-relationship-new': '', onClick: ops.newDraft }, '新建关系'),
     ),
     layerState.list.map((entry) => h('button', {
       key: entry.id, type: 'button', role: 'listitem',
       className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''),
-      'data-novel-relationship-id': entry.id, onClick: () => loadDraft(entry),
+      'data-novel-relationship-id': entry.id, onClick: () => ops.select(entry),
     }, `${entry.from} → ${entry.to}`)),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '新建关系' : `编辑关系：${d.from} → ${d.to}`),
     h('div', { className: 'nv-form' },
       h('div', { className: 'nv-form__row' },
-        characterText(h, '从（角色 id）', d.from, (value) => mutate((draft) => ({ ...draft, from: value }))),
-        characterText(h, '到（角色 id）', d.to, (value) => mutate((draft) => ({ ...draft, to: value }))),
+        characterText(h, '从（角色 id）', d.from, (value) => ops.mutate((draft) => ({ ...draft, from: value }))),
+        characterText(h, '到（角色 id）', d.to, (value) => ops.mutate((draft) => ({ ...draft, to: value }))),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '关系类型'),
-        h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, type: event.target.value })) },
+        h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, type: event.target.value })) },
           ['kin', 'romantic', 'friendship', 'rivalry', 'enmity', 'allegiance', 'mentor', 'subordinate'].map((t) => h('option', { key: t, value: t }, t)),
         ),
       ),
       h('div', { className: 'nv-form__row' },
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, `亲密度（-100..100）：${d.affinity}`),
-          h('input', { type: 'range', min: '-100', max: '100', step: '1', className: 'nv-field__range', value: String(d.affinity ?? 0), onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, affinity: Number.parseInt(event.target.value, 10) || 0 })) }),
+          h('input', { type: 'range', min: '-100', max: '100', step: '1', className: 'nv-field__range', value: String(d.affinity ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, affinity: Number.parseInt(event.target.value, 10) || 0 })) }),
         ),
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, `信任（0..100）：${d.trust}`),
-          h('input', { type: 'range', min: '0', max: '100', step: '1', className: 'nv-field__range', value: String(d.trust ?? 0), onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, trust: Number.parseInt(event.target.value, 10) || 0 })) }),
+          h('input', { type: 'range', min: '0', max: '100', step: '1', className: 'nv-field__range', value: String(d.trust ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, trust: Number.parseInt(event.target.value, 10) || 0 })) }),
         ),
       ),
-      characterText(h, '状态', d.status ?? 'active', (value) => mutate((draft) => ({ ...draft, status: value }))),
-      listField(h, '里程碑', d.milestones ?? [], (value) => mutate((draft) => ({ ...draft, milestones: value }))),
-      listField(h, '知情边界（knownTo）', d.knownTo ?? [], (value) => mutate((draft) => ({ ...draft, knownTo: value }))),
+      characterText(h, '状态', d.status ?? 'active', (value) => ops.mutate((draft) => ({ ...draft, status: value }))),
+      listField(h, '里程碑', d.milestones ?? [], (value) => ops.mutate((draft) => ({ ...draft, milestones: value }))),
+      listField(h, '知情边界（knownTo）', d.knownTo ?? [], (value) => ops.mutate((draft) => ({ ...draft, knownTo: value }))),
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: save, disabled: !editor.dirty }, '保存'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty }, '保存'),
     ),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, editor.error) : null,
   );
@@ -884,6 +843,11 @@ interface StateEditor {
   diff: StateDiffShape | undefined;
   error: string;
 }
+interface StateEditOps {
+  select(seq: number): void;
+  showDiff(): void;
+  rollback(): void;
+}
 /** 持久化文案/值 → 单行文本（列表字段之外的对象/数组用 JSON 兜底）。 */
 function displayValue(value: unknown): string {
   if (value === undefined || value === null) return '∅';
@@ -898,34 +862,7 @@ function snapshotMeta(snapshot: StateSnapshotShape): string {
   if (snapshot.scene?.location) parts.push(snapshot.scene.location);
   return parts.join(' · ');
 }
-function stateLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: StateLayerState, editor: StateEditor, reload: () => void): unknown {
-  const rollback = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.selectedSeq === undefined) { editor.error = '请先选择要回滚到的快照'; return; }
-    // 回滚是 Host 侧写操作：经 StateEngine 追加一个指向旧值的新快照，Client 无写回逻辑。
-    void unwrap(workspace.stateRollback(projectId, editor.selectedSeq))
-      .then((rolled) => {
-        const next = rolled as StateSnapshotShape;
-        editor.selectedSeq = next.seq; editor.diff = undefined; editor.error = ''; reload();
-      })
-      .catch((cause: Error) => { editor.error = cause.message; });
-  };
-  const showDiff = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    const from = editor.fromSeq; const to = editor.toSeq;
-    if (from === undefined || to === undefined) { editor.error = '请从时间线选择两个快照再比对'; return; }
-    void unwrap(workspace.stateDiff(projectId, from, to))
-      .then((diff) => { editor.diff = diff as StateDiffShape; editor.error = ''; })
-      .catch((cause: Error) => { editor.error = cause.message; editor.diff = undefined; });
-  };
-  const select = (seq: number): void => {
-    editor.selectedSeq = seq;
-    if (editor.fromSeq === undefined) editor.fromSeq = seq;
-    else if (editor.toSeq === undefined && seq !== editor.fromSeq) editor.toSeq = seq;
-    else { editor.fromSeq = seq; editor.toSeq = undefined; }
-    editor.diff = undefined;
-  };
-
+function stateLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: StateLayerState, editor: StateEditor, ops: StateEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'state', 'data-novel-layer-state': 'loading' }, '正在装载状态快照…');
   }
@@ -943,7 +880,7 @@ function stateLayer(h: El, projectId: string, workspace: WorkspaceNamespace | un
       role: 'listitem',
       className: 'nv-editor__item' + (editor.selectedSeq === snapshot.seq ? ' is-active' : ''),
       'data-novel-state-snapshot': String(snapshot.seq),
-      onClick: () => select(snapshot.seq),
+      onClick: () => ops.select(snapshot.seq),
     }, snapshotMeta(snapshot))),
   );
   const selected = layerState.snapshots.find((snapshot) => snapshot.seq === editor.selectedSeq);
@@ -967,8 +904,8 @@ function stateLayer(h: El, projectId: string, workspace: WorkspaceNamespace | un
         ),
       ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-state-diff': '', onClick: showDiff, disabled: editor.fromSeq === undefined || editor.toSeq === undefined }, '比对所选快照'),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-state-rollback': '', onClick: rollback, disabled: editor.selectedSeq === undefined }, '回滚到此快照'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-state-diff': '', onClick: ops.showDiff, disabled: editor.fromSeq === undefined || editor.toSeq === undefined }, '比对所选快照'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-state-rollback': '', onClick: ops.rollback, disabled: editor.selectedSeq === undefined }, '回滚到此快照'),
     ),
     editor.diff !== undefined
       ? h('div', { className: 'nv-state__diff', 'data-novel-state-diff-view': '' },
@@ -1019,6 +956,12 @@ interface CanonEditor {
   dirty: boolean;
   error: string;
 }
+interface CanonEditOps {
+  select(event: CanonEventShape): void;
+  mutate(update: (draft: CanonEditor['draft']) => CanonEditor['draft']): void;
+  propose(): void;
+  accept(): void;
+}
 function canonCorrectionInput(draft: CanonEditor['draft']): unknown {
   return {
     storyTime: draft.storyTime,
@@ -1030,39 +973,7 @@ function canonCorrectionInput(draft: CanonEditor['draft']): unknown {
     affectedLayers: [],
   };
 }
-function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: CanonLayerState, editor: CanonEditor, reload: () => void): unknown {
-  const loadDraft = (event: CanonEventShape): void => {
-    editor.selectedId = event.id;
-    editor.proposalId = undefined;
-    editor.draft = { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' };
-    editor.dirty = false;
-    editor.error = '';
-  };
-  const mutate = (update: (draft: CanonEditor['draft']) => CanonEditor['draft']): void => {
-    editor.draft = update(editor.draft);
-    editor.dirty = true;
-  };
-  /** propose：生成 Gate 提案（pending），不写正史。 */
-  const propose = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.selectedId === undefined) { editor.error = '请先选择一个正史事件再发起更正'; return; }
-    if ((editor.draft.summary ?? '').trim() === '') { editor.error = '更正摘要不能为空'; return; }
-    void unwrap(workspace.canonCorrectionPropose(projectId, editor.selectedId, canonCorrectionInput(editor.draft)))
-      .then((proposal) => {
-        editor.proposalId = (proposal as { id?: string }).id;
-        editor.error = '';
-      })
-      .catch((cause: Error) => { editor.error = cause.message; });
-  };
-  /** accept：确认后才追加 supersede 事件。 */
-  const accept = (): void => {
-    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
-    if (editor.proposalId === undefined) { editor.error = '请先发起更正提案'; return; }
-    void unwrap(workspace.canonCorrectionAccept(projectId, editor.proposalId))
-      .then(() => { editor.proposalId = undefined; editor.dirty = false; editor.error = ''; reload(); })
-      .catch((cause: Error) => { editor.error = cause.message; });
-  };
-
+function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: CanonLayerState, editor: CanonEditor, ops: CanonEditOps): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'canon', 'data-novel-layer-state': 'loading' }, '正在装载正史账本…');
   }
@@ -1081,7 +992,7 @@ function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | un
       role: 'listitem',
       className: 'nv-editor__item' + (editor.selectedId === event.id ? ' is-active' : ''),
       'data-novel-canon-id': event.id,
-      onClick: () => loadDraft(event),
+      onClick: () => ops.select(event),
     }, `${event.seq} · ${event.summary}${event.supersededBy ? '（已更正）' : ''}`)),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
@@ -1095,21 +1006,21 @@ function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | un
         h('h4', { className: 'nv-outline__subtitle' }, '发起 supersede 更正'),
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, '更正时间'),
-          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.storyTime, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, storyTime: event.target.value })) }),
+          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.storyTime, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, storyTime: event.target.value })) }),
         ),
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, '更正摘要'),
-          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.summary, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, summary: event.target.value })) }),
+          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.summary, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, summary: event.target.value })) }),
         ),
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, '更正详情'),
-          h('textarea', { className: 'nv-field__input', rows: 3, value: editor.draft.detail, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, detail: event.target.value })) }),
+          h('textarea', { className: 'nv-field__input', rows: 3, value: editor.draft.detail, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, detail: event.target.value })) }),
         ),
       ),
     h('div', { className: 'nv-editor__actions' },
       editor.proposalId !== undefined
-        ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-accept': '', onClick: accept }, '确认更正（追加 supersede）')
-        : h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-propose': '', onClick: propose, disabled: editor.selectedId === undefined || !editor.dirty }, '发起更正提案'),
+        ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-accept': '', onClick: ops.accept }, '确认更正（追加 supersede）')
+        : h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-propose': '', onClick: ops.propose, disabled: editor.selectedId === undefined || !editor.dirty }, '发起更正提案'),
     ),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'canon', role: 'alert' }, editor.error) : null,
   );
@@ -1119,31 +1030,31 @@ function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | un
 }
 
 /** 内容区：按激活层渲染真表单（I47/I48/I49），仅兜底空态。 */
-function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, ui: WorkbenchUI, layers: LayerData): unknown {
-  const layer = LAYERS.find((item) => item.id === ui.activeLayer) ?? LAYERS[0];
+function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, ops: WorkbenchOps): unknown {
+  const layer = LAYERS.find((item) => item.id === activeLayer) ?? LAYERS[0];
   if (layer.id === 'characters') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      characterLayer(h, projectId, workspace, layers.characters, layers.characterEditor, layers.reloadCharacters));
+      characterLayer(h, projectId, workspace, layers.characters, layers.characterEditor, ops.characters));
   }
   if (layer.id === 'worldview') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      worldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, layers.reloadWorldview));
+      worldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, ops.worldview));
   }
   if (layer.id === 'outline') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      outlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, layers.reloadOutline));
+      outlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline));
   }
   if (layer.id === 'relationship') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      relationshipLayer(h, projectId, workspace, layers.relationship, layers.relationshipEditor, layers.reloadRelationship));
+      relationshipLayer(h, projectId, workspace, layers.relationship, layers.relationshipEditor, ops.relationship));
   }
   if (layer.id === 'state') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      stateLayer(h, projectId, workspace, layers.state, layers.stateEditor, layers.reloadState));
+      stateLayer(h, projectId, workspace, layers.state, layers.stateEditor, ops.state));
   }
   if (layer.id === 'canon') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      canonLayer(h, projectId, workspace, layers.canon, layers.canonEditor, layers.reloadCanon));
+      canonLayer(h, projectId, workspace, layers.canon, layers.canonEditor, ops.canon));
   }
   return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' }, emptyState(h, layer));
 }
@@ -1162,33 +1073,36 @@ interface LayerData {
   readonly relationshipEditor: RelationshipEditor;
   readonly stateEditor: StateEditor;
   readonly canonEditor: CanonEditor;
-  readonly reloadCharacters: () => void;
-  readonly reloadWorldview: () => void;
-  readonly reloadOutline: () => void;
-  readonly reloadRelationship: () => void;
-  readonly reloadState: () => void;
-  readonly reloadCanon: () => void;
+}
+/** 每层编辑动作集合（render 助手经此写入 store，而非就地改对象）。 */
+interface WorkbenchOps {
+  readonly characters: CharacterEditOps;
+  readonly worldview: WorldEditOps;
+  readonly outline: OutlineEditOps;
+  readonly relationship: RelationshipEditOps;
+  readonly state: StateEditOps;
+  readonly canon: CanonEditOps;
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, state: WorkspaceState, workspace: WorkspaceNamespace | undefined, ui: WorkbenchUI, layers: LayerData): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void }, layers: LayerData, ops: WorkbenchOps): unknown {
   const h = el(React);
   if (!ui.open) return null;
-  const ready = state.status === 'ready' && workspace !== undefined;
-  const effectiveStatus: WorkspaceState['status'] = ready ? 'ready'
-    : state.status === 'error' ? 'error' : state.status;
-  const message = state.status === 'error' ? state.message
+  const ready = status.status === 'ready' && workspace !== undefined;
+  const effectiveStatus: WorkspaceStatus['status'] = ready ? 'ready'
+    : status.status === 'error' ? 'error' : status.status;
+  const message = status.status === 'error' ? status.message
     : (effectiveStatus === 'error' ? '创作台远程服务不可用' : undefined);
-  const subtitle = ready ? `已就绪 · ${state.model.version}` : undefined;
+  const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
   const body = effectiveStatus === 'ready'
-    ? h('div', { className: 'nv-workbench__body' }, layerNav(h, ui), contentArea(h, 'default', workspace!, ui, layers))
+    ? h('div', { className: 'nv-workbench__body' }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, 'default', workspace!, ui.activeLayer, layers, ops))
     : h('section', {
       className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
       'data-novel-workspace-state': effectiveStatus,
       role: effectiveStatus === 'error' ? 'alert' : undefined,
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
   return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus },
-    brandHeader(h, subtitle, ui),
+    brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
     ui.collapsed ? null : body,
   );
 }
@@ -1204,138 +1118,258 @@ function launchButton(React: ReactFace, launch: () => void): unknown {
   }, '创作台');
 }
 
-/** Public bundle factory; React and Remote are supplied by the DSH client shell. */
+/* ---- store shape: the single reactive source of truth for the workbench ---- */
+
+interface WorkbenchState {
+  open: boolean;
+  collapsed: boolean;
+  activeLayer: LayerId;
+  status: WorkspaceStatus;
+  characters: CharacterLayerState;
+  worldview: WorldLayerState;
+  outline: OutlineLayerState;
+  relationship: RelationshipLayerState;
+  state: StateLayerState;
+  canon: CanonLayerState;
+  characterEditor: CharacterEditor;
+  worldEditor: WorldEditor;
+  outlineEditor: OutlineEditor;
+  relationshipEditor: RelationshipEditor;
+  stateEditor: StateEditor;
+  canonEditor: CanonEditor;
+}
+
+const freshCharacterEditor = (): CharacterEditor => ({ selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' });
+const freshWorldEditor = (): WorldEditor => ({ selectedId: undefined, draft: { id: '' }, dirty: false, error: '' });
+const freshOutlineEditor = (): OutlineEditor => ({ draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined });
+const freshRelationshipEditor = (): RelationshipEditor => ({ selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' });
+const freshStateEditor = (): StateEditor => ({ selectedSeq: undefined, fromSeq: undefined, toSeq: undefined, diff: undefined, error: '' });
+const freshCanonEditor = (): CanonEditor => ({ selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '' });
+
+/** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
 export default function factory(require: BundleRequire): ClientPluginEntry {
   const React = require('react') as ReactFace;
+  const runtime = require('@deepseek-ai/dsh-client-runtime/client') as { defineStore?: DefineStore } | undefined;
+  const defineStore = runtime?.defineStore;
+  if (defineStore === undefined) {
+    throw new Error('DSH client runtime defineStore is unavailable');
+  }
   return {
     name: 'novel-creation-tool-client',
     inject: ['slots', 'remote'],
     apply(ctx): void {
-      let state: WorkspaceState = { status: 'loading' };
       let workspace: WorkspaceNamespace | undefined;
-      let mounted = false;
+      let active = true;
       let remoteDisposer: TypertDisposer | undefined;
-      let open = true;
-      let collapsed = false;
-      let activeLayer: LayerId = 'characters';
-      const ui: WorkbenchUI = {
-        get open() { return open; },
-        get collapsed() { return collapsed; },
-        get activeLayer() { return activeLayer; },
-        collapse() { collapsed = !collapsed; },
-        close() { open = false; },
-        launch() { open = true; collapsed = false; },
-        activate(id) { activeLayer = id; },
+
+      // The store is the wiring hub: actions write it; the component subscribes
+      // via useStore and re-renders. Every load result and every editor draft
+      // mutation flows through an action, so no plain `let` mutation can leave
+      // the UI stale (the I46–I49 defect this fixes).
+      const storeHandle = defineStore({
+        init: (): WorkbenchState => ({
+          open: true,
+          collapsed: false,
+          activeLayer: 'characters',
+          status: { status: 'loading' },
+          characters: { status: 'loading', list: [] },
+          worldview: { status: 'loading', list: [] },
+          outline: { status: 'loading' },
+          relationship: { status: 'loading', list: [] },
+          state: { status: 'loading', snapshots: [] },
+          canon: { status: 'loading', events: [] },
+          characterEditor: freshCharacterEditor(),
+          worldEditor: freshWorldEditor(),
+          outlineEditor: freshOutlineEditor(),
+          relationshipEditor: freshRelationshipEditor(),
+          stateEditor: freshStateEditor(),
+          canonEditor: freshCanonEditor(),
+        }),
+        actions: {
+          open: (d) => { d.open = true; d.collapsed = false; },
+          close: (d) => { d.open = false; },
+          collapse: (d) => { d.collapsed = !d.collapsed; },
+          activate: (d, id: LayerId) => { d.activeLayer = id; },
+          ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
+          fail: (d, message: string) => { d.status = { status: 'error', message }; },
+          setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
+          setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
+          setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
+          setRelationship: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.relationship = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as RelationshipShape[] }; },
+          setState: (d, status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string) => { d.state = status === 'error' ? { status: 'error', snapshots: [], message } : { status, snapshots: snapshots as StateSnapshotShape[] }; },
+          setCanon: (d, status: 'loading' | 'ready' | 'error', events: unknown[], message?: string) => { d.canon = status === 'error' ? { status: 'error', events: [], message } : { status, events: events as CanonEventShape[] }; },
+          characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
+          worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
+          outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
+          relationshipDraft: (d, patch: Partial<RelationshipEditor>) => { Object.assign(d.relationshipEditor, patch); },
+          stateDraft: (d, patch: Partial<StateEditor>) => { Object.assign(d.stateEditor, patch); },
+          canonDraft: (d, patch: Partial<CanonEditor>) => { Object.assign(d.canonEditor, patch); },
+          // Mutator actions: apply an update function to the LIVE draft (immer
+          // semantics) so consecutive edits in one tick never read a stale render
+          // snapshot — the root of the "unresponsive UI" defect.
+          characterMutate: (d, update: (draft: CharacterShape) => CharacterShape) => { d.characterEditor.draft = update(d.characterEditor.draft); d.characterEditor.dirty = true; },
+          worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
+          outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
+          relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
+        },
+      });
+
+      // The renderer owns the store instance (created from the `store:` factory on
+      // the registration). We capture its baked actions through the registration's
+      // `inject` factory — the SAME instance the component receives as
+      // `props.actions` — so every async load and edit write re-renders the
+      // overlay. Never call `storeHandle.create()` here: a second instance would
+      // be a disguised singleton that the UI does not subscribe to.
+      let capturedActions: WorkbenchActions | undefined;
+      const pending: Array<(a: WorkbenchActions) => void> = [];
+      const lifecycleActions = (actions: WorkbenchActions): WorkbenchActions => {
+        const guarded: Record<string, (...params: unknown[]) => void> = {};
+        for (const [name, action] of Object.entries(actions as unknown as Record<string, (...params: unknown[]) => void>)) {
+          guarded[name] = (...params: unknown[]) => { if (active) action(...params); };
+        }
+        return guarded as unknown as WorkbenchActions;
+      };
+      const dispatch = (fn: (a: WorkbenchActions) => void): void => {
+        if (!active) return;
+        if (capturedActions !== undefined) fn(capturedActions);
+        else pending.push(fn);
+      };
+      const runReload = (target: WorkspaceNamespace, actions: WorkbenchActions): void => {
+        actions.setCharacters('loading', []);
+        actions.setWorldview('loading', []);
+        actions.setOutline('loading', undefined);
+        actions.setRelationship('loading', []);
+        actions.setState('loading', []);
+        actions.setCanon('loading', []);
+        void unwrap(target.characterList('default')).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
+        void unwrap(target.worldviewList('default')).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
+        void unwrap(target.outlineRead('default')).then((outline) => {
+          dispatch((x) => {
+            x.setOutline('ready', outline);
+            const shape = outline as OutlineShape;
+            x.outlineDraft({ draft: { ...shape }, dirty: false, error: '' });
+            if ((shape.acts ?? []).length > 0) {
+              const actId = (shape.acts ?? [])[0].id;
+              const beatId = ((shape.acts ?? [])[0].beats ?? [])[0]?.id;
+              x.outlineDraft({ selectedActId: actId, selectedBeatId: beatId });
+            }
+          });
+        }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, cause.message)));
+        void unwrap(target.relationshipRead('default')).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], cause.message)));
+        void unwrap(target.stateSnapshots('default')).then((snapshots) => {
+          dispatch((x) => {
+            const list = snapshots as unknown as StateSnapshotShape[];
+            x.setState('ready', list);
+            if (list.length > 0) x.stateDraft({ selectedSeq: list[list.length - 1].seq, fromSeq: list[0].seq, toSeq: list.length > 1 ? list[list.length - 1].seq : undefined });
+          });
+        }, (cause: Error) => dispatch((x) => x.setState('error', [], cause.message)));
+        void unwrap(target.canonQuery('default')).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
+      };
+      const reload = (): void => {
+        const target = workspace;
+        if (active && target !== undefined) dispatch((actions) => runReload(target, actions));
       };
 
-      // I47/I48/I49 数据层：各领域列表与表单态受 Host Remote 驱动，跨渲染复用。
-      let characterState: CharacterLayerState = { status: 'loading', list: [] };
-      let worldState: WorldLayerState = { status: 'loading', list: [] };
-      let outlineState: OutlineLayerState = { status: 'loading' };
-      let relationshipState: RelationshipLayerState = { status: 'loading', list: [] };
-      let stateLayerState: StateLayerState = { status: 'loading', snapshots: [] };
-      let canonLayerState: CanonLayerState = { status: 'loading', events: [] };
-      const characterEditor: CharacterEditor = { selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' };
-      const worldEditor: WorldEditor = { selectedId: undefined, draft: { id: '' }, dirty: false, error: '' };
-      const outlineEditor: OutlineEditor = { draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined };
-      const relationshipEditor: RelationshipEditor = { selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' };
-      const stateEditor: StateEditor = { selectedSeq: undefined, fromSeq: undefined, toSeq: undefined, diff: undefined, error: '' };
-      const canonEditor: CanonEditor = { selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '' };
-      const reloadCharacters = (): void => {
-        const target = workspace;
-        if (!target) { characterState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
-        characterState = { status: 'loading', list: [] };
-        void unwrap(target.characterList('default')).then(
-          (list) => { characterState = { status: 'ready', list: list as CharacterShape[] }; },
-          (cause: Error) => { characterState = { status: 'error', list: [], message: cause.message }; },
-        );
-      };
-      const reloadWorldview = (): void => {
-        const target = workspace;
-        if (!target) { worldState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
-        worldState = { status: 'loading', list: [] };
-        void unwrap(target.worldviewList('default')).then(
-          (list) => { worldState = { status: 'ready', list: list as WorldShape[] }; },
-          (cause: Error) => { worldState = { status: 'error', list: [], message: cause.message }; },
-        );
-      };
-      const reloadOutline = (): void => {
-        const target = workspace;
-        if (!target) { outlineState = { status: 'error', message: '创作台远程服务不可用' }; return; }
-        outlineState = { status: 'loading' };
-        void unwrap(target.outlineRead('default')).then(
-          (outline) => {
-            const shape = outline as OutlineShape;
-            outlineState = { status: 'ready', outline: shape };
-            // 载入后以 Host 大纲为唯一 draft 来源；未选中时选中第一幕/第一节。
-            outlineEditor.draft = { ...shape };
-            outlineEditor.dirty = false;
-            outlineEditor.error = '';
-            if (outlineEditor.selectedActId === undefined && (shape.acts ?? []).length > 0) {
-              outlineEditor.selectedActId = (shape.acts ?? [])[0].id;
-            }
-            if (outlineEditor.selectedBeatId === undefined) {
-              const act = (shape.acts ?? []).find((item) => item.id === outlineEditor.selectedActId)
-                ?? (shape.acts ?? [])[0];
-              outlineEditor.selectedBeatId = (act?.beats ?? [])[0]?.id;
-            }
+      // Edit-op closures: derive from the current store snapshot and write back
+      // via actions. `makeOps` runs at render time, after `inject` has captured
+      // the renderer's baked actions, so `capturedActions` resolves safely.
+      const makeOps = (snapshot: WorkbenchState): WorkbenchOps => {
+        const act = capturedActions as WorkbenchActions;
+        return {
+          characters: {
+            select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '' }),
+            newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '' }); },
+            mutate: (update) => act.characterMutate(update),
+            save: () => {
+              const e = snapshot.characterEditor;
+              if (!workspace) { act.characterDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.name.trim() === '') { act.characterDraft({ error: '角色名不能为空' }); return; }
+              const effectiveId = e.selectedId ?? slug(e.draft.name);
+              if (e.selectedId === undefined) {
+                void unwrap(workspace.characterCreate('default', characterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.characterDraft({ draft: created as CharacterShape, selectedId: (created as CharacterShape).id, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList('default')).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+              } else {
+                void unwrap(workspace.characterUpdate('default', e.selectedId, characterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList('default')).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+              }
+            },
           },
-          (cause: Error) => { outlineState = { status: 'error', message: cause.message }; },
-        );
-      };
-      const reloadRelationship = (): void => {
-        const target = workspace;
-        if (!target) { relationshipState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
-        relationshipState = { status: 'loading', list: [] };
-        void unwrap(target.relationshipRead('default')).then(
-          (list) => { relationshipState = { status: 'ready', list: list as RelationshipShape[] }; },
-          (cause: Error) => { relationshipState = { status: 'error', list: [], message: cause.message }; },
-        );
-      };
-      const reloadState = (): void => {
-        const target = workspace;
-        if (!target) { stateLayerState = { status: 'error', snapshots: [], message: '创作台远程服务不可用' }; return; }
-        stateLayerState = { status: 'loading', snapshots: [] };
-        void unwrap(target.stateSnapshots('default')).then(
-          (snapshots) => {
-            const list = (snapshots as StateSnapshotShape[]);
-            stateLayerState = { status: 'ready', snapshots: list };
-            // 载入后默认选中当前（最后一）快照；diff 端点初始化为前两快照。
-            if (stateEditor.selectedSeq === undefined && list.length > 0) stateEditor.selectedSeq = list[list.length - 1].seq;
-            if (stateEditor.fromSeq === undefined && list.length > 0) stateEditor.fromSeq = list[0].seq;
-            if (stateEditor.toSeq === undefined && list.length > 1) stateEditor.toSeq = list[list.length - 1].seq;
+          worldview: {
+            select: (entry) => act.worldDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '' }),
+            newDraft: () => { const draft: WorldShape = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }; act.worldDraft({ selectedId: undefined, draft, dirty: false, error: '' }); },
+            mutate: (update) => act.worldMutate(update),
+            save: () => {
+              const e = snapshot.worldEditor;
+              if (!workspace) { act.worldDraft({ error: '创作台远程服务不可用' }); return; }
+              if ((e.draft.title ?? '').trim() === '') { act.worldDraft({ error: '标题不能为空' }); return; }
+              if (e.selectedId === undefined) {
+                const effectiveId = slug(e.draft.title ?? 'untitled');
+                void unwrap(workspace.worldviewCreate('default', worldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList('default')).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+              } else {
+                const replacementId = slug(e.draft.title ?? e.selectedId);
+                void unwrap(workspace.worldviewRewrite('default', e.selectedId, worldviewInput({ ...e.draft, id: replacementId }))).then((result) => { if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList('default')).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+              }
+            },
           },
-          (cause: Error) => { stateLayerState = { status: 'error', snapshots: [], message: cause.message }; },
-        );
-      };
-      const reloadCanon = (): void => {
-        const target = workspace;
-        if (!target) { canonLayerState = { status: 'error', events: [], message: '创作台远程服务不可用' }; return; }
-        canonLayerState = { status: 'loading', events: [] };
-        void unwrap(target.canonQuery('default')).then(
-          (events) => { canonLayerState = { status: 'ready', events: events as CanonEventShape[] }; },
-          (cause: Error) => { canonLayerState = { status: 'error', events: [], message: cause.message }; },
-        );
-      };
-      const layers: LayerData = {
-        get characters() { return characterState; },
-        get worldview() { return worldState; },
-        get outline() { return outlineState; },
-        get relationship() { return relationshipState; },
-        get state() { return stateLayerState; },
-        get canon() { return canonLayerState; },
-        characterEditor,
-        worldEditor,
-        outlineEditor,
-        relationshipEditor,
-        stateEditor,
-        canonEditor,
-        reloadCharacters,
-        reloadWorldview,
-        reloadOutline,
-        reloadRelationship,
-        reloadState,
-        reloadCanon,
+          outline: {
+            mutate: (update) => act.outlineMutate(update),
+            selectAct: (id) => act.outlineDraft({ selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }),
+            selectBeat: (actId, beatId) => act.outlineDraft({ selectedActId: actId, selectedBeatId: beatId, selectedDetailId: undefined }),
+            selectDetail: (id) => act.outlineDraft({ selectedDetailId: id }),
+            addAct: () => { const acts = snapshot.outlineEditor.draft.acts ?? []; const id = `act-${acts.length + 1}`; act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts: acts.concat({ id, index: acts.length, title: '', goal: '', beats: [] }) }, dirty: true, selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }); },
+            removeAct: (actId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).filter((act) => act.id !== actId).map((act, index) => ({ ...act, index })); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedActId, selectedBeatId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
+            addBeat: (actId) => { const foundAct = (snapshot.outlineEditor.draft.acts ?? []).find((x) => x.id === actId); const count = foundAct?.beats?.length ?? 0; const id = `beat-${count + 1}`; const beat: OutlineBeatShape = { id, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }; const acts = (snapshot.outlineEditor.draft.acts ?? []).map((x) => x.id === actId ? { ...x, beats: (x.beats ?? []).concat(beat) } : x); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: actId, selectedBeatId: id, selectedDetailId: undefined }); },
+            removeBeat: (actId, beatId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).filter((b) => b.id !== beatId) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedBeatId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
+            save: () => {
+              const e = snapshot.outlineEditor;
+              if (!workspace) { act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.logline.trim() === '') { act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
+              void unwrap(workspace.outlineSave('default', outlineInput(e.draft))).then((saved) => { if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, error: '' }); act.setOutline('ready', outline); }, (cause: Error) => act.outlineDraft({ error: cause.message }));
+            },
+          },
+          relationship: {
+            select: (entry) => act.relationshipDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '' }),
+            newDraft: () => act.relationshipDraft({ selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' }),
+            mutate: (update) => act.relationshipMutate(update),
+            save: () => {
+              const e = snapshot.relationshipEditor;
+              if (!workspace) { act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
+              const effectiveId = e.selectedId ?? `${slug(e.draft.from)}+${slug(e.draft.to)}`;
+              void unwrap(workspace.relationshipSave('default', relationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, error: '' }); void unwrap(workspace!.relationshipRead('default')).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => act.relationshipDraft({ error: cause.message }));
+            },
+          },
+          state: {
+            select: (seq) => { const e = snapshot.stateEditor; let fromSeq = e.fromSeq; let toSeq = e.toSeq; if (fromSeq === undefined) fromSeq = seq; else if (toSeq === undefined && seq !== fromSeq) toSeq = seq; else { fromSeq = seq; toSeq = undefined; } act.stateDraft({ selectedSeq: seq, fromSeq, toSeq, diff: undefined }); },
+            showDiff: () => {
+              const e = snapshot.stateEditor;
+              if (!workspace) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.fromSeq === undefined || e.toSeq === undefined) { act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
+              void unwrap(workspace.stateDiff('default', e.fromSeq, e.toSeq)).then((diff) => act.stateDraft({ diff: diff as StateDiffShape, error: '' }), (cause: Error) => act.stateDraft({ error: cause.message, diff: undefined }));
+            },
+            rollback: () => {
+              const e = snapshot.stateEditor;
+              if (!workspace) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.selectedSeq === undefined) { act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
+              void unwrap(workspace.stateRollback('default', e.selectedSeq)).then((rolled) => { if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots('default')).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => act.stateDraft({ error: cause.message }));
+            },
+          },
+          canon: {
+            select: (event) => act.canonDraft({ selectedId: event.id, proposalId: undefined, draft: { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' }, dirty: false, error: '' }),
+            mutate: (update) => act.canonDraft({ draft: update(snapshot.canonEditor.draft), dirty: true }),
+            propose: () => {
+              const e = snapshot.canonEditor;
+              if (!workspace) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.selectedId === undefined) { act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
+              if ((e.draft.summary ?? '').trim() === '') { act.canonDraft({ error: '更正摘要不能为空' }); return; }
+              void unwrap(workspace.canonCorrectionPropose('default', e.selectedId, canonCorrectionInput(e.draft))).then((proposal) => act.canonDraft({ proposalId: (proposal as { id?: string }).id, error: '' }), (cause: Error) => act.canonDraft({ error: cause.message }));
+            },
+            accept: () => {
+              const e = snapshot.canonEditor;
+              if (!workspace) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.proposalId === undefined) { act.canonDraft({ error: '请先发起更正提案' }); return; }
+              void unwrap(workspace.canonCorrectionAccept('default', e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery('default')).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
+            },
+          },
+        };
       };
 
       // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
@@ -1348,34 +1382,58 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       }, 'novel-creation-tool: workbench styles');
 
       ctx.slots.inject('shell.overlay', () => {
+        // The component is a real React function component subscribing to the
+        // store; close/collapse/activate and every draft mutation dispatch an
+        // action, and `useStore` re-renders this component on every change.
+        const Overlay = (props: { useStore: <S>(sel: (s: WorkbenchState) => S) => S; actions: WorkbenchActions }): unknown => {
+          const s = props.useStore((snapshot) => snapshot);
+          const ui = {
+            get open() { return s.open; },
+            get collapsed() { return s.collapsed; },
+            get activeLayer() { return s.activeLayer; },
+            collapse() { props.actions.collapse(); },
+            close() { props.actions.close(); },
+            activate(id: LayerId) { props.actions.activate(id); },
+          };
+          const layers: LayerData = {
+            characters: s.characters,
+            worldview: s.worldview,
+            outline: s.outline,
+            relationship: s.relationship,
+            state: s.state,
+            canon: s.canon,
+            characterEditor: s.characterEditor,
+            worldEditor: s.worldEditor,
+            outlineEditor: s.outlineEditor,
+            relationshipEditor: s.relationshipEditor,
+            stateEditor: s.stateEditor,
+            canonEditor: s.canonEditor,
+          };
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s));
+        };
+
         const slotDisposer = ctx.slots.register(
-          { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
-          () => workbenchView(React, state, workspace, ui, layers),
+          { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: '创作台', store: () => storeHandle, inject: (actions: WorkbenchActions) => { if (!active) return {}; const guarded = lifecycleActions(actions); capturedActions = guarded; for (const fn of pending.splice(0)) fn(guarded); return {}; } },
+          Overlay as unknown as () => unknown,
         );
         // Self-mount the namespace, then resolve it through `ctx.get` instead of
         // `inject`: injecting `remote.novelWorkspace` here would deadlock, because
         // that service only exists after `$mount` completes.
         void ctx.remote.$mount(workspaceRemoteContribution).then((dispose) => {
-          if (!mounted) { void dispose(); return; }
+          if (!active) { void dispose(); return; }
           remoteDisposer = dispose;
           workspace = ctx.get('remote.novelWorkspace', false) as WorkspaceNamespace | undefined;
-          if (!workspace) { state = { status: 'error', message: '创作台远程服务不可用' }; return; }
+          if (!workspace) { dispatch((x) => x.fail('创作台远程服务不可用')); return; }
           return unwrap(workspace.viewModel()).then(
-            (model) => {
-              state = { status: 'ready', model: model as WorkspaceViewModel };
-              reloadCharacters();
-              reloadWorldview();
-              reloadOutline();
-              reloadRelationship();
-              reloadState();
-              reloadCanon();
-            },
-            () => { state = { status: 'error', message: '创作台远程服务不可用' }; },
+            (model) => { dispatch((x) => x.ready(model as WorkspaceViewModel)); reload(); },
+            () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
           );
-        }, () => { state = { status: 'error', message: '创作台远程服务不可用' }; });
-        mounted = true;
+        }, () => { dispatch((x) => x.fail('创作台远程服务不可用')); });
         return () => {
-          mounted = false;
+          active = false;
+          capturedActions = undefined;
+          pending.splice(0);
+          workspace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
         };
@@ -1383,7 +1441,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
 
       ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register(
         { name: 'sidebar.footer.action', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
-        () => launchButton(React, ui.launch),
+        () => launchButton(React, () => dispatch((x) => x.open())),
       ));
     },
   };
