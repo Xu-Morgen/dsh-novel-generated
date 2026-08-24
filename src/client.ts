@@ -72,8 +72,8 @@ type WorkspaceState =
 const LAYERS = [
   { id: 'characters', label: '角色', title: '角色核心（B3）', hint: '角色列表与详情表单（I47）。' },
   { id: 'worldview', label: '世界观', title: '世界观（B2）', hint: '世界观条目与改写（supersede）（I47）。' },
-  { id: 'outline', label: '大纲', title: '大纲与细纲（B5）', hint: '幕→节→细纲结构化编辑将在 I48 交付。' },
-  { id: 'relationship', label: '关系', title: '关系（C1）', hint: '关系对结构化编辑将在 I48 交付。' },
+  { id: 'outline', label: '大纲', title: '大纲与细纲（B5）', hint: '幕→节→细纲结构化编辑（I48）。' },
+  { id: 'relationship', label: '关系', title: '关系（C1）', hint: '关系对结构化编辑（I48）。' },
   { id: 'state', label: '状态', title: '状态快照（C2）', hint: '快照时间线 / 回滚 / diff 将在 I49 交付。' },
   { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正将在 I49 交付。' },
 ] as const;
@@ -488,7 +488,374 @@ function worldviewLayer(h: El, projectId: string, workspace: WorkspaceNamespace 
   );
 }
 
-/** 内容区：按激活层渲染真表单（I47）或空态（I48/I49）。 */
+/**
+ * I48 B5 大纲结构化编辑器（design §5.7 / R10-5）。替换裸 JSON 文本框：幕→节→
+ * 细纲场景卡的三级层级编辑。所有读写只经 Host `outlineRead`/`outlineSave`/
+ * `outlineBeatCards`，Client 不拥有领域校验（design §0.1.2），非法引用/越界由
+ * Host 拒绝并回传错误。
+ */
+interface OutlineActShape {
+  id: string;
+  index: number;
+  title: string;
+  goal: string;
+  beats: OutlineBeatShape[];
+  [key: string]: unknown;
+}
+interface OutlineBeatShape {
+  id: string;
+  title: string;
+  description: string;
+  charactersInvolved: string[];
+  conflictType: string;
+  prerequisites: string[];
+  optional: boolean;
+  detailBeats: OutlineDetailBeatShape[];
+  [key: string]: unknown;
+}
+interface OutlineDetailBeatShape {
+  id: string;
+  title: string;
+  summary: string;
+  pov: string;
+  wordTarget: number;
+  points: string[];
+  status: string;
+  [key: string]: unknown;
+}
+interface OutlineShape {
+  id: string;
+  structure: string;
+  logline: string;
+  themes: string[];
+  acts: OutlineActShape[];
+  foreshadowing: unknown[];
+  endings: unknown[];
+  version?: number;
+  [key: string]: unknown;
+}
+interface OutlineLayerState {
+  readonly status: 'loading' | 'ready' | 'error';
+  readonly outline?: OutlineShape;
+  readonly message?: string;
+}
+/** 大纲持久化表单态：跨渲染复用，保存后整树写回 Host。 */
+interface OutlineEditor {
+  draft: OutlineShape;
+  dirty: boolean;
+  error: string;
+  selectedActId: string | undefined;
+  selectedBeatId: string | undefined;
+  selectedDetailId: string | undefined;
+}
+/** 空白大纲 → 可编辑骨架；id 由用户输入补全，Host 仍拥有最终校验。 */
+function emptyOutline(): OutlineShape {
+  return {
+    id: 'outline', structure: 'free', logline: '', themes: [],
+    acts: [], foreshadowing: [], endings: [],
+  };
+}
+function outlineInput(draft: OutlineShape): unknown {
+  return {
+    id: draft.id,
+    structure: draft.structure,
+    logline: draft.logline,
+    themes: draft.themes ?? [],
+    acts: (draft.acts ?? []).map((act) => ({
+      id: act.id, index: act.index, title: act.title, goal: act.goal,
+      beats: (act.beats ?? []).map((beat) => ({
+        id: beat.id, title: beat.title, description: beat.description,
+        charactersInvolved: beat.charactersInvolved ?? [],
+        conflictType: beat.conflictType ?? 'external',
+        prerequisites: beat.prerequisites ?? [],
+        optional: beat.optional ?? false,
+        detailBeats: (beat.detailBeats ?? []).map((card) => ({
+          id: card.id, title: card.title, summary: card.summary, pov: card.pov,
+          wordTarget: card.wordTarget, points: card.points ?? [], status: card.status ?? 'planned',
+        })),
+      })),
+    })),
+    foreshadowing: draft.foreshadowing ?? [],
+    endings: draft.endings ?? [],
+  };
+}
+
+/** 细纲场景卡视图：选中的节下所有 scene card 以卡片栅格展示（I14 contract）。 */
+function sceneCards(h: El, beat: OutlineBeatShape, selectedDetailId: string | undefined, onSelect: (id: string) => void): unknown {
+  const cards = beat.detailBeats ?? [];
+  if (cards.length === 0) {
+    return h('p', { className: 'nv-outline__nodetail' }, '此节尚无细纲场景卡。');
+  }
+  return h('div', { className: 'nv-outline__cards', 'data-novel-beat-cards': '' },
+    cards.map((card) => h('button', {
+      key: card.id,
+      type: 'button',
+      className: 'nv-outline__card' + (selectedDetailId === card.id ? ' is-active' : ''),
+      'data-novel-detail-card': card.id,
+      onClick: () => onSelect(card.id),
+    },
+      h('span', { className: 'nv-outline__card-title' }, card.title),
+      h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov} · ${card.wordTarget} 字 · ${card.status}`),
+      h('span', { className: 'nv-outline__card-summary' }, card.summary),
+    )),
+  );
+}
+
+/** 大纲层级编辑器：左树（幕/节）+ 中间 edit 表单 + 底部 scene 卡片。 */
+function outlineLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, reload: () => void): unknown {
+  if (layerState.status === 'loading') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'loading' }, '正在装载大纲…');
+  }
+  if (layerState.status === 'error') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '大纲读取失败');
+  }
+  const mutate = (update: (draft: OutlineShape) => OutlineShape): void => {
+    editor.draft = update(editor.draft);
+    editor.dirty = true;
+  };
+  const upsert = <T,>(list: T[], item: T): T[] => {
+    const index = list.findIndex((entry) => (entry as { id?: string }).id === (item as { id?: string }).id);
+    if (index >= 0) { const next = list.slice(); next[index] = item; return next; }
+    return list.concat(item);
+  };
+  const setAct = (actId: string, update: (act: OutlineActShape) => OutlineActShape): void => mutate((draft) => ({ ...draft, acts: upsert(draft.acts ?? [], update(currentAct(draft, actId))) }));
+  const setBeat = (actId: string, beatId: string, update: (beat: OutlineBeatShape) => OutlineBeatShape): void => mutate((draft) => {
+    const act = currentAct(draft, actId);
+    return { ...draft, acts: upsert(draft.acts ?? [], { ...act, beats: upsert(act.beats ?? [], update(currentBeat(act, beatId))) }) };
+  });
+  const currentAct = (draft: OutlineShape, actId: string): OutlineActShape =>
+    (draft.acts ?? []).find((act) => act.id === actId)
+    ?? { id: actId, index: (draft.acts ?? []).length, title: '', goal: '', beats: [] };
+  const currentBeat = (act: OutlineActShape, beatId: string): OutlineBeatShape =>
+    (act.beats ?? []).find((beat) => beat.id === beatId)
+    ?? { id: beatId, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] };
+  const addAct = (): void => {
+    const id = `act-${(editor.draft.acts ?? []).length + 1}`;
+    mutate((draft) => ({ ...draft, acts: (draft.acts ?? []).concat({ id, index: (draft.acts ?? []).length, title: '', goal: '', beats: [] }) }));
+    editor.selectedActId = id; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined;
+  };
+  const removeAct = (actId: string): void => {
+    const acts = (editor.draft.acts ?? []).filter((act) => act.id !== actId)
+      .map((act, index) => ({ ...act, index }));
+    mutate((draft) => ({ ...draft, acts }));
+    if (editor.selectedActId === actId) { editor.selectedActId = undefined; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; }
+  };
+  const addBeat = (actId: string): void => {
+    const count = currentAct(editor.draft, actId).beats?.length ?? 0;
+    const id = `beat-${count + 1}`;
+    setBeat(actId, id, () => ({ id, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }));
+    editor.selectedActId = actId; editor.selectedBeatId = id; editor.selectedDetailId = undefined;
+  };
+  const removeBeat = (actId: string, beatId: string): void => {
+    setAct(actId, (act) => ({ ...act, beats: (act.beats ?? []).filter((beat) => beat.id !== beatId) }));
+    if (editor.selectedBeatId === beatId) { editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; }
+  };
+  const save = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    if (editor.draft.logline.trim() === '') { editor.error = '一句话梗概（logline）不能为空'; return; }
+    void unwrap(workspace.outlineSave(projectId, outlineInput(editor.draft)))
+      .then((saved) => { editor.draft = { ...(saved as OutlineShape) }; editor.dirty = false; editor.error = ''; reload(); })
+      .catch((cause: Error) => { editor.error = cause.message; });
+  };
+
+  const act = editor.selectedActId !== undefined
+    ? (editor.draft.acts ?? []).find((item) => item.id === editor.selectedActId) : undefined;
+  const beat = act !== undefined && editor.selectedBeatId !== undefined
+    ? (act.beats ?? []).find((item) => item.id === editor.selectedBeatId) : undefined;
+
+  const actPanel = act === undefined
+    ? h('div', { className: 'nv-outline__detail' },
+      h('h3', { className: 'nv-editor__title' }, '细纲大纲'),
+      h('p', { className: 'nv-outline__nodetail' }, '选择左侧的幕与节，或新建一幕后继续编辑。'))
+    : h('div', { className: 'nv-outline__detail' },
+      h('h3', { className: 'nv-editor__title' }, `幕：${act.title || act.id}`),
+      h('div', { className: 'nv-form' },
+        characterText(h, '幕标题', act.title, (value) => setAct(act.id, (a) => ({ ...a, title: value }))),
+        characterText(h, '幕目标', act.goal, (value) => setAct(act.id, (a) => ({ ...a, goal: value })), true),
+      ),
+    );
+  const beatPanel = beat === undefined
+    ? h('div', { className: 'nv-outline__detail' },
+      h('h3', { className: 'nv-editor__title' }, '节'),
+      h('p', { className: 'nv-outline__nodetail' }, '选择或新建一节以编辑节与细纲场景卡。'))
+    : h('div', { className: 'nv-outline__detail' },
+      h('h3', { className: 'nv-editor__title' }, `节：${beat.title || beat.id}`),
+      h('div', { className: 'nv-form' },
+        characterText(h, '节标题', beat.title, (value) => setBeat(act!.id, beat.id, (b) => ({ ...b, title: value }))),
+        characterText(h, '描述', beat.description, (value) => setBeat(act!.id, beat.id, (b) => ({ ...b, description: value })), true),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '冲突类型'),
+          h('select', { className: 'nv-field__input', value: beat.conflictType, onChange: (event: { target: { value: string } }) => setBeat(act!.id, beat.id, (b) => ({ ...b, conflictType: event.target.value })) },
+            ['internal', 'external', 'relational', 'world'].map((ct) => h('option', { key: ct, value: ct }, ct)),
+          ),
+        ),
+        listField(h, '参与角色', beat.charactersInvolved ?? [], (value) => setBeat(act!.id, beat.id, (b) => ({ ...b, charactersInvolved: value }))),
+        listField(h, '前置节', beat.prerequisites ?? [], (value) => setBeat(act!.id, beat.id, (b) => ({ ...b, prerequisites: value }))),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '可选节'),
+          h('input', { type: 'checkbox', className: 'nv-field__check', checked: beat.optional, onChange: (event: { target: { checked: boolean } }) => setBeat(act!.id, beat.id, (b) => ({ ...b, optional: event.target.checked })) }),
+        ),
+      ),
+      h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'),
+      sceneCards(h, beat, editor.selectedDetailId, (id) => { editor.selectedDetailId = id; }),
+    );
+
+  return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'ready' },
+    h('div', { className: 'nv-outline__toolbar' },
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '结构'),
+        h('select', { className: 'nv-field__input', value: editor.draft.structure, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, structure: event.target.value })) },
+          ['three-act', 'hero-journey', 'serial', 'free'].map((s) => h('option', { key: s, value: s }, s)),
+        ),
+      ),
+      characterText(h, '一句话梗概', editor.draft.logline, (value) => mutate((draft) => ({ ...draft, logline: value }))),
+      listField(h, '主题', editor.draft.themes ?? [], (value) => mutate((draft) => ({ ...draft, themes: value }))),
+    ),
+    h('div', { className: 'nv-outline__columns' },
+      h('div', { className: 'nv-editor__list' },
+        h('div', { className: 'nv-editor__toolbar' },
+          h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-act': '', onClick: addAct }, '+ 幕'),
+        ),
+        (editor.draft.acts ?? []).map((a) => h('div', { key: a.id, className: 'nv-outline__act' },
+          h('button', {
+            type: 'button', className: 'nv-editor__item' + (editor.selectedActId === a.id ? ' is-active' : ''),
+            'data-novel-outline-act': a.id, onClick: () => { editor.selectedActId = a.id; editor.selectedBeatId = undefined; editor.selectedDetailId = undefined; },
+          }, `幕${a.index} · ${a.title || a.id}`),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-remove-act': a.id, onClick: () => removeAct(a.id) }, '删'),
+          h('div', { className: 'nv-outline__beats' },
+            (a.beats ?? []).map((b) => h('button', {
+              key: b.id, type: 'button', className: 'nv-editor__item nv-outline__beat' + (editor.selectedBeatId === b.id ? ' is-active' : ''),
+              'data-novel-outline-beat': b.id, onClick: () => { editor.selectedActId = a.id; editor.selectedBeatId = b.id; editor.selectedDetailId = undefined; },
+            }, `节 · ${b.title || b.id}`)),
+            h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-beat': a.id, onClick: () => addBeat(a.id) }, '+ 节'),
+          ),
+        )),
+      ),
+      h('div', { className: 'nv-outline__main' },
+        actPanel,
+        beatPanel,
+      ),
+    ),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-save': '', onClick: save, disabled: !editor.dirty }, '保存大纲'),
+    ),
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'outline', role: 'alert' }, editor.error) : null,
+  );
+}
+
+/**
+ * I48 C1 关系结构化编辑器（design §5.8 / R10-5）。替换裸 JSON 文本框：关系列表
+ * + 从/到/类型/亲密度/信任/里程碑/知情边界表单。所有读写只经 Host
+ * `relationshipRead`/`relationshipSave`，非法引用/端点由 Host 拒绝。
+ */
+interface RelationshipShape {
+  id: string;
+  from: string;
+  to: string;
+  type: string;
+  affinity: number;
+  trust: number;
+  status: string;
+  milestones: string[];
+  knownTo: string[];
+  version?: number;
+  [key: string]: unknown;
+}
+interface RelationshipLayerState {
+  readonly status: 'loading' | 'ready' | 'error';
+  readonly list: RelationshipShape[];
+  readonly message?: string;
+}
+interface RelationshipEditor {
+  selectedId: string | undefined;
+  draft: RelationshipShape;
+  dirty: boolean;
+  error: string;
+}
+function relationshipInput(draft: RelationshipShape): unknown {
+  return {
+    id: draft.id, from: draft.from, to: draft.to, type: draft.type ?? 'friendship',
+    affinity: draft.affinity ?? 0, trust: draft.trust ?? 0, status: draft.status ?? 'active',
+    milestones: draft.milestones ?? [], knownTo: draft.knownTo ?? [],
+  };
+}
+function newRelationshipDraft(): RelationshipShape {
+  return { id: '', from: '', to: '', type: 'friendship', affinity: 0, trust: 0, status: 'active', milestones: [], knownTo: [] };
+}
+function relationshipLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: RelationshipLayerState, editor: RelationshipEditor, reload: () => void): unknown {
+  const loadDraft = (entry: RelationshipShape): void => {
+    editor.selectedId = entry.id; editor.draft = { ...entry }; editor.dirty = false; editor.error = '';
+  };
+  const newDraft = (): void => {
+    editor.selectedId = undefined; editor.draft = newRelationshipDraft(); editor.dirty = false; editor.error = '';
+  };
+  const mutate = (update: (draft: RelationshipShape) => RelationshipShape): void => {
+    editor.draft = update(editor.draft); editor.dirty = true;
+  };
+  const save = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    if (editor.draft.from.trim() === '' || editor.draft.to.trim() === '') { editor.error = '关系两端（from/to）不能为空'; return; }
+    const effectiveId = editor.selectedId ?? `${slug(editor.draft.from)}+${slug(editor.draft.to)}`;
+    void unwrap(workspace.relationshipSave(projectId, relationshipInput({ ...editor.draft, id: effectiveId })))
+      .then((saved) => { editor.draft = { ...(saved as RelationshipShape) }; editor.selectedId = (saved as RelationshipShape).id; editor.dirty = false; editor.error = ''; reload(); })
+      .catch((cause: Error) => { editor.error = cause.message; });
+  };
+
+  if (layerState.status === 'loading') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'loading' }, '正在装载关系…');
+  }
+  if (layerState.status === 'error') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '关系素材读取失败');
+  }
+  const d = editor.draft;
+  const list = h('div', { className: 'nv-editor__list', role: 'list' },
+    h('div', { className: 'nv-editor__toolbar' },
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-relationship-new': '', onClick: newDraft }, '新建关系'),
+    ),
+    layerState.list.map((entry) => h('button', {
+      key: entry.id, type: 'button', role: 'listitem',
+      className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''),
+      'data-novel-relationship-id': entry.id, onClick: () => loadDraft(entry),
+    }, `${entry.from} → ${entry.to}`)),
+  );
+  const detail = h('div', { className: 'nv-editor__detail' },
+    h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '新建关系' : `编辑关系：${d.from} → ${d.to}`),
+    h('div', { className: 'nv-form' },
+      h('div', { className: 'nv-form__row' },
+        characterText(h, '从（角色 id）', d.from, (value) => mutate((draft) => ({ ...draft, from: value }))),
+        characterText(h, '到（角色 id）', d.to, (value) => mutate((draft) => ({ ...draft, to: value }))),
+      ),
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '关系类型'),
+        h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, type: event.target.value })) },
+          ['kin', 'romantic', 'friendship', 'rivalry', 'enmity', 'allegiance', 'mentor', 'subordinate'].map((t) => h('option', { key: t, value: t }, t)),
+        ),
+      ),
+      h('div', { className: 'nv-form__row' },
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, `亲密度（-100..100）：${d.affinity}`),
+          h('input', { type: 'range', min: '-100', max: '100', step: '1', className: 'nv-field__range', value: String(d.affinity ?? 0), onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, affinity: Number.parseInt(event.target.value, 10) || 0 })) }),
+        ),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, `信任（0..100）：${d.trust}`),
+          h('input', { type: 'range', min: '0', max: '100', step: '1', className: 'nv-field__range', value: String(d.trust ?? 0), onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, trust: Number.parseInt(event.target.value, 10) || 0 })) }),
+        ),
+      ),
+      characterText(h, '状态', d.status ?? 'active', (value) => mutate((draft) => ({ ...draft, status: value }))),
+      listField(h, '里程碑', d.milestones ?? [], (value) => mutate((draft) => ({ ...draft, milestones: value }))),
+      listField(h, '知情边界（knownTo）', d.knownTo ?? [], (value) => mutate((draft) => ({ ...draft, knownTo: value }))),
+    ),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: save, disabled: !editor.dirty }, '保存'),
+    ),
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, editor.error) : null,
+  );
+  return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'ready' },
+    h('div', { className: 'nv-editor__columns' }, list, detail),
+  );
+}
+
+/** 内容区：按激活层渲染真表单（I47/I48）或空态（I49）。 */
 function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, ui: WorkbenchUI, layers: LayerData): unknown {
   const layer = LAYERS.find((item) => item.id === ui.activeLayer) ?? LAYERS[0];
   if (layer.id === 'characters') {
@@ -499,17 +866,31 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
       worldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, layers.reloadWorldview));
   }
+  if (layer.id === 'outline') {
+    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
+      outlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, layers.reloadOutline));
+  }
+  if (layer.id === 'relationship') {
+    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
+      relationshipLayer(h, projectId, workspace, layers.relationship, layers.relationshipEditor, layers.reloadRelationship));
+  }
   return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' }, emptyState(h, layer));
 }
 
-/** I47 数据层：角色/世界观列表与表单态在面板装载后维护，供真表单渲染。 */
+/** I47/I48 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
 interface LayerData {
   readonly characters: CharacterLayerState;
   readonly worldview: WorldLayerState;
+  readonly outline: OutlineLayerState;
+  readonly relationship: RelationshipLayerState;
   readonly characterEditor: CharacterEditor;
   readonly worldEditor: WorldEditor;
+  readonly outlineEditor: OutlineEditor;
+  readonly relationshipEditor: RelationshipEditor;
   readonly reloadCharacters: () => void;
   readonly reloadWorldview: () => void;
+  readonly reloadOutline: () => void;
+  readonly reloadRelationship: () => void;
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
@@ -570,11 +951,15 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         activate(id) { activeLayer = id; },
       };
 
-      // I47 数据层：角色/世界观列表与表单态受 Host Remote 驱动，跨渲染复用。
+      // I47/I48 数据层：各领域列表与表单态受 Host Remote 驱动，跨渲染复用。
       let characterState: CharacterLayerState = { status: 'loading', list: [] };
       let worldState: WorldLayerState = { status: 'loading', list: [] };
+      let outlineState: OutlineLayerState = { status: 'loading' };
+      let relationshipState: RelationshipLayerState = { status: 'loading', list: [] };
       const characterEditor: CharacterEditor = { selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' };
       const worldEditor: WorldEditor = { selectedId: undefined, draft: { id: '' }, dirty: false, error: '' };
+      const outlineEditor: OutlineEditor = { draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined };
+      const relationshipEditor: RelationshipEditor = { selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' };
       const reloadCharacters = (): void => {
         const target = workspace;
         if (!target) { characterState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
@@ -593,13 +978,52 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           (cause: Error) => { worldState = { status: 'error', list: [], message: cause.message }; },
         );
       };
+      const reloadOutline = (): void => {
+        const target = workspace;
+        if (!target) { outlineState = { status: 'error', message: '创作台远程服务不可用' }; return; }
+        outlineState = { status: 'loading' };
+        void unwrap(target.outlineRead('default')).then(
+          (outline) => {
+            const shape = outline as OutlineShape;
+            outlineState = { status: 'ready', outline: shape };
+            // 载入后以 Host 大纲为唯一 draft 来源；未选中时选中第一幕/第一节。
+            outlineEditor.draft = { ...shape };
+            outlineEditor.dirty = false;
+            outlineEditor.error = '';
+            if (outlineEditor.selectedActId === undefined && (shape.acts ?? []).length > 0) {
+              outlineEditor.selectedActId = (shape.acts ?? [])[0].id;
+            }
+            if (outlineEditor.selectedBeatId === undefined) {
+              const act = (shape.acts ?? []).find((item) => item.id === outlineEditor.selectedActId)
+                ?? (shape.acts ?? [])[0];
+              outlineEditor.selectedBeatId = (act?.beats ?? [])[0]?.id;
+            }
+          },
+          (cause: Error) => { outlineState = { status: 'error', message: cause.message }; },
+        );
+      };
+      const reloadRelationship = (): void => {
+        const target = workspace;
+        if (!target) { relationshipState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
+        relationshipState = { status: 'loading', list: [] };
+        void unwrap(target.relationshipRead('default')).then(
+          (list) => { relationshipState = { status: 'ready', list: list as RelationshipShape[] }; },
+          (cause: Error) => { relationshipState = { status: 'error', list: [], message: cause.message }; },
+        );
+      };
       const layers: LayerData = {
         get characters() { return characterState; },
         get worldview() { return worldState; },
+        get outline() { return outlineState; },
+        get relationship() { return relationshipState; },
         characterEditor,
         worldEditor,
+        outlineEditor,
+        relationshipEditor,
         reloadCharacters,
         reloadWorldview,
+        reloadOutline,
+        reloadRelationship,
       };
 
       // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
@@ -629,6 +1053,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               state = { status: 'ready', model: model as WorkspaceViewModel };
               reloadCharacters();
               reloadWorldview();
+              reloadOutline();
+              reloadRelationship();
             },
             () => { state = { status: 'error', message: '创作台远程服务不可用' }; },
           );

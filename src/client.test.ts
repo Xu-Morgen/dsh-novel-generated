@@ -19,7 +19,7 @@ const fakeReact = {
     ({ tag, props, children }),
 };
 
-/** Overridable subset of the `novelWorkspace` remote for I47 round-trip tests. */
+/** Overridable subset of the `novelWorkspace` remote for I47/I48 round-trip tests. */
 interface WorkspaceOverrides {
   characterList?: () => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
@@ -27,6 +27,10 @@ interface WorkspaceOverrides {
   worldviewList?: () => Promise<unknown[]>;
   worldviewCreate?: (projectId: string, input: unknown) => Promise<unknown>;
   worldviewRewrite?: (projectId: string, id: string, input: unknown) => Promise<unknown>;
+  outlineRead?: (projectId: string) => Promise<unknown>;
+  outlineSave?: (projectId: string, input: unknown) => Promise<unknown>;
+  relationshipRead?: (projectId: string) => Promise<unknown[]>;
+  relationshipSave?: (projectId: string, input: unknown) => Promise<unknown>;
 }
 
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
@@ -40,11 +44,11 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   worldviewRead: async () => ({}),
   worldviewCreate: overrides.worldviewCreate ?? (async () => ({})),
   worldviewRewrite: overrides.worldviewRewrite ?? (async () => ({})),
-  outlineRead: async () => ({}),
-  outlineSave: async () => ({}),
+  outlineRead: overrides.outlineRead ?? (async () => ({ id: 'outline', structure: 'free', logline: '', themes: [], acts: [], foreshadowing: [], endings: [] })),
+  outlineSave: overrides.outlineSave ?? (async () => ({})),
   outlineBeatCards: async () => [],
-  relationshipRead: async () => [],
-  relationshipSave: async () => ({}),
+  relationshipRead: overrides.relationshipRead ?? (async () => []),
+  relationshipSave: overrides.relationshipSave ?? (async () => ({})),
   stateCurrent: async () => ({}),
   stateSnapshots: async () => [],
   stateRollback: async () => ({}),
@@ -193,7 +197,7 @@ describe('I46 创作台 workbench shell', () => {
     expect(collect(tree, 'section').some((n) => n.props?.role === 'alert')).toBe(true);
   });
 
-  it('renders a real B3/B2 form panel and empty placeholders for the deferred layers, and navigates across all six', async () => {
+  it('renders real B3/B2/B5/C1 form panels and empty placeholders for the deferred layers, and navigates across all six', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
@@ -202,7 +206,7 @@ describe('I46 创作台 workbench shell', () => {
       collect(tree, 'section').find((n) => n.props?.['data-novel-layer-panel'] !== undefined);
 
     expect(panel(render())?.props?.['data-novel-layer-panel']).toBe('characters');
-    // I47：角色层渲染真表单（ready），非空态占位；其余四层仍 empty。
+    // I47：角色层渲染真表单（ready），非空态占位。
     expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
 
     const ids = ['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'];
@@ -211,7 +215,7 @@ describe('I46 创作台 workbench shell', () => {
       expect(button, `nav button for ${id}`).toBeDefined();
       (button?.props?.onClick as () => void)();
       expect(panel(render())?.props?.['data-novel-layer-panel']).toBe(id);
-      if (id === 'characters' || id === 'worldview') {
+      if (id === 'characters' || id === 'worldview' || id === 'outline' || id === 'relationship') {
         expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
       } else {
         expect(panel(render())?.props?.['data-novel-layer-state']).toBe('empty');
@@ -473,6 +477,156 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     await flush();
 
     const error = byData(render(), 'data-novel-error', 'worldview') as FakeNode;
+    expect(error).toBeDefined();
+    expect(error.props?.role).toBe('alert');
+    expect((error.children ?? []).join('')).toContain('Host rejected');
+  });
+
+  it('owns no fs API: the client source imports no node:fs and no browser LLM seam', () => {
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const source = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
+    expect(source).not.toMatch(/node:fs|fs\.readFile|window\.fetch|OPENAI_API_KEY|harness\.handle|host\.call/);
+  });
+});
+
+describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
+  /** Find the first element with the given data attribute value. */
+  const byData = (tree: FakeNode, attr: string, value: string): FakeNode | undefined => {
+    let found: FakeNode | undefined;
+    const visit = (current: unknown): void => {
+      if (found || current == null || typeof current !== 'object') return;
+      if (Array.isArray(current)) { for (const item of current) visit(item); return; }
+      const n = current as FakeNode;
+      if (n.props?.[attr] === value) { found = n; return; }
+      for (const child of n.children ?? []) visit(child);
+    };
+    visit(tree);
+    return found;
+  };
+
+  const OUTLINE = {
+    id: 'outline', structure: 'free', logline: 'A saga.', themes: ['trust'],
+    acts: [{
+      id: 'act-1', index: 0, title: '开端', goal: '遇见英雄', beats: [{
+        id: 'beat-1', title: '初见', description: '相遇', charactersInvolved: ['hero'],
+        conflictType: 'relational', prerequisites: [], optional: false,
+        detailBeats: [{ id: 'card-1', title: '雨夜', summary: '初遇', pov: 'hero', wordTarget: 500, points: ['牵手'], status: 'planned' }],
+      }],
+    }],
+    foreshadowing: [], endings: [],
+  };
+
+  it('renders the outline hierarchy (act→beat) and scene-card view, saved only through outlineSave', async () => {
+    const saveCalls: Array<{ projectId: string; input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        outlineRead: async () => OUTLINE,
+        outlineSave: async (projectId, input) => { saveCalls.push({ projectId, input }); return input; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
+    const tree = render();
+    expect(byData(tree, 'data-novel-layer-panel', 'outline')).toBeDefined();
+    expect(byData(tree, 'data-novel-layer-state', 'ready')).toBeDefined();
+    // 层级锚点：幕、节、场景卡均渲染。
+    expect(byData(tree, 'data-novel-outline-act', 'act-1')).toBeDefined();
+    expect(byData(tree, 'data-novel-outline-beat', 'beat-1')).toBeDefined();
+    expect(byData(tree, 'data-novel-detail-card', 'card-1')).toBeDefined();
+
+    // 修改一句话梗概后保存。
+    const loglineInput = collect(tree, 'input').find((n) => n.props?.['type'] === 'text');
+    (loglineInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'A new saga.' } });
+    ((byData(render(), 'data-novel-outline-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    expect(saveCalls).toHaveLength(1);
+    expect(saveCalls[0].projectId).toBe('default');
+    expect(saveCalls[0].input).toMatchObject({ logline: 'A new saga.', structure: 'free' });
+  });
+
+  it('shows the Host error when an illegal outline write is rejected', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        outlineRead: async () => OUTLINE,
+        outlineSave: async () => { throw new Error('Host rejected: unknown beat prerequisite'); },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
+
+    const loglineInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (loglineInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'X' } });
+    ((byData(render(), 'data-novel-outline-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    const error = byData(render(), 'data-novel-error', 'outline') as FakeNode;
+    expect(error).toBeDefined();
+    expect(error.props?.role).toBe('alert');
+    expect((error.children ?? []).join('')).toContain('Host rejected');
+  });
+
+  it('renders the relationship list and full-field editor, saved only through relationshipSave', async () => {
+    const existing = {
+      id: 'hero+mentor', from: 'hero', to: 'mentor', type: 'mentor',
+      affinity: 80, trust: 90, status: 'active', milestones: ['受训'], knownTo: ['hero'],
+    };
+    const saveCalls: Array<{ projectId: string; input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        relationshipRead: async () => [existing],
+        relationshipSave: async (projectId, input) => { saveCalls.push({ projectId, input }); return input; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'relationship')?.props?.onClick as () => void)();
+
+    const tree = render();
+    expect(byData(tree, 'data-novel-layer-panel', 'relationship')).toBeDefined();
+
+    // 点选列表项载入详情，全字段表单渲染（from/to/type/affinity/trust/milestones/knownTo）。
+    const item = byData(tree, 'data-novel-relationship-id', 'hero+mentor') as FakeNode;
+    (item.props?.onClick as () => void)();
+
+    // 修改状态后保存。
+    const statusInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text' && (n.props?.value as string) === 'active');
+    (statusInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'strained' } });
+    ((byData(render(), 'data-novel-relationship-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    expect(saveCalls).toHaveLength(1);
+    expect(saveCalls[0].projectId).toBe('default');
+    expect(saveCalls[0].input).toMatchObject({
+      id: 'hero+mentor', from: 'hero', to: 'mentor', type: 'mentor', status: 'strained',
+    });
+  });
+
+  it('shows the Host error when an illegal relationship write is rejected', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        relationshipRead: async () => [],
+        relationshipSave: async () => { throw new Error('Host rejected: endpoints must differ'); },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'relationship')?.props?.onClick as () => void)();
+
+    const textInputs = collect(render(), 'input').filter((n) => n.props?.['type'] === 'text');
+    (textInputs[0]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
+    (textInputs[1]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
+    ((byData(render(), 'data-novel-relationship-save', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    const error = byData(render(), 'data-novel-error', 'relationship') as FakeNode;
     expect(error).toBeDefined();
     expect(error.props?.role).toBe('alert');
     expect((error.children ?? []).join('')).toContain('Host rejected');
