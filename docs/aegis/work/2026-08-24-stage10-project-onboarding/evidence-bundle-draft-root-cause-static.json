@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "root-cause-static",
+  "type": "diagnostic",
+  "source": "src/client.ts;src/index.ts;src/remote.ts;src/host/*-service.ts",
+  "summary": "Client hardcodes default and reloads six layers; production wiring provides services but never performs project create/open; six services require explicit open.",
+  "verifier": "captain"
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-24-stage10-project-onboarding",
+  "taskIntentRef": "docs/aegis/work/2026-08-24-stage10-project-onboarding/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/novel-creation-tool-design.md v2.1",
+    "docs/novel-creation-tool-requirements.md v2.1",
+    "docs/novel-creation-tool-development-plan.md v2.1",
+    "docs/aegis/plans/2026-08-24-stage10-project-onboarding-implementation.md"
+  ],
+  "scopeStatus": "Approved Stage 10 design and implementation-plan sync only; no I50-I53 production source, tests, scripts, dependencies, fixtures, runtime or project data changed.",
+  "compatStatus": "I11 three-state Gate, I37-I38 import contract, old Remote descriptor prefix, six Domain write owners and selected-profile bundle path remain explicit compatibility gates.",
+  "retirementStatus": "Client default, duplicate ConfirmationService owner and handwritten DOCX parser remain verified retirement work for I50/I51; no Stage 10 retirement executed in this design slice.",
+  "newRiskSignals": [
+    "Real Word and LibreOffice fixture provenance is an I51 stop gate.",
+    "Live selected-profile LLM held-out evaluation is an I52 stop gate.",
+    "Global Aegis check still reports unrelated legacy INDEX omissions outside Stage 10."
+  ],
+  "decision": "pause-for-user"
+}

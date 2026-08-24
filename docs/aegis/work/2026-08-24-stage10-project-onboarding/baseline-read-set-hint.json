@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "docs/novel-creation-tool-requirements.md",
+    "AGENTS.md"
+  ],
+  "whyRelevant": "四个文件共同拥有产品、执行、验收和迭代纪律",
+  "missingAuthority": []
+}

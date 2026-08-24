@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-24-stage10-project-onboarding",
+  "requiredBaselineRefs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "docs/novel-creation-tool-requirements.md",
+    "AGENTS.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/novel-creation-tool-design.md",
+    "docs/novel-creation-tool-development-plan.md",
+    "docs/novel-creation-tool-requirements.md",
+    "AGENTS.md"
+  ],
+  "citedInPlanRefs": [
+    "docs/novel-creation-tool-design.md#14.7",
+    "docs/novel-creation-tool-development-plan.md#stage-10",
+    "docs/novel-creation-tool-requirements.md#R11",
+    "AGENTS.md#authority"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

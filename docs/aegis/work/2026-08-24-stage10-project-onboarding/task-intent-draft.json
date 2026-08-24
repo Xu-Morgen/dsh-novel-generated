@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "新增 I50-I53，修复作品启动并支持 DOCX、自由文本和空白作品三种初始化入口",
+  "goal": "以 Host-owned 启动编排和 ConfirmationGate 为边界完成多作品启动与六层候选初始化规格",
+  "successEvidence": [
+    "设计、需求、计划和 AGENTS 对 I50-I53 一致；用户批准；无源码修改"
+  ],
+  "stopCondition": "文档一致且自审通过则进入实施计划；若合同或持久化边界未决则暂停",
+  "nonGoals": [
+    "implementation source changes",
+    "C3 inference",
+    "import into non-empty projects"
+  ],
+  "scope": "v2.1 权威文档同步与 Stage 10 规格，不实现代码",
+  "changeKinds": [
+    "architecture"
+  ],
+  "riskHints": [
+    "Remote additive contract、DOCX 上传安全、LLM 六层推断、文件 source-of-truth、既有脏工作区"
+  ]
+}

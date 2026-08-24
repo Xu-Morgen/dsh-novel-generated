@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "approved-product-decisions",
+  "type": "user-decision",
+  "source": "current direct user conversation",
+  "summary": "User approved multi-project selection, DOCX/free-text/blank entry modes, controlled file picker upload, I50-I53 split, and per-layer accept/edit-accept/regenerate/skip semantics.",
+  "verifier": "captain"
+}

@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.0
-> 日期：2026-08-19
+> 版本：v2.1
+> 日期：2026-08-24
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,18 +11,18 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.0：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
-2. 本文件 v2.0：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.0：I1–I49 的执行卡片、交付物与命令细节；完成 v2.0 同步前不得作为执行入口。
-4. `AGENTS.md` v2.0：执行纪律；完成 v2.0 同步前不得以其中的 v1.x 内容启动迭代。
+1. `docs/novel-creation-tool-design.md` v2.1：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
+2. 本文件 v2.1：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v2.1：I1–I53 的执行卡片、交付物与命令细节。
+4. `AGENTS.md` v2.1：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 
 ### 0.2 v1.x supersession 与 provenance
 
-- 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、原子写回和规模 smoke 等产品要求继续有效。
+- 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I49**。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R10 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
+- 当前迭代身份只有本文件定义的 **I1–I53**。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R11 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -31,11 +31,11 @@
 3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有 LLM 调用只能走 Host 的 `ctx.llm`；禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
 4. 硬检测器：canonical 违规样本 **100% 命中**且整体准确率 **≥90%**；正史解析器准确率 **≥85%**；其他 LLM 模块准确率 **≥80%**。
 5. 样本、held-out 子集和 gold 均为不可变验收资产；不得为过关修改样本、held-out、gold 或阈值。dev 可用于调优，held-out 只用于收尾验收。
-6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`。
+6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`。
 7. 所有用户确认复用 I11 ConfirmationGate。未确认不得写回；重复确认必须幂等。
 8. 每个迭代只有在对应 `verify:iN` 通过后才可完成；每个阶段只有在全部迭代验证和 `verify:stage-N` 通过后才可完成。
 
-### 0.4 v2.0 阶段与验证命令
+### 0.4 v2.1 阶段与验证命令
 
 | 阶段 | 迭代 | 累积门 |
 |---|---|---|
@@ -43,12 +43,13 @@
 | Stage 1 数据与核心原语 | I3–I11 | `pnpm run verify:stage-1` |
 | Stage 2 上下文与生成 | I12–I19 | `pnpm run verify:stage-2` |
 | Stage 3 一致性 | I20–I24 | `pnpm run verify:stage-3` |
-| Stage 4 解析与原子写回 | I25–I30 | `pnpm run verify:stage-4` |
+| Stage 4 解析与受控写回 | I25–I30 | `pnpm run verify:stage-4` |
 | Stage 5 配置与内部 Extension | I31–I32 | `pnpm run verify:stage-5` |
 | Stage 6 DSH Slot 创作工作区 | I33–I36 | `pnpm run verify:stage-6` |
 | Stage 7 导入、可移植与索引 | I37–I40 | `pnpm run verify:stage-7` |
 | Stage 8 索引分类与写作辅助 | I41–I45 | `pnpm run verify:stage-8` |
 | Stage 9 创作台 UI 重设计 | I46–I49 | `pnpm run verify:stage-9` |
+| Stage 10 作品启动与六层初始化 | I50–I53 | `pnpm run verify:stage-10` |
 
 ---
 
@@ -93,10 +94,10 @@
 | R1-B4 | B4 风格含人称/时态/POV/文风/章节格式/禁用表达，可全局设定和章节覆盖。 | Schema、恒定 serializer、forbidden 检查和覆盖优先级断言。 | I10, I13, I20 | `pnpm run verify:i10`; `pnpm run verify:i13`; `pnpm run verify:i20`; `pnpm run verify:stage-3` |
 | R1-B5 | B5 大纲预设含结构、幕、beat、伏笔、结局候选；细纲是 beat 的 detailBeats 子结构而非第 14 层。 | 嵌套 Schema/引用负测；场景卡含 pov/wordTarget/points/status。 | I14, I35, I43 | `pnpm run verify:i14`; `pnpm run verify:i35`; `pnpm run verify:i43`; `pnpm run verify:stage-8` |
 | R1-C1 | C1 关系含 from/to/type/affinity/trust/milestones/knownTo；`knownTo` 只表达关系公开性。 | 边界注释与契约测试；范围校验；摘要注入；解析机械应用。 | I16, I27, I35 | `pnpm run verify:i16`; `pnpm run verify:i27`; `pnpm run verify:i35`; `pnpm run verify:stage-6` |
-| R1-C2 | C2 状态含 scene/characters/items/factions/globalFlags，快照 seq 单调、可事务、diff、回滚。 | 全 Schema round-trip；非法 seq/引用失败；事务失败不产生半快照。 | I4, I25, I36 | `pnpm run verify:i4`; `pnpm run verify:i25`; `pnpm run verify:i36`; `pnpm run verify:stage-6` |
+| R1-C2 | C2 当前交付子集含基础 id/version/seq/storyTime、scene 与 characters；快照 seq 单调、可事务、diff、回滚。items/factions/globalFlags 仍是目标模型但按 N-8 后置，不得由 Stage 10 偷渡。 | 当前 Schema round-trip；非法 seq/引用失败；事务失败不产生半快照；Client/初始化输出无未交付扩展字段。 | I4, I25, I36, I50, I52 | `pnpm run verify:i4`; `pnpm run verify:i25`; `pnpm run verify:i36`; `pnpm run verify:i50`; `pnpm run verify:i52`; `pnpm run verify:stage-10` |
 | R1-C3 | C3 揭示/知情含 fact/holders/revealPlan/KnowledgeState；知情只增不可倒退。 | 逆向 status/holder 删除失败；POV 过滤和 parser 复用同一不变量。 | I18, I22, I28 | `pnpm run verify:i18`; `pnpm run verify:i22`; `pnpm run verify:i28`; `pnpm run verify:stage-4` |
 | R1-C4 | C4 正史为 append-only CanonEvent，seq 单调；更正只可新增 supersedes 事件并确认。 | 旧行改写失败；查询/追加/更正/低置信确认测试；UI 只读。 | I5, I26, I36 | `pnpm run verify:i5`; `pnpm run verify:i26`; `pnpm run verify:i36`; `pnpm run verify:stage-6` |
-| R1-C5 | C5 生成文本按 chapter/scene 存储，可编辑、重写和保留分支；手工固定段范围编辑必须逐字精确持久化。I42 提供可选 reparse 路径，经 ConfirmationGate 确认后调用 I25–I29 parsers，将接受的文本变化同步到 C2/C4 等结构化状态与正史；未选择 reparse 时不得隐式改写其他层。 | Markdown 文本与手工范围内容 exact round-trip；branch chosen 约束；非目标段哈希不变；可选 reparse 未确认时 C1/C2/C3/C4/B2 均不变，确认后 parser fan-out 与原子写回可追溯。 | I6, I25–I29, I42, I43 | `pnpm run verify:i6`; `pnpm run verify:i25`; `pnpm run verify:i26`; `pnpm run verify:i27`; `pnpm run verify:i28`; `pnpm run verify:i29`; `pnpm run verify:i42`; `pnpm run verify:i43`; `pnpm run verify:stage-4`; `pnpm run verify:stage-8` |
+| R1-C5 | C5 生成文本按 chapter/scene 存储，可编辑、重写和保留分支；手工固定段范围编辑必须逐字精确持久化。I42 提供可选 reparse 路径，经 ConfirmationGate 确认后调用 I25–I29 parsers，将接受的文本变化同步到 C2/C4 等结构化状态与正史；未选择 reparse 时不得隐式改写其他层。 | Markdown 文本与手工范围内容 exact round-trip；branch chosen 约束；非目标段哈希不变；可选 reparse 未确认时 C1/C2/C3/C4/B2 均不变，确认后 parser fan-out 与逐层受控写回可追溯。 | I6, I25–I29, I42, I43 | `pnpm run verify:i6`; `pnpm run verify:i25`; `pnpm run verify:i26`; `pnpm run verify:i27`; `pnpm run verify:i28`; `pnpm run verify:i29`; `pnpm run verify:i42`; `pnpm run verify:i43`; `pnpm run verify:stage-4`; `pnpm run verify:stage-8` |
 | R1-C6 | C6 大纲执行态含 currentBeat/completedBeats/deviations/tension，记录偏差而非强制纠回。 | 进度引用校验；偏差可记录/调和；导航器不自动篡改 B5。 | I15, I35, I45 | `pnpm run verify:i15`; `pnpm run verify:i35`; `pnpm run verify:i45`; `pnpm run verify:stage-8` |
 
 ## R2. 核心引擎与 ConfirmationGate
@@ -145,7 +146,7 @@
 | R5-4 | C3 parser 只增知情，不得使 holder/status 倒退。 | held-out ≥80%；知情倒退失败，低置信变更走 Gate。 | I28 | `pnpm run verify:i28`; `pnpm run verify:stage-4` |
 | R5-5 | B2 parser 之外，B3/B4/B5/C5 不因正文接受被隐式改写；B2/C1/C2/C3/C4 为明确 fan-out 边界。 | 非目标层哈希保持不变。 | I29, I30 | `pnpm run verify:i29`; `pnpm run verify:i30`; `pnpm run verify:stage-4` |
 | R5-6 | B2 世界观由专用 parser 以 supersededBy 改写并确认，且严格逐层。 | held-out ≥80%；未确认改写失败；输入不包含其他层私有对象。 | I29 | `pnpm run verify:i29`; `pnpm run verify:stage-4` |
-| R5-7 | 完整生命周期为生成→生成后校验→裁决→逐层解析→落库前校验→原子写回；失败不得半落库。 | fake 全管道故障注入 + 真实 e2e；任一层失败时回滚或进入明确待补偿状态，绝不静默成功。 | I30 | `pnpm run verify:i30`; `pnpm run verify:stage-4` |
+| R5-7 | 完整生命周期为生成→生成后校验→裁决→逐层解析→落库前校验→受控写回；每个层内业务事务必须原子，但文件式跨层 fan-out 不宣称全局原子。任一层失败须保留已成功层并进入明确 pending-compensation，绝不静默成功或用删除已写数据伪造回滚。 | fake 全管道故障注入 + 真实 e2e；逐层成功/失败清单、pending-compensation 可恢复、拒绝零写与无静默成功。 | I30 | `pnpm run verify:i30`; `pnpm run verify:stage-4` |
 
 ## R6. 模型配置与内部 Extension
 
@@ -184,7 +185,7 @@
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
 | R9-1 | 分类 agent 对可确认、单一定位、反复引用且不变的设定分类去重，经确认后写索引。 | held-out ≥80%；未确认不入索引；重复候选合并可追溯。 | I41 | `pnpm run verify:i41`; `pnpm run verify:stage-8` |
-| R9-2 | 支持固定段/场景局部编辑和快速重写：手工固定范围编辑按用户输入逐字精确持久化且不触碰范围外文本；用户可选 reparse，经 ConfirmationGate 确认后通过 I25–I29 parsers 同步 C1/C2/C3/C4/B2（含 state/canon），不选择或不确认则只保存 C5 文本。 | 手工范围 exact round-trip、目标范围 diff、非目标哈希不变；可选 reparse 的未确认负测与确认后 parser fan-out/原子写回断言；硬约束仍阻断；LLM ≥80%。 | I42 | `pnpm run verify:i42`; `pnpm run verify:stage-8` |
+| R9-2 | 支持固定段/场景局部编辑和快速重写：手工固定范围编辑按用户输入逐字精确持久化且不触碰范围外文本；用户可选 reparse，经 ConfirmationGate 确认后通过 I25–I29 parsers 同步 C1/C2/C3/C4/B2（含 state/canon），不选择或不确认则只保存 C5 文本。 | 手工范围 exact round-trip、目标范围 diff、非目标哈希不变；可选 reparse 的未确认负测与确认后 parser fan-out/逐层受控写回断言；硬约束仍阻断；LLM ≥80%。 | I42 | `pnpm run verify:i42`; `pnpm run verify:stage-8` |
 | R9-3 | 支持按章节与 detailBeat `wordTarget` 软引导生成，并导出最终 txt/md/docx。 | 报告字数误差分布而非硬凑字数；完整章节 gold 导出。 | I43 | `pnpm run verify:i43`; `pnpm run verify:stage-8` |
 | R9-4 | 续写 agent 基于当前状态/正史/大纲/细纲生成下一段，并进入标准校验→裁决→解析写回流程。 | held-out ≥80%；fake 管道断言写回只发生在接受后。 | I44 | `pnpm run verify:i44`; `pnpm run verify:stage-8` |
 | R9-5 | 灵感 agent 给出 2–3 个可区分方向，默认不写正史；选择后调整 B5/C6 必须确认。 | held-out ≥80%；未选择时所有层不变；选择后 Gate 控制大纲/细纲变更。 | I45 | `pnpm run verify:i45`; `pnpm run verify:stage-8` |
@@ -203,6 +204,19 @@
 | R10-4 | B3/B2 列表/详情编辑：角色真表单与世界观改写（supersede），数据仅经 Host Remote。 | round-trip + 非法写展示 Host 错误；无 fs API。 | I47 | `pnpm run verify:i47`; `pnpm run verify:stage-9` |
 | R10-5 | B5/C1 结构化编辑器替换裸 JSON：大纲（幕→节→细纲）与关系对，序列化后仍走既有 Host 契约。 | 结构化编辑 round-trip；序列化与既有 `outlineSave`/`relationshipSave` 兼容。 | I48 | `pnpm run verify:i48`; `pnpm run verify:stage-9` |
 | R10-6 | C2 快照时间线/回滚/diff 与 C4 只读账本 + supersede 更正（走 ConfirmationGate）。 | 回滚走 StateEngine；正史无普通写入口；更正确认后才追加。 | I49 | `pnpm run verify:i49`; `pnpm run verify:stage-9` |
+
+---
+
+## R11. 作品启动与六层初始化
+
+> 定位：修复“插件/Remote ready 但作品六层未 open”的 operational bootstrap 缺口，并让新作品通过 DOCX、自由文本或纯空白三种入口进入创作台。I37–I38 的 B2/B5 通用导入合同保持不变；Stage 10 只扩展新作品初始化。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R11-1 | Host project lifecycle 是作品 list/create/open/readiness 的唯一 owner；支持多作品选择，Client 只持有经 Host 复核的 selected projectId，所有硬编码 `default` 删除。空作品的 B3/B2/C1/C4 为空、B5 uninitialized、C2 为确定性 `initial-state` seq 0 空快照；公开 ConfirmationService 与 workspace 复用同一实例。 | 空 root、新建、两作品切换、stop/restart/reopen、并发 open、unsafe/unknown ID、legacy `{}` 与 corrupt 文件夹具；旧 Remote descriptor 行为兼容；selected-profile 真实打开六层。 | I50 | `pnpm run verify:i50`; `pnpm run verify:stage-10` |
+| R11-2 | 创作台文件选择器只做受限分块上传；Host 校验大小、块序、SHA-256、DOCX 包结构、entry/解压量/压缩比，并用成熟解析器产生规范文本块。临时文件在成功/取消/失败/卸载后清理，作品数据不删除；手写 parser 退役且无 fallback。 | Word/LibreOffice gold fixture；坏 ZIP、伪扩展、加密、乱序/重复块、超限与 zip bomb 负向夹具；临时目录归零；Client bundle 无 ZIP/XML/fs；lingering-reference 扫描。 | I51 | `pnpm run verify:i51`; `pnpm run verify:stage-10` |
+| R11-3 | DOCX 规范文本与自由文本经 Host `ctx.llm` 生成绑定 projectId/onboardingSessionId/sourceHash 的 B3/B2/B5/C1/C2/C4 六个带来源、confidence 与 warnings 的严格候选包；自由文本须非空、UTF-8/NFC、无 NUL、默认 ≤2 MiB。B3.relationships/knowledgeIds/arc.keyBeats 强制为空；C2 表示输入终点/故事起点且只含当前 scene/characters 子集；C4 只含明确事件且可空；禁止 C3/items/factions/globalFlags。支持带反馈的单层重生成，其他层候选不变。 | prompt/schema 前冻结 ≥10 个 dev/held-out 样本；fake backend 接线；输入边界、逐层 schema、来源与哈希隔离断言；模型不可用/取消/非法输出零写；每层 held-out ≥80%。 | I52 | `pnpm run verify:i52`; `pnpm run verify:stage-10` |
+| R11-4 | 六层分别支持直接接受、手动修改后接受、整层打回重生成或显式跳过。每项提案绑定 projectId/onboardingSessionId/layer/sourceHash；修改/重生成先 reject 当前提案再建立带 `replacesId` 的后继，跳过 reject 且无后继；pending 不等于 skip。六层均达 accepted/skipped 后，final apply 才消费任意 accepted 子集，经既有 Domain Service 按 B3→B2→B5→C2→C4→C1 写入；I11 三态不变。 | project/session/sourceHash 错配拒绝；pending 阻止 apply；旧提案不可静默应用；单层打回隔离；B2/B5 独立失败；B3.relationships/knowledgeIds/arc.keyBeats 必须为空；B2.parent 校验本层引用并 parent-first 稳定拓扑 create，环/缺失 parent 失败；B5.prerequisites/C4.consequences 对完整候选 ID 集预检；B5.charactersInvolved/detailBeats.pov/foreshadowing.knownBy、C1.from/to/knownTo、C2.characters.characterId、C4.participants→B3，C1.milestones→已先落地 C4；悬空引用只阻止自身及依赖层；结构化 partial-retryable 结果、重复 apply 幂等、C4 append-only；DOCX/自由文本 selected-profile E2E；Fiber dispose 零残留。 | I53 | `pnpm run verify:i53`; `pnpm run verify:stage-10` |
 
 ---
 
@@ -228,14 +242,14 @@
 | A1 | I1, I3 | I12 | I30 |
 | A2 | I31 | I31–I32 | I33 |
 | B1 | I7 | I13, I21 | I32 |
-| B2 | I8 | I13 | I28–I29, I34, I38, I47 |
-| B3 | I9 | I13 | I34, I47 |
+| B2 | I8 | I13 | I29, I34, I38, I47, I52–I53 |
+| B3 | I9 | I13 | I34, I47, I52–I53 |
 | B4 | I10 | I13, I20, I24 | I31 |
-| B5 | I14 | I15 | I35, I38, I43, I45, I48 |
-| C1 | I16 | I16 | I27, I35, I48 |
-| C2 | I4 | I13 | I25, I36, I49 |
+| B5 | I14 | I15 | I35, I38, I43, I45, I48, I52–I53 |
+| C1 | I16 | I16 | I27, I35, I48, I52–I53 |
+| C2 | I4 | I13 | I25, I36, I49, I50, I52–I53 |
 | C3 | I18 | I18, I22 | I28 |
-| C4 | I5 | I18, I21 | I26, I36, I39, I49 |
+| C4 | I5 | I18, I21 | I26, I36, I39, I49, I50, I52–I53 |
 | C5 | I6 | I18–I19 | I42–I44 |
 | C6 | I15 | I15 | I35, I45 |
 
@@ -254,7 +268,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I49 全覆盖矩阵
+### M-P. 产品能力与 I1–I53 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -307,6 +321,10 @@
 | B3/B2 编辑面板 | I47 | R10 |
 | B5/C1 结构化编辑器 | I48 | R10 |
 | C2/C4 面板 | I49 | R10 |
+| 多作品选择与 Host project bootstrap | I50 | R11 |
+| 受控 DOCX 上传与真实文本提取 | I51 | R11 |
+| 六层初始化分析器 | I52 | R11 |
+| 六层审阅、逐层确认与幂等落地 | I53 | R11 |
 
 ---
 
@@ -314,17 +332,19 @@
 
 | ID | 项目 | 约束与理由 |
 |---|---|---|
-| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出；既有文本走 I37–I38，自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
+| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的 DOCX/自由文本六层初始化走 I50–I53；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
 | N-2 | 向量检索 | 语义向量检索和 B2 `vector` trigger 延后；当前使用关键词/正则/全文与 I40 精确 SQLite 索引。文件始终是 source of truth。 |
-| N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM/文件 seam 或 DSH 之外的受支持主路径。 |
+| N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM、浏览器直读/直写作品文件或 DSH 之外的受支持主路径。I51 文件选择器只允许把受限用户输入运输到 Host 临时区，Client 不解析且不成为文件 owner。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
 | N-5 | 自动强制改写大纲 | 偏差先记录；接受新方向或调整细纲必须由用户选择并经 ConfirmationGate。 |
 | N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
+| N-7 | 已有非空作品合并导入 | Stage 10 仅初始化新建/空作品；不静默合并或覆盖已有六层。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
+| N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
 
 ---
 
 ## 结论
 
-**直接结论：设计 v2.0 中所有保留的宿主与产品需求，均已由新的 I1–I49 覆盖，并具有可机器执行的 `pnpm run verify:iN` 与阶段 `pnpm run verify:stage-N` 证据要求。**
+**直接结论：设计 v2.1 中所有保留的宿主与产品需求，均已由 I1–I53 覆盖，并具有可机器执行的 `pnpm run verify:iN` 与阶段 `pnpm run verify:stage-N` 证据要求；Stage 10 的新增需求由 I50–I53 独立覆盖，不改写 I37–I38 的历史合同。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only，并在公共 out-of-tree Client/Remote/Slot 合同无法证明时停止。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

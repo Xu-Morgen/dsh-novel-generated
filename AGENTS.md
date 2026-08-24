@@ -1,5 +1,7 @@
 # AGENTS.md — AI 执行约定
 
+> 规则版本：v2.1
+
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
 ## 1. 项目与权威文档
@@ -8,9 +10,9 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v2.0）—— 需求与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-development-plan.md`（v2.0）—— 执行层，45 个迭代（I1–I45），每一步从它的阶段/迭代卡片出发。
-3. `docs/novel-creation-tool-requirements.md`（v2.0）—— 需求 ID、验收证据与迭代覆盖矩阵。
+1. `docs/novel-creation-tool-design.md`（v2.1）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v2.1）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v2.1）—— 执行层，53 个迭代（I1–I53），每一步从它的阶段/迭代卡片出发。
 
 ## 1.1 宪法级宿主基线（不可修改）
 
@@ -77,7 +79,7 @@
   - 导入/导出/写作辅助：`src/import/`、`src/export/`、`src/write/`、`src/agents/`
 - 层 Schema 集中在 `src/core/schema/`（rules.ts、style.ts、characters.ts、worldview.ts、relationship.ts、outline.ts、knowledge.ts…）。
 - 数据目录由 I3 的 `createProject()` 生成（对应设计 §10.1），源码不硬编码路径。
-- 新迭代只在自属目录内新增文件；不改动已交付目录的语义；跨模块共享类型走 `contracts/` 契约锁。
+- 新迭代优先在自属目录内新增文件；不得**静默**改动已交付目录语义。只有对应迭代卡明确列出 canonical owner、兼容/退役边界和跨模块验收时，才可对既有目录做最小 owner-level 修改；跨模块共享类型走 `contracts/` 契约锁。
 - 不创建任何空目录（git 不跟踪空目录）。
 
 ## 6. 阶段收尾

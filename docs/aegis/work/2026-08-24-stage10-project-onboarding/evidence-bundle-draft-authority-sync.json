@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "authority-sync",
+  "type": "documentation",
+  "source": "docs/novel-creation-tool-design.md;docs/novel-creation-tool-development-plan.md;docs/novel-creation-tool-requirements.md;AGENTS.md",
+  "summary": "v2.1 authority set defines Stage 10, I50-I53, R11, D15-D19, three entry modes, Host ownership, and independent six-layer adjudication.",
+  "verifier": "captain"
+}

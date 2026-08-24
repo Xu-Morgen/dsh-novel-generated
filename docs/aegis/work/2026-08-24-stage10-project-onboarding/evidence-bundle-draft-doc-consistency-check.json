@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "doc-consistency-check",
+  "type": "verification",
+  "source": "PowerShell Select-String checks + git diff --check",
+  "summary": "v2.1 headers, D15-D19, §14.7, I50-I53, R11-1..4, AGENTS iteration count and removal of stale I1-I49 coverage heading all passed; scoped diff has no whitespace errors.",
+  "verifier": "captain"
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "aegis-workspace-check",
+  "type": "verification",
+  "source": "aegis-workspace.py check --root .",
+  "summary": "Stage 10 records are indexed, but global check exits 1 because multiple pre-existing I12/I19/I21/I24/I25/I28/I29/I44/I45 markdown records are absent from INDEX.md; no Stage 10 path is reported missing.",
+  "verifier": "captain"
+}

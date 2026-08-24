@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-24-stage10-project-onboarding",
+  "currentTodo": "Await a separate direct I50 execution instruction",
+  "completedTodos": [
+    "Approved v2.1 design synchronized into design/requirements/plan/AGENTS",
+    "Detailed I50-I53 implementation plan written and independently closed with no blocker/high findings",
+    "Pre-existing Client patch repaired, verified and committed separately as 0870e6e",
+    "User authorized the standalone Stage 10 planning-baseline commit"
+  ],
+  "activeSlice": "Planning handoff only; no I50 production-source execution",
+  "evidenceRefs": [
+    "docs/aegis/plans/2026-08-24-stage10-project-onboarding-implementation.md",
+    "docs/aegis/work/2026-08-24-stage10-project-onboarding/90-evidence.md"
+  ],
+  "blockedOn": "none",
+  "nextStep": "Require a new direct 执行迭代 I50 instruction; then execute only I50, verify, commit, report and stop.",
+  "updatedAt": "2026-08-24"
+}

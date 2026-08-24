@@ -122,3 +122,23 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-21 | work | docs/aegis/work/2026-08-21-i31-a2-host-config/proof-bundle.md | 2026-08-21-i31-a2-host-config proof bundle |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-verify-i31-final.json | 2026-08-21-i31-a2-host-config evidence verify-i31-final |
 | 2026-08-21 | artifact | docs/aegis/work/2026-08-21-i31-a2-host-config/evidence-bundle-draft-dsh-contract.json | 2026-08-21-i31-a2-host-config evidence dsh-contract |
+| 2026-08-24 | work | docs/aegis/work/2026-08-24-stage10-project-onboarding/10-intent.md | Stage 10 作品启动与六层初始化设计 intent |
+| 2026-08-24 | work | docs/aegis/work/2026-08-24-stage10-project-onboarding/20-checkpoint.md | Stage 10 作品启动与六层初始化设计 checkpoint |
+| 2026-08-24 | work | docs/aegis/work/2026-08-24-stage10-project-onboarding/90-evidence.md | Stage 10 作品启动与六层初始化设计 evidence |
+| 2026-08-24 | work | docs/aegis/work/2026-08-24-stage10-project-onboarding/99-reflection.md | Stage 10 作品启动与六层初始化设计 reflection |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/task-intent-draft.json | Stage 10 作品启动与六层初始化设计 task intent draft |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/baseline-read-set-hint.json | Stage 10 作品启动与六层初始化设计 baseline read-set hint |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/baseline-usage-draft.json | Stage 10 作品启动与六层初始化设计 baseline usage draft |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/impact-statement-draft.json | Stage 10 作品启动与六层初始化设计 impact statement draft |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/todo-checkpoint-draft.json | Stage 10 作品启动与六层初始化设计 todo checkpoint draft |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/drift-check-draft.json | Stage 10 作品启动与六层初始化设计 drift check draft |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-root-cause-static.json | 2026-08-24-stage10-project-onboarding evidence root-cause-static |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-approved-product-decisions.json | 2026-08-24-stage10-project-onboarding evidence approved-product-decisions |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-authority-sync.json | 2026-08-24-stage10-project-onboarding evidence authority-sync |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-doc-consistency-check.json | 2026-08-24-stage10-project-onboarding evidence doc-consistency-check |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-independent-design-review-round1.json | 2026-08-24-stage10-project-onboarding evidence independent-design-review-round1 |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-aegis-workspace-check.json | 2026-08-24-stage10-project-onboarding evidence aegis-workspace-check |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-independent-design-review-round2.json | 2026-08-24-stage10-project-onboarding evidence independent-design-review-round2 |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-independent-design-review-final.json | 2026-08-24-stage10-project-onboarding evidence independent-design-review-final |
+| 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/resume-state-hint.json | 2026-08-24-stage10-project-onboarding resume state hint |
+| 2026-08-24 | plan | docs/aegis/plans/2026-08-24-stage10-project-onboarding-implementation.md | Stage 10 作品启动与六层初始化实施计划 |

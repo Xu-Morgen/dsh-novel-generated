@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "independent-design-review-round1",
+  "type": "review",
+  "source": "subagent 118427bc-0e85-437c-86a7-740de7ac0ac8",
+  "summary": "Review found authority-order, Gate mapping, pending-vs-skip, cross-owner rule, C2 scope, project/session binding, per-layer failure, atomicity wording, route ambiguity, free-text limit and matrix issues; all were addressed in authority docs.",
+  "verifier": "captain"
+}

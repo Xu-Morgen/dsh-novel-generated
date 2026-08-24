@@ -1,21 +1,22 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v2.0
-> 状态：v2.0 架构基线已重置；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v2.1
+> 状态：v2.1 当前设计权威；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
 
 | 版本 | 变更 |
 |---|---|
-| v1.1（历史来源） | provenance only：设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展）；不构成 v2.0 当前执行权威。 |
-| v1.2（历史来源） | provenance only：产品升级为「创作环境」，引入细纲、世界观一级能力、辅助 agent、导入导出/编辑 UI、不变设定索引层等；不构成 v2.0 当前执行权威。 |
-| v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
-| v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.0 当前执行权威。 |
+| v1.1（历史来源） | provenance only：设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展）；不构成 v2.1 当前执行权威。 |
+| v1.2（历史来源） | provenance only：产品升级为「创作环境」，引入细纲、世界观一级能力、辅助 agent、导入导出/编辑 UI、不变设定索引层等；不构成 v2.1 当前执行权威。 |
+| v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成 v2.1 当前执行权威。 |
+| v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.1 当前执行权威。 |
 | **v2.0** | **架构重置**：将 v1.x 的独立 Node/Vite 应用方向记为历史且已被取代；DeepSeek Harness（DSH）成为唯一运行宿主和主交付形态，产品作为 ordinary persistent plugin（普通持久插件）交付；生产安装/组合合同唯一见 §0.1.1。13 层叙事模型、引擎、存储、导入导出、编辑与 agent 产品设计继续有效，唯有与宿主边界冲突的实现方式失效。 |
 | **v2.0（增补 2026-08-24）** | 新增 §14.6「创作台」UI 重设计：在 I33–I36 已交付的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），记录决策 D11–D14 与迭代 I46–I49；§0.1 宿主基线不变，A-7 novel 自有主题系统仍后置。 |
+| **v2.1（2026-08-24）** | 新增 §14.7「作品启动与六层初始化」及 Stage 10（I50–I53）：修复缺失的 Host-owned 作品启动编排，增加多作品选择、空白作品、受控 DOCX 上传、自由文本六层分析、逐层裁决与幂等落地；记录 D15–D19。§0.1 宿主基线不变。 |
 
-> **v2.0 supersession / 同步完成状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.0 当前执行材料；I1–I49 可仅依其 v2.0 迭代卡片执行（I46–I49 为 2026-08-24 增补的创作台 UI 重设计）。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
+> **v2.1 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.1 当前执行材料；当前迭代身份为 I1–I53，其中 I50–I53 是 2026-08-24 新增的 Stage 10。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -489,6 +490,8 @@ WorldState:
   globalFlags: Record<string, any>
 ```
 
+> **v2.1 当前交付子集**：现有 `worldStateSchema` 与 Stage 10 六层初始化只覆盖 `scene`、`characters` 及基础 `id/version/seq/storyTime`；`items`、`factions`、`globalFlags` 保留为 C2 目标模型，但须进入后续独立 schema/storage 迭代后才可由 UI、parser 或初始化分析器产出，I50–I53 不得以自由字段偷渡。
+
 ### 5.10 C3 揭示/知情层
 
 **职责**：秘密、伏笔、真相，以及「哪个角色知道什么」——多视角叙事的安全阀。
@@ -851,6 +854,11 @@ project/
 | D12 | 创作台主题与明暗 | novel 自有主题引擎（A-7）/ 借用宿主主题 token | ✅ 已定（I46）：视觉体系消费宿主 `ctx.theme` 的 `--dsw-alias-*` token 自动明暗适配，另加一层包内品牌色（纸/墨/朱砂）；不新建 novel 自有主题引擎或设置页，A-7 仍后置。 |
 | D13 | 创作台渲染与样式 | 引入 JSX runtime / 保持 `React.createElement` + 包内 `<style>` | ✅ 已定（I46）：保持 `React.createElement`（+ 小型 `el()` 助手），不引入 JSX runtime，避免重开 I2 已证明的 `window.__ModuleLoader__` 公开契约；样式为包内 `<style>` 注入、归属 Fiber 生命周期。 |
 | D14 | 创作台迭代切分 | 一次重写 / 分四迭代 | ✅ 已定：I46 地基 + 视觉体系；I47 B3/B2 表单；I48 B5/C1 结构化编辑；I49 C2/C4 面板。一迭代一任务一 commit。 |
+| D15 | 作品启动的 canonical owner | Client 各层兜底 / Remote 隐式打开 / Host project lifecycle 编排 | ✅ 已定（I50）：Host project lifecycle facade 统一 list/create/open，先验证 `project.yaml`，再打开六层与 ConfirmationGate；Client 只持有经 Host 复核的 selected projectId，不存在进程级全局 current project。 |
+| D16 | 新作品入口 | 固定 `default` / 单一导入 / DOCX + 自由文本 + 纯空白 | ✅ 已定（I50–I53）：移除硬编码 `default`，提供多作品选择和三种新建入口；模型不可用时纯空白作品仍可手工编辑。 |
+| D17 | 六层初始化裁决 | 自动写入 / 整包确认 / 六层独立裁决 | ✅ 已定（I52–I53）：B3/B2/B5/C1/C2/C4 分别允许直接接受、手动修改后接受、整层打回重生成或显式跳过；pending 不等于 skip。每项 Gate 提案绑定 projectId + onboardingSessionId + layer；accepted 只授权随后由 final apply 执行业务副作用，修改/重生成先 reject 当前提案再建立带 `replacesId` 的后继提案。 |
+| D18 | DOCX 浏览器入口与解析 owner | Host 路径输入 / Client 解析 / Client 受控运输 + Host 解析 | ✅ 已定（I51）：文件选择器只做限额分块运输；Host 校验 SHA-256、压缩/解压上限与包结构并提取文本。使用成熟 ZIP/XML 解析依赖，退役手写最小 parser，不保留双路径 fallback。 |
+| D19 | Stage 10 切分与失败恢复 | 巨型 I50 / 两迭代压缩 / 四迭代分层 | ✅ 已定：I50 启动编排、I51 上传提取、I52 六层分析、I53 审阅落地；跨文件写入不伪装为原子事务，先全量预检，部分失败报告 `partial-retryable`，重试以确定性 ID 和现值比较继续，禁止补偿性删除作品数据。 |
 
 ---
 
@@ -871,12 +879,13 @@ project/
 | **M8** | Host 导入管线（拆分 agent）+ 导出管线（单文件包 + 纯文本） | 可起步、可分享，文件 I/O 不越过 Host |
 | **M9** | Host 不变设定索引层 + 分类 agent | 确认设定稳定检索 |
 | **M10** | 续写 + 灵感 agent | 突破卡文、随剧情调大纲/细纲 |
+| **M11** | 多作品启动 + DOCX/自由文本/空白三入口 + 六层初始化审阅 | 创作台可从零启动，导入或输入只形成可追溯候选，逐层确认后经既有 Host owner 落地 |
 
 ---
 
-## 14. 创作环境功能设计（v1.2 新增）
+## 14. 创作环境功能设计（v1.2 provenance；v2.1 持续增补）
 
-> 本章是 v1.2 产品升级为「创作环境」后新增的用户可见能力。它们复用 §6–§9 的引擎与 §10 的存储，不引入第二套核心闭环。
+> 本章源自 v1.2「创作环境」产品升级，并由 v2.0–v2.1 继续增补用户可见能力。它们复用 §6–§9 的引擎与 §10 的存储，不引入第二套核心闭环。
 
 ### 14.1 分层编辑 UI
 
@@ -887,9 +896,9 @@ project/
 
 ### 14.2 导入管线（拆分 agent）
 
-- 用户导入既有文本（txt/md/docx）→ 拆分 agent 产出**大纲、世界观、细纲**的候选结构化条目 → 用户逐条确认/修正后写入对应层。
+- 用户向已有/活动作品执行通用内容导入（txt/md/docx）→ 拆分 agent 产出**大纲、世界观、细纲**的候选结构化条目 → 用户逐条确认/修正后写入对应层；新建/空作品的六层初始化改走 §14.7。
 - 分两阶段：先「大纲 + 世界观」粗拆分（D-1），再「大纲 → 细纲」细拆分（D-2）。
-- 低置信条目标黄，需用户确认；正史/状态/关系/知情不在此自动生成，由后续叙事解析累积。
+- 低置信条目标黄，需用户确认；此 I37–I38 **通用内容导入**合同仍不生成正史/状态/关系/知情。v2.1 新作品初始化所需的 B3/B2/B5/C1/C2/C4 六层候选由 §14.7 的独立合同承担，不修改或偷渡扩张 I38 的既有输出语义。
 
 ### 14.3 导出管线（单文件包 + 纯文本）
 
@@ -919,6 +928,42 @@ project/
 - **样式 seam（D13）**：样式写为包内 `<style>`（独立 `src/client/styles.ts` 常量），在 `apply()` 内经 `ctx.effect` 持有 disposer，Fiber 卸载即回收；渲染保持 `React.createElement` + `el()` 助手，不引入 JSX runtime。
 - **测试契约**：测试锚点从旧 `data-novel-editors` 迁移到稳定新契约 `data-novel-workspace`（loading/ready/error）+ `data-novel-layer="characters|worldview|outline|relationship|state|canon"` + 每层 loading/error/empty 断言。
 - **范围外（保持后置）**：novel 自有主题引擎/深色模式（A-7）、items/factions 大对象编辑（P2）、独立页面/SPA。
+
+### 14.7 作品启动与六层初始化（Stage 10，I50–I53，v2.1）
+
+> 定位：补齐创作台在「插件已就绪」与「具体作品六层已可读」之间缺失的 Host-owned operational bootstrap，并为新作品提供 DOCX、自由文本、纯空白三种入口。它复用 §10 文件 source of truth、I11 ConfirmationGate 与既有六层 Domain Service；不建立第二套仓库、Client 文件解析或浏览器 LLM 路径。
+
+#### 14.7.1 作品选择与 operational bootstrap（I50 / D15–D16）
+
+- Client 挂载 Remote 后必须先请求作品列表；无作品时显示新建入口，有作品时由用户选择后调用 Host `projectOpen(projectId)`。Client 可记住上次选择作为 UI 偏好，但每次启动都必须由 Host 重新验证；不得写入 `project.yaml` 或建立进程级全局 current project。
+- Host project lifecycle facade 是 list/create/open/readiness 的唯一编排 owner：先加载并校验 `project.yaml`，再统一打开 B3/B2/B5/C1/C2/C4 与 ConfirmationGate；Remote 只转发最小 JSON，六层面板不得各自创建目录或吞错兜底。
+- `projectOpen` 返回每层 `ready | empty | uninitialized | corrupt`。空列表/空账本是合法 empty；B5 缺失或精确 legacy `{}` 是 uninitialized，Client 显示空表单且首次合法保存后才形成正式大纲；非空非法文件是 corrupt，禁止静默覆盖。
+- 纯空白作品不伪造小说内容：B3/B2/C1/C4 为空，B5 未初始化；C2 仅建立确定性的 seq 0 空快照作为回滚基线：`id: initial-state`、`version: 1`、`storyTime: ''`、scene 五个字符串字段均为空、`characters: []`。模型未配置时仍可进入创作台手工编辑。
+- 现有六层 Remote 方法继续显式携带 projectId；所有硬编码 `default` 必须移除。公开 `novelConfirmation` 与 workspace 更正/初始化路径必须复用同一 Service 实例。
+
+#### 14.7.2 受控 DOCX 上传与文本提取（I51 / D18）
+
+- 创作台文件选择器通过严格 Remote 执行 `uploadStart → uploadChunk → uploadFinalize`；Client 只运输受限字节，不解析 ZIP/XML、不持有作品文件路径或领域真相。
+- Host 必须校验文件名、声明大小、块序号、块大小、总大小与 SHA-256；压缩文件默认上限 10 MiB，并限制 entry 数、解压后总量与压缩比，拒绝路径穿越、加密、损坏、伪扩展、乱序/重复块与 zip bomb。
+- DOCX 使用成熟 ZIP/XML 解析依赖读取真实 Office/LibreOffice 文档；当前手写最小 parser 属内部 code-retirement，I51 主路径通过后 delete-first，禁止保留 fallback。
+- 上传临时文件是可重建派生数据，成功、取消、失败或 Fiber 卸载后清理；作品 source of truth 绝不随清理删除。原始 DOCX 默认不长期保存，只保留文件名、摘要哈希与候选审阅所需的最小证据片段。
+
+#### 14.7.3 六层初始化分析器（I52 / D17）
+
+- DOCX 规范文本与用户自由文本共用一个 Host 分析入口：`规范化/分块 → 每块提取六层证据 → 按层归并 → 六个严格候选包`。共享证据允许只重跑某一层归并，不重复上传或解析原文。自由文本必须非空、UTF-8/NFC 规范化、拒绝 NUL，默认上限 2 MiB，超限在进入 LLM 前失败；分块沿用 Host 确定性段落边界语义。
+- 六层语义固定为：B3 角色核心；B2 世界观事实；B5 大纲/幕/节/细纲；C1 关系与里程碑；C2 输入结束位置的当前状态（梗概输入为故事起点状态，且只使用 §5.9 v2.1 当前 scene/characters 子集）；C4 文本明确陈述的历史/剧情事件。未提供明确事件时 C4 可为空；禁止推断 C3。为消除循环/越界引用，Stage 10 的 B3 候选（包括手动修改后的提案）强制 `relationships: []`、`knowledgeIds: []`、`arc.keyBeats: []`：关系只进入 C1，C3 知情与 B3↔B5 弧光链接保持后置。
+- 分析开始时由 Host 生成 onboardingSessionId 并绑定已验证的 projectId 与 sourceHash；status/cancel/regenerate 必须同时匹配 project/session/sourceHash。每层候选直接复用既有层 Schema，并携带相同绑定、confidence、来源块/证据摘要和校验警告；不得复制出第二套层模型。所有 LLM 调用只经 Host `ctx.llm`，支持进度、取消与 Fiber 卸载中止。
+- I52 是 LLM 迭代：必须先冻结不少于 10 个样本及 held-out 子集，再实现 prompt/schema；先以 fake backend/mock parser 锁定管道，其他 LLM 模块阈值规则适用，各层验收不得低于 80%。
+
+#### 14.7.4 六层独立裁决与幂等落地（I53 / D17–D19）
+
+- 每个候选提案 payload 必须携带精确 `projectId`、`onboardingSessionId`、`layer`、`sourceHash`、schema version、候选值与证据；后继提案另带 `replacesId` 和 `mode: edited | regenerated`。任何 Remote 裁决与 final apply 都必须同时匹配 project/session/sourceHash，禁止以 Client 当前选择替代 payload 绑定。
+- 每层可独立选择：直接接受、手动修改后接受、整层打回重生成、显式跳过。直接接受把当前 active proposal 置为 accepted；手动修改/重生成先 reject 当前提案，再建立带 `replacesId` 的后继提案，分别使用用户校验值或只重跑该层并可附带反馈；显式跳过 reject 当前提案且不建立后继。pending 绝不等于 skip，六层 active proposal 全部进入 accepted 或显式 skipped 终态后，final apply 才可启用。
+- I11 Gate 不解释或执行领域副作用：在 Stage 10 中，accepted 是对候选的持久授权，Domain 写入只由用户随后触发的「应用已接受层并进入创作台」消费。修改/重生成/跳过完全映射到既有 pending→accept/reject 状态机，不修改 I11 状态集合；accepted 后重复 final apply 由业务 owner 保证幂等。
+- 六层是六个独立失败域，应用顺序严格为 B3 → B2 → B5 → C2 → C4 → C1。写入前逐层完成 Schema、ID、内部引用与跨层依赖预检：B2.parent 必须引用本层既有/候选条目且候选按 parent-first 稳定拓扑序调用既有 create Service（环与缺失 parent 失败）；B5.prerequisites 与 C4.consequences 可引用同一整层候选 ID 集，B5 以完整 Outline Domain Service 保存，C4 按候选稳定顺序 append；B5.charactersInvolved、detailBeats.pov、foreshadowing.knownBy，C1.from/to/knownTo，C2.characters.characterId 与 C4.participants 只能引用作品既有或本次已接受且可落地的 B3；C1.milestones 只能引用此时已存在的 C4。B3.relationships/knowledgeIds/arc.keyBeats 已按初始化合同强制为空，因此没有 B3↔B5 或 B3→C1/C3 写入环。某层 blocked 不撤销无依赖层，但依赖该层的后继层也标记 blocked。
+- 新编排器只能调用既有 Domain Service 写入，不能直接改 YAML/jsonl。C4 只能 append/supersede；禁止普通覆写。确认接受本身不等于绕过领域校验。
+- 不新增第二份 applied journal：以确定性 ID、Gate lineage 和领域现值比较实现重试幂等。语义相同视为已完成，语义冲突则 fail closed。final apply 返回最小结构 `{ projectId, onboardingSessionId, appliedLayers, skippedLayers, blockedLayers, pendingLayers, retryable, errors }`；任何 pendingLayers 都阻止首次 apply，跨文件中途失败返回 `partial-retryable`，重试只继续未完成层，不执行补偿性数据删除。
+- 本阶段仅初始化新建/空作品；向已有非空作品合并导入、C3 推断、静默覆盖、跨六文件强制回滚与独立 SPA 均不在范围内。
 
 ---
 

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Host project lifecycle",
+    "Remote contract",
+    "Client onboarding",
+    "DOCX import",
+    "six-layer LLM initialization"
+  ],
+  "owners": [
+    "Host project lifecycle facade + existing six domain services"
+  ],
+  "invariants": [
+    "Host owns files/LLM; Client owns only UI; unconfirmed candidates never write"
+  ],
+  "compatBoundary": "existing 21 workspace editor invocations remain additive-compatible; I38 B2/B5 contract unchanged",
+  "nonGoals": [
+    "implementation source changes",
+    "C3 inference",
+    "import into non-empty projects"
+  ]
+}

@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v2.0
-> 日期：2026-08-19
-> 状态：当前执行权威（待 I1 起执行）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v2.0（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.0（需求 ID、验收、迭代覆盖）
+> 版本：v2.1
+> 日期：2026-08-24
+> 状态：当前执行权威（I1–I49 已交付；Stage 10 I50–I53 待执行）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v2.1（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.1（需求 ID、验收、迭代覆盖）
 
 ---
 
@@ -14,7 +14,7 @@
 
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
-- 重新排期为 **10 个阶段、49 个迭代（I1–I49）**，第一阶段先证明插件包、profile 安装、bundle composition 与 Fiber 生命周期；阶段 9（I46–I49）在 I33–I36 之上重做创作台 UI 的视觉体系与信息架构。
+- 当前排期为 **11 个阶段、53 个迭代（I1–I53）**：I1–I49 已建立插件核心与创作台；v2.1 新增阶段 10（I50–I53），补齐作品启动、多作品选择、受控 DOCX 上传、六层初始化分析与逐层确认落地。
 
 ### 0.2 Goal
 
@@ -65,7 +65,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I49）
+### 0.7 全局执行纪律（贯穿 I1–I53）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -273,7 +273,7 @@ TDD Route:
 
 ---
 
-## 5. 阶段 4：解析与原子写回
+## 5. 阶段 4：解析与受控写回
 
 **阶段门**：`pnpm run verify:stage-4`（I25–I30 全绿）。
 
@@ -488,27 +488,70 @@ TDD Route:
 
 ---
 
-## 11. 完成线
+## 11. 阶段 10：作品启动与六层初始化
 
-I45 通过时 v2.0 核心闭环完成，I49 通过时创作台 UI 重设计完成：
+**阶段门**：`pnpm run verify:stage-10`（I50–I53 全绿）。
+
+### I50：作品选择与 Host 启动编排
+
+- **目标**：建立 Host-owned 的多作品 list/create/open/readiness 编排，修复创作台硬编码 `default` 且六层未打开的启动缺口；纯空白作品可直接进入创作台。
+- **明确不做**：DOCX 上传、LLM 分析、候选确认写入、导入已有非空作品。
+- **交付物**：project lifecycle coordinator；additive `projectList/projectCreate/projectOpen` Remote；Client 作品选择/新建空白入口；六层 `ready|empty|uninitialized|corrupt` 状态；移除全部 `default`；复用唯一 ConfirmationService 实例。
+- **验收**：空 root 显示新建而非六层错误；新建后 B3/B2/C1/C4 合法空、B5 uninitialized、C2 为确定性 `initial-state` seq 0 空快照；两作品切换零串写；重启可重开；精确 legacy `{}` outline 仅判 uninitialized，非空非法文件 fail closed；unknown/unsafe ID 不造 phantom 目录；open 幂等且并发合并；旧 Remote 方法保持兼容；selected-profile smoke 走真实选择→打开→六层可用路径。
+- **验证**：`pnpm run verify:i50`。
+
+### I51：受控 DOCX 上传与真实文本提取
+
+- **目标**：在创作台提供文件选择器，通过受限 Client→Host 分块上传取得真实 DOCX 的规范文本块，并退役手写最小 parser。
+- **明确不做**：LLM、六层候选、ConfirmationGate、任何作品层写入、长期保存原始 DOCX。
+- **交付物**：严格 upload start/chunk/finalize/cancel Remote；Host 临时区与 SHA-256/限额校验；成熟 ZIP/XML DOCX adapter；真实 Office/LibreOffice fixtures；旧 parser 删除与 lingering-reference 检查。
+- **验收**：gold 文本一致；压缩文件默认 ≤10 MiB；路径穿越、伪扩展、加密、损坏、乱序/重复块、entry/解压量/压缩比超限与 zip bomb 均拒绝；取消/失败/Fiber dispose 后临时文件归零；Client bundle 无 ZIP/XML parser 或 Node fs；作品数据不随临时清理删除。
+- **验证**：`pnpm run verify:i51`。
+
+### I52：六层初始化分析器
+
+- **目标**：让 DOCX 规范文本与自由文本经 Host `ctx.llm` 生成 B3/B2/B5/C1/C2/C4 六个带证据的严格候选包，并支持单层反馈重生成。
+- **明确不做**：C3 推断、自动接受、自动写层、Client LLM、修改 I38 的 B2/B5 专用输出合同。
+- **交付物**：先冻结的 dev/held-out 样本；绑定 projectId/onboardingSessionId/sourceHash 的六层候选 schema；共享证据 map + 分层 reduce；Host analysis start/status/cancel/regenerate；fake backend 消费者夹具；进度与 Fiber 中止。
+- **验收**：样本不少于 10 个且 held-out 独立；analysis start/status/cancel/regenerate 拒绝 project/session/sourceHash 错配；每层复用既有 Domain Schema 并携带 confidence/source/warnings；自由文本非空、UTF-8/NFC、无 NUL、默认 ≤2 MiB，超限在 LLM 前失败；重生成一层时其他五层候选哈希不变；B3.relationships/knowledgeIds/arc.keyBeats 强制为空；C2 是输入终点/故事起点快照且仅含当前 scene/characters 子集，C4 只含文本明确事件且可空；无 C3/items/factions/globalFlags 字段；模型不可用、取消或非法输出时所有作品层哈希不变；各层 held-out ≥80%。
+- **验证**：`pnpm run verify:i52`。
+
+### I53：候选审阅、逐层确认与幂等落地
+
+- **目标**：完成 DOCX、自由文本、纯空白三种启动入口；六层分别支持接受、修改后接受、整层打回重生成或跳过，并将任意已接受子集经既有 Domain Service 落地后进入创作台。
+- **明确不做**：导入已有非空作品、静默覆盖、C3 推断、直接改 YAML/jsonl、跨六文件强制回滚、补偿性删除、修改 I11 `pending|accepted|rejected` 三态合同。
+- **交付物**：独立 onboarding Client 模块；六层审阅/反馈/裁决 UI；绑定 projectId/onboardingSessionId 的 Gate proposal lineage（`replacesId` + edited/regenerated mode）；跨层 preflight；B2 parent-first 稳定拓扑排序；B3→B2→B5→C2→C4→C1 apply orchestrator；结构化 `partial-retryable` 结果与幂等重试。
+- **验收**：六层当前提案必须分别到 accepted 或显式 skipped，pending 不得启用首次 apply；修改/重生成先 reject 旧提案再建后继，跳过 reject 且无后继，旧值不可静默应用；所有 Remote 操作拒绝 project/session/sourceHash 不匹配；单层打回不改变其他候选；B3.relationships/knowledgeIds/arc.keyBeats 强制为空；B2.parent 校验本层引用并按 parent-first 稳定拓扑序 create，环/缺失 parent 失败；B5.prerequisites/C4.consequences 对完整候选 ID 集预检；B5.charactersInvolved/detailBeats.pov/foreshadowing.knownBy、C1.from/to/knownTo、C2.characters.characterId、C4.participants 校验 B3；C1.milestones 校验已先落地的 C4；任何悬空引用只阻止自身及依赖层；B2 与 B5 是独立失败域；C4 只 append/supersede；返回 `{projectId,onboardingSessionId,appliedLayers,skippedLayers,blockedLayers,pendingLayers,retryable,errors}`；重复 apply 语义幂等，部分失败后重试只补未完成层；DOCX 部分接受和自由文本单层重生成均有 selected-profile E2E；重启后作品可重开；Fiber dispose 后 job/upload/Slot/临时文件零残留。
+- **验证**：`pnpm run verify:i53`。
+
+---
+
+## 12. 完成线
+
+I45 通过时 v2.0 核心闭环完成，I49 通过时创作台 UI 重设计完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成：
 
 - ordinary persistent DSH/Cordis Host+Client 插件可安装、装载、升级、卸载；
 - Host 是作品文件与 LLM 唯一 owner；Client 只经 DSH Slot 与受管 Remote 工作；
 - A1/A2、B1–B5、C1–C6 共 13 层均有明确契约；
-- `生成→校验→裁决→解析→原子写回` 闭环成立；
+- `生成→校验→裁决→解析→受控写回` 闭环成立；单层事务保持既有原子性，跨层 fan-out 与 Stage 10 初始化按明确的 partial/pending-retry 语义报告；
 - 所有用户确认统一经 ConfirmationGate；
 - 卸载不删除作品数据且零运行时残留。
-- 创作台以「编辑台/书斋」视觉体系 + 六层 IA（B3/B2/B5/C1/C2/C4）提供可识别、美观的分层编辑，复用宿主主题 token 自动明暗适配。
+- 创作台以「编辑台/书斋」视觉体系 + 六层 IA（B3/B2/B5/C1/C2/C4）提供可识别、美观的分层编辑，复用宿主主题 token 自动明暗适配；
+- 多作品由 Host 统一启动，DOCX/自由文本只生成可审阅六层候选，纯空白模式不依赖模型；
+- 六层可分别接受、修改后接受、打回重生成或跳过；跨文件部分失败显式为 `partial-retryable`，不以删除已写数据伪造原子性。
 
-导入导出、SQLite 索引、向量检索、高级编辑器与写作辅助已纳入；语义向量检索、C2 items/factions、ST 迁移与 UI 主题继续后置为 backlog。
+导入导出、SQLite 索引、高级编辑器、写作辅助与新作品六层初始化已纳入；语义向量检索、C2 items/factions、ST 迁移、已有非空作品合并导入与 UI 主题继续后置为 backlog。
 
 ---
 
-## 12. Risks 与 Retirement
+## 13. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移**：任何 DSH/Cordis 升级进入专门兼容性迭代，重跑 selected-profile boot 与完整 Client gate。
 - **旧路径残留**：旧 I1a/I1b 独立 Vite/浏览器 LLM 路径必须零引用；不保留双主路径兼容层。
 - **作品数据安全**：卸载/回退不删除作品 source of truth；只退役 tracked 固定 mock 产物，不触碰未跟踪存档或真实作品目录。
 - **创作台 UI 重设计风险**：I46 将测试锚点从 `data-novel-editors` 迁移到新契约并重写 `client.test.ts`；I33–I36 既有 Host 契约（`novelWorkspace` Remote）不得回退，样式必须归属 Fiber 并在卸载后归零。
-- **Historical record**：Git 历史保留旧提交；v2.0 文档记录旧路线已失效，不把死代码留在主分支。
+- **作品启动风险**：I50 必须由 Host project lifecycle 统一证明 readiness；禁止在 Client、Remote 转发层或六个面板增加各自的自动建目录/吞错 fallback。现有 `default` 与重复 ConfirmationService owner 在 I50 主路径通过后 delete-first 退役。
+- **DOCX 安全与退役**：I51 的临时上传只属派生数据；真实作品文件不可删除。成熟解析器主路径通过后删除手写 parser 并扫描零引用，不保留兼容双路径。
+- **六层推断风险**：I52–I53 只面向新建/空作品，C4 仅允许文本明确事件，C3 始终禁止；未确认候选零写，跨层引用先预检，跨文件失败必须可重试而非补偿性删除。
+- **Historical record**：Git 历史保留旧提交；v2.1 文档记录旧路线与被退役内部路径，不把死代码留在主分支。
