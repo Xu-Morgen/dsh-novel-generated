@@ -40,6 +40,24 @@ export class OutlineRepository {
     });
   }
 
+  /** Read-only bootstrap classification; never rewrites the outline bytes. */
+  async readiness(): Promise<'ready' | 'uninitialized' | 'corrupt'> {
+    try {
+      const raw = await readYaml<unknown>(this.outlinePath);
+      if (raw !== null && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw as object).length === 0) return 'uninitialized';
+      try {
+        const outline = outlineSchema.parse(raw);
+        this.assertValidStructure(outline);
+        return 'ready';
+      } catch {
+        return 'corrupt';
+      }
+    } catch (error) {
+      if (error instanceof Error && (error.cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return 'uninitialized';
+      throw error;
+    }
+  }
+
   async read(): Promise<Outline> {
     return this.enqueue(async () => {
       const raw = await readYaml<unknown>(this.outlinePath);

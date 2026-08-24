@@ -13,6 +13,36 @@ async function temporaryRoot(): Promise<string> {
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 describe('I3 ProjectRepository', () => {
+  it('treats a missing projects root as an empty catalog', async () => {
+    const root = join(await temporaryRoot(), 'missing');
+    await expect(new ProjectRepository(root).listProjects()).resolves.toEqual([]);
+  });
+
+  it('lists safe projects in stable ID order and ignores unsafe entries', async () => {
+    const root = await temporaryRoot();
+    const repository = new ProjectRepository(root);
+    await repository.createProject({ projectId: 'zeta', name: 'Zeta' });
+    await repository.createProject({ projectId: 'alpha', name: 'Alpha' });
+    await mkdir(join(root, 'Upper'));
+    await writeFile(join(root, 'plain-file'), 'ignored', 'utf8');
+    const outside = await temporaryRoot();
+    await symlink(outside, join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+
+    await expect(repository.listProjects()).resolves.toEqual([
+      { id: 'alpha', version: 1, name: 'Alpha' },
+      { id: 'zeta', version: 1, name: 'Zeta' },
+    ]);
+  });
+
+  it('fails closed when a listed project has corrupt metadata', async () => {
+    const root = await temporaryRoot();
+    const repository = new ProjectRepository(root);
+    await repository.createProject({ projectId: 'good', name: 'Good' });
+    await mkdir(join(root, 'broken'));
+    await writeFile(join(root, 'broken', 'project.yaml'), 'id: [', 'utf8');
+
+    await expect(repository.listProjects()).rejects.toThrow();
+  });
   it('creates the §10.1 tree and round-trips Chinese metadata', async () => {
     const root = await temporaryRoot();
     const repository = new ProjectRepository(root);

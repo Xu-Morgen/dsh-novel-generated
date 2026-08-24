@@ -20,9 +20,12 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null }
 
 interface WorkspaceOverrides {
+  projectList?: () => Promise<unknown[]>;
+  projectCreate?: (input: unknown) => Promise<unknown>;
+  projectOpen?: (projectId: string) => Promise<unknown>;
   characterList?: () => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
   characterUpdate?: (projectId: string, id: string, patch: unknown) => Promise<unknown>;
@@ -64,6 +67,9 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   canonQuery: overrides.canonQuery ?? (async () => []),
   canonCorrectionPropose: overrides.canonCorrectionPropose ?? (async () => ({})),
   canonCorrectionAccept: overrides.canonCorrectionAccept ?? (async () => ({})),
+  projectList: overrides.projectList ?? (async () => [{ id: 'default', name: '默认作品' }]),
+  projectCreate: overrides.projectCreate ?? (async () => ({})),
+  projectOpen: overrides.projectOpen ?? (async () => ({})),
 });
 
 const READY_MODEL = {
@@ -197,6 +203,17 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const get = (name: string) => (name === 'remote.novelWorkspace' ? workspace : undefined);
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
+  // Editor behavior tests deliberately open the fixture project through the
+  // chooser. I50 forbids production auto-selection, so session tests opt out.
+  const openProjectId = mountOptions.openProjectId === undefined ? 'default' : mountOptions.openProjectId;
+  if (openProjectId !== undefined) {
+    void (async () => {
+      for (let index = 0; index < 8; index += 1) await Promise.resolve();
+      const overlay = registrations['shell.overlay']?.[0]?.component() as FakeNode | undefined;
+      const button = collect(overlay, 'button').find((node) => node.props?.['data-novel-project-open'] === openProjectId);
+      (button?.props?.onClick as (() => void) | undefined)?.();
+    })();
+  }
   return { entry, registrations, overlayCleanups, footerCleanups, styleEffects, styleNodes };
 }
 

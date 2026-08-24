@@ -1,4 +1,4 @@
-import { access, mkdir, rm } from 'node:fs/promises';
+import { access, lstat, mkdir, readdir, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { projectMetaSchema, type ProjectMeta } from '../schema/base.js';
 import { assertContained, projectDirectory, validateProjectId } from '../io/path.js';
@@ -38,6 +38,30 @@ export class ProjectRepository {
       await rm(directory, { recursive: true, force: true });
       throw error;
     }
+  }
+
+  /** Lists only safe immediate project directories. Missing roots are inert. */
+  async listProjects(): Promise<ProjectMeta[]> {
+    let entries: import('node:fs').Dirent[];
+    try {
+      entries = await readdir(this.projectsRoot, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    const ids = entries
+      .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink())
+      .map((entry) => entry.name)
+      .filter((id) => {
+        try { validateProjectId(id); return true; } catch { return false; }
+      })
+      .sort((left, right) => left.localeCompare(right));
+    for (const id of ids) {
+      const directory = projectDirectory(this.projectsRoot, id);
+      const stat = await lstat(directory);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`Unsafe project directory: ${id}`);
+    }
+    return Promise.all(ids.map((id) => this.loadProject(id)));
   }
 
   async loadProject(projectId: string): Promise<ProjectMeta> {

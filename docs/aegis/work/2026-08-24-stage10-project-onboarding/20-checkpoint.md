@@ -1,20 +1,20 @@
 # Stage 10 作品启动与六层初始化 - Checkpoint
 
 - Task ID: 2026-08-24-stage10-project-onboarding
-- Current todo: Await a separate direct I50 execution instruction
-- Active slice: Documentation handoff only; no I50 production-source execution
+- Current todo: Execute I50 Host-owned project lifecycle, Remote, Client selection, and I50 verification
+- Active slice: I50 only; Host project lifecycle is the canonical owner for list/create/open/readiness
 - Blocked on: none
-- Next step: After this planning commit, wait for a separate direct `执行迭代 I50` instruction
+- Next step: Complete I50 implementation, two-stage review, fresh `pnpm run verify:i50`, scoped commit, then stop before I51
 
 ## DriftCheckDraft
 
-- Scope status: v2.1 authority sync + durable I50–I53 implementation plan only; no Stage 10 production source, tests, scripts, dependencies, fixtures, build artifacts, runtime or project data changed.
-- Compatibility status: Plan preserves I11 three-state Gate, I37/I38 contracts, old Remote descriptor prefix, six Domain write owners and selected-profile bundle path.
+- Scope status: I50 only, anchored to design §14.7 / D15-D16, requirements R11-1, and plan I50; excludes I51 DOCX, I52 LLM analysis, I53 adjudication/apply, C3, existing non-empty import, and C2 extension objects.
+- Compatibility status: Preserve I11 three-state Gate, I37/I38 contracts, old Remote descriptor prefix, six Domain write owners and selected-profile bundle path.
 - Owner status: Project lifecycle stays in existing `NovelProjectService`; Remote implementations move under `src/host/remote`; Workspace forwarding moves to `src/host/workspace-service`; browser-safe runtime schemas stay under `src/core/schema`; root `contracts/stage10/*.json` are non-runtime locks only.
-- Retirement status: Client `default`, duplicate Confirmation owner and handwritten DOCX parser are planned verified retirements in I50/I51; no Stage 10 retirement executed.
-- Verification status: Plan passed independent blocker/high closure after three correction rounds; `git diff --check` is clean for the planning scope.
-- New risk signals: Real Word/LibreOffice fixture provenance and live I52 LLM held-out evaluation remain explicit future iteration gates.
-- Advisory decision: ready-for-separate-I50-authorization
+- Retirement status: I50 removes the Client project-operation `default` fallback and reuses one ConfirmationService instance after the selected-profile smoke is green; no runtime compatibility fallback.
+- Verification status: TaskStartSnapshot was clean at `3947935`; planned evidence is focused lifecycle tests, `pnpm run verify:i50`, source/bundle default scan, and profile smoke.
+- New risk signals: Six-layer readiness must not mutate corrupt bytes or make phantom project directories; Client must not auto-select the first result.
+- Advisory decision: continue
 
 ## Checkpoint Update
 

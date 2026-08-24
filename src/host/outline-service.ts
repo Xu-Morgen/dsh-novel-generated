@@ -8,6 +8,7 @@ import type { OutlineDeviation, OutlineNavigation, OutlineProgress, OutlineProgr
 /** Host facade for I14 B5 storage plus I15 C6 execution and deterministic navigation. */
 export interface NovelOutlineService {
   open(projectId: string): Promise<void>;
+  readiness(projectId: string): Promise<'ready' | 'uninitialized' | 'corrupt'>;
   save(projectId: string, input: OutlineInput): Promise<Outline>;
   read(projectId: string): Promise<Outline>;
   beatCards(projectId: string): Promise<OutlineBeatCard[]>;
@@ -41,6 +42,10 @@ export function createOutlineService(
       await progress.open();
       repositories.set(projectId, { outline, progress });
     },
+    async readiness(projectId) {
+      return get(projectId).outline.readiness();
+    },
+
     save: (projectId, input) => get(projectId).outline.save(input),
     read: (projectId) => get(projectId).outline.read(),
     beatCards: (projectId) => get(projectId).outline.beatCards(),

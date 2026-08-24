@@ -117,7 +117,16 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const stateService = createStateService(projectsRoot);
   const canonService = createCanonService(projectsRoot);
   const confirmationService = createConfirmationService(projectsRoot);
-  ctx.provide('novelProject', createProjectService(projectsRoot));
+  const projectService = createProjectService(projectsRoot, {
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    confirmation: confirmationService,
+  });
+  ctx.provide('novelProject', projectService);
   ctx.provide('novelState', stateService);
   ctx.provide('novelCanon', canonService);
   ctx.provide('novelText', createTextService(projectsRoot));
@@ -125,7 +134,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelWorldview', worldviewService);
   ctx.provide('novelCharacter', characterService);
   ctx.provide('novelStyle', createStyleService(projectsRoot));
-  ctx.provide('novelConfirmation', createConfirmationService(projectsRoot));
+  ctx.provide('novelConfirmation', confirmationService);
   ctx.provide('novelOutline', outlineService);
   ctx.provide('novelRelationship', relationshipService);
   ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
@@ -157,7 +166,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService,
+    stateService, canonService, confirmationService, projectService,
   );
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).

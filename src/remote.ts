@@ -24,6 +24,8 @@ import { relationshipSchema } from './core/schema/relationship.js';
 import { worldStateSchema } from './core/schema/state.js';
 import { canonEventSchema } from './core/schema/canon.js';
 import { confirmationRecordSchema } from './core/schema/confirm.js';
+import { createProjectInputSchema, projectCreateResultSchema, projectListResultSchema, projectOpenResultSchema } from './core/schema/project-lifecycle.js';
+import type { NovelProjectService } from './host/project-service.js';
 
 /**
  * Wire codecs. The DSH client gateway (`dsh-api-gateway`) rejects `src-json`
@@ -88,7 +90,6 @@ export const workspaceViewModelInvocation: InvocationDescriptor = {
   namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'viewModel', invocation: { kind: 'direct' },
   parameters: [], result: strictCodec('novel-creation-tool#workspaceViewModel', workspaceViewModelSchema),
 };
-
 const param = (name: string, codec: TypertCodec = jsonCodec): InvocationParameterDescriptor => ({
   name, wire: name, source: 'json', codec,
 });
@@ -102,6 +103,25 @@ const toSeqParameter = param('toSeq', numberCodec);
 const filterParameter = param('filter');
 const targetIdParameter = param('targetId', stringCodec);
 const proposalIdParameter = param('proposalId', stringCodec);
+
+export const projectListInvocation: InvocationDescriptor = {
+  id: 'novel-creation-tool/novelWorkspace/projectList', service: NOVEL_WORKSPACE_NAMESPACE,
+  namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'projectList', invocation: { kind: 'direct' },
+  parameters: [], result: strictCodec('novel-creation-tool#projectList', projectListResultSchema),
+};
+export const projectCreateInvocation: InvocationDescriptor = {
+  id: 'novel-creation-tool/novelWorkspace/projectCreate', service: NOVEL_WORKSPACE_NAMESPACE,
+  namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'projectCreate', invocation: { kind: 'direct' },
+  parameters: [param('input', strictCodec('novel-creation-tool#createProjectInput', createProjectInputSchema))],
+  result: strictCodec('novel-creation-tool#projectCreate', projectCreateResultSchema),
+};
+export const projectOpenInvocation: InvocationDescriptor = {
+  id: 'novel-creation-tool/novelWorkspace/projectOpen', service: NOVEL_WORKSPACE_NAMESPACE,
+  namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'projectOpen', invocation: { kind: 'direct' },
+  parameters: [projectParameter], result: strictCodec('novel-creation-tool#projectOpen', projectOpenResultSchema),
+};
+export const projectLifecycleInvocations = [projectListInvocation, projectCreateInvocation, projectOpenInvocation] as const;
+
 
 function editorInvocation(
   service: string,
@@ -167,7 +187,7 @@ export const workspaceRemoteContribution: TypertRemoteContribution = {
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [],
   model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations],
 };
 
 export interface WorkspaceEditorService {
@@ -192,6 +212,9 @@ export interface WorkspaceEditorService {
   canonQuery(projectId: string, filter?: CanonQuery): CanonEventView[];
   canonCorrectionPropose(projectId: string, targetId: string, input: CanonCorrectionInput): Promise<ConfirmationRecord>;
   canonCorrectionAccept(projectId: string, proposalId: string): Promise<{ confirmation: ConfirmationRecord; event: unknown }>;
+  projectList(): Promise<import('./core/schema/base.js').ProjectMeta[]>;
+  projectCreate(input: import('./core/project/index.js').CreateProjectInput): Promise<import('./core/schema/base.js').ProjectMeta>;
+  projectOpen(projectId: string): Promise<import('./core/schema/project-lifecycle.js').ProjectOpenResult>;
 }
 
 /** Host-only adapter that keeps existing domain Services as the sole write owner. */
@@ -203,6 +226,7 @@ export function createWorkspaceEditorService(
   state?: NovelStateService,
   canon?: NovelCanonService,
   confirmation?: NovelConfirmationService,
+  projects?: NovelProjectService,
 ): WorkspaceEditorService {
   if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
   return {
@@ -247,6 +271,18 @@ export function createWorkspaceEditorService(
         kind: 'canon-supersede',
         payload: { targetId, correction: input },
       });
+    },
+    projectList: () => {
+      if (!projects) throw new Error('Project lifecycle Host service is required');
+      return projects.listProjects();
+    },
+    projectCreate: (input) => {
+      if (!projects) throw new Error('Project lifecycle Host service is required');
+      return projects.createProject(input);
+    },
+    projectOpen: (projectId) => {
+      if (!projects) throw new Error('Project lifecycle Host service is required');
+      return projects.openProject(projectId);
     },
     canonCorrectionAccept: async (projectId, proposalId) => {
       if (!confirmation || !canon) throw new Error('C4 and Confirmation Host services are required');

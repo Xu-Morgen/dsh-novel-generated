@@ -27,6 +27,9 @@ export interface EditorRemote {
   canonQuery(projectId: string, filter?: unknown): Promise<unknown[]>;
   canonCorrectionPropose(projectId: string, targetId: string, input: unknown): Promise<unknown>;
   canonCorrectionAccept(projectId: string, proposalId: string): Promise<unknown>;
+  projectList(): Promise<unknown[]>;
+  projectCreate(input: unknown): Promise<unknown>;
+  projectOpen(projectId: string): Promise<unknown>;
 }
 /** The mounted `remote.novelWorkspace` namespace service surface. */
 export interface WorkspaceNamespace extends EditorRemote {
@@ -81,6 +84,8 @@ export type WorkbenchActions = {
   activate(id: string): void;
   ready(model: WorkspaceViewModel): void;
   fail(message: string): void;
+  setProjects(list: unknown[]): void;
+  selectProject(projectId: string): void;
   setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
@@ -1085,7 +1090,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void }, layers: LayerData, ops: WorkbenchOps): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = []): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -1094,8 +1099,13 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const message = status.status === 'error' ? status.message
     : (effectiveStatus === 'error' ? '创作台远程服务不可用' : undefined);
   const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
-  const body = effectiveStatus === 'ready'
-    ? h('div', { className: 'nv-workbench__body' }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, 'default', workspace!, ui.activeLayer, layers, ops))
+  const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
+    ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops))
+    : effectiveStatus === 'ready'
+      ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
+        projects.length === 0 ? h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。')
+          : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))),
+      )
     : h('section', {
       className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
       'data-novel-workspace-state': effectiveStatus,
@@ -1137,6 +1147,9 @@ interface WorkbenchState {
   relationshipEditor: RelationshipEditor;
   stateEditor: StateEditor;
   canonEditor: CanonEditor;
+  selectedProjectId: string | undefined;
+  projects: Array<{ id: string; name: string }>;
+  projectLoading: boolean;
 }
 
 const freshCharacterEditor = (): CharacterEditor => ({ selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' });
@@ -1159,6 +1172,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
     inject: ['slots', 'remote'],
     apply(ctx): void {
       let workspace: WorkspaceNamespace | undefined;
+      let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
 
@@ -1184,6 +1198,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           relationshipEditor: freshRelationshipEditor(),
           stateEditor: freshStateEditor(),
           canonEditor: freshCanonEditor(),
+          selectedProjectId: undefined,
+          projects: [],
+          projectLoading: false,
         }),
         actions: {
           open: (d) => { d.open = true; d.collapsed = false; },
@@ -1192,6 +1209,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           activate: (d, id: LayerId) => { d.activeLayer = id; },
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
+          setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
+          selectProject: (d, projectId: string) => { d.selectedProjectId = projectId; d.projectLoading = false; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -1234,16 +1253,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         if (capturedActions !== undefined) fn(capturedActions);
         else pending.push(fn);
       };
-      const runReload = (target: WorkspaceNamespace, actions: WorkbenchActions): void => {
+      const runReload = (target: WorkspaceNamespace, actions: WorkbenchActions, projectId: string): void => {
         actions.setCharacters('loading', []);
         actions.setWorldview('loading', []);
         actions.setOutline('loading', undefined);
         actions.setRelationship('loading', []);
         actions.setState('loading', []);
         actions.setCanon('loading', []);
-        void unwrap(target.characterList('default')).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
-        void unwrap(target.worldviewList('default')).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
-        void unwrap(target.outlineRead('default')).then((outline) => {
+        void unwrap(target.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
+        void unwrap(target.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
+        void unwrap(target.outlineRead(projectId)).then((outline) => {
           dispatch((x) => {
             x.setOutline('ready', outline);
             const shape = outline as OutlineShape;
@@ -1255,19 +1274,27 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             }
           });
         }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, cause.message)));
-        void unwrap(target.relationshipRead('default')).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], cause.message)));
-        void unwrap(target.stateSnapshots('default')).then((snapshots) => {
+        void unwrap(target.relationshipRead(projectId)).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], cause.message)));
+        void unwrap(target.stateSnapshots(projectId)).then((snapshots) => {
           dispatch((x) => {
             const list = snapshots as unknown as StateSnapshotShape[];
             x.setState('ready', list);
             if (list.length > 0) x.stateDraft({ selectedSeq: list[list.length - 1].seq, fromSeq: list[0].seq, toSeq: list.length > 1 ? list[list.length - 1].seq : undefined });
           });
         }, (cause: Error) => dispatch((x) => x.setState('error', [], cause.message)));
-        void unwrap(target.canonQuery('default')).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
+        void unwrap(target.canonQuery(projectId)).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
       };
-      const reload = (): void => {
+      const openProject = (projectId: string): void => {
         const target = workspace;
-        if (active && target !== undefined) dispatch((actions) => runReload(target, actions));
+        if (!active || target === undefined) return;
+        void unwrap(target.projectOpen(projectId)).then(() => {
+          if (!active) return;
+          currentProjectId = projectId;
+          dispatch((actions) => {
+            actions.selectProject(projectId);
+            runReload(target, actions, projectId);
+          });
+        }, () => dispatch((actions) => actions.fail('作品打开失败')));
       };
 
       // Edit-op closures: derive from the current store snapshot and write back
@@ -1275,6 +1302,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       // the renderer's baked actions, so `capturedActions` resolves safely.
       const makeOps = (snapshot: WorkbenchState): WorkbenchOps => {
         const act = capturedActions as WorkbenchActions;
+        const projectId = currentProjectId;
         return {
           characters: {
             select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '' }),
@@ -1282,13 +1310,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             mutate: (update) => act.characterMutate(update),
             save: () => {
               const e = snapshot.characterEditor;
-              if (!workspace) { act.characterDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.characterDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.draft.name.trim() === '') { act.characterDraft({ error: '角色名不能为空' }); return; }
               const effectiveId = e.selectedId ?? slug(e.draft.name);
               if (e.selectedId === undefined) {
-                void unwrap(workspace.characterCreate('default', characterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.characterDraft({ draft: created as CharacterShape, selectedId: (created as CharacterShape).id, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList('default')).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+                void unwrap(workspace.characterCreate(projectId, characterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.characterDraft({ draft: created as CharacterShape, selectedId: (created as CharacterShape).id, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
               } else {
-                void unwrap(workspace.characterUpdate('default', e.selectedId, characterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList('default')).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+                void unwrap(workspace.characterUpdate(projectId, e.selectedId, characterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
               }
             },
           },
@@ -1298,14 +1326,14 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             mutate: (update) => act.worldMutate(update),
             save: () => {
               const e = snapshot.worldEditor;
-              if (!workspace) { act.worldDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.worldDraft({ error: '创作台远程服务不可用' }); return; }
               if ((e.draft.title ?? '').trim() === '') { act.worldDraft({ error: '标题不能为空' }); return; }
               if (e.selectedId === undefined) {
                 const effectiveId = slug(e.draft.title ?? 'untitled');
-                void unwrap(workspace.worldviewCreate('default', worldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList('default')).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+                void unwrap(workspace.worldviewCreate(projectId, worldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
               } else {
                 const replacementId = slug(e.draft.title ?? e.selectedId);
-                void unwrap(workspace.worldviewRewrite('default', e.selectedId, worldviewInput({ ...e.draft, id: replacementId }))).then((result) => { if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList('default')).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+                void unwrap(workspace.worldviewRewrite(projectId, e.selectedId, worldviewInput({ ...e.draft, id: replacementId }))).then((result) => { if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
               }
             },
           },
@@ -1320,9 +1348,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             removeBeat: (actId, beatId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).filter((b) => b.id !== beatId) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedBeatId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
             save: () => {
               const e = snapshot.outlineEditor;
-              if (!workspace) { act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.draft.logline.trim() === '') { act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
-              void unwrap(workspace.outlineSave('default', outlineInput(e.draft))).then((saved) => { if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, error: '' }); act.setOutline('ready', outline); }, (cause: Error) => act.outlineDraft({ error: cause.message }));
+              void unwrap(workspace.outlineSave(projectId, outlineInput(e.draft))).then((saved) => { if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, error: '' }); act.setOutline('ready', outline); }, (cause: Error) => act.outlineDraft({ error: cause.message }));
             },
           },
           relationship: {
@@ -1331,25 +1359,25 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             mutate: (update) => act.relationshipMutate(update),
             save: () => {
               const e = snapshot.relationshipEditor;
-              if (!workspace) { act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
               const effectiveId = e.selectedId ?? `${slug(e.draft.from)}+${slug(e.draft.to)}`;
-              void unwrap(workspace.relationshipSave('default', relationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, error: '' }); void unwrap(workspace!.relationshipRead('default')).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => act.relationshipDraft({ error: cause.message }));
+              void unwrap(workspace.relationshipSave(projectId, relationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => act.relationshipDraft({ error: cause.message }));
             },
           },
           state: {
             select: (seq) => { const e = snapshot.stateEditor; let fromSeq = e.fromSeq; let toSeq = e.toSeq; if (fromSeq === undefined) fromSeq = seq; else if (toSeq === undefined && seq !== fromSeq) toSeq = seq; else { fromSeq = seq; toSeq = undefined; } act.stateDraft({ selectedSeq: seq, fromSeq, toSeq, diff: undefined }); },
             showDiff: () => {
               const e = snapshot.stateEditor;
-              if (!workspace) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.fromSeq === undefined || e.toSeq === undefined) { act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
-              void unwrap(workspace.stateDiff('default', e.fromSeq, e.toSeq)).then((diff) => act.stateDraft({ diff: diff as StateDiffShape, error: '' }), (cause: Error) => act.stateDraft({ error: cause.message, diff: undefined }));
+              void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => act.stateDraft({ diff: diff as StateDiffShape, error: '' }), (cause: Error) => act.stateDraft({ error: cause.message, diff: undefined }));
             },
             rollback: () => {
               const e = snapshot.stateEditor;
-              if (!workspace) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.selectedSeq === undefined) { act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
-              void unwrap(workspace.stateRollback('default', e.selectedSeq)).then((rolled) => { if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots('default')).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => act.stateDraft({ error: cause.message }));
+              void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => act.stateDraft({ error: cause.message }));
             },
           },
           canon: {
@@ -1357,16 +1385,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             mutate: (update) => act.canonDraft({ draft: update(snapshot.canonEditor.draft), dirty: true }),
             propose: () => {
               const e = snapshot.canonEditor;
-              if (!workspace) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.selectedId === undefined) { act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
               if ((e.draft.summary ?? '').trim() === '') { act.canonDraft({ error: '更正摘要不能为空' }); return; }
-              void unwrap(workspace.canonCorrectionPropose('default', e.selectedId, canonCorrectionInput(e.draft))).then((proposal) => act.canonDraft({ proposalId: (proposal as { id?: string }).id, error: '' }), (cause: Error) => act.canonDraft({ error: cause.message }));
+              void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, canonCorrectionInput(e.draft))).then((proposal) => act.canonDraft({ proposalId: (proposal as { id?: string }).id, error: '' }), (cause: Error) => act.canonDraft({ error: cause.message }));
             },
             accept: () => {
               const e = snapshot.canonEditor;
-              if (!workspace) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (!workspace || projectId === undefined) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.proposalId === undefined) { act.canonDraft({ error: '请先发起更正提案' }); return; }
-              void unwrap(workspace.canonCorrectionAccept('default', e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery('default')).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
+              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery(projectId)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
             },
           },
         };
@@ -1394,6 +1422,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
+            selectProject(id: string) { openProject(id); },
           };
           const layers: LayerData = {
             characters: s.characters,
@@ -1409,7 +1438,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s));
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects);
         };
 
         const slotDisposer = ctx.slots.register(
@@ -1425,7 +1454,15 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           workspace = ctx.get('remote.novelWorkspace', false) as WorkspaceNamespace | undefined;
           if (!workspace) { dispatch((x) => x.fail('创作台远程服务不可用')); return; }
           return unwrap(workspace.viewModel()).then(
-            (model) => { dispatch((x) => x.ready(model as WorkspaceViewModel)); reload(); },
+            (model) => {
+              const target = workspace;
+              dispatch((x) => x.ready(model as WorkspaceViewModel));
+              if (target === undefined) return;
+              void unwrap(target.projectList()).then(
+                (projects) => dispatch((x) => x.setProjects(projects as unknown[])),
+                () => dispatch((x) => x.fail('作品列表读取失败')),
+              );
+            },
             () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
           );
         }, () => { dispatch((x) => x.fail('创作台远程服务不可用')); });

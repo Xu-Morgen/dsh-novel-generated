@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "namespace": "novelWorkspace",
+  "methods": [
+    { "id": "novel-creation-tool/novelWorkspace/projectList", "input": [], "result": "ProjectMeta[]" },
+    { "id": "novel-creation-tool/novelWorkspace/projectCreate", "input": ["CreateProjectInput"], "result": "ProjectMeta" },
+    { "id": "novel-creation-tool/novelWorkspace/projectOpen", "input": ["projectId"], "result": "ProjectOpenResult" }
+  ],
+  "shapeIds": ["ProjectMeta", "CreateProjectInput", "ProjectOpenResult", "ProjectLayerReadiness"]
+}

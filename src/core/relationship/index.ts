@@ -49,7 +49,13 @@ export class RelationshipRepository {
 
   async read(): Promise<Relationship[]> {
     return this.enqueue(async () => {
-      const raw = await readYaml<unknown>(this.relationshipsPath);
+      let raw: unknown;
+      try {
+        raw = await readYaml<unknown>(this.relationshipsPath);
+      } catch (error) {
+        if (error instanceof Error && (error.cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return [];
+        throw error;
+      }
       try {
         const relationships = relationshipListSchema.parse(raw);
         assertRelationshipStructure(relationships);
