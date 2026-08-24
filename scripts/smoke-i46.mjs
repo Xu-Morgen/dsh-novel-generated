@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(new URL('..', import.meta.url).pathname);
-const bundlePath = resolve(root, 'lib/client.js');
+// `fileURLToPath` (而非 `.pathname`) 在 Windows 上产出正确的原生绝对路径。
+const root = dirname(fileURLToPath(import.meta.url));
+const bundlePath = resolve(root, '..', 'lib', 'client.js');
 if (!existsSync(bundlePath)) throw new Error('I46 bundle missing: run pnpm build first');
 const bundle = readFileSync(bundlePath, 'utf8');
 

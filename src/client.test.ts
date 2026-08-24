@@ -19,7 +19,7 @@ const fakeReact = {
     ({ tag, props, children }),
 };
 
-/** Overridable subset of the `novelWorkspace` remote for I47/I48 round-trip tests. */
+/** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
 interface WorkspaceOverrides {
   characterList?: () => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
@@ -31,6 +31,12 @@ interface WorkspaceOverrides {
   outlineSave?: (projectId: string, input: unknown) => Promise<unknown>;
   relationshipRead?: (projectId: string) => Promise<unknown[]>;
   relationshipSave?: (projectId: string, input: unknown) => Promise<unknown>;
+  stateSnapshots?: (projectId: string) => Promise<unknown[]>;
+  stateRollback?: (projectId: string, seq: number) => Promise<unknown>;
+  stateDiff?: (projectId: string, fromSeq: number, toSeq: number) => Promise<unknown>;
+  canonQuery?: (projectId: string) => Promise<unknown[]>;
+  canonCorrectionPropose?: (projectId: string, targetId: string, input: unknown) => Promise<unknown>;
+  canonCorrectionAccept?: (projectId: string, proposalId: string) => Promise<unknown>;
 }
 
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
@@ -50,12 +56,12 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   relationshipRead: overrides.relationshipRead ?? (async () => []),
   relationshipSave: overrides.relationshipSave ?? (async () => ({})),
   stateCurrent: async () => ({}),
-  stateSnapshots: async () => [],
-  stateRollback: async () => ({}),
-  stateDiff: async () => ({}),
-  canonQuery: async () => [],
-  canonCorrectionPropose: async () => ({}),
-  canonCorrectionAccept: async () => ({}),
+  stateSnapshots: overrides.stateSnapshots ?? (async () => []),
+  stateRollback: overrides.stateRollback ?? (async () => ({})),
+  stateDiff: overrides.stateDiff ?? (async () => ({ fromSeq: 0, toSeq: 0, changes: [] })),
+  canonQuery: overrides.canonQuery ?? (async () => []),
+  canonCorrectionPropose: overrides.canonCorrectionPropose ?? (async () => ({})),
+  canonCorrectionAccept: overrides.canonCorrectionAccept ?? (async () => ({})),
 });
 
 const READY_MODEL = {
@@ -197,7 +203,7 @@ describe('I46 创作台 workbench shell', () => {
     expect(collect(tree, 'section').some((n) => n.props?.role === 'alert')).toBe(true);
   });
 
-  it('renders real B3/B2/B5/C1 form panels and empty placeholders for the deferred layers, and navigates across all six', async () => {
+  it('renders real B3/B2/B5/C1/C2/C4 form panels with no empty placeholder, and navigates across all six', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
@@ -215,11 +221,8 @@ describe('I46 创作台 workbench shell', () => {
       expect(button, `nav button for ${id}`).toBeDefined();
       (button?.props?.onClick as () => void)();
       expect(panel(render())?.props?.['data-novel-layer-panel']).toBe(id);
-      if (id === 'characters' || id === 'worldview' || id === 'outline' || id === 'relationship') {
-        expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
-      } else {
-        expect(panel(render())?.props?.['data-novel-layer-state']).toBe('empty');
-      }
+      // I47/I48/I49：六层均渲染真面板（ready），不再有空态占位。
+      expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');
     }
   });
 
@@ -636,6 +639,174 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const source = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
     expect(source).not.toMatch(/node:fs|fs\.readFile|window\.fetch|OPENAI_API_KEY|harness\.handle|host\.call/);
+  });
+});
+
+describe('I49 C2/C4 面板 (R10-6)', () => {
+  /** Find the first element with the given data attribute value. */
+  const byData = (tree: FakeNode, attr: string, value: string): FakeNode | undefined => {
+    let found: FakeNode | undefined;
+    const visit = (current: unknown): void => {
+      if (found || current == null || typeof current !== 'object') return;
+      if (Array.isArray(current)) { for (const item of current) visit(item); return; }
+      const n = current as FakeNode;
+      if (n.props?.[attr] === value) { found = n; return; }
+      for (const child of n.children ?? []) visit(child);
+    };
+    visit(tree);
+    return found;
+  };
+
+  const SNAPSHOTS = [
+    { id: 'ws', seq: 0, storyTime: 'day 1', scene: { location: '城门', timeOfDay: 'dawn', weather: '', season: '', atmosphere: '' }, characters: [] },
+    { id: 'ws', seq: 1, storyTime: 'day 2', scene: { location: '王宫', timeOfDay: 'noon', weather: '', season: '', atmosphere: '' }, characters: [] },
+  ];
+
+  it('renders the C2 snapshot timeline and rolls back only through stateRollback', async () => {
+    const rollbackCalls: Array<{ projectId: string; seq: number }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        stateSnapshots: async () => SNAPSHOTS,
+        stateRollback: async (projectId, seq) => { rollbackCalls.push({ projectId, seq }); return { ...SNAPSHOTS[0], seq: 2, storyTime: 'day 2 (rolled back)' }; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'state')?.props?.onClick as () => void)();
+
+    const tree = render();
+    expect(byData(tree, 'data-novel-layer-panel', 'state')).toBeDefined();
+    // 时间线条目锚点 + 当前快照。
+    expect(byData(tree, 'data-novel-state-snapshot', '0')).toBeDefined();
+    expect(byData(tree, 'data-novel-state-snapshot', '1')).toBeDefined();
+
+    // 选择 seq 0 后点击回滚：只经 Host stateRollback。
+    ((byData(tree, 'data-novel-state-snapshot', '0') as FakeNode).props?.onClick as () => void)();
+    const rollback = byData(render(), 'data-novel-state-rollback', '') as FakeNode;
+    expect(rollback.props?.disabled).toBe(false);
+    (rollback.props?.onClick as () => void)();
+    await flush();
+
+    expect(rollbackCalls).toHaveLength(1);
+    expect(rollbackCalls[0]).toEqual({ projectId: 'default', seq: 0 });
+  });
+
+  it('computes a diff between two snapshots only through stateDiff', async () => {
+    const diffCalls: Array<{ fromSeq: number; toSeq: number }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        stateSnapshots: async () => SNAPSHOTS,
+        stateDiff: async (_projectId, fromSeq, toSeq) => {
+          diffCalls.push({ fromSeq, toSeq });
+          return { fromSeq, toSeq, changes: [{ path: 'scene.location', before: '城门', after: '王宫' }] };
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'state')?.props?.onClick as () => void)();
+
+    // 初始 from=0, to=1（载入时已自动选中前两快照）。
+    ((byData(render(), 'data-novel-state-diff', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    expect(diffCalls).toHaveLength(1);
+    expect(diffCalls[0]).toEqual({ fromSeq: 0, toSeq: 1 });
+    const diffRow = byData(render(), 'data-novel-state-diff-row', 'scene.location') as FakeNode;
+    expect(diffRow).toBeDefined();
+    const rowText = ((): string => {
+      let text = '';
+      const visit = (current: unknown): void => {
+        if (current == null || typeof current !== 'object') { text += String(current); return; }
+        for (const child of (current as FakeNode).children ?? []) visit(child);
+      };
+      visit(diffRow);
+      return text;
+    })();
+    expect(rowText).toContain('城门');
+    expect(rowText).toContain('王宫');
+  });
+
+  const CANON = [
+    { id: 'ev-1', seq: 0, storyTime: 'day 1', kind: 'event', summary: '英雄入城', detail: '城门大开', participants: [], location: '城门', consequences: [], affectedLayers: [], immutable: true, supersededBy: null },
+    { id: 'ev-2', seq: 1, storyTime: 'day 2', kind: 'decision', summary: '结盟', detail: '结为盟友', participants: [], location: '王宫', consequences: [], affectedLayers: [], immutable: true, supersededBy: null },
+  ];
+
+  it('renders C4 as a read-only ledger and proposes corrections through canonCorrectionPropose', async () => {
+    const proposeCalls: Array<{ projectId: string; targetId: string; input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        canonQuery: async () => CANON,
+        canonCorrectionPropose: async (projectId, targetId, input) => {
+          proposeCalls.push({ projectId, targetId, input });
+          return { id: 'proposal-1' };
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'canon')?.props?.onClick as () => void)();
+
+    const tree = render();
+    expect(byData(tree, 'data-novel-layer-panel', 'canon')).toBeDefined();
+    // 只读徽标 + 账本条目锚点。
+    expect(byData(tree, 'data-novel-canon-readonly', '')).toBeDefined();
+    expect(byData(tree, 'data-novel-canon-id', 'ev-1')).toBeDefined();
+
+    // 选中事件并修改摘要后发起提案。
+    ((byData(tree, 'data-novel-canon-id', 'ev-1') as FakeNode).props?.onClick as () => void)();
+    const summaryInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text' && (n.props?.value as string) === '英雄入城');
+    (summaryInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '英雄改道入城' } });
+    ((byData(render(), 'data-novel-canon-propose', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    expect(proposeCalls).toHaveLength(1);
+    expect(proposeCalls[0].projectId).toBe('default');
+    expect(proposeCalls[0].targetId).toBe('ev-1');
+    expect(proposeCalls[0].input).toMatchObject({ summary: '英雄改道入城' });
+  });
+
+  it('appends a supersede only after canonCorrectionAccept confirms the gate proposal', async () => {
+    const calls: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        canonQuery: async () => CANON,
+        canonCorrectionPropose: async () => { calls.push('propose'); return { id: 'proposal-1' }; },
+        canonCorrectionAccept: async () => { calls.push('accept'); return { confirmation: {}, event: {} }; },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'canon')?.props?.onClick as () => void)();
+
+    ((byData(render(), 'data-novel-canon-id', 'ev-1') as FakeNode).props?.onClick as () => void)();
+    const summaryInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text' && (n.props?.value as string) === '英雄入城');
+    (summaryInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '改' } });
+
+    // 提案前没有 accept 入口。
+    expect(byData(render(), 'data-novel-canon-accept', '')).toBeUndefined();
+    ((byData(render(), 'data-novel-canon-propose', '') as FakeNode).props?.onClick as () => void)();
+    await flush();
+
+    // 提案后出现 accept 入口；确认后才追加 supersede（accept 被调用）。
+    const accept = byData(render(), 'data-novel-canon-accept', '') as FakeNode;
+    expect(accept).toBeDefined();
+    expect(calls).toEqual(['propose']);
+    (accept.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual(['propose', 'accept']);
+  });
+
+  it('owns no fs API and no direct canon write seam in the client source', () => {
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const source = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
+    expect(source).not.toMatch(/node:fs|fs\.readFile|window\.fetch|OPENAI_API_KEY|harness\.handle|host\.call/);
+    // 正史无就地改写入口：客户端永不调用 update/delete/append/supersede 直接写账本。
+    expect(source).not.toMatch(/canonUpdate|canonDelete|canonAppend|\.supersede\(/);
   });
 });
 

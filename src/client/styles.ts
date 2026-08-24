@@ -540,6 +540,78 @@ export const WORKBENCH_STYLES = `
   accent-color: var(--nv-cinnabar);
 }
 
+/* I49 C2 状态快照时间线/回滚/diff + C4 正史账本（R10-6）。 */
+.nv-state__hint {
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-state__diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+  padding: var(--nv-grid);
+  border: 1px solid var(--nv-line-strong);
+  border-radius: var(--nv-grid);
+  background: var(--nv-paper-raised);
+}
+
+.nv-state__diff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.4);
+}
+
+.nv-state__diff-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) 1fr 16px 1fr;
+  gap: calc(var(--nv-grid) * 0.6);
+  align-items: baseline;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.nv-state__diff-path {
+  font-family: var(--nv-sans);
+  color: var(--nv-ink-faint);
+  font-size: 11px;
+}
+
+.nv-state__diff-before {
+  color: var(--nv-danger);
+}
+
+.nv-state__diff-after {
+  color: var(--nv-ok);
+}
+
+.nv-state__diff-arrow {
+  color: var(--nv-ink-faint);
+}
+
+.nv-canon__readonly {
+  padding: calc(var(--nv-grid) * 0.5) var(--nv-grid);
+  border: 1px solid var(--nv-warn);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  color: var(--nv-warn);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+}
+
+.nv-canon__detail {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--nv-ink-dim);
+}
+
 /* 明暗适配：暗色下朱砂提亮（D12）；中性色已由宿主 --dsw-alias-* 在
    body[data-ds-dark-theme] 下自动切换，无需 novel 自有主题引擎。 */
 body[data-ds-dark-theme] .nv-workbench {

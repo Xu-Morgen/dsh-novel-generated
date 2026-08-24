@@ -74,8 +74,8 @@ const LAYERS = [
   { id: 'worldview', label: '世界观', title: '世界观（B2）', hint: '世界观条目与改写（supersede）（I47）。' },
   { id: 'outline', label: '大纲', title: '大纲与细纲（B5）', hint: '幕→节→细纲结构化编辑（I48）。' },
   { id: 'relationship', label: '关系', title: '关系（C1）', hint: '关系对结构化编辑（I48）。' },
-  { id: 'state', label: '状态', title: '状态快照（C2）', hint: '快照时间线 / 回滚 / diff 将在 I49 交付。' },
-  { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正将在 I49 交付。' },
+  { id: 'state', label: '状态', title: '状态快照（C2）', hint: '快照时间线 / 回滚 / diff（I49）。' },
+  { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正（I49）。' },
 ] as const;
 type LayerId = (typeof LAYERS)[number]['id'];
 
@@ -139,7 +139,7 @@ function layerNav(h: El, ui: WorkbenchUI): unknown {
   );
 }
 
-/** 单层空态占位（I48/I49 仍占位的四层）。 */
+/** 单层空态占位（仅兜底，I49 起六层均有真实面板）。 */
 function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
   return h('section', {
     className: 'nv-workbench__empty',
@@ -855,7 +855,270 @@ function relationshipLayer(h: El, projectId: string, workspace: WorkspaceNamespa
   );
 }
 
-/** 内容区：按激活层渲染真表单（I47/I48）或空态（I49）。 */
+/**
+ * I49 C2 状态快照面板（design §14.6 / R10-6）。快照时间线 + 回滚 + 任意两快照
+ * 的逐字段 diff 视图。回滚只经 Host `stateRollback`（走 StateEngine）；Client 不含
+ * 任何回滚/写回逻辑，也不拥有领域真相（design §0.1.2）。
+ */
+interface StateSnapshotShape {
+  seq: number;
+  storyTime: string;
+  scene?: { location?: string; timeOfDay?: string; weather?: string; season?: string; atmosphere?: string };
+  characters?: Array<{ characterId?: string; location?: string; alive?: boolean; health?: string; mood?: string; currentGoal?: string }>;
+  [key: string]: unknown;
+}
+interface StateDiffShape {
+  fromSeq: number;
+  toSeq: number;
+  changes: Array<{ path: string; before: unknown; after: unknown }>;
+}
+interface StateLayerState {
+  readonly status: 'loading' | 'ready' | 'error';
+  readonly snapshots: StateSnapshotShape[];
+  readonly message?: string;
+}
+interface StateEditor {
+  selectedSeq: number | undefined;
+  fromSeq: number | undefined;
+  toSeq: number | undefined;
+  diff: StateDiffShape | undefined;
+  error: string;
+}
+/** 持久化文案/值 → 单行文本（列表字段之外的对象/数组用 JSON 兜底）。 */
+function displayValue(value: unknown): string {
+  if (value === undefined || value === null) return '∅';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
+}
+/** C2 快照概要行：seq + storyTime + 场景地点（时间线条目）。 */
+function snapshotMeta(snapshot: StateSnapshotShape): string {
+  const parts = [`seq ${snapshot.seq}`];
+  if (snapshot.storyTime) parts.push(snapshot.storyTime);
+  if (snapshot.scene?.location) parts.push(snapshot.scene.location);
+  return parts.join(' · ');
+}
+function stateLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: StateLayerState, editor: StateEditor, reload: () => void): unknown {
+  const rollback = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    if (editor.selectedSeq === undefined) { editor.error = '请先选择要回滚到的快照'; return; }
+    // 回滚是 Host 侧写操作：经 StateEngine 追加一个指向旧值的新快照，Client 无写回逻辑。
+    void unwrap(workspace.stateRollback(projectId, editor.selectedSeq))
+      .then((rolled) => {
+        const next = rolled as StateSnapshotShape;
+        editor.selectedSeq = next.seq; editor.diff = undefined; editor.error = ''; reload();
+      })
+      .catch((cause: Error) => { editor.error = cause.message; });
+  };
+  const showDiff = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    const from = editor.fromSeq; const to = editor.toSeq;
+    if (from === undefined || to === undefined) { editor.error = '请从时间线选择两个快照再比对'; return; }
+    void unwrap(workspace.stateDiff(projectId, from, to))
+      .then((diff) => { editor.diff = diff as StateDiffShape; editor.error = ''; })
+      .catch((cause: Error) => { editor.error = cause.message; editor.diff = undefined; });
+  };
+  const select = (seq: number): void => {
+    editor.selectedSeq = seq;
+    if (editor.fromSeq === undefined) editor.fromSeq = seq;
+    else if (editor.toSeq === undefined && seq !== editor.fromSeq) editor.toSeq = seq;
+    else { editor.fromSeq = seq; editor.toSeq = undefined; }
+    editor.diff = undefined;
+  };
+
+  if (layerState.status === 'loading') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'state', 'data-novel-layer-state': 'loading' }, '正在装载状态快照…');
+  }
+  if (layerState.status === 'error') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'state', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '状态快照读取失败');
+  }
+  const current = layerState.snapshots.length > 0 ? layerState.snapshots[layerState.snapshots.length - 1] : undefined;
+  const timeline = h('div', { className: 'nv-editor__list', role: 'list' },
+    h('div', { className: 'nv-editor__toolbar' },
+      h('span', { className: 'nv-state__hint' }, current === undefined ? '暂无快照' : `当前 seq ${current.seq}`),
+    ),
+    layerState.snapshots.map((snapshot) => h('button', {
+      key: snapshot.seq,
+      type: 'button',
+      role: 'listitem',
+      className: 'nv-editor__item' + (editor.selectedSeq === snapshot.seq ? ' is-active' : ''),
+      'data-novel-state-snapshot': String(snapshot.seq),
+      onClick: () => select(snapshot.seq),
+    }, snapshotMeta(snapshot))),
+  );
+  const selected = layerState.snapshots.find((snapshot) => snapshot.seq === editor.selectedSeq);
+  const diffRows = (editor.diff?.changes ?? []).map((change) => h('li', { key: change.path, className: 'nv-state__diff-row', 'data-novel-state-diff-row': change.path },
+    h('code', { className: 'nv-state__diff-path' }, change.path),
+    h('span', { className: 'nv-state__diff-before' }, displayValue(change.before)),
+    h('span', { className: 'nv-state__diff-arrow' }, '→'),
+    h('span', { className: 'nv-state__diff-after' }, displayValue(change.after)),
+  ));
+  const detail = h('div', { className: 'nv-editor__detail' },
+    h('h3', { className: 'nv-editor__title' }, selected === undefined ? '状态快照' : `快照 seq ${selected.seq} · ${selected.storyTime ?? ''}`),
+    selected === undefined ? h('p', { className: 'nv-outline__nodetail' }, '从左侧时间线选择一个快照，或选择一个回滚目标。')
+      : h('div', { className: 'nv-form' },
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '故事时间'),
+          h('input', { type: 'text', className: 'nv-field__input', value: selected.storyTime ?? '', disabled: true }),
+        ),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '场景地点'),
+          h('input', { type: 'text', className: 'nv-field__input', value: selected.scene?.location ?? '', disabled: true }),
+        ),
+      ),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-state-diff': '', onClick: showDiff, disabled: editor.fromSeq === undefined || editor.toSeq === undefined }, '比对所选快照'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-state-rollback': '', onClick: rollback, disabled: editor.selectedSeq === undefined }, '回滚到此快照'),
+    ),
+    editor.diff !== undefined
+      ? h('div', { className: 'nv-state__diff', 'data-novel-state-diff-view': '' },
+        h('h4', { className: 'nv-outline__subtitle' }, `diff seq ${editor.diff.fromSeq} → ${editor.diff.toSeq}`),
+        editor.diff.changes.length === 0 ? h('p', { className: 'nv-outline__nodetail' }, '两快照无差异。')
+          : h('ul', { className: 'nv-state__diff-list' }, diffRows),
+      )
+      : null,
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'state', role: 'alert' }, editor.error) : null,
+  );
+  return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'state', 'data-novel-layer-state': 'ready' },
+    h('div', { className: 'nv-editor__columns' }, timeline, detail),
+  );
+}
+
+/**
+ * I49 C4 正史账本面板（design §14.6 / R10-6）。只读账本带只读徽标；更正走
+ * supersede 流程：`canonCorrectionPropose` 生成 ConfirmationGate 提案，确认后
+ * `canonCorrectionAccept` 才经 Host `canon.supersede` 追加一条 correction 事件。
+ * Client 无任何就地改写正史的入口（design §0.1.2 / R7-4）。
+ */
+interface CanonEventShape {
+  id: string;
+  seq: number;
+  storyTime: string;
+  kind: string;
+  summary: string;
+  detail?: string;
+  participants?: string[];
+  location?: string;
+  consequences?: string[];
+  affectedLayers?: string[];
+  immutable?: boolean;
+  supersedes?: string;
+  supersededBy?: string | null;
+  [key: string]: unknown;
+}
+interface CanonLayerState {
+  readonly status: 'loading' | 'ready' | 'error';
+  readonly events: CanonEventShape[];
+  readonly message?: string;
+}
+interface CanonEditor {
+  selectedId: string | undefined;
+  /** pending 提案 id：propose 成功后等待 accept。 */
+  proposalId: string | undefined;
+  draft: { storyTime: string; summary: string; detail: string };
+  dirty: boolean;
+  error: string;
+}
+function canonCorrectionInput(draft: CanonEditor['draft']): unknown {
+  return {
+    storyTime: draft.storyTime,
+    summary: draft.summary,
+    detail: draft.detail,
+    participants: [],
+    location: '',
+    consequences: [],
+    affectedLayers: [],
+  };
+}
+function canonLayer(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, layerState: CanonLayerState, editor: CanonEditor, reload: () => void): unknown {
+  const loadDraft = (event: CanonEventShape): void => {
+    editor.selectedId = event.id;
+    editor.proposalId = undefined;
+    editor.draft = { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' };
+    editor.dirty = false;
+    editor.error = '';
+  };
+  const mutate = (update: (draft: CanonEditor['draft']) => CanonEditor['draft']): void => {
+    editor.draft = update(editor.draft);
+    editor.dirty = true;
+  };
+  /** propose：生成 Gate 提案（pending），不写正史。 */
+  const propose = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    if (editor.selectedId === undefined) { editor.error = '请先选择一个正史事件再发起更正'; return; }
+    if ((editor.draft.summary ?? '').trim() === '') { editor.error = '更正摘要不能为空'; return; }
+    void unwrap(workspace.canonCorrectionPropose(projectId, editor.selectedId, canonCorrectionInput(editor.draft)))
+      .then((proposal) => {
+        editor.proposalId = (proposal as { id?: string }).id;
+        editor.error = '';
+      })
+      .catch((cause: Error) => { editor.error = cause.message; });
+  };
+  /** accept：确认后才追加 supersede 事件。 */
+  const accept = (): void => {
+    if (!workspace) { editor.error = '创作台远程服务不可用'; return; }
+    if (editor.proposalId === undefined) { editor.error = '请先发起更正提案'; return; }
+    void unwrap(workspace.canonCorrectionAccept(projectId, editor.proposalId))
+      .then(() => { editor.proposalId = undefined; editor.dirty = false; editor.error = ''; reload(); })
+      .catch((cause: Error) => { editor.error = cause.message; });
+  };
+
+  if (layerState.status === 'loading') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'canon', 'data-novel-layer-state': 'loading' }, '正在装载正史账本…');
+  }
+  if (layerState.status === 'error') {
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'canon', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '正史账本读取失败');
+  }
+  const selected = layerState.events.find((event) => event.id === editor.selectedId);
+  const activeCount = layerState.events.filter((event) => event.supersededBy === null || event.supersededBy === undefined).length;
+  const list = h('div', { className: 'nv-editor__list', role: 'list' },
+    h('div', { className: 'nv-editor__toolbar' },
+      h('span', { className: 'nv-state__hint' }, `共 ${layerState.events.length} 条 · 有效 ${activeCount}`),
+    ),
+    layerState.events.map((event) => h('button', {
+      key: event.id,
+      type: 'button',
+      role: 'listitem',
+      className: 'nv-editor__item' + (editor.selectedId === event.id ? ' is-active' : ''),
+      'data-novel-canon-id': event.id,
+      onClick: () => loadDraft(event),
+    }, `${event.seq} · ${event.summary}${event.supersededBy ? '（已更正）' : ''}`)),
+  );
+  const detail = h('div', { className: 'nv-editor__detail' },
+    h('div', { className: 'nv-canon__readonly', 'data-novel-canon-readonly': '', role: 'note' }, '只读账本 · 更正经 ConfirmationGate'),
+    h('h3', { className: 'nv-editor__title' }, selected === undefined ? '正史账本' : `正史 ${selected.seq} · ${selected.summary}`),
+    selected === undefined ? h('p', { className: 'nv-outline__nodetail' }, '从左侧选择一个正史事件，可发起 supersede 更正。')
+      : h('div', { className: 'nv-form' },
+        h('p', { className: 'nv-field__label' }, `类型 ${selected.kind} · 时间 ${selected.storyTime} · 地点 ${selected.location ?? '—'}`),
+        selected.detail ? h('p', { className: 'nv-canon__detail' }, selected.detail) : null,
+        selected.supersededBy ? h('p', { className: 'nv-editor__badge', 'data-novel-canon-superseded': '' }, `已被 ${selected.supersededBy} 更正`) : null,
+        h('h4', { className: 'nv-outline__subtitle' }, '发起 supersede 更正'),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '更正时间'),
+          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.storyTime, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, storyTime: event.target.value })) }),
+        ),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '更正摘要'),
+          h('input', { type: 'text', className: 'nv-field__input', value: editor.draft.summary, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, summary: event.target.value })) }),
+        ),
+        h('label', { className: 'nv-field' },
+          h('span', { className: 'nv-field__label' }, '更正详情'),
+          h('textarea', { className: 'nv-field__input', rows: 3, value: editor.draft.detail, onChange: (event: { target: { value: string } }) => mutate((draft) => ({ ...draft, detail: event.target.value })) }),
+        ),
+      ),
+    h('div', { className: 'nv-editor__actions' },
+      editor.proposalId !== undefined
+        ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-accept': '', onClick: accept }, '确认更正（追加 supersede）')
+        : h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-canon-propose': '', onClick: propose, disabled: editor.selectedId === undefined || !editor.dirty }, '发起更正提案'),
+    ),
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'canon', role: 'alert' }, editor.error) : null,
+  );
+  return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'canon', 'data-novel-layer-state': 'ready' },
+    h('div', { className: 'nv-editor__columns' }, list, detail),
+  );
+}
+
+/** 内容区：按激活层渲染真表单（I47/I48/I49），仅兜底空态。 */
 function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, ui: WorkbenchUI, layers: LayerData): unknown {
   const layer = LAYERS.find((item) => item.id === ui.activeLayer) ?? LAYERS[0];
   if (layer.id === 'characters') {
@@ -874,23 +1137,37 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
       relationshipLayer(h, projectId, workspace, layers.relationship, layers.relationshipEditor, layers.reloadRelationship));
   }
+  if (layer.id === 'state') {
+    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
+      stateLayer(h, projectId, workspace, layers.state, layers.stateEditor, layers.reloadState));
+  }
+  if (layer.id === 'canon') {
+    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
+      canonLayer(h, projectId, workspace, layers.canon, layers.canonEditor, layers.reloadCanon));
+  }
   return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' }, emptyState(h, layer));
 }
 
-/** I47/I48 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
+/** I47/I48/I49 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
 interface LayerData {
   readonly characters: CharacterLayerState;
   readonly worldview: WorldLayerState;
   readonly outline: OutlineLayerState;
   readonly relationship: RelationshipLayerState;
+  readonly state: StateLayerState;
+  readonly canon: CanonLayerState;
   readonly characterEditor: CharacterEditor;
   readonly worldEditor: WorldEditor;
   readonly outlineEditor: OutlineEditor;
   readonly relationshipEditor: RelationshipEditor;
+  readonly stateEditor: StateEditor;
+  readonly canonEditor: CanonEditor;
   readonly reloadCharacters: () => void;
   readonly reloadWorldview: () => void;
   readonly reloadOutline: () => void;
   readonly reloadRelationship: () => void;
+  readonly reloadState: () => void;
+  readonly reloadCanon: () => void;
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
@@ -951,15 +1228,19 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         activate(id) { activeLayer = id; },
       };
 
-      // I47/I48 数据层：各领域列表与表单态受 Host Remote 驱动，跨渲染复用。
+      // I47/I48/I49 数据层：各领域列表与表单态受 Host Remote 驱动，跨渲染复用。
       let characterState: CharacterLayerState = { status: 'loading', list: [] };
       let worldState: WorldLayerState = { status: 'loading', list: [] };
       let outlineState: OutlineLayerState = { status: 'loading' };
       let relationshipState: RelationshipLayerState = { status: 'loading', list: [] };
+      let stateLayerState: StateLayerState = { status: 'loading', snapshots: [] };
+      let canonLayerState: CanonLayerState = { status: 'loading', events: [] };
       const characterEditor: CharacterEditor = { selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' };
       const worldEditor: WorldEditor = { selectedId: undefined, draft: { id: '' }, dirty: false, error: '' };
       const outlineEditor: OutlineEditor = { draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined };
       const relationshipEditor: RelationshipEditor = { selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' };
+      const stateEditor: StateEditor = { selectedSeq: undefined, fromSeq: undefined, toSeq: undefined, diff: undefined, error: '' };
+      const canonEditor: CanonEditor = { selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '' };
       const reloadCharacters = (): void => {
         const target = workspace;
         if (!target) { characterState = { status: 'error', list: [], message: '创作台远程服务不可用' }; return; }
@@ -1011,19 +1292,50 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           (cause: Error) => { relationshipState = { status: 'error', list: [], message: cause.message }; },
         );
       };
+      const reloadState = (): void => {
+        const target = workspace;
+        if (!target) { stateLayerState = { status: 'error', snapshots: [], message: '创作台远程服务不可用' }; return; }
+        stateLayerState = { status: 'loading', snapshots: [] };
+        void unwrap(target.stateSnapshots('default')).then(
+          (snapshots) => {
+            const list = (snapshots as StateSnapshotShape[]);
+            stateLayerState = { status: 'ready', snapshots: list };
+            // 载入后默认选中当前（最后一）快照；diff 端点初始化为前两快照。
+            if (stateEditor.selectedSeq === undefined && list.length > 0) stateEditor.selectedSeq = list[list.length - 1].seq;
+            if (stateEditor.fromSeq === undefined && list.length > 0) stateEditor.fromSeq = list[0].seq;
+            if (stateEditor.toSeq === undefined && list.length > 1) stateEditor.toSeq = list[list.length - 1].seq;
+          },
+          (cause: Error) => { stateLayerState = { status: 'error', snapshots: [], message: cause.message }; },
+        );
+      };
+      const reloadCanon = (): void => {
+        const target = workspace;
+        if (!target) { canonLayerState = { status: 'error', events: [], message: '创作台远程服务不可用' }; return; }
+        canonLayerState = { status: 'loading', events: [] };
+        void unwrap(target.canonQuery('default')).then(
+          (events) => { canonLayerState = { status: 'ready', events: events as CanonEventShape[] }; },
+          (cause: Error) => { canonLayerState = { status: 'error', events: [], message: cause.message }; },
+        );
+      };
       const layers: LayerData = {
         get characters() { return characterState; },
         get worldview() { return worldState; },
         get outline() { return outlineState; },
         get relationship() { return relationshipState; },
+        get state() { return stateLayerState; },
+        get canon() { return canonLayerState; },
         characterEditor,
         worldEditor,
         outlineEditor,
         relationshipEditor,
+        stateEditor,
+        canonEditor,
         reloadCharacters,
         reloadWorldview,
         reloadOutline,
         reloadRelationship,
+        reloadState,
+        reloadCanon,
       };
 
       // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
@@ -1055,6 +1367,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               reloadWorldview();
               reloadOutline();
               reloadRelationship();
+              reloadState();
+              reloadCanon();
             },
             () => { state = { status: 'error', message: '创作台远程服务不可用' }; },
           );
