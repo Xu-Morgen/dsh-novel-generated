@@ -128,7 +128,7 @@ export type WorkbenchActions = {
   worldMutate(update: (draft: WorldShape) => WorldShape): void;
   outlineMutate(update: (draft: OutlineShape) => OutlineShape): void;
   relationshipMutate(update: (draft: RelationshipShape) => RelationshipShape): void;
-  openSettings(): void;
+  toggleSettings(): void;
   settingsLoaded(view: LlmConfigViewShape): void;
   settingsMutate(patch: Partial<LlmConfigDraftShape>): void;
   settingsSettled(patch: Partial<LlmConfigDraftShape>): void;
@@ -148,7 +148,7 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
 }
 
 /** 左侧层级导航：六层一桌 + LLM 设置页，激活项打朱砂。 */
-function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showSettings: boolean, openSettings: () => void): unknown {
+function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showSettings: boolean, toggleSettings: () => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
     LAYERS.map((layer) => h('button', {
       key: layer.id,
@@ -164,7 +164,7 @@ function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, 
       className: 'nv-workbench__nav-item' + (showSettings ? ' is-active' : ''),
       'data-novel-settings-nav': '',
       'aria-current': showSettings ? 'page' : undefined,
-      onClick: () => openSettings(),
+      onClick: () => toggleSettings(),
     }, 'LLM 设置'),
   );
 }
@@ -243,7 +243,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区（六层或 LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; collapse(): void; close(): void; activate(id: LayerId): void; openSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; collapse(): void; close(): void; activate(id: LayerId): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -268,7 +268,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      layerNav(h, ui.activeLayer, ui.activate, ui.showSettings, () => ui.openSettings()),
+      layerNav(h, ui.activeLayer, ui.activate, ui.showSettings, () => ui.toggleSettings()),
       h('div', { className: 'nv-workbench__main' },
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
@@ -279,7 +279,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     )
     : effectiveStatus === 'ready'
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
-        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.showSettings ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.openSettings() }, 'LLM 设置'),
+        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.showSettings ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.toggleSettings() }, 'LLM 设置'),
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
           : (projects.length === 0 ? h('div', null,
@@ -416,7 +416,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           open: (d) => { d.open = true; d.collapsed = false; },
           close: (d) => { d.open = false; },
           collapse: (d) => { d.collapsed = !d.collapsed; },
-          activate: (d, id: LayerId) => { d.activeLayer = id; },
+          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; },
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
@@ -447,7 +447,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
-          openSettings: (d) => { d.showSettings = true; },
+          toggleSettings: (d) => { d.showSettings = !d.showSettings; },
           settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model }; },
           settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
           settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
@@ -660,9 +660,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
-            openSettings() {
-              dispatch((x) => x.openSettings());
-              if (s.settingsView === undefined && llmConfig) {
+            toggleSettings() {
+              const next = !s.showSettings;
+              dispatch((x) => x.toggleSettings());
+              if (next && s.settingsView === undefined && llmConfig) {
                 void unwrap(llmConfig.load()).then((view) => { if (active) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => dispatch((x) => x.settingsSettled({ error: '设置读取失败' })));
               }
             },

@@ -14,11 +14,11 @@ export const NOVEL_LLM_CREDENTIAL_REF = 'NOVEL_CUSTOM_API_KEY';
 /** 模型名不得含 `/` 或空白（modelRef 必须为 provider/model 形式）。 */
 const modelNameSchema = z.string().trim().min(1).max(256).regex(/^[^/\s]+$/, '模型名称不能包含 / 或空白字符');
 
-/** save 输入：baseUrl + 模型名 + API Key。 */
+/** save 输入：baseUrl + 模型名 + API Key（Key 留空 = 保留已保存的 Key）。 */
 export const llmConfigSaveInputSchema = z.object({
   baseUrl: z.string().url('API URL 必须是合法 http(s) 地址').max(512),
   model: modelNameSchema,
-  apiKey: z.string().min(8, 'API Key 至少 8 个字符').max(4096),
+  apiKey: z.string().max(4096).refine((value) => value.trim() === '' || value.length >= 8, 'API Key 至少 8 个字符'),
 }).strict();
 export type LlmConfigSaveInput = z.infer<typeof llmConfigSaveInputSchema>;
 

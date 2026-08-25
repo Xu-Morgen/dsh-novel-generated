@@ -552,6 +552,54 @@ describe('LLM 设置页', () => {
     expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-message'] !== undefined)).toBe(true);
   });
 
+  it('toggles the settings page closed and exits it when a layer is activated', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { llmConfig: { load: async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: true }) } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const settingsNav = () => collect(render(), 'button').find((node) => node.props?.['data-novel-settings-nav'] === '');
+    (settingsNav()?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-llm-settings'] === '')).toBe(true);
+    // 再次点击「LLM 设置」关闭，回到层级面板。
+    (settingsNav()?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-llm-settings'] === '')).toBe(false);
+    // 打开后点击任一层级按钮也会退出设置页。
+    (settingsNav()?.props?.onClick as () => void)();
+    await flush();
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-llm-settings'] === '')).toBe(false);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters')).toBe(true);
+  });
+
+  it('saves with an empty key when a key is already stored (keeps it)', async () => {
+    const saves: Array<{ input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        llmConfig: {
+          load: async () => ({ providerId: 'novel-custom', baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', hasKey: true }),
+          save: async (input) => { saves.push({ input }); return { ok: true, value: { ok: true, modelRef: 'novel-custom/gpt-4o' } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-settings-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-url'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'https://new.example.com/v1' } });
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-llm-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(saves).toEqual([{ input: { baseUrl: 'https://new.example.com/v1', model: 'gpt-4o', apiKey: '' } }]);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-message'] !== undefined)).toBe(true);
+  });
+
   it('blocks save when the key is missing and none is stored', async () => {
     const saves: unknown[] = [];
     const { registrations } = mount(

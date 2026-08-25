@@ -98,8 +98,17 @@ export function createLlmConfigService(
 
     async save(input) {
       const parsed = llmConfigSaveInputSchema.parse(input);
-      // 1. API Key → 本地 DSH 凭据 seam。
-      await mergeYaml(credentialsFile, (doc) => { doc[NOVEL_LLM_CREDENTIAL_REF] = parsed.apiKey; });
+      // 1. API Key → 本地 DSH 凭据 seam。Key 留空 = 保留已保存的 Key；两者皆无则报错。
+      const apiKey = parsed.apiKey.trim();
+      let effectiveKey = apiKey;
+      if (effectiveKey === '') {
+        const existing = (await readYamlObject(credentialsFile))[NOVEL_LLM_CREDENTIAL_REF];
+        if (typeof existing !== 'string' || existing.length === 0) {
+          throw new Error('请先填写 API Key（当前未保存任何 Key，留空无法保留）');
+        }
+        effectiveKey = existing;
+      }
+      await mergeYaml(credentialsFile, (doc) => { doc[NOVEL_LLM_CREDENTIAL_REF] = effectiveKey; });
       // 2. provider 路由 → settings.yaml（OpenAI 兼容 completions 端点）。
       await mergeYaml(settingsFile, (doc) => mergeProvider(doc, NOVEL_LLM_PROVIDER_ID, {
         apiKeyEnv: NOVEL_LLM_CREDENTIAL_REF,

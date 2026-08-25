@@ -92,6 +92,24 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
     await rm(dshHome, { recursive: true, force: true });
   });
 
+  it('keeps the stored key when save passes an empty key, and rejects an empty key with none stored', async () => {
+    const dshHome = await makeHome();
+    const settingsRoot = await makeHome();
+    const service = createLlmConfigService(dshHome, settingsRoot);
+
+    await expect(service.save({ ...SAVE_INPUT, apiKey: '' })).rejects.toThrow(/API Key/);
+
+    await service.save(SAVE_INPUT);
+    await service.save({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', apiKey: '' });
+    const credentials = load(await readFile(join(dshHome, '.credentials.yaml'), 'utf8')) as Record<string, unknown>;
+    expect(credentials[NOVEL_LLM_CREDENTIAL_REF]).toBe(SAVE_INPUT.apiKey);
+    const view = await service.load();
+    expect(view).toMatchObject({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', hasKey: true });
+
+    await rm(dshHome, { recursive: true, force: true });
+    await rm(settingsRoot, { recursive: true, force: true });
+  });
+
   it('persists the A2 file path listed in the error surface', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
