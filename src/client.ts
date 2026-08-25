@@ -60,6 +60,7 @@ import { reloadProject, type ProjectOpenLayers } from './client/project-session.
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
+import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
@@ -127,6 +128,10 @@ export type WorkbenchActions = {
   worldMutate(update: (draft: WorldShape) => WorldShape): void;
   outlineMutate(update: (draft: OutlineShape) => OutlineShape): void;
   relationshipMutate(update: (draft: RelationshipShape) => RelationshipShape): void;
+  openSettings(): void;
+  settingsLoaded(view: LlmConfigViewShape): void;
+  settingsMutate(patch: Partial<LlmConfigDraftShape>): void;
+  settingsSettled(patch: Partial<LlmConfigDraftShape>): void;
 };
 
 /** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。 */
@@ -142,8 +147,8 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
   );
 }
 
-/** 左侧层级导航：六层一桌，激活项打朱砂。 */
-function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void): unknown {
+/** 左侧层级导航：六层一桌 + LLM 设置页，激活项打朱砂。 */
+function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showSettings: boolean, openSettings: () => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
     LAYERS.map((layer) => h('button', {
       key: layer.id,
@@ -153,6 +158,14 @@ function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void):
       'aria-current': activeLayer === layer.id ? 'page' : undefined,
       onClick: () => activate(layer.id),
     }, layer.label)),
+    h('button', {
+      key: '__settings__',
+      type: 'button',
+      className: 'nv-workbench__nav-item' + (showSettings ? ' is-active' : ''),
+      'data-novel-settings-nav': '',
+      'aria-current': showSettings ? 'page' : undefined,
+      onClick: () => openSettings(),
+    }, 'LLM 设置'),
   );
 }
 
@@ -229,8 +242,8 @@ interface WorkbenchOps {
   readonly canon: CanonEditOps;
 }
 
-/** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void): unknown {
+/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层或 LLM 设置页）。 */
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; collapse(): void; close(): void; activate(id: LayerId): void; openSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -255,21 +268,30 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      layerNav(h, ui.activeLayer, ui.activate),
-      h('div', { className: 'nv-workbench__main' }, contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops), sourceEntry, review),
+      layerNav(h, ui.activeLayer, ui.activate, ui.showSettings, () => ui.openSettings()),
+      h('div', { className: 'nv-workbench__main' },
+        ui.showSettings
+          ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
+          : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
+        ui.showSettings ? null : sourceEntry,
+        ui.showSettings ? null : review,
+      ),
     )
     : effectiveStatus === 'ready'
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
-        projects.length === 0 ? h('div', null,
-          h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
-          h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'),
-          h('label', { className: 'nv-upload', 'data-novel-upload': '' },
-            h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
-            h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
-          ),
-          uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
-        )
-          : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))),
+        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.showSettings ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.openSettings() }, 'LLM 设置'),
+        ui.showSettings
+          ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
+          : (projects.length === 0 ? h('div', null,
+              h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
+              h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'),
+              h('label', { className: 'nv-upload', 'data-novel-upload': '' },
+                h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
+                h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
+              ),
+              uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+            )
+              : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name)))),
       )
     : h('section', {
       className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
@@ -330,6 +352,9 @@ interface WorkbenchState {
   upload: UploadProgress;
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
   onboarding: OnboardingState | undefined;
+  showSettings: boolean;
+  settingsView: LlmConfigViewShape | undefined;
+  settingsDraft: LlmConfigDraftShape;
 }
 
 /** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
@@ -347,11 +372,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let workspace: WorkspaceNamespace | undefined;
       let onboarding: OnboardingNamespace | undefined;
       let analyzer: { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
+      let llmConfig: LlmConfigNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
       let onboardingDisposer: TypertDisposer | undefined;
       let analyzerDisposer: TypertDisposer | undefined;
+      let llmConfigDisposer: TypertDisposer | undefined;
 
       // The store is the wiring hub: actions write it; the component subscribes
       // via useStore and re-renders. Every load result and every editor draft
@@ -381,6 +408,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           upload: { phase: 'idle' },
           uploadResult: undefined,
           onboarding: undefined,
+          showSettings: false,
+          settingsView: undefined,
+          settingsDraft: freshLlmConfigDraft(),
         }),
         actions: {
           open: (d) => { d.open = true; d.collapsed = false; },
@@ -417,6 +447,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
+          openSettings: (d) => { d.showSettings = true; },
+          settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model }; },
+          settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
+          settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
         },
       });
 
@@ -622,9 +656,33 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             get open() { return s.open; },
             get collapsed() { return s.collapsed; },
             get activeLayer() { return s.activeLayer; },
+            get showSettings() { return s.showSettings; },
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
+            openSettings() {
+              dispatch((x) => x.openSettings());
+              if (s.settingsView === undefined && llmConfig) {
+                void unwrap(llmConfig.load()).then((view) => { if (active) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => dispatch((x) => x.settingsSettled({ error: '设置读取失败' })));
+              }
+            },
+            saveLlmConfig() {
+              const target = llmConfig;
+              const draft = s.settingsDraft;
+              if (!target) { dispatch((x) => x.settingsSettled({ error: '设置服务不可用' })); return; }
+              const baseUrl = draft.baseUrl.trim();
+              const model = draft.model.trim();
+              if (baseUrl === '' || model === '') { dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
+              if (draft.apiKey === '' && !(s.settingsView?.hasKey ?? false)) { dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
+              dispatch((x) => x.settingsSettled({ saving: true, message: '', error: '' }));
+              void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey })).then(
+                (result) => {
+                  dispatch((x) => x.settingsSettled({ saving: false, message: `已保存路由 ${(result as { modelRef: string }).modelRef}（重启 DSH 服务后生效）` }));
+                  void unwrap(llmConfig?.load()).then((view) => { if (active && view !== undefined) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);
+                },
+                (cause: Error) => dispatch((x) => x.settingsSettled({ saving: false, error: (cause as Error).message })),
+              );
+            },
             selectProject(id: string) { openProject(id); },
             createProject(input: { projectId: string; name: string }) { createProject(input); },
             uploadFile(file: File) {
@@ -674,7 +732,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding);
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, {
+            view: s.settingsView,
+            draft: s.settingsDraft,
+            namespace: llmConfig,
+            mutate: (patch: Partial<LlmConfigDraftShape>) => dispatch((x) => x.settingsMutate(patch)),
+            save: () => ui.saveLlmConfig(),
+          });
         };
 
         const slotDisposer = ctx.slots.register(
@@ -715,6 +779,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           onboardingDisposer = dispose;
           onboarding = ctx.get('remote.novelOnboarding', false) as OnboardingNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: onboarding Remote mount failed', cause); });
+        void ctx.remote.$mount(llmConfigRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          llmConfigDisposer = dispose;
+          llmConfig = ctx.get('remote.novelLlmConfig', false) as LlmConfigNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: llm config Remote mount failed', cause); });
         return () => {
           active = false;
           capturedActions = undefined;
@@ -722,10 +791,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           workspace = undefined;
           onboarding = undefined;
           analyzer = undefined;
+          llmConfig = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
           if (analyzerDisposer) void analyzerDisposer();
+          if (llmConfigDisposer) void llmConfigDisposer();
         };
       });
 

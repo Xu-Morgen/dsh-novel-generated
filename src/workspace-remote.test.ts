@@ -2,7 +2,7 @@ import { Context } from '@deepseek-ai/cordis';
 import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol';
 import { describe, expect, it } from 'vitest';
-import { NOVEL_WORKSPACE_NAMESPACE, canonQueryInvocation, onboardingAdjudicateInvocation, onboardingAnalysisStartInvocation, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
+import { NOVEL_WORKSPACE_NAMESPACE, canonQueryInvocation, llmConfigRemoteContribution, onboardingAdjudicateInvocation, onboardingAnalysisStartInvocation, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
 
 describe('I33 Host workspace Remote', () => {
   it('registers a typed minimal view model and withdraws it with the disposer', async () => {
@@ -45,7 +45,7 @@ describe('I33 Host workspace Remote', () => {
     // The DSH client gateway (`dsh-api-gateway`) rejects `src-json` codecs at
     // $mount time. Every descriptor that reaches the Client must carry `strict`
     // codecs for its result and every parameter (H0-9 public Remote contract).
-    for (const descriptor of [...workspaceRemoteContribution.descriptors, probeInvocation]) {
+    for (const descriptor of [...workspaceRemoteContribution.descriptors, ...llmConfigRemoteContribution.descriptors, probeInvocation]) {
       expect(descriptor.result.mode).toBe('strict');
       for (const parameter of descriptor.parameters) {
         expect(parameter.codec.mode).toBe('strict');
@@ -80,7 +80,7 @@ describe('I33 Host workspace Remote', () => {
     // client.ts mounts used to share `novel-creation-tool`, so the analyzer and
     // onboarding mounts failed silently and `remote.novelOnboardingAnalyzer`
     // never existed ("分析服务不可用").
-    const mounted = [workspaceRemoteContribution, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution];
+    const mounted = [workspaceRemoteContribution, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, llmConfigRemoteContribution];
     expect(new Set(mounted.map((item) => item.package)).size).toBe(mounted.length);
     const root = new Context();
     await root.plugin(TypertRegistry);

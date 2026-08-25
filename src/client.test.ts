@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -208,7 +208,13 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   };
   const workspace = makeWorkspace(viewModel, overrides);
   const remote = { $mount: async () => async () => {} };
-  const get = (name: string) => (name === 'remote.novelWorkspace' ? workspace : undefined);
+  const llmConfig = mountOptions.llmConfig ?? {};
+  const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
+    : name === 'remote.novelLlmConfig' ? {
+      load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false })),
+      save: llmConfig.save ?? (async () => ({ ok: true, modelRef: 'novel-custom/test' })),
+    }
+    : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
   // Editor behavior tests deliberately open the fixture project through the
@@ -507,6 +513,67 @@ describe('I50 project-session startup', () => {
     (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
     await flush();
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'outline' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+  });
+});
+
+describe('LLM 设置页', () => {
+  it('opens the settings page, echoes the saved view and saves new values through the Remote', async () => {
+    const loads: string[] = [];
+    const saves: Array<{ input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        llmConfig: {
+          load: async () => { loads.push('load'); return { providerId: 'novel-custom', baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', hasKey: true }; },
+          save: async (input) => { saves.push({ input }); return { ok: true, value: { ok: true, modelRef: 'novel-custom/gpt-4o' } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const settingsNav = collect(render(), 'button').find((node) => node.props?.['data-novel-settings-nav'] === '');
+    expect(settingsNav).toBeDefined();
+    (settingsNav?.props?.onClick as () => void)();
+    await flush();
+
+    expect(loads).toEqual(['load']);
+    const urlInput = collect(render(), 'input').find((node) => node.props?.['data-novel-llm-url'] === '');
+    expect(urlInput?.props?.value).toBe('https://api.example.com/v1');
+    expect(collect(render(), 'input').find((node) => node.props?.['data-novel-llm-model'] === '')?.props?.value).toBe('gpt-4o');
+
+    (urlInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'https://new.example.com/v1' } });
+    (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-model'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'gpt-5' } });
+    (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-key'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'sk-new-key-123456' } });
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-llm-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+
+    expect(saves).toEqual([{ input: { baseUrl: 'https://new.example.com/v1', model: 'gpt-5', apiKey: 'sk-new-key-123456' } }]);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-message'] !== undefined)).toBe(true);
+  });
+
+  it('blocks save when the key is missing and none is stored', async () => {
+    const saves: unknown[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        llmConfig: {
+          load: async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false }),
+          save: async (input) => { saves.push(input); return { ok: true, value: { ok: true, modelRef: 'x' } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-settings-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-url'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'https://x.example/v1' } });
+    (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-model'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'gpt-4o' } });
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-llm-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(saves).toEqual([]);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-error'] !== undefined)).toBe(true);
   });
 });
 

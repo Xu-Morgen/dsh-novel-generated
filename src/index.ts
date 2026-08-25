@@ -33,6 +33,7 @@ import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
+import { createLlmConfigService } from './host/llm-config-service.js';
 import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-service.js';
 import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './host/onboarding-adjudication-service.js';
 import { SettingsIndex, A2_SETTINGS_FILE, resolveA2GenerationConfig } from './core/settings-index/index.js';
@@ -169,6 +170,11 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
    ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
+  const llmConfigService = createLlmConfigService(undefined, config.settingsRoot);
+  ctx.provide('novelLlmConfig', bindRemote({
+    load: () => llmConfigService.load(),
+    save: (input: unknown) => llmConfigService.save(input as Parameters<typeof llmConfigService.save>[0]),
+  }, 'novelLlmConfig', 'novelLlmConfig'));
   const analyzerService = createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose));
   // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
   // no generation settings of its own — so when the caller omits them, resolve
