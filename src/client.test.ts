@@ -26,6 +26,10 @@ interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
   projectCreate?: (input: unknown) => Promise<unknown>;
   projectOpen?: (projectId: string) => Promise<unknown>;
+  uploadStart?: (input: unknown) => Promise<unknown>;
+  uploadChunk?: (uploadId: string, index: number, base64: string) => Promise<unknown>;
+  uploadFinalize?: (uploadId: string) => Promise<unknown>;
+  uploadCancel?: (uploadId: string) => Promise<unknown>;
   characterList?: () => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
   characterUpdate?: (projectId: string, id: string, patch: unknown) => Promise<unknown>;
@@ -70,6 +74,10 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   projectList: overrides.projectList ?? (async () => [{ id: 'fixture-project', name: '夹具作品' }]),
   projectCreate: overrides.projectCreate ?? (async () => ({})),
   projectOpen: overrides.projectOpen ?? (async () => ({})),
+  uploadStart: overrides.uploadStart ?? (async () => ({ uploadId: 'fixture-upload', chunkSize: 65536, nextIndex: 0 })),
+  uploadChunk: overrides.uploadChunk ?? (async () => ({ nextIndex: 1, received: 0 })),
+  uploadFinalize: overrides.uploadFinalize ?? (async () => ({ sourceHash: 'a'.repeat(64), fileName: 'fixture.docx', text: '', chunks: [] })),
+  uploadCancel: overrides.uploadCancel ?? (async () => ({ ok: true })),
 });
 
 const READY_MODEL = {
@@ -223,7 +231,20 @@ const flush = async (): Promise<void> => {
   for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
 };
 
-afterEach(() => { delete (globalThis as unknown as { document?: unknown }).document; });
+/** Node has no `FileReader`; the upload helper needs one to read the File. */
+class FakeFileReader {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  result: ArrayBuffer = new ArrayBuffer(0);
+  readAsArrayBuffer(file: File) {
+    void file.arrayBuffer().then((buffer) => { this.result = buffer; this.onload?.(); });
+  }
+}
+
+afterEach(() => {
+  delete (globalThis as unknown as { document?: unknown }).document;
+  delete (globalThis as unknown as { FileReader?: unknown }).FileReader;
+});
 
 describe('I46 创作台 workbench shell', () => {
   it('registers the overlay panel and a discoverable sidebar launch entry, never a single slot', async () => {
@@ -462,6 +483,43 @@ describe('I50 project-session startup', () => {
     expect(render().props?.['data-novel-workspace']).toBe('error');
     expect(layerButtons(render())).toEqual([]);
     expect(characterLoads).toBe(0);
+  });
+});
+
+describe('I53 DOCX new-work entry from an empty root', () => {
+  it('creates and opens a project from the uploaded document, then starts the six-layer review', async () => {
+    (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
+    const created: Array<{ projectId: string; name: string }> = [];
+    const opened: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [],
+        projectCreate: async (input) => {
+          const parsed = input as { projectId: string; name: string };
+          created.push(parsed);
+          return { id: parsed.projectId, name: parsed.name };
+        },
+        projectOpen: async (id) => { opened.push(id); return {}; },
+        uploadStart: async () => ({ uploadId: 'u1', chunkSize: 65536, nextIndex: 0 }),
+        uploadChunk: async () => ({ nextIndex: 1, received: 1 }),
+        uploadFinalize: async () => ({ sourceHash: 'a'.repeat(64), fileName: 'my book.docx', text: '第一段\n\n第二段', chunks: [{ index: 0, text: '第一段\n\n第二段', startOffset: 0, endOffset: 9 }] }),
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const input = collect(render(), 'input').find((node) => node.props?.['data-novel-upload-input'] === '');
+    expect(input).toBeDefined();
+    (input?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1, 2, 3])], 'my book.docx')] as unknown as FileList } });
+    await flush();
+
+    // 空 root 上传必须自动新建并打开作品，再进入六层审阅（I53 三入口）。
+    expect(created).toEqual([{ projectId: 'my-book', name: 'my book' }]);
+    expect(opened).toEqual(['my-book']);
+    expect(render().props?.['data-novel-project-open']).toBe('my-book');
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(true);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-upload-result'] !== undefined)).toBe(true);
   });
 });
 

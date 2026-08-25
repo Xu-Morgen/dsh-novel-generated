@@ -440,7 +440,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         if (capturedActions !== undefined) fn(capturedActions);
         else pending.push(fn);
       };
-      const openProject = (projectId: string): void => {
+      const openProject = (projectId: string, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
         void unwrap(target.projectOpen(projectId)).then(() => {
@@ -450,16 +450,17 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             actions.selectProject(projectId);
             reloadProject(target, projectId, actions, dispatch, () => active);
           });
+          if (onOpened) onOpened();
         }, () => dispatch((actions) => actions.fail('作品打开失败')));
       };
-      const createProject = (input: { projectId: string; name: string }): void => {
+      const createProject = (input: { projectId: string; name: string }, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
         dispatch((actions) => actions.createProject(input));
         void unwrap(target.projectCreate(input)).then((project) => {
           if (!active) return;
           dispatch((actions) => actions.setProjects([project]));
-          openProject((project as { id: string }).id);
+          openProject((project as { id: string }).id, onOpened);
         }, () => dispatch((actions) => actions.fail('作品创建失败')));
       };
 
@@ -631,7 +632,18 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               void uploadDocx(target, file, (progress) => dispatch((x) => x.uploadProgress(progress))).then(
                 (result) => {
                   dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
-                  if (currentProjectId) startOnboarding(currentProjectId, result.sourceHash, result.text);
+                  const projectId = currentProjectId;
+                  if (projectId !== undefined) {
+                    startOnboarding(projectId, result.sourceHash, result.text);
+                    return;
+                  }
+                  // I53 DOCX new-work entry: with no project open yet, create one
+                  // from the uploaded document, open it, then drive the six-layer
+                  // review (design §14.7.4; I53 goal 三入口).
+                  const name = result.fileName.replace(/\.docx$/i, '') || '未命名作品';
+                  createProject({ projectId: slug(name), name }, () => {
+                    if (currentProjectId !== undefined) startOnboarding(currentProjectId, result.sourceHash, result.text);
+                  });
                 },
                 () => dispatch((x) => x.uploadSettled(undefined)),
               );
