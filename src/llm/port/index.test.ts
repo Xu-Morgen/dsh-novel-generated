@@ -32,9 +32,13 @@ describe('I17 Host-only LLM port', () => {
     });
     await expect(collectCandidate(backend, { prompt: 'continue', settings })).resolves.toEqual({ text: '夜色沉下来', chunks: 3 });
     expect(options).toMatchObject({
-      provider: 'route', model: 'default', temperature: 0.4, stop: ['<END>'],
+      provider: 'route', model: 'default', temperature: 0.4,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'continue' }], source: { kind: 'plugin', plugin: 'novel-creation-tool' } }],
     });
+    // The current DSH `llm.stream` contract rejects `GenerateOptions.stop`;
+    // `stopSequences` must never be forwarded, and undefined knobs are omitted.
+    expect(options).not.toHaveProperty('stop');
+    expect(options).not.toHaveProperty('maxTokens');
   });
 
   it('fails closed for invalid model routes and DSH error finishes', async () => {

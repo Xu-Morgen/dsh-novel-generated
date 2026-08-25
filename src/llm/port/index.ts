@@ -59,7 +59,6 @@ interface DshGenerateOptions {
   messages: readonly [{ id: string; role: 'user'; content: readonly [{ type: 'text'; text: string }]; source: { kind: 'plugin'; plugin: string } }];
   temperature?: number;
   maxTokens?: number;
-  stop?: string[];
   signal?: AbortSignal;
 }
 
@@ -109,6 +108,9 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
   return Object.freeze({
     async *stream(request: GenerationRequest): AsyncIterable<LlmChunk> {
       const { provider, model } = splitModelRef(request.settings.modelRef);
+      // The current DSH `llm.stream` contract rejects `GenerateOptions.stop`,
+      // so `stopSequences` is deliberately not forwarded; only defined sampling
+      // knobs are included (undefined members are omitted).
       const options: DshGenerateOptions = {
         provider,
         model,
@@ -118,9 +120,8 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
           content: [{ type: 'text', text: request.prompt }],
           source: { kind: 'plugin', plugin: 'novel-creation-tool' },
         }],
-        temperature: request.settings.temperature,
-        maxTokens: request.settings.maxTokens,
-        stop: request.settings.stopSequences,
+        ...(request.settings.temperature === undefined ? {} : { temperature: request.settings.temperature }),
+        ...(request.settings.maxTokens === undefined ? {} : { maxTokens: request.settings.maxTokens }),
         signal: request.signal,
       };
       for await (const chunk of llm.stream(options)) {

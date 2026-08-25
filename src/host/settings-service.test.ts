@@ -31,7 +31,10 @@ describe('I31 Host settings service', () => {
       await service.save(config);
       const first = await service.generate({ sections: [{ id: 'outline', text: 'OUTLINE' }, { id: 'state', text: 'STATE' }], userPrompt: '继续。' });
       expect(first.prompt).toContain('STATE\n\nOUTLINE');
-      expect(seen[0]).toMatchObject({ provider: 'dsh', model: 'draft-model', temperature: 0.2, stop: ['<END>'] });
+      expect(seen[0]).toMatchObject({ provider: 'dsh', model: 'draft-model', temperature: 0.2 });
+      // The DSH `llm.stream` contract rejects `GenerateOptions.stop`; the A2
+      // template's stopSequences are never forwarded.
+      expect(seen[0]).not.toHaveProperty('stop');
       expect(resolved).toEqual(['DRAFT_API_KEY']);
 
       await service.save({ ...config, active: { backendId: 'final', templateId: 'revision', presetId: 'final-preset' } });
