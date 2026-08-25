@@ -27,4 +27,5 @@ export const onboardingAdjudicateInvocation = onboardingInvocation('adjudicate',
 export const onboardingAcceptedLayersInvocation = onboardingInvocation('acceptedLayers', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#onboardingAcceptedLayers', z.array(z.json())));
 export const onboardingFinalApplyInvocation = onboardingInvocation('finalApply', [param('input', strictCodec('novel-creation-tool#onboardingFinalApplyInput', onboardingFinalApplyInputSchema))], strictCodec('novel-creation-tool#onboardingFinalApply:result', onboardingApplyResultSchema));
 export const onboardingInvocations = [onboardingAdjudicateInvocation, onboardingAcceptedLayersInvocation, onboardingFinalApplyInvocation] as const;
-export const onboardingRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool', descriptors: [...onboardingInvocations] };
+// Unique `package` per client-mounted contribution (see editor.ts note).
+export const onboardingRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-onboarding', descriptors: [...onboardingInvocations] };

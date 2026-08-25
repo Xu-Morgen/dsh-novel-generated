@@ -24,4 +24,5 @@ export const onboardingAnalysisStartInvocation = analyzerInvocation('start', [pa
 export const onboardingAnalysisStatusInvocation = analyzerInvocation('status', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#onboardingAnalysisStatus', onboardingAnalysisStatusSchema));
 export const onboardingAnalysisCancelInvocation = analyzerInvocation('cancel', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#novelOnboardingAnalyzerCancel', z.undefined()));
 export const onboardingAnalyzerInvocations = [onboardingAnalysisStartInvocation, onboardingAnalysisStatusInvocation, onboardingAnalysisCancelInvocation] as const;
-export const onboardingAnalyzerRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool', descriptors: [...onboardingAnalyzerInvocations] };
+// Unique `package` per client-mounted contribution (see editor.ts note).
+export const onboardingAnalyzerRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-analyzer', descriptors: [...onboardingAnalyzerInvocations] };

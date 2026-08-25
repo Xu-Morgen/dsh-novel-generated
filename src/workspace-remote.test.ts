@@ -1,7 +1,7 @@
 import { Context } from '@deepseek-ai/cordis';
 import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
-import { NOVEL_WORKSPACE_NAMESPACE, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
+import { NOVEL_WORKSPACE_NAMESPACE, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
 
 describe('I33 Host workspace Remote', () => {
   it('registers a typed minimal view model and withdraws it with the disposer', async () => {
@@ -71,5 +71,21 @@ describe('I33 Host workspace Remote', () => {
         }
       }
     }
+  });
+
+  it('mounts every client contribution under a unique Remote package name', async () => {
+    // The DSH client Typert registry (`RemoteStore.register`) rejects a second
+    // mount whose `package` is already registered. The three contributions
+    // client.ts mounts used to share `novel-creation-tool`, so the analyzer and
+    // onboarding mounts failed silently and `remote.novelOnboardingAnalyzer`
+    // never existed ("分析服务不可用").
+    const mounted = [workspaceRemoteContribution, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution];
+    expect(new Set(mounted.map((item) => item.package)).size).toBe(mounted.length);
+    const root = new Context();
+    await root.plugin(TypertRegistry);
+    const disposers = mounted.map((item) => root.typert.remotes.register(item));
+    expect(root.typert.remotes.list().map((item) => item.id)).toContain('novel-creation-tool/novelOnboardingAnalyzer/start');
+    for (const dispose of disposers) dispose();
+    await root.fiber.dispose();
   });
 });

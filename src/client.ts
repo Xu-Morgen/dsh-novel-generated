@@ -708,12 +708,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (!active) { void dispose(); return; }
           analyzerDisposer = dispose;
           analyzer = ctx.get('remote.novelOnboardingAnalyzer', false) as { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
-        }, () => { /* analyzer remote unavailable; review stays disabled */ });
+        }, (cause: Error) => { console.error('novel-creation-tool: analyzer Remote mount failed', cause); });
         void ctx.remote.$mount(onboardingRemoteContribution).then((dispose) => {
           if (!active) { void dispose(); return; }
           onboardingDisposer = dispose;
           onboarding = ctx.get('remote.novelOnboarding', false) as OnboardingNamespace | undefined;
-        }, () => { /* adjudication remote unavailable */ });
+        }, (cause: Error) => { console.error('novel-creation-tool: onboarding Remote mount failed', cause); });
         return () => {
           active = false;
           capturedActions = undefined;
