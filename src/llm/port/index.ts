@@ -91,7 +91,9 @@ export async function collectCandidate(
   } catch (error) {
     if (error instanceof GenerationError) throw error;
     if (request.signal?.aborted) throw new GenerationError('cancelled', 'Generation cancelled', { cause: error });
-    throw new GenerationError('backend', 'Host LLM route failed', { cause: error });
+    // Surface the adapter/provider cause so a failing route is diagnosable from
+    // the Remote error instead of a bare "Host LLM route failed".
+    throw new GenerationError('backend', `Host LLM route failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
   return { text, chunks };
 }
