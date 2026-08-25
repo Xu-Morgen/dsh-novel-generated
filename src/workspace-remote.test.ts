@@ -1,7 +1,8 @@
 import { Context } from '@deepseek-ai/cordis';
 import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
+import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol';
 import { describe, expect, it } from 'vitest';
-import { NOVEL_WORKSPACE_NAMESPACE, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
+import { NOVEL_WORKSPACE_NAMESPACE, canonQueryInvocation, onboardingAdjudicateInvocation, onboardingAnalysisStartInvocation, onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, probeInvocation, workspaceContribution, workspaceRemoteContribution, workspaceViewModelInvocation, workspaceViewModel } from './remote.js';
 
 describe('I33 Host workspace Remote', () => {
   it('registers a typed minimal view model and withdraws it with the disposer', async () => {
@@ -87,5 +88,22 @@ describe('I33 Host workspace Remote', () => {
     expect(root.typert.remotes.list().map((item) => item.id)).toContain('novel-creation-tool/novelOnboardingAnalyzer/start');
     for (const dispose of disposers) dispose();
     await root.fiber.dispose();
+  });
+
+  it('marks optional wire parameters so the gateway accepts the client call shapes', () => {
+    // dsh-api-gateway `assertExactArguments` accepts an absent JSON wire field
+    // only when the descriptor marks it `acceptsUndefined` (or src-json). The
+    // Client drops `undefined` positional values, so an optional parameter that
+    // is not marked makes the Host reject the call — e.g.
+    // `missing "settings"` on novelOnboardingAnalyzer/start.
+    const missing = (descriptor: InvocationDescriptor, args: Record<string, unknown>): string[] => {
+      const acceptsMissing = new Set(descriptor.parameters
+        .filter((parameter) => parameter.source === 'json' && (parameter.acceptsUndefined === true || parameter.codec.mode === 'src-json'))
+        .map((parameter) => parameter.wire));
+      return descriptor.parameters.map((parameter) => parameter.wire).filter((key) => !Object.hasOwn(args, key) && !acceptsMissing.has(key));
+    };
+    expect(missing(onboardingAnalysisStartInvocation, { input: { projectId: 'p', sourceHash: 'a'.repeat(64), text: 't' } })).toEqual([]);
+    expect(missing(onboardingAdjudicateInvocation, { input: { projectId: 'p', onboardingSessionId: 's', sourceHash: 'a'.repeat(64), layer: 'characters', decision: 'accept' } })).toEqual([]);
+    expect(missing(canonQueryInvocation, { projectId: 'p' })).toEqual([]);
   });
 });

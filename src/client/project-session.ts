@@ -58,5 +58,5 @@ export function reloadProject(
       if (list.length > 0) x.stateDraft({ selectedSeq: list[list.length - 1].seq, fromSeq: list[0].seq, toSeq: list.length > 1 ? list[list.length - 1].seq : undefined });
     });
   }, (cause: Error) => dispatch((x) => x.setState('error', [], cause.message)));
-  void unwrap(workspace.canonQuery(projectId)).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
+  void unwrap(workspace.canonQuery(projectId, undefined)).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
 }

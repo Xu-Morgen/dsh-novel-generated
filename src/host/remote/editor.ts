@@ -26,7 +26,8 @@ const outlineBeatCardSchema = z.object({ actId: z.string(), beatId: z.string(), 
 const stateDiffSchema = z.object({ fromSeq: z.number(), toSeq: z.number(), changes: z.array(z.object({ path: z.string(), before: z.unknown(), after: z.unknown() })) });
 const worldviewRewriteResultSchema = z.object({ superseded: worldEntrySchema, replacement: worldEntrySchema });
 const canonCorrectionAcceptResultSchema = z.object({ confirmation: confirmationRecordSchema, event: z.unknown() });
-const param = (name: string, codec = jsonCodec): InvocationParameterDescriptor => ({ name, wire: name, source: 'json', codec });
+const param = (name: string, codec = jsonCodec, optional = false): InvocationParameterDescriptor =>
+  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
 const projectParameter = param('projectId', stringCodec);
 const entityParameter = param('entityId', stringCodec);
 const inputParameter = param('input');
@@ -34,7 +35,10 @@ const patchParameter = param('patch');
 const seqParameter = param('seq', numberCodec);
 const fromSeqParameter = param('fromSeq', numberCodec);
 const toSeqParameter = param('toSeq', numberCodec);
-const filterParameter = param('filter');
+// `filter` is optional: the Client drops `undefined` positional values, so the
+// gateway only accepts an absent wire field when the descriptor marks it so
+// (dsh-api-gateway `assertExactArguments`).
+const filterParameter = param('filter', undefined, true);
 const targetIdParameter = param('targetId', stringCodec);
 const proposalIdParameter = param('proposalId', stringCodec);
 function editorInvocation(service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor {

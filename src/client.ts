@@ -596,7 +596,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               const e = snapshot.canonEditor;
               if (!workspace || projectId === undefined) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
               if (e.proposalId === undefined) { act.canonDraft({ error: '请先发起更正提案' }); return; }
-              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery(projectId)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
+              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
             },
           },
         };

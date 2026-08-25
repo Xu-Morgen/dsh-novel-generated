@@ -31,7 +31,7 @@ export interface OnboardingApplyResultShape {
 
 /** Mounted `remote.novelOnboarding` namespace surface. */
 export interface OnboardingNamespace {
-  adjudicate(input: { projectId: string; onboardingSessionId: string; sourceHash: string; layer: OnboardingLayerId; decision: OnboardingDecision; editedValue?: unknown; feedback?: string }): Promise<unknown>;
+  adjudicate(input: { projectId: string; onboardingSessionId: string; sourceHash: string; layer: OnboardingLayerId; decision: OnboardingDecision; editedValue?: unknown; feedback?: string }, settings?: unknown): Promise<unknown>;
   acceptedLayers(onboardingSessionId: string): Promise<unknown>;
   finalApply(input: { projectId: string; onboardingSessionId: string; sourceHash: string }): Promise<unknown>;
 }
@@ -122,7 +122,7 @@ export async function adjudicateOne(namespace: OnboardingNamespace, state: Onboa
     sourceHash: state.sourceHash,
     layer,
     decision,
-  })) as unknown as OnboardingAdjudicationRecord;
+  }, undefined)) as unknown as OnboardingAdjudicationRecord;
 }
 
 /** 触发 Host final apply 并解析为结构化结果。 */

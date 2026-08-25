@@ -14,13 +14,14 @@ import {
  * Remote. This namespace stays strictly candidate-producing; it never writes a
  * layer (I53 owns the Gate-backed apply).
  */
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown())): InvocationParameterDescriptor => ({ name, wire: name, source: 'json', codec });
+const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
+  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
 
 function analyzerInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
   return { id: `novel-creation-tool/novelOnboardingAnalyzer/${method}`, service: 'novelOnboardingAnalyzer', namespace: 'novelOnboardingAnalyzer', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
 }
 
-export const onboardingAnalysisStartInvocation = analyzerInvocation('start', [param('input', strictCodec('novel-creation-tool#onboardingAnalysisStartInput', onboardingAnalysisStartInputSchema)), param('settings')], strictCodec('novel-creation-tool#onboardingAnalysis:result', onboardingAnalysisResultSchema));
+export const onboardingAnalysisStartInvocation = analyzerInvocation('start', [param('input', strictCodec('novel-creation-tool#onboardingAnalysisStartInput', onboardingAnalysisStartInputSchema)), param('settings', undefined, true)], strictCodec('novel-creation-tool#onboardingAnalysis:result', onboardingAnalysisResultSchema));
 export const onboardingAnalysisStatusInvocation = analyzerInvocation('status', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#onboardingAnalysisStatus', onboardingAnalysisStatusSchema));
 export const onboardingAnalysisCancelInvocation = analyzerInvocation('cancel', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#novelOnboardingAnalyzerCancel', z.undefined()));
 export const onboardingAnalyzerInvocations = [onboardingAnalysisStartInvocation, onboardingAnalysisStatusInvocation, onboardingAnalysisCancelInvocation] as const;

@@ -14,7 +14,8 @@ import { confirmationRecordSchema } from '../../core/schema/confirm.js';
  * record (accepted, or a new pending successor); `finalApply` returns the
  * minimal structured `partial-retryable` result.
  */
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown())): InvocationParameterDescriptor => ({ name, wire: name, source: 'json', codec });
+const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
+  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
 
 function onboardingInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec, service = 'novelOnboarding'): InvocationDescriptor {
   return { id: `novel-creation-tool/${service}/${method}`, service, namespace: service, method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
@@ -22,7 +23,7 @@ function onboardingInvocation(method: string, parameters: readonly InvocationPar
 
 export const onboardingAdjudicateInvocation = onboardingInvocation('adjudicate', [
   param('input', strictCodec('novel-creation-tool#onboardingAdjudicateInput', onboardingAdjudicateInputSchema)),
-  param('settings'),
+  param('settings', undefined, true),
 ], strictCodec('novel-creation-tool#onboardingAdjudicate:result', confirmationRecordSchema));
 export const onboardingAcceptedLayersInvocation = onboardingInvocation('acceptedLayers', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#onboardingAcceptedLayers', z.array(z.json())));
 export const onboardingFinalApplyInvocation = onboardingInvocation('finalApply', [param('input', strictCodec('novel-creation-tool#onboardingFinalApplyInput', onboardingFinalApplyInputSchema))], strictCodec('novel-creation-tool#onboardingFinalApply:result', onboardingApplyResultSchema));
