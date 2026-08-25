@@ -33,6 +33,7 @@ import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
+import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -86,6 +87,10 @@ import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContri
  * - `novelImport` (I37): Host-only controlled text import and pending candidates.
  * - `novelSplitAgent` (I38): Host-routed B5/B2/detail-beat candidates; every
  *   result remains confirmation-first and never writes C1/C2/C3/C4.
+ * - `novelOnboardingAnalyzer` (I52): Host-only six-layer B3/B2/B5/C1/C2/C4
+ *   candidate-package analyzer with start/status/cancel/regenerate lifecycle;
+ *   it returns candidates only, never writes a layer, and forbids C3/
+ *   items/factions/globalFlags inference.
  * - `novelProbe` (I2): plain Host service backing the `novelProbe/probe` Remote.
  *   Its Typert contribution is registered only when the DSH Typert registry
  *   (`ctx.typert`, key `typert`) is present, so the plugin still boots in the
@@ -162,6 +167,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
    ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
+  ctx.provide('novelOnboardingAnalyzer', createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose)));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
