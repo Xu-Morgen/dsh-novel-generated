@@ -56,7 +56,7 @@ import {
   type OutlineShape,
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
-import { reloadProject } from './client/project-session.js';
+import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
@@ -443,12 +443,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       const openProject = (projectId: string, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
-        void unwrap(target.projectOpen(projectId)).then(() => {
+        void unwrap(target.projectOpen(projectId)).then((result) => {
           if (!active) return;
           currentProjectId = projectId;
+          const layers = (result as { layers?: ProjectOpenLayers } | undefined)?.layers;
           dispatch((actions) => {
             actions.selectProject(projectId);
-            reloadProject(target, projectId, actions, dispatch, () => active);
+            reloadProject(target, projectId, actions, dispatch, () => active, layers);
           });
           if (onOpened) onOpened();
         }, () => dispatch((actions) => actions.fail('作品打开失败')));

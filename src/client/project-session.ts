@@ -1,6 +1,6 @@
 import type { WorkspaceNamespace } from './shared.js';
 import { unwrap } from './shared.js';
-import type { OutlineShape } from './layers/outline.js';
+import { emptyOutline, type OutlineShape } from './layers/outline.js';
 import type { StateSnapshotShape } from './layers/state.js';
 
 /** Load-result setters plus the editor initializers reload needs to seed. */
@@ -22,13 +22,21 @@ export interface ProjectSessionActions {
  * `dispatch` gates against an unmounted Fiber (`active`) and defers until the
  * store's baked actions are captured, so late Remote completions never mutate
  * a dead UI and never race the store instance.
+ *
+ * The optional `layers` readiness comes from `projectOpen` (I50 step 21): a B5
+ * `uninitialized` outline is the legacy `{}` marker that `outlineRead` would
+ * reject — skip the read and show the empty form instead.
  */
+export interface ProjectOpenLayers {
+  readonly outline?: 'ready' | 'empty' | 'uninitialized' | 'corrupt';
+}
 export function reloadProject(
   workspace: WorkspaceNamespace,
   projectId: string,
   actions: ProjectSessionActions,
   dispatch: (fn: (a: ProjectSessionActions) => void) => void,
   active: () => boolean,
+  layers?: ProjectOpenLayers,
 ): void {
   actions.setCharacters('loading', []);
   actions.setWorldview('loading', []);
@@ -38,18 +46,25 @@ export function reloadProject(
   actions.setCanon('loading', []);
   void unwrap(workspace.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
   void unwrap(workspace.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
-  void unwrap(workspace.outlineRead(projectId)).then((outline) => {
+  if (layers?.outline === 'uninitialized') {
     dispatch((x) => {
-      x.setOutline('ready', outline);
-      const shape = outline as OutlineShape;
-      x.outlineDraft({ draft: { ...shape }, dirty: false, error: '' });
-      if ((shape.acts ?? []).length > 0) {
-        const actId = (shape.acts ?? [])[0].id;
-        const beatId = ((shape.acts ?? [])[0].beats ?? [])[0]?.id;
-        x.outlineDraft({ selectedActId: actId, selectedBeatId: beatId });
-      }
+      x.setOutline('ready', emptyOutline());
+      x.outlineDraft({ draft: emptyOutline(), dirty: false, error: '' });
     });
-  }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, cause.message)));
+  } else {
+    void unwrap(workspace.outlineRead(projectId)).then((outline) => {
+      dispatch((x) => {
+        x.setOutline('ready', outline);
+        const shape = outline as OutlineShape;
+        x.outlineDraft({ draft: { ...shape }, dirty: false, error: '' });
+        if ((shape.acts ?? []).length > 0) {
+          const actId = (shape.acts ?? [])[0].id;
+          const beatId = ((shape.acts ?? [])[0].beats ?? [])[0]?.id;
+          x.outlineDraft({ selectedActId: actId, selectedBeatId: beatId });
+        }
+      });
+    }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, cause.message)));
+  }
   void unwrap(workspace.relationshipRead(projectId)).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], cause.message)));
   void unwrap(workspace.stateSnapshots(projectId)).then((snapshots) => {
     dispatch((x) => {

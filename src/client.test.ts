@@ -484,6 +484,30 @@ describe('I50 project-session startup', () => {
     expect(layerButtons(render())).toEqual([]);
     expect(characterLoads).toBe(0);
   });
+
+  it('skips outlineRead for an uninitialized outline and shows the empty form', async () => {
+    let outlineReads = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [{ id: 'fresh', name: 'Fresh' }],
+        // projectOpen reports B5 as uninitialized (legacy `{}` outline).
+        projectOpen: async () => ({ project: { id: 'fresh', name: 'Fresh', version: 1 }, layers: { characters: 'empty', worldview: 'empty', outline: 'uninitialized', relationship: 'empty', state: 'ready', canon: 'empty' } }),
+        outlineRead: async () => { outlineReads += 1; return { id: 'outline', structure: 'free', logline: '', themes: [], acts: [], foreshadowing: [], endings: [] }; },
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-project-open'] === 'fresh')?.props?.onClick as () => void)();
+    await flush();
+    // I50 step 21: skip outlineRead for uninitialized — outlineRead would throw
+    // "Invalid outline document" on the legacy `{}` marker.
+    expect(outlineReads).toBe(0);
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'outline' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+  });
 });
 
 describe('I53 DOCX new-work entry from an empty root', () => {
