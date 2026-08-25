@@ -1,7 +1,7 @@
-import { inflateRawSync } from 'node:zlib';
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { readFile, lstat, realpath } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { readDocxText } from './docx.js';
 
 export const importFormatSchema = z.enum(['txt', 'md', 'docx']);
 export type ImportFormat = z.infer<typeof importFormatSchema>;
@@ -53,47 +53,6 @@ function assertInside(root: string, target: string): void {
   if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) fail('path escapes import root');
 }
 
-function xmlText(xml: string): string {
-  const body = xml
-    .replace(/<w:tab\s*\/?\s*>/g, '\t')
-    .replace(/<w:br\s*\/?\s*>/g, '\n')
-    .replace(/<w:p[^>]*>/g, '\n\n')
-    .replace(/<w:lastRenderedPageBreak[^>]*>/g, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'");
-  return body;
-}
-
-/** Decode the minimal DOCX package contract without handing file bytes to Client. */
-function readDocx(buffer: Buffer): string {
-  if (buffer.readUInt32LE(0) !== 0x04034b50) fail('invalid docx zip');
-  let offset = 0;
-  const entries = new Map<string, Buffer>();
-  while (offset + 30 <= buffer.length && buffer.readUInt32LE(offset) === 0x04034b50) {
-    const method = buffer.readUInt16LE(offset + 8);
-    const compressedSize = buffer.readUInt32LE(offset + 18);
-    const nameLength = buffer.readUInt16LE(offset + 26);
-    const extraLength = buffer.readUInt16LE(offset + 28);
-    const name = buffer.subarray(offset + 30, offset + 30 + nameLength).toString('utf8');
-    const start = offset + 30 + nameLength + extraLength;
-    const end = start + compressedSize;
-    if (!name || end > buffer.length || name.includes('..')) fail('invalid docx entry');
-    const packed = buffer.subarray(start, end);
-    let value: Buffer;
-    try {
-      value = method === 0 ? packed : method === 8 ? inflateRawSync(packed) : fail('unsupported docx compression');
-    } catch (error) {
-      fail(`corrupt docx entry: ${name}`);
-    }
-    entries.set(name, value);
-    offset = end;
-  }
-  const document = entries.get('word/document.xml');
-  if (!document) fail('docx document.xml is missing');
-  return xmlText(document.toString('utf8'));
-}
-
 function normalizeText(input: string): string {
   const normalized = input.replace(/^\uFEFF/, '').normalize('NFC').replace(/\r\n?/g, '\n');
   return normalized.split('\n').map((line) => line.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -143,8 +102,15 @@ export async function readImportedText(filePath: string, options: ImportOptions)
   if (!format) fail('unsupported file type');
   const buffer = await readFile(target);
   let raw: string;
-  if (format === 'docx') raw = readDocx(buffer);
-  else {
+  if (format === 'docx') {
+    try {
+      raw = readDocxText(new Uint8Array(buffer));
+    } catch (error) {
+      // Re-wrap with the import facade's single rejection prefix so every
+      // consumer observes one consistent failure contract (I51 code-retirement).
+      fail((error as Error).message.replace(/^DOCX rejected: /, ''));
+    }
+  } else {
     raw = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
     if (raw.includes('\u0000')) fail('binary text is not supported');
   }

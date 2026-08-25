@@ -1,6 +1,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it, afterEach } from 'vitest';
 import { importForReview, readImportedText } from './index.js';
 
@@ -13,17 +14,13 @@ async function fixture(): Promise<string> {
   return root;
 }
 
+/** Build a real OOXML ZIP package (with central directory) for the mature reader. */
 function storedDocx(xml: string): Buffer {
-  const content = Buffer.from(xml);
-  const header = Buffer.alloc(30);
-  header.writeUInt32LE(0x04034b50, 0);
-  header.writeUInt16LE(20, 4);
-  header.writeUInt16LE(0, 6);
-  header.writeUInt16LE(0, 8);
-  header.writeUInt32LE(content.length, 18);
-  header.writeUInt32LE(content.length, 22);
-  header.writeUInt16LE('word/document.xml'.length, 26);
-  return Buffer.concat([header, Buffer.from('word/document.xml'), content]);
+  const archive = zipSync({
+    'word/document.xml': strToU8(xml),
+    '[Content_Types].xml': strToU8('<Types/>'),
+  });
+  return Buffer.from(archive);
 }
 
 describe('I37 deterministic import', () => {

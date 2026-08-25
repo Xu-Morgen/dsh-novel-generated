@@ -17,7 +17,7 @@ describe('I33 Host workspace Remote', () => {
     disposer();
     expect(root.typert.local.get('novelWorkspace/viewModel')).toBeUndefined();
     expect(workspaceRemoteContribution.descriptors[0]).toBe(workspaceViewModelInvocation);
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(21);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(25);
     await root.fiber.dispose();
   });
 
@@ -37,10 +37,13 @@ describe('I33 Host workspace Remote', () => {
     // Results carry precise domain/view schemas (never the `#json` passthrough),
     // while `input`/`patch`/`filter` objects stay passthrough because the Host
     // owns domain validation and the Client owns no schema (design §0.1.2).
+    // I51 `uploadStart` is the deliberate exception: its `input` is a small typed
+    // boundary (fileName/size/sha256) validated strictly at the wire (R11-2).
     for (const descriptor of workspaceRemoteContribution.descriptors) {
       expect((descriptor.result as { typeSymbol: string }).typeSymbol).not.toBe('novel-creation-tool#json');
     }
     for (const descriptor of workspaceRemoteContribution.descriptors) {
+      if (descriptor.method === 'uploadStart') continue;
       for (const parameter of descriptor.parameters) {
         if (['input', 'patch', 'filter'].includes(parameter.wire)) {
           expect((parameter.codec as { typeSymbol: string }).typeSymbol).toBe('novel-creation-tool#json');

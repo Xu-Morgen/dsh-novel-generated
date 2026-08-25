@@ -31,6 +31,10 @@ export interface EditorRemote {
   projectList(): Promise<unknown[]>;
   projectCreate(input: unknown): Promise<unknown>;
   projectOpen(projectId: string): Promise<unknown>;
+  uploadStart(input: unknown): Promise<unknown>;
+  uploadChunk(uploadId: string, index: number, base64: string): Promise<unknown>;
+  uploadFinalize(uploadId: string): Promise<unknown>;
+  uploadCancel(uploadId: string): Promise<unknown>;
 }
 
 /** The mounted `remote.novelWorkspace` namespace service surface. */

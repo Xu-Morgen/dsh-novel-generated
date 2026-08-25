@@ -46,6 +46,8 @@ const sourceFiles = [
   'src/index.ts',
   'src/client.ts',
   'src/remote.ts',
+  'src/client/shared.ts',
+  'src/client/upload.ts',
 ];
 
 describe('I2 client manifest contract', () => {
@@ -88,5 +90,18 @@ describe('I2 negative scan (fail closed on out-of-contract symbols)', () => {
     // The build wraps src/client.ts into window.__ModuleLoader__.load; the
     // source itself must reference the public slot key it registers into.
     expect(read('src/client.ts')).toContain('shell.overlay');
+  });
+
+  it('I51 client upload transports bytes without ZIP/XML parsing or Node fs', () => {
+    // The DOCX file selector only ships restricted bytes to the Host temp area;
+    // the Client must not own a ZIP/XML parser or any Node filesystem surface
+    // (design §14.7.2 / D18, requirement R11-2 / N-3).
+    const upload = read('src/client/upload.ts');
+    expect(upload).not.toMatch(/from\s+['"]fflate['"]/);
+    expect(upload).not.toMatch(/from\s+['"]node:/);
+    expect(upload).not.toMatch(/unzip|inflate|zipSync|UnzipInf/);
+    expect(upload).not.toMatch(/DOMParser/);
+    expect(upload).not.toMatch(/from\s+['"]node:fs['"]/);
+    expect(upload).not.toMatch(/createWriteStream|createReadStream/);
   });
 });

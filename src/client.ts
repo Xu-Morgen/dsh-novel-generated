@@ -57,6 +57,7 @@ import {
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
 import { reloadProject } from './client/project-session.js';
+import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
@@ -102,6 +103,8 @@ export type WorkbenchActions = {
   setProjects(list: unknown[]): void;
   selectProject(projectId: string): void;
   createProject(input: { projectId: string; name: string }): void;
+  uploadProgress(progress: UploadProgress): void;
+  uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
   setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
@@ -221,7 +224,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = []): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -234,7 +237,15 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops))
     : effectiveStatus === 'ready'
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
-        projects.length === 0 ? h('div', null, h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。'), h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'))
+        projects.length === 0 ? h('div', null,
+          h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
+          h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'),
+          h('label', { className: 'nv-upload', 'data-novel-upload': '' },
+            h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
+            h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
+          ),
+          uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+        )
           : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))),
       )
     : h('section', {
@@ -259,6 +270,18 @@ function launchButton(React: ReactFace, launch: () => void): unknown {
   }, '创作台');
 }
 
+/** I51 上传进度文案（纯展示，不经 Host）。 */
+function uploadStatusLabel(upload: UploadProgress | undefined): string {
+  switch (upload?.phase) {
+    case 'reading': return '正在读取文件…';
+    case 'uploading': return `正在上传 ${upload.uploaded ?? 0}/${upload.chunks ?? 0} 块…`;
+    case 'finalizing': return '正在提取文本…';
+    case 'done': return '提取完成';
+    case 'error': return `上传失败：${upload.message ?? ''}`;
+    case 'idle': default: return '上传 DOCX 文档';
+  }
+}
+
 /* ---- store shape: the single reactive source of truth for the workbench ---- */
 
 interface WorkbenchState {
@@ -281,6 +304,8 @@ interface WorkbenchState {
   selectedProjectId: string | undefined;
   projects: Array<{ id: string; name: string }>;
   projectLoading: boolean;
+  upload: UploadProgress;
+  uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
 }
 
 /** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
@@ -325,6 +350,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           selectedProjectId: undefined,
           projects: [],
           projectLoading: false,
+          upload: { phase: 'idle' },
+          uploadResult: undefined,
         }),
         actions: {
           open: (d) => { d.open = true; d.collapsed = false; },
@@ -336,6 +363,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string) => { d.selectedProjectId = projectId; d.projectLoading = false; },
           createProject: (d) => { d.projectLoading = true; },
+          uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
+          uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -528,6 +557,14 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             activate(id: LayerId) { props.actions.activate(id); },
             selectProject(id: string) { openProject(id); },
             createProject(input: { projectId: string; name: string }) { createProject(input); },
+            uploadFile(file: File) {
+              const target = workspace;
+              if (!target || !active) return;
+              void uploadDocx(target, file, (progress) => dispatch((x) => x.uploadProgress(progress))).then(
+                (result) => dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); }),
+                () => dispatch((x) => x.uploadSettled(undefined)),
+              );
+            },
           };
           const layers: LayerData = {
             characters: s.characters,
@@ -543,7 +580,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects);
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult);
         };
 
         const slotDisposer = ctx.slots.register(

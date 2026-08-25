@@ -6,6 +6,8 @@ import type { NovelStateService } from './state-service.js';
 import type { NovelCanonService } from './canon-service.js';
 import type { NovelConfirmationService } from './confirmation-service.js';
 import type { NovelProjectService } from './project-service.js';
+import type { NovelHostUploadService } from './upload-service.js';
+import type { UploadChunkResult, UploadFinalizeResult, UploadStartInput, UploadStartResult } from '../core/schema/upload.js';
 import type { CharacterCore, CharacterCoreInput, CharacterCorePatch } from '../core/schema/characters.js';
 import type { WorldEntry, WorldEntryInput } from '../core/schema/worldview.js';
 import type { Outline, OutlineBeatCard, OutlineInput } from '../core/schema/outline.js';
@@ -42,10 +44,14 @@ export interface WorkspaceEditorService {
   projectList(): Promise<import('../core/schema/base.js').ProjectMeta[]>;
   projectCreate(input: import('../core/project/index.js').CreateProjectInput): Promise<import('../core/schema/base.js').ProjectMeta>;
   projectOpen(projectId: string): Promise<import('../core/schema/project-lifecycle.js').ProjectOpenResult>;
+  uploadStart(input: UploadStartInput): Promise<UploadStartResult>;
+  uploadChunk(uploadId: string, index: number, base64: string): Promise<UploadChunkResult>;
+  uploadFinalize(uploadId: string): Promise<UploadFinalizeResult>;
+  uploadCancel(uploadId: string): Promise<void>;
 }
 
 /** Host adapter; domain services remain the only layer write owners. */
-export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline?: NovelOutlineService, relationship?: NovelRelationshipService, state?: NovelStateService, canon?: NovelCanonService, confirmation?: NovelConfirmationService, projects?: NovelProjectService): WorkspaceEditorService {
+export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline?: NovelOutlineService, relationship?: NovelRelationshipService, state?: NovelStateService, canon?: NovelCanonService, confirmation?: NovelConfirmationService, projects?: NovelProjectService, upload?: NovelHostUploadService): WorkspaceEditorService {
   if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
   return {
     viewModel: workspaceViewModel,
@@ -57,5 +63,6 @@ export function createWorkspaceEditorService(characters: NovelCharacterService, 
     canonCorrectionPropose: (id, targetId, input) => { if (!confirmation) throw new Error('Confirmation Host service is required'); return confirmation.propose(id, { id: input.id, kind: 'canon-supersede', payload: { targetId, correction: input } }); },
     canonCorrectionAccept: async (id, proposalId) => { if (!confirmation || !canon) throw new Error('C4 and Confirmation Host services are required'); const record = await confirmation.accept(id, proposalId); if (record.kind !== 'canon-supersede') throw new Error('Invalid canon correction proposal kind'); const payload = record.payload as { targetId?: string; correction?: CanonCorrectionInput }; if (!payload.targetId || !payload.correction) throw new Error('Invalid canon correction proposal payload'); const existing = canon.query(id).find((event) => event.id === payload.correction?.id); return { confirmation: record, event: existing ?? await canon.supersede(id, payload.targetId, payload.correction) }; },
     projectList: () => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.listProjects(); }, projectCreate: (input) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.createProject(input); }, projectOpen: (id) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.openProject(id); },
+    uploadStart: (input) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadStart(input); }, uploadChunk: (uploadId, index, base64) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadChunk(uploadId, index, base64); }, uploadFinalize: (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadFinalize(uploadId); }, uploadCancel: async (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); await upload.uploadCancel(uploadId); },
   };
 }

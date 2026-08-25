@@ -32,6 +32,7 @@ import { createLocalizedEditService } from './host/edit-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
+import { createHostUploadService } from './host/upload-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -160,13 +161,14 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
    ctx.provide('novelChapterWriting', createChapterWritingService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
+  const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService, projectService,
+    stateService, canonService, confirmationService, projectService, uploadService,
   );
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).
