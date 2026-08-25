@@ -56,7 +56,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     await root.plugin(TypertRegistry);
     const disposer = root.typert.register(workspaceContribution);
     expect(root.typert.local.get(`${NOVEL_WORKSPACE_NAMESPACE}/viewModel`)).toBeDefined();
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(25);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(28);
     disposer();
     expect(root.typert.local.get('novelWorkspace/characterCreate')).toBeUndefined();
     await root.fiber.dispose();

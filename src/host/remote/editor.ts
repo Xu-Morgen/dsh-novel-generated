@@ -12,6 +12,7 @@ import type { StateDiff } from '../../core/state/index.js';
 import type { CanonCorrectionInput } from '../../core/schema/canon.js';
 import type { ConfirmationRecord } from '../../core/schema/confirm.js';
 import { uploadInvocations } from './upload.js';
+import { projectLifecycleInvocations } from './project-lifecycle.js';
 import { characterCoreSchema } from '../../core/schema/characters.js';
 import { worldEntrySchema } from '../../core/schema/worldview.js';
 import { outlineSchema, detailBeatSchema } from '../../core/schema/outline.js';
@@ -65,5 +66,5 @@ export const canonCorrectionProposeInvocation = editorInvocation('novelWorkspace
 export const canonCorrectionAcceptInvocation = editorInvocation('novelWorkspace', 'canonCorrectionAccept', [projectParameter, proposalIdParameter], canonCorrectionAcceptResultSchema);
 export const editorInvocations = [characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation, worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation, outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation, relationshipReadInvocation, relationshipSaveInvocation, stateCurrentInvocation, stateSnapshotsInvocation, stateRollbackInvocation, stateDiffInvocation, canonQueryInvocation, canonCorrectionProposeInvocation, canonCorrectionAcceptInvocation] as const;
 export const workspaceContribution: TypertContribution = { package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] }, invocations: [workspaceViewModelInvocation, ...editorInvocations] };
-export const workspaceRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool', descriptors: [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations] };
+export const workspaceRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool', descriptors: [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations] };
 export type { CharacterCore, CharacterCoreInput, CharacterCorePatch, WorldEntry, WorldEntryInput, Outline, OutlineBeatCard, OutlineInput, Relationship, RelationshipInput, WorldState, CanonEventView, CanonQuery, StateDiff, CanonCorrectionInput, ConfirmationRecord };
