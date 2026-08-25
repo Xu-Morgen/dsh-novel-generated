@@ -1,8 +1,36 @@
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
 import { Context } from '@deepseek-ai/cordis';
 import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 
 import { apply } from './index.js';
+
+/** Minimal valid A2 config (I31 schema) pointing at the test LLM route. */
+const FIXTURE_A2 = [
+  'version: 1',
+  'backends:',
+  '  - id: draft',
+  '    modelRef: dsh/default',
+  '    secretRef: DEEPSEEK_API_KEY',
+  '    sampling: {}',
+  'templates:',
+  '  - id: default',
+  '    backendRef: draft',
+  '    roleHeaders:',
+  '      system: system',
+  '      user: user',
+  '      assistant: assistant',
+  '    sectionOrder: [system, user]',
+  '    stopSequences: []',
+  'presets: []',
+  'active:',
+  '  backendId: draft',
+  '  templateId: default',
+  '',
+].join('\n');
 
 describe('novel-creation-tool Host plugin (I1)', () => {
   it('provides the novelCreation service while the Fiber is live', async () => {
@@ -214,5 +242,44 @@ describe('novel-creation-tool Host plugin (I1)', () => {
 
     await fiber.dispose();
     expect(root.typert.local.get('novelProbe/probe')).toBeUndefined();
+  });
+
+  it('analyzer start resolves generation settings from the A2 config when omitted', async () => {
+    const settingsRoot = await mkdtemp(join(tmpdir(), 'novel-settings-'));
+    await writeFile(join(settingsRoot, 'a2-settings.yaml'), FIXTURE_A2);
+    const corpus = JSON.parse(await readFile(resolve(process.cwd(), 'samples/i52/cases.json'), 'utf8')) as { cases: Array<{ id: string; text: string; expected: unknown }> };
+    const sample = corpus.cases[0];
+    const root = new Context();
+    const routes: string[] = [];
+    root.provide('llm', {
+      async *stream(options: { provider: string; model: string }) {
+        routes.push(`${options.provider}/${options.model}`);
+        yield { type: 'text-delta', index: 0, text: JSON.stringify(sample.expected) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply, { settingsRoot });
+    const analyzer = root.get('novelOnboardingAnalyzer') as { start(input: unknown, settings?: unknown): Promise<unknown> };
+    const result = await analyzer.start({ projectId: 'demo', sourceHash: 'a'.repeat(64), text: sample.text }, undefined);
+    expect(result).toMatchObject({ projectId: 'demo' });
+    expect(routes).toEqual(['dsh/default']);
+    await fiber.dispose();
+    await rm(settingsRoot, { recursive: true, force: true });
+  });
+
+  it('analyzer start fails with an actionable error when no settings are configured', async () => {
+    const settingsRoot = await mkdtemp(join(tmpdir(), 'novel-settings-'));
+    const root = new Context();
+    root.provide('llm', {
+      async *stream() {
+        yield { type: 'text-delta', index: 0, text: '{}' };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply, { settingsRoot });
+    const analyzer = root.get('novelOnboardingAnalyzer') as { start(input: unknown, settings?: unknown): Promise<unknown> };
+    await expect(analyzer.start({ projectId: 'demo', sourceHash: 'a'.repeat(64), text: '故事文本' }, undefined)).rejects.toThrow(/生成设置未配置/);
+    await fiber.dispose();
+    await rm(settingsRoot, { recursive: true, force: true });
   });
 });

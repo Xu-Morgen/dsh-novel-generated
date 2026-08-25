@@ -35,6 +35,7 @@ import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
 import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-service.js';
 import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './host/onboarding-adjudication-service.js';
+import { SettingsIndex, A2_SETTINGS_FILE, resolveA2GenerationConfig } from './core/settings-index/index.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -169,10 +170,25 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
    ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
   const analyzerService = createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose));
+  // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
+  // no generation settings of its own — so when the caller omits them, resolve
+  // them from the plugin's persisted A2 config (I31 `novelSettings` owner).
+  const settingsIndex = new SettingsIndex(config.settingsRoot);
+  const resolveAnalyzerSettings = async (settings: unknown): Promise<unknown> => {
+    if (settings !== undefined) return settings;
+    try {
+      return resolveA2GenerationConfig(await settingsIndex.load()).settings;
+    } catch (cause) {
+      throw new Error(
+        `生成设置未配置：缺少 generation settings（modelRef/credentialRef），且 ${settingsIndex.root}/${A2_SETTINGS_FILE} 不存在或无效`,
+        { cause },
+      );
+    }
+  };
   // The analyzer is frozen by its constructor. The small mutable Remote carrier
   // delegates to that single owner under the same canonical service key.
   const analyzerRemote = bindRemote({
-    start: (input: unknown, settings: unknown) => analyzerService.start(input as Parameters<typeof analyzerService.start>[0], settings),
+    start: async (input: unknown, settings: unknown) => analyzerService.start(input as Parameters<typeof analyzerService.start>[0], await resolveAnalyzerSettings(settings)),
     status: (onboardingSessionId: string) => analyzerService.status(onboardingSessionId),
     cancel: (onboardingSessionId: string) => analyzerService.cancel(onboardingSessionId),
   }, 'novelOnboardingAnalyzer', 'novelOnboardingAnalyzer');
@@ -183,7 +199,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   const layerSource: OnboardingLayerSource = {
     getResult(onboardingSessionId) { return analyzerService.getResult(onboardingSessionId); },
     async regenerate(onboardingSessionId, layer, settings) {
-      const result = await analyzerService.regenerate(onboardingSessionId, layer, settings);
+      const result = await analyzerService.regenerate(onboardingSessionId, layer, await resolveAnalyzerSettings(settings));
       return { layers: result.layers };
     },
   };

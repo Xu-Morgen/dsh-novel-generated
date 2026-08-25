@@ -1,3 +1,4 @@
+import { homedir } from 'node:os';
 import { mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { z } from 'zod';
@@ -7,6 +8,9 @@ import { GenerationSettingsSchema, type GenerationSettings } from '../../llm/por
 
 /** The Host-only persistence filename for A2 mechanism configuration (design §5.2). */
 export const A2_SETTINGS_FILE = 'a2-settings.yaml';
+
+/** Default Host location when no `settingsRoot` is configured (mirrors settings-service). */
+export const DEFAULT_SETTINGS_ROOT = join(homedir(), '.dsh', 'novel-settings');
 
 const id = z.string().min(1).regex(/^[a-z][a-z0-9-]*$/, 'ID must be lowercase kebab-case');
 const modelRef = z.string().regex(/^[^/\s]+\/[^/\s]+$/, 'modelRef must use provider/model format');
@@ -109,7 +113,7 @@ export interface ResolvedA2GenerationConfig {
  */
 export class SettingsIndex {
   readonly root: string;
-  constructor(root: string) { this.root = resolve(root); }
+  constructor(root: string = DEFAULT_SETTINGS_ROOT) { this.root = resolve(root); }
 
   async load(): Promise<A2Settings> {
     return A2SettingsSchema.parse(await readYaml<unknown>(join(this.root, A2_SETTINGS_FILE)));
