@@ -67,7 +67,7 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   canonQuery: overrides.canonQuery ?? (async () => []),
   canonCorrectionPropose: overrides.canonCorrectionPropose ?? (async () => ({})),
   canonCorrectionAccept: overrides.canonCorrectionAccept ?? (async () => ({})),
-  projectList: overrides.projectList ?? (async () => [{ id: 'default', name: '默认作品' }]),
+  projectList: overrides.projectList ?? (async () => [{ id: 'fixture-project', name: '夹具作品' }]),
   projectCreate: overrides.projectCreate ?? (async () => ({})),
   projectOpen: overrides.projectOpen ?? (async () => ({})),
 });
@@ -205,7 +205,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   entry.apply({ slots, remote, get, effect } as never);
   // Editor behavior tests deliberately open the fixture project through the
   // chooser. I50 forbids production auto-selection, so session tests opt out.
-  const openProjectId = mountOptions.openProjectId === undefined ? 'default' : mountOptions.openProjectId;
+  const openProjectId = mountOptions.openProjectId === undefined ? 'fixture-project' : mountOptions.openProjectId;
   if (openProjectId !== undefined) {
     void (async () => {
       for (let index = 0; index < 8; index += 1) await Promise.resolve();
@@ -255,18 +255,21 @@ describe('I46 创作台 workbench shell', () => {
     expect(() => factory((spec) => (spec === 'react' ? fakeReact : undefined))).toThrow('defineStore is unavailable');
   });
 
-  it('queues the real reload when Remote resolves before renderer actions injection', async () => {
+  it('does not load project layers before explicit selection when renderer injection is delayed', async () => {
     let characterLoads = 0;
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       { characterList: async () => { characterLoads += 1; return []; } },
-      { deferStoreInjection: true },
+      { deferStoreInjection: true, openProjectId: null },
     );
     await flush();
     expect(characterLoads).toBe(0);
 
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     expect(render().props?.['data-novel-workspace']).toBe('ready');
+    expect(characterLoads).toBe(0);
+    const picker = collect(render(), 'button').find((node) => node.props?.['data-novel-project-open'] === 'fixture-project');
+    (picker?.props?.onClick as () => void)();
     await flush();
     expect(characterLoads).toBe(1);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
@@ -358,6 +361,107 @@ describe('I46 创作台 workbench shell', () => {
     (launch.props?.onClick as () => void)();
     expect(renderOverlay()).not.toBeNull();
     expect((renderOverlay() as FakeNode).props?.['data-novel-workspace']).toBe('ready');
+  });
+});
+
+describe('I50 project-session startup', () => {
+  const projectButton = (tree: FakeNode, id: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-project-open'] === id);
+
+  it('shows an empty-root new-project state without mounting six layers', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { projectList: async () => [] },
+      { openProjectId: null },
+    );
+    await flush();
+    const tree = registrations['shell.overlay'][0].component() as FakeNode;
+    expect(tree.props?.['data-novel-workspace']).toBe('ready');
+    expect(collect(tree, 'p').some((node) => node.props?.['data-novel-project-empty'] === '')).toBe(true);
+    expect(layerButtons(tree)).toEqual([]);
+    // I50 requires an actionable blank-project entry. The current production
+    // chooser only describes the state, so this assertion is intentionally red
+    // until it exposes a create control wired to projectCreate.
+    expect(collect(tree, 'button').some((node) => node.props?.['data-novel-project-create'] === '')).toBe(true);
+  });
+
+  it('shows multiple projects without selecting the first one', async () => {
+    const projectOpen: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [{ id: 'alpha', name: 'Alpha' }, { id: 'beta', name: 'Beta' }],
+        projectOpen: async (id) => { projectOpen.push(id); return {}; },
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const tree = registrations['shell.overlay'][0].component() as FakeNode;
+    expect(collect(tree, 'ul').some((node) => node.props?.['data-novel-project-list'] === '')).toBe(true);
+    expect(projectButton(tree, 'alpha')).toBeDefined();
+    expect(projectButton(tree, 'beta')).toBeDefined();
+    expect(projectOpen).toEqual([]);
+    expect(layerButtons(tree)).toEqual([]);
+  });
+
+  it('opens the selected project, reloads every layer, and keeps later writes on that id', async () => {
+    const calls: Array<{ method: string; projectId: string }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [{ id: 'alpha', name: 'Alpha' }, { id: 'beta', name: 'Beta' }],
+        projectOpen: async (id) => { calls.push({ method: 'projectOpen', projectId: id }); return {}; },
+        characterList: async () => { calls.push({ method: 'characterList', projectId: 'beta' }); return []; },
+        worldviewList: async () => { calls.push({ method: 'worldviewList', projectId: 'beta' }); return []; },
+        outlineRead: async (id) => { calls.push({ method: 'outlineRead', projectId: id }); return { id: 'outline', structure: 'free', logline: '', themes: [], acts: [], foreshadowing: [], endings: [] }; },
+        relationshipRead: async (id) => { calls.push({ method: 'relationshipRead', projectId: id }); return []; },
+        stateSnapshots: async (id) => { calls.push({ method: 'stateSnapshots', projectId: id }); return []; },
+        canonQuery: async (id) => { calls.push({ method: 'canonQuery', projectId: id }); return []; },
+        characterCreate: async (id, input) => { calls.push({ method: 'characterCreate', projectId: id }); return { ...(input as object), id: 'mara' }; },
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (projectButton(render(), 'beta')?.props?.onClick as () => void)();
+    await flush();
+
+    expect(render().props?.['data-novel-project-open']).toBe('beta');
+    expect(calls.filter((call) => call.method !== 'characterCreate')).toEqual(expect.arrayContaining([
+      { method: 'projectOpen', projectId: 'beta' },
+      { method: 'characterList', projectId: 'beta' },
+      { method: 'worldviewList', projectId: 'beta' },
+      { method: 'outlineRead', projectId: 'beta' },
+      { method: 'relationshipRead', projectId: 'beta' },
+      { method: 'stateSnapshots', projectId: 'beta' },
+      { method: 'canonQuery', projectId: 'beta' },
+    ]));
+
+    const nameInput = collect(render(), 'input').find((node) => node.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-character-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toContainEqual({ method: 'characterCreate', projectId: 'beta' });
+  });
+
+  it('fails closed when opening the selected project fails', async () => {
+    let characterLoads = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [{ id: 'broken', name: 'Broken' }],
+        projectOpen: async () => { throw new Error('cannot open'); },
+        characterList: async () => { characterLoads += 1; return []; },
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (projectButton(render(), 'broken')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-workspace']).toBe('error');
+    expect(layerButtons(render())).toEqual([]);
+    expect(characterLoads).toBe(0);
   });
 });
 
@@ -463,7 +567,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('create');
-    expect(calls[0].projectId).toBe('default');
+    expect(calls[0].projectId).toBe('fixture-project');
     expect(calls[0].input).toMatchObject({
       id: 'mara', name: 'Mara', kind: 'extra',
       personality: '', background: '', motivation: '',
@@ -675,7 +779,7 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     await flush();
 
     expect(saveCalls).toHaveLength(1);
-    expect(saveCalls[0].projectId).toBe('default');
+    expect(saveCalls[0].projectId).toBe('fixture-project');
     expect(saveCalls[0].input).toMatchObject({ logline: 'A new saga.', structure: 'free' });
     expect(byData(render(), 'data-novel-layer-state', 'ready')).toBeDefined();
     expect(byData(render(), 'data-novel-outline-save', '')).toBeDefined();
@@ -735,7 +839,7 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     await flush();
 
     expect(saveCalls).toHaveLength(1);
-    expect(saveCalls[0].projectId).toBe('default');
+    expect(saveCalls[0].projectId).toBe('fixture-project');
     expect(saveCalls[0].input).toMatchObject({
       id: 'hero+mentor', from: 'hero', to: 'mentor', type: 'mentor', status: 'strained',
     });
@@ -819,7 +923,7 @@ describe('I49 C2/C4 面板 (R10-6)', () => {
     await flush();
 
     expect(rollbackCalls).toHaveLength(1);
-    expect(rollbackCalls[0]).toEqual({ projectId: 'default', seq: 0 });
+    expect(rollbackCalls[0]).toEqual({ projectId: 'fixture-project', seq: 0 });
   });
 
   it('computes a diff between two snapshots only through stateDiff', async () => {
@@ -894,7 +998,7 @@ describe('I49 C2/C4 面板 (R10-6)', () => {
     await flush();
 
     expect(proposeCalls).toHaveLength(1);
-    expect(proposeCalls[0].projectId).toBe('default');
+    expect(proposeCalls[0].projectId).toBe('fixture-project');
     expect(proposeCalls[0].targetId).toBe('ev-1');
     expect(proposeCalls[0].input).toMatchObject({ summary: '英雄改道入城' });
   });

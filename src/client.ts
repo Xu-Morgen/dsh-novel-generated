@@ -86,6 +86,7 @@ export type WorkbenchActions = {
   fail(message: string): void;
   setProjects(list: unknown[]): void;
   selectProject(projectId: string): void;
+  createProject(input: { projectId: string; name: string }): void;
   setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
@@ -1090,7 +1091,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = []): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = []): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -1103,7 +1104,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops))
     : effectiveStatus === 'ready'
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
-        projects.length === 0 ? h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。')
+        projects.length === 0 ? h('div', null, h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。'), h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'))
           : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))),
       )
     : h('section', {
@@ -1111,7 +1112,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       'data-novel-workspace-state': effectiveStatus,
       role: effectiveStatus === 'error' ? 'alert' : undefined,
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
-  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus },
+  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus, 'data-novel-project-open': selectedProjectId },
     brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
     ui.collapsed ? null : body,
   );
@@ -1211,6 +1212,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string) => { d.selectedProjectId = projectId; d.projectLoading = false; },
+          createProject: (d) => { d.projectLoading = true; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -1295,6 +1297,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             runReload(target, actions, projectId);
           });
         }, () => dispatch((actions) => actions.fail('作品打开失败')));
+      };
+      const createProject = (input: { projectId: string; name: string }): void => {
+        const target = workspace;
+        if (!active || target === undefined) return;
+        dispatch((actions) => actions.createProject(input));
+        void unwrap(target.projectCreate(input)).then((project) => {
+          if (!active) return;
+          dispatch((actions) => actions.setProjects([project]));
+          openProject((project as { id: string }).id);
+        }, () => dispatch((actions) => actions.fail('作品创建失败')));
       };
 
       // Edit-op closures: derive from the current store snapshot and write back
@@ -1423,6 +1435,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
             selectProject(id: string) { openProject(id); },
+            createProject(input: { projectId: string; name: string }) { createProject(input); },
           };
           const layers: LayerData = {
             characters: s.characters,

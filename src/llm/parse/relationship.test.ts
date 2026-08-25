@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -31,7 +31,8 @@ async function corpus(): Promise<Corpus> {
 
 describe('I27 C1 relationship parser', () => {
   it('limits the prompt to C1 and produces validated proposals without writing C1', async () => {
-    const repository = new RelationshipRepository(await root());
+    const project = await root();
+    const repository = new RelationshipRepository(project);
     await repository.open();
     const prompt = buildC1RelationshipParserPrompt({ prose: '林舟与米拉结为盟友。', current: [friendship] });
     expect(prompt).toContain('你是小说关系解析器');
@@ -42,7 +43,8 @@ describe('I27 C1 relationship parser', () => {
       op: 'modify', targetId: 'lin-mira', field: 'trust', action: 'set', value: 70, confidence: 'high',
     }] }), { prose: '林舟终于相信米拉。', current: [friendship] }, settings);
     expect(result.ops).toHaveLength(1);
-    await expect(repository.read()).rejects.toThrow();
+    expect(await repository.read()).toEqual([]);
+    await expect(stat(join(project, 'relationships.yaml'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('mechanically writes a complete validated batch through RelationshipRepository once', async () => {
