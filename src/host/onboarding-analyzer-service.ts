@@ -31,6 +31,8 @@ export interface NovelOnboardingAnalyzerService {
   status(onboardingSessionId: string): OnboardingAnalysisStatus;
   cancel(onboardingSessionId: string): Promise<void>;
   regenerate(onboardingSessionId: string, layer: OnboardingLayerKey, settings: unknown, signal?: AbortSignal): Promise<OnboardingAnalysisResult>;
+  /** Read the bound result for a session (I53 adjudication needs the candidate layers). */
+  getResult(onboardingSessionId: string): OnboardingAnalysisResult | undefined;
 }
 
 interface Job {
@@ -104,6 +106,10 @@ export function createOnboardingAnalyzerService(
     },
     status(onboardingSessionId: string) {
       return job(onboardingSessionId).status;
+    },
+    getResult(onboardingSessionId: string) {
+      const found = jobs.get(onboardingSessionId);
+      return found?.result;
     },
     async cancel(onboardingSessionId: string) {
       const current = job(onboardingSessionId);

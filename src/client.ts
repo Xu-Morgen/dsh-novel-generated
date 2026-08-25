@@ -58,6 +58,8 @@ import {
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
 import { reloadProject } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
+import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
+import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
@@ -105,6 +107,10 @@ export type WorkbenchActions = {
   createProject(input: { projectId: string; name: string }): void;
   uploadProgress(progress: UploadProgress): void;
   uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
+  onboarding(state: OnboardingState | undefined): void;
+  onboardingDecision(layer: OnboardingLayerId, decision: OnboardingDecision): void;
+  onboardingApplyResult(result: OnboardingState['applyResult']): void;
+  onboardingError(message: string): void;
   setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
@@ -224,7 +230,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; collapse(): void; close(): void; activate(id: LayerId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -233,8 +239,25 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const message = status.status === 'error' ? status.message
     : (effectiveStatus === 'error' ? '创作台远程服务不可用' : undefined);
   const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
+  let sourceText = '';
+  const sourceEntry = selectedProjectId === undefined ? null : h('section', { className: 'nv-onboarding-entry', 'data-novel-onboarding-entry': '' },
+    h('label', { className: 'nv-field' },
+      h('span', { className: 'nv-field__label' }, '原文初始化'),
+      h('textarea', { className: 'nv-field__input', rows: 4, placeholder: '粘贴原文以生成六层候选', onChange: (event: { target: { value: string } }) => { sourceText = event.target.value; } }),
+    ),
+    h('button', { type: 'button', className: 'nv-onboarding-entry__start', 'data-novel-onboarding-start': '', onClick: () => ui.analyzeText(sourceText) }, '分析原文'),
+    h('label', { className: 'nv-upload', 'data-novel-onboarding-upload': '' },
+      h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
+      h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
+    ),
+    uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+  );
+  const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
-    ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId }, layerNav(h, ui.activeLayer, ui.activate), contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops))
+    ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
+      layerNav(h, ui.activeLayer, ui.activate),
+      h('div', { className: 'nv-workbench__main' }, contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops), sourceEntry, review),
+    )
     : effectiveStatus === 'ready'
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
         projects.length === 0 ? h('div', null,
@@ -306,6 +329,7 @@ interface WorkbenchState {
   projectLoading: boolean;
   upload: UploadProgress;
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
+  onboarding: OnboardingState | undefined;
 }
 
 /** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
@@ -321,9 +345,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
     inject: ['slots', 'remote'],
     apply(ctx): void {
       let workspace: WorkspaceNamespace | undefined;
+      let onboarding: OnboardingNamespace | undefined;
+      let analyzer: { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
+      let onboardingDisposer: TypertDisposer | undefined;
+      let analyzerDisposer: TypertDisposer | undefined;
 
       // The store is the wiring hub: actions write it; the component subscribes
       // via useStore and re-renders. Every load result and every editor draft
@@ -352,6 +380,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           projectLoading: false,
           upload: { phase: 'idle' },
           uploadResult: undefined,
+          onboarding: undefined,
         }),
         actions: {
           open: (d) => { d.open = true; d.collapsed = false; },
@@ -365,6 +394,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           createProject: (d) => { d.projectLoading = true; },
           uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
           uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
+          onboarding: (d, state: OnboardingState | undefined) => { d.onboarding = state; },
+          onboardingDecision: (d, layer: OnboardingLayerId, decision: OnboardingDecision) => { if (d.onboarding) d.onboarding.decisions = { ...d.onboarding.decisions, [layer]: decision }; },
+          onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding.applyResult = result; },
+          onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding.error = message; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -428,6 +461,41 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           dispatch((actions) => actions.setProjects([project]));
           openProject((project as { id: string }).id);
         }, () => dispatch((actions) => actions.fail('作品创建失败')));
+      };
+
+      // I53: start six-layer analysis from a source text, then open the review.
+      // The current onboarding state is mirrored in a closure so the verdict/apply
+      // handlers can read it without reaching into the reactive store snapshot.
+      let currentOnboarding: OnboardingState | undefined;
+      const setOnboarding = (next: OnboardingState | undefined): void => {
+        currentOnboarding = next;
+        dispatch((actions) => actions.onboarding(next));
+      };
+      const startOnboarding = (projectId: string, sourceHash: string, text: string): void => {
+        const target = analyzer;
+        if (!active || target === undefined) { setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: '分析服务不可用' }); return; }
+        void unwrap(target.start({ projectId, sourceHash, text }, undefined)).then((result) => {
+          if (!active) return;
+          const session = result as { onboardingSessionId?: string };
+          if (!session.onboardingSessionId) throw new Error('分析未返回会话 id');
+          setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {} });
+        }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : undefined));
+      };
+      const decideLayer = (layer: OnboardingLayerId, decision: OnboardingDecision): void => {
+        const target = onboarding;
+        const state = currentOnboarding;
+        if (!active || target === undefined || !state) return;
+        dispatch((actions) => actions.onboardingDecision(layer, decision));
+        void adjudicateOne(target, state, layer, decision).catch((cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
+      };
+      const applyOnboarding = (): void => {
+        const target = onboarding;
+        const state = currentOnboarding;
+        if (!active || target === undefined || !state) return;
+        void applyAccepted(target, state).then((result) => {
+          if (!active) return;
+          dispatch((actions) => actions.onboardingApplyResult(result));
+        }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
       };
 
       // Edit-op closures: derive from the current store snapshot and write back
@@ -561,9 +629,22 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               const target = workspace;
               if (!target || !active) return;
               void uploadDocx(target, file, (progress) => dispatch((x) => x.uploadProgress(progress))).then(
-                (result) => dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); }),
+                (result) => {
+                  dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
+                  if (currentProjectId) startOnboarding(currentProjectId, result.sourceHash, result.text);
+                },
                 () => dispatch((x) => x.uploadSettled(undefined)),
               );
+            },
+            analyzeText(text: string) {
+              const projectId = currentProjectId;
+              const normalized = text.trim();
+              if (!projectId || normalized.length === 0) return;
+              void crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)).then((digest) => {
+                const bytes = new Uint8Array(digest);
+                const hash = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                startOnboarding(projectId, hash, normalized);
+              });
             },
           };
           const layers: LayerData = {
@@ -580,7 +661,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult);
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding);
         };
 
         const slotDisposer = ctx.slots.register(
@@ -608,13 +689,30 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
           );
         }, () => { dispatch((x) => x.fail('创作台远程服务不可用')); });
+        // I53: mount the analyzer + adjudication namespaces for the six-layer
+        // review. Start analysis after a source text is available (upload or
+        // free text), then review/adjudicate/apply through their Remotes.
+        void ctx.remote.$mount(onboardingAnalyzerRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          analyzerDisposer = dispose;
+          analyzer = ctx.get('remote.novelOnboardingAnalyzer', false) as { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
+        }, () => { /* analyzer remote unavailable; review stays disabled */ });
+        void ctx.remote.$mount(onboardingRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          onboardingDisposer = dispose;
+          onboarding = ctx.get('remote.novelOnboarding', false) as OnboardingNamespace | undefined;
+        }, () => { /* adjudication remote unavailable */ });
         return () => {
           active = false;
           capturedActions = undefined;
           pending.splice(0);
           workspace = undefined;
+          onboarding = undefined;
+          analyzer = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
+          if (onboardingDisposer) void onboardingDisposer();
+          if (analyzerDisposer) void analyzerDisposer();
         };
       });
 

@@ -34,6 +34,7 @@ import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
 import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-service.js';
+import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './host/onboarding-adjudication-service.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 
 /**
@@ -167,7 +168,40 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
    ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
-  ctx.provide('novelOnboardingAnalyzer', createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose)));
+  const analyzerService = createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose));
+  // The analyzer is frozen by its constructor. The small mutable Remote carrier
+  // delegates to that single owner under the same canonical service key.
+  const analyzerRemote = bindRemote({
+    start: (input: unknown, settings: unknown) => analyzerService.start(input as Parameters<typeof analyzerService.start>[0], settings),
+    status: (onboardingSessionId: string) => analyzerService.status(onboardingSessionId),
+    cancel: (onboardingSessionId: string) => analyzerService.cancel(onboardingSessionId),
+  }, 'novelOnboardingAnalyzer', 'novelOnboardingAnalyzer');
+  ctx.provide('novelOnboardingAnalyzer', analyzerRemote);
+  // I53: adjudication builds on the analyzer's bound results. The layer source
+  // adapts `getResult`/`regenerate` so the adjudication facade stays independent
+  // of the analyzer's job lifecycle internals.
+  const layerSource: OnboardingLayerSource = {
+    getResult(onboardingSessionId) { return analyzerService.getResult(onboardingSessionId); },
+    async regenerate(onboardingSessionId, layer, settings) {
+      const result = await analyzerService.regenerate(onboardingSessionId, layer, settings);
+      return { layers: result.layers };
+    },
+  };
+  const adjudicationService = createOnboardingAdjudicationService({
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    confirmation: confirmationService,
+  }, layerSource);
+  // The service is immutable; expose the same owner through a mutable Remote carrier.
+  ctx.provide('novelOnboarding', bindRemote({
+    adjudicate: (input: unknown, settings: unknown) => adjudicationService.adjudicate(input as Parameters<typeof adjudicationService.adjudicate>[0], settings),
+    acceptedLayers: (onboardingSessionId: string) => adjudicationService.acceptedLayers(onboardingSessionId),
+    finalApply: (input: unknown) => adjudicationService.finalApply(input as Parameters<typeof adjudicationService.finalApply>[0]),
+  }, 'novelOnboarding', 'novelOnboarding'));
 
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
