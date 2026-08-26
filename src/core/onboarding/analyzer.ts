@@ -70,7 +70,14 @@ export function formatContractViolation(context: string, guidance: string, cause
 
 /** Parse a model response into the strict I52 envelope (JSON only, no markdown). */
 export function parseOnboardingOutput(text: unknown): OnboardingAnalysisOutput {
-  const raw = z.string().trim().min(1).parse(text);
+  let raw: string;
+  try {
+    raw = z.string().trim().min(1).parse(text);
+  } catch (cause) {
+    // Empty/whitespace completions (e.g. reasoning-only API responses) surface
+    // as the same readable, retryable failure as malformed JSON.
+    throw new Error('Onboarding output must be valid JSON', { cause });
+  }
   let json: unknown;
   try {
     json = JSON.parse(raw);
@@ -191,10 +198,11 @@ export function layerHashes(layers: OnboardingLayers): Record<OnboardingLayerKey
  * This is a *prompt artifact*, not a sample/gold: it demonstrates the exact
  * per-layer candidate field names and nesting the model must reproduce. Its
  * core content mirrors the frozen canonical corpus case `canonical-harbor-mystery`
- * (samples/i52/cases.json, immutable); the outline candidate additionally shows
- * one `foreshadowing` and one `endings` object so the model sees those nested
- * shapes (the frozen case leaves both empty). The example is schema-valid by
- * construction and is asserted parseable by the deterministic test suite.
+ * (samples/i52/cases.json, immutable); it additionally shows one `foreshadowing`
+ * and one `endings` object, a second character and a `relationship` candidate
+ * (numbers + id references) so the model sees those shapes (the frozen case
+ * leaves them empty). The example is schema-valid by construction and is
+ * asserted parseable by the deterministic test suite.
  * The empty `candidates` example alone is not enough for weak models — the
  * observed failure mode is a shape collapse into generic
  * `{type,name,summary,confidence,evidenceIds}` candidates (see
@@ -223,6 +231,23 @@ export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
         speechStyle: '',
         staticTraits: [],
         arc: { startingPoint: '受雇调查失踪案', desiredEnd: '揭开真相', keyBeats: [] },
+        relationships: [],
+        knowledgeIds: [],
+      }, {
+        // 追加的第二角色：让 relationship 示例有可引用的字符 id（prompt 工件）。
+        id: 'laozhou',
+        name: '灯塔守夜人',
+        aliases: [],
+        kind: 'supporting',
+        personality: '',
+        background: '北港灯塔守夜人',
+        motivation: '',
+        goals: [],
+        flaws: [],
+        abilities: [],
+        speechStyle: '',
+        staticTraits: [],
+        arc: { startingPoint: '', desiredEnd: '', keyBeats: [] },
         relationships: [],
         knowledgeIds: [],
       }],
@@ -296,7 +321,24 @@ export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
       warnings: [],
       evidenceIds: ['e03', 'e04'],
     },
-    relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+    // 追加的 relationship 示例：演示 affinity/trust 是 JSON 数字、from/to/knownTo
+    // 引用 characters 候选 id、milestones 为空（prompt 工件，非样本/gold）。
+    relationship: {
+      candidates: [{
+        id: 'mira-laozhou-search',
+        from: 'mira',
+        to: 'laozhou',
+        type: 'mentor',
+        affinity: 40,
+        trust: 30,
+        status: '受雇调查对象',
+        milestones: [],
+        knownTo: ['mira'],
+      }],
+      confidence: 'high',
+      warnings: [],
+      evidenceIds: ['e03'],
+    },
     state: {
       candidates: [{
         id: 'initial-state',
@@ -344,10 +386,11 @@ export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
  */
 const ONBOARDING_LAYER_CONTRACT_SUMMARY =
   '每层 candidates 的字段契约（candidates 内禁止自造任何其他字段，也禁止把层级的 confidence/warnings/evidenceIds 放进候选；除非字段契约明确为字符串数组，否则数组元素必须是对象；所有枚举值必须逐字取自括号内选项，禁止自造）：' +
+  '引用与数字规范：id 与引用字段（id,from,to,parent,participants,charactersInvolved,prerequisites,pov,characterId,knownBy,milestones,consequences 等）只能是 ASCII 小写字母/数字/下划线/连字符组成的引用 id（如 mira、act-1、north-harbor），禁止中文、空格与自然语言短语，且必须指向同包内其他候选的 id（无引用则为空数组）；数字字段（weight,affinity,trust,wordTarget,index,sourceChunkIndex）必须是 JSON number，禁止加引号。' +
   'characters: id,name,aliases,kind(protagonist|antagonist|supporting|extra|pov),personality,background,motivation,goals,flaws,abilities,speechStyle,staticTraits,arc{startingPoint,desiredEnd,keyBeats},relationships,knowledgeIds；' +
   'worldview: id,kind(geography|history|faction|culture|race|concept|artifact),title,content,keywords,triggerMode(keyword|regex|constant),weight,parent,mutable；' +
   'outline: id,structure(three-act|hero-journey|serial|free),logline,themes,acts[{id,index,title,goal,beats[{id,title,description,charactersInvolved,conflictType(internal|external|relational|world),prerequisites,optional,detailBeats[{id,title,summary,pov,wordTarget,points,status(planned|writing|done)}]}]}],foreshadowing[{id,hint,payoff,status(unplanted|planted|payed),knownBy}],endings[{id,title,conditions,description}]；' +
-  'relationship: id,from,to,type(kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate),affinity,trust,status,milestones,knownTo；' +
+  'relationship: id,from(本包 characters 候选 id),to(本包 characters 候选 id),type(kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate),affinity(整数,-100..100),trust(整数,0..100),status,milestones(本包 canon 候选 id 或空数组),knownTo(本包 characters 候选 id 或空数组)；' +
   'state: id,storyTime,scene{location,timeOfDay,weather,season,atmosphere},characters[{characterId,location,alive,health,mood,inventory,condition,currentGoal,flags}]；' +
   'canon: id,storyTime,kind(event|decision|revelation|statechange|dialogue|correction),summary,detail,participants,location,consequences,affectedLayers。';
 

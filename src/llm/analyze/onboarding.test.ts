@@ -28,6 +28,17 @@ function backendReturning(value: unknown) {
   return { async *stream() { yield { text: JSON.stringify(value) }; } };
 }
 
+/** Fake backend that yields one different value per stream() call (retry test). */
+function sequentialBackend(sequence: unknown[]) {
+  let index = 0;
+  return {
+    async *stream() {
+      const value = sequence[Math.min(index++, sequence.length - 1)];
+      yield value === '' ? '' : JSON.stringify(value);
+    },
+  };
+}
+
 function inputFor(id: string, text: string): OnboardingAnalysisInput {
   return {
     projectId: 'demo',
@@ -73,6 +84,57 @@ describe('I52 onboarding six-layer analyzer', () => {
     const prior = await analyzeOnboardingText(backendReturning(sample.expected), inputFor(sample.id, sample.text), settings);
     const genericCharacters = { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] };
     await expect(regenerateOnboardingLayer(backendReturning(genericCharacters), inputFor(sample.id, sample.text), prior, 'characters', settings)).rejects.toThrow(/「characters」层重生成结果不符合六层候选契约/);
+  });
+
+  it('retries once on a contract-violating package and succeeds on the corrective pass', async () => {
+    const loaded = await corpus();
+    const sample = loaded.cases[0];
+    const generic = {
+      evidence: {},
+      layers: {
+        characters: { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] },
+        worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      },
+    };
+    const result = await analyzeOnboardingText(sequentialBackend([generic, sample.expected]), inputFor(sample.id, sample.text), settings);
+    expect(result.layers.characters.candidates.length).toBeGreaterThan(0);
+  });
+
+  it('retries once on an empty completion and succeeds', async () => {
+    const loaded = await corpus();
+    const sample = loaded.cases[0];
+    const result = await analyzeOnboardingText(sequentialBackend(['', sample.expected]), inputFor(sample.id, sample.text), settings);
+    expect(result.layers.characters.candidates.length).toBeGreaterThan(0);
+  });
+
+  it('retries a single-layer regeneration once on a contract violation', async () => {
+    const loaded = await corpus();
+    const sample = loaded.cases[0];
+    const prior = await analyzeOnboardingText(backendReturning(sample.expected), inputFor(sample.id, sample.text), settings);
+    const genericCharacters = { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] };
+    const next = await regenerateOnboardingLayer(sequentialBackend([genericCharacters, sample.expected.layers.characters]), inputFor(sample.id, sample.text), prior, 'characters', settings);
+    expect(layerHash(next.layers, 'characters')).toBe(layerHash(prior.layers, 'characters'));
+  });
+
+  it('still fails closed when both passes violate the contract', async () => {
+    const loaded = await corpus();
+    const sample = loaded.cases[0];
+    const generic = {
+      evidence: {},
+      layers: {
+        characters: { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] },
+        worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      },
+    };
+    await expect(analyzeOnboardingText(sequentialBackend([generic, generic]), inputFor(sample.id, sample.text), settings)).rejects.toThrow(/不符合六层候选契约/);
   });
 
   it('regresses the frozen corpus including held-out cases at threshold', async () => {

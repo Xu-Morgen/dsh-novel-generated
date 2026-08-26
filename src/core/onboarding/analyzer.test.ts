@@ -113,13 +113,24 @@ describe('I52 onboarding analyzer core', () => {
     expect(prompt).toContain('"knownBy"');
     expect(prompt).toContain('"conditions"');
     expect(prompt).toContain('conflictType(internal|external|relational|world)');
+    // Relationship numeric/id-reference rules: the reported failure was string
+    // affinity/trust and a Chinese-phrase milestone.
+    expect(prompt).toContain('affinity(整数,-100..100)');
+    expect(prompt).toContain('ASCII 小写字母');
+    expect(prompt).toMatch(/禁止中文、空格与自然语言短语/);
     expect(prompt).toMatch(/禁止.*(type|name|summary|confidence|evidenceIds)/);
     // The embedded example itself must be a valid I52 envelope, so the model
     // always sees a parseable reference shape (including foreshadowing/endings).
-    expect(parseOnboardingOutput(JSON.stringify(ONBOARDING_PROMPT_EXAMPLE)).layers.characters.candidates[0].kind).toBe('protagonist');
-    const exampleOutline = parseOnboardingOutput(JSON.stringify(ONBOARDING_PROMPT_EXAMPLE)).layers.outline.candidates[0];
+    const parsedExample = parseOnboardingOutput(JSON.stringify(ONBOARDING_PROMPT_EXAMPLE));
+    expect(parsedExample.layers.characters.candidates[0].kind).toBe('protagonist');
+    const exampleOutline = parsedExample.layers.outline.candidates[0];
     expect(exampleOutline.foreshadowing[0].status).toBe('planted');
     expect(exampleOutline.endings[0].conditions.length).toBeGreaterThan(0);
+    const exampleRelationship = parsedExample.layers.relationship.candidates[0];
+    expect(exampleRelationship.affinity).toBe(40);
+    expect(exampleRelationship.trust).toBe(30);
+    expect(exampleRelationship.from).toBe('mira');
+    expect(exampleRelationship.to).toBe('laozhou');
   });
 
   it('embeds the exact target layer candidate example in regenerate prompts', () => {
