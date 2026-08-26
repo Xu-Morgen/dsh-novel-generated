@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v2.1
-> 日期：2026-08-24
-> 状态：当前执行权威（I1–I49 已交付；Stage 10 I50–I53 待执行）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v2.1（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.1（需求 ID、验收、迭代覆盖）
+> 版本：v2.2
+> 日期：2026-08-26
+> 状态：当前执行权威（I1–I53 已完成；I54–I72 已批准、待逐迭代执行）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v2.2（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.2（需求 ID、验收、迭代覆盖）
 
 ---
 
@@ -14,7 +14,8 @@
 
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
-- 当前排期为 **11 个阶段、53 个迭代（I1–I53）**：I1–I49 已建立插件核心与创作台；v2.1 新增阶段 10（I50–I53），补齐作品启动、多作品选择、受控 DOCX 上传、六层初始化分析与逐层确认落地。
+- I1–I53 已完成：包括插件核心、创作台、多作品启动、受控 DOCX 上传、六层初始化分析与逐层确认落地；不得再将 Stage 10 标为待执行。
+- 当前排期扩展为 **14 个阶段、72 个迭代（I1–I72）**：v2.2 新增 Stage 11（I54–I59）侧板化与 UI 修复、Stage 12（I60–I65）P0 正文写作闭环、Stage 13（I66–I72）P1 能力可达性。I54–I72 仍须遵守一次只执行一个 Ixx。
 
 ### 0.2 Goal
 
@@ -36,7 +37,7 @@
 | 语言 | TypeScript strict，ESM | 13 层 schema 需类型约束 |
 | 包管理 | pnpm + 提交锁文件 | DSH 插件安装经 profile 转发 pnpm |
 | 插件框架 | `@deepseek-ai/cordis`（当前观测 4.0.1） | 设计 §0.1 |
-| DSH | `0.1.0-rc.7` 观测基线，I1 在 manifest+lockfile 建立可复现 pin | 设计 §0.1.3 |
+| DSH | 项目当前 pin/观测为 `0.1.0-rc.7`；v2.2 规划时已核验 npm 最新 `0.1.1-rc.2`，两者均无 additive 侧区内容 Slot；I54 执行前重跑版本/Slot 门 | 设计 §0.1.3 / D20 |
 | 生产组合 | bundle path（`dsh.bundle.patch` + `dsh.profile.bundles`） | 设计 §0.1.1 |
 | 本地 smoke 组合 | 仓库 `cordis.yml` + loader/include（仅 smoke） | 设计 §0.1.1 |
 | Host 构建 | TypeScript 编译输出 ESM + 类型声明 | 设计 §0.1.3 |
@@ -65,7 +66,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I53）
+### 0.7 全局执行纪律（贯穿 I1–I72）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -526,32 +527,206 @@ TDD Route:
 
 ---
 
-## 12. 完成线
+## 12. 阶段 11：侧板化与现有 UI 修复
 
-I45 通过时 v2.0 核心闭环完成，I49 通过时创作台 UI 重设计完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成：
+**阶段门**：`pnpm run verify:stage-11`（I54–I59 全绿）。
 
-- ordinary persistent DSH/Cordis Host+Client 插件可安装、装载、升级、卸载；
-- Host 是作品文件与 LLM 唯一 owner；Client 只经 DSH Slot 与受管 Remote 工作；
-- A1/A2、B1–B5、C1–C6 共 13 层均有明确契约；
-- `生成→校验→裁决→解析→受控写回` 闭环成立；单层事务保持既有原子性，跨层 fan-out 与 Stage 10 初始化按明确的 partial/pending-retry 语义报告；
-- 所有用户确认统一经 ConfirmationGate；
-- 卸载不删除作品数据且零运行时残留。
-- 创作台以「编辑台/书斋」视觉体系 + 六层 IA（B3/B2/B5/C1/C2/C4）提供可识别、美观的分层编辑，复用宿主主题 token 自动明暗适配；
-- 多作品由 Host 统一启动，DOCX/自由文本只生成可审阅六层候选，纯空白模式不依赖模型；
-- 六层可分别接受、修改后接受、打回重生成或跳过；跨文件部分失败显式为 `partial-retryable`，不以删除已写数据伪造原子性。
+### I54：DSH Slot 兼容门与右侧停靠侧板
 
-导入导出、SQLite 索引、高级编辑器、写作辅助与新作品六层初始化已纳入；语义向量检索、C2 items/factions、ST 迁移、已有非空作品合并导入与 UI 主题继续后置为 backlog。
+- **目标**：按 D20 重新核验所选 DSH 与当时最新版公开 Slot；在没有 additive 侧区内容 Slot 时，将居中浮窗退役为 `shell.overlay` 右侧全高非模态停靠侧板。
+- **明确不做**：不升级 DSH、不接管 root/sidebar/conversation/details 单槽、不保留居中/停靠双路径、不修其他 UI。
+- **交付物**：版本/Slot manifest 证据；停靠侧板样式与 shell；保留 `sidebar.footer.action` 开关；居中浮窗样式和测试锚点退休清单。若新版已有公共 Slot，本迭代停止并先通知用户升级，不写 fallback。
+- **验收**：当前基线和当时最新版均无公共 Slot 时 selected-profile 只注册一个 `shell.overlay` 主体；贴右/全高/非模态；窄屏仍在同一 Slot；卸载后 Slot/样式归零；扫描无单槽替换与双路径。
+- **验证**：`pnpm run verify:i54`。
+
+### I55：作品上下文栏与项目切换
+
+- **目标**：让当前作品持续可见，并可返回作品列表、新建/切换作品；消除打开后无法换书与跨项目草稿污染。
+- **明确不做**：不改 Host project source of truth、不做正文工作台、不改初始化裁决语义。
+- **交付物**：作品上下文栏；back-to-projects/switch action；脏表单离开裁决；切换时 editor/store reset；Host `projectOpen` 复核。
+- **验收**：两作品往返零串写；角色/世界观/大纲等 draft 不跨项目；失败 open 保持原作品；重启可重开；unknown/unsafe ID 仍 fail closed。
+- **验证**：`pnpm run verify:i55`。
+
+### I56：六层初始化裁决正确性
+
+- **目标**：修复“修改后接受”未提交编辑值和“打回重生成”无反馈的缺口，锁定六层终态门。
+- **明确不做**：不实现分析进度/重试（I57）、不改 I11 三态、不放宽跨层预检。
+- **交付物**：逐层编辑控件；regenerate feedback；`editedValue`/feedback Remote 接线；空候选/pending/apply eligibility 状态。
+- **验收**：Host 精确收到用户值；不得回退写原候选；旧提案先 reject 且 lineage 正确；空候选/pending/错绑定阻止裁决和 apply；其他层哈希不变。
+- **验证**：`pnpm run verify:i56`。
+
+### I57：初始化进度、取消、重试与应用刷新
+
+- **目标**：把现有 analyzer status/cancel 和 partial-retryable 语义接入 UI，并在 final apply 后进入已刷新的创作台。
+- **明确不做**：不改候选 Schema/prompt、不新增 applied journal、不重做导航 IA。
+- **交付物**：分析 busy/progress/cancel/retry；失败恢复；apply result 分层显示；成功后 `reloadProject` + 激活创作台；部分失败仅重试未完成层。
+- **验收**：分析中防重复 start；取消零层写入；错误可重试不砖化；成功刷新六层；partial retry 不重复已完成层；Fiber dispose 后 job/监听归零。
+- **验证**：`pnpm run verify:i57`。
+
+### I58：任务型创作台信息架构
+
+- **目标**：把九项扁平导航重组为“写作 / 策划 / 连续性 / 作品设置”，为后续正文与审校面板建立稳定入口。
+- **明确不做**：不实现 I60 之后的新业务面板、不改 Host Remote、不做视觉主题引擎。
+- **交付物**：分组导航模型；现有六层、初始化、创作设置、LLM 设置的迁移映射；稳定 route/state/data 锚点。
+- **验收**：所有既有面板可达且状态不丢；技术层编号仅作辅助徽标；旧九项扁平导航零引用；刷新/折叠保持合法 active view。
+- **验证**：`pnpm run verify:i58`。
+
+### I59：响应式、可访问性与保存反馈
+
+- **目标**：完成停靠侧板的窄屏、键盘、焦点、异步播报与防重复提交基础体验。
+- **明确不做**：不新增业务能力、不引入新 UI shell/外部字体、不建立 novel 自有主题引擎。
+- **交付物**：responsive breakpoints；焦点进入/恢复/Esc；`focus-visible`；`aria-live`；保存中/已保存/失败状态；请求去重与按钮 busy 状态。
+- **验收**：键盘可遍历；无 `outline:none` 无替代焦点；异步结果可播报；窄屏无不可达内容；双击/连点至多一次 Remote；明暗主题回归和 Fiber 清理通过。
+- **验证**：`pnpm run verify:i59`。
 
 ---
 
-## 13. Risks 与 Retirement
+## 13. 阶段 12：P0 正文写作闭环
+
+**阶段门**：`pnpm run verify:stage-12`（I60–I65 全绿）。
+
+### I60：C5 章节/场景读取与导航
+
+- **目标**：建立 Host-owned C5 最小只读 Remote，并在写作区显示章节树、场景列表与正文。
+- **明确不做**：不编辑正文、不生成候选、不暴露文件路径或整份 live repository。
+- **交付物**：chapter list/read/scene read descriptor；Host adapter；Client 章节树/场景导航；空章/错误态。
+- **验收**：多章顺序、空章、未知引用、跨项目拒绝、重开一致；只返回最小 owned JSON；Client bundle 无 fs/path；现有 `docs/` 派生镜像语义不变。
+- **验证**：`pnpm run verify:i60`。
+
+### I61：C5 正文编辑与可选 reparse
+
+- **目标**：在正文编辑器中复用 I42 完成固定范围逐字保存，并允许显式选择 reparse。
+- **明确不做**：不做 LLM 生成候选、不做正文分支、不隐式修改任何结构层。
+- **交付物**：范围选择/编辑 UI；Host range edit Remote；变更 diff；reparse propose/accept 接线；脏文本保护。
+- **验收**：用户文本 exact round-trip；范围外哈希不变；未选/拒绝 reparse 时 B2/C1/C2/C3/C4 不变；确认后只走既有 parser fan-out；非法范围零写。
+- **验证**：`pnpm run verify:i61`。
+
+### I62：统一写作候选命令合同
+
+- **目标**：让生成、续写、按场景卡写作和局部重写共用 Host 候选命令，只生成可审阅候选而不预先落地。
+- **明确不做**：不做候选 UI 裁决（I63）、不做队列（I65）、不复制已有 LLM/校验/parser 实现。
+- **交付物**：冻结的 candidate contract；project/chapter/scene/sourceHash 绑定；四种 intent adapter；取消/错误/过期候选语义；fake backend 消费者夹具。
+- **验收**：四种 intent 都产生合法候选且所有作品层哈希不变；错绑定、模型失败、取消、非法输出零写；复用 I19/I42–I44；若改 prompt/schema，先冻结 dev/held-out 并达到既有阈值。
+- **验证**：`pnpm run verify:i62`。
+
+### I63：候选预览与生成后裁决
+
+- **目标**：作者看到候选正文、diff 与校验结果后，再接受、拒绝或要求重写；退役生成前预先 accept 的产品路径。
+- **明确不做**：不做持久正文分支（I70）、不做批量队列、不放宽硬约束。
+- **交付物**：候选审阅面板；accept/reject/rewrite action；幂等裁决；旧 `decision=accept` 入口退役与迁移说明。
+- **验收**：accept 才进入标准校验→解析→受控写回；reject 零写；rewrite 产生后继候选且旧候选不可静默接受；双击幂等；旧预先接受产品入口零引用。
+- **验证**：`pnpm run verify:i63`。
+
+### I64：一致性审校中心
+
+- **目标**：集中呈现规则/正史、知情、关系和风格问题及其正文定位，形成可执行审校流程。
+- **明确不做**：不改检测器阈值/样本、不自动修正文或设定、不新增第二裁决器。
+- **交付物**：统一 issue projection；严重度/来源/引用/定位；硬阻断与软警告裁决 UI；刷新/过滤。
+- **验收**：规则、正史、知情、关系、风格五类问题投影均可追溯；硬冲突阻止 accept；软警告必须显式继续或重写并记录；无完整 live object 序列化；检测器既有回归全绿。
+- **验证**：`pnpm run verify:i64`。
+
+### I65：可恢复自动生成队列
+
+- **目标**：由 Host 持有按场景卡范围执行的生成队列，支持暂停/继续/取消、重试、预算和停止策略。
+- **明确不做**：不自动接受候选、不静默改 B5/C6、不建立多用户调度或浏览器任务 owner。
+- **交付物**：任务 Schema/Service/Remote；场景稳定 ID；队列 UI；hard-stop/soft-stop、word/token budget、retry policy；stop/restart recovery。
+- **验收**：每场景独立候选并停在待裁决；重启恢复无重复正文；暂停/继续/取消幂等；硬冲突立即停、软警告按策略停；预算不超限；Fiber dispose 后运行任务中止且持久状态可恢复。
+- **验证**：`pnpm run verify:i65`。
+
+---
+
+## 14. 阶段 13：P1 能力可达性
+
+**阶段门**：`pnpm run verify:stage-13`（I66–I72 全绿）。
+
+### I66：C3 知情与揭示管理面
+
+- **目标**：让作者按事实与角色查看 holders/revealPlan/status，并受控执行揭示或 holder 变更。
+- **明确不做**：不在初始化时推断 C3、不允许知情倒退、不复制 KnowledgeFilter owner。
+- **交付物**：knowledge list/read/propose Remote；事实/角色双视图；揭示/holder Gate action；POV 边界提示。
+- **验收**：知情只增不退；逆向状态失败；未确认零写；POV 不泄露；重载一致；Client 只持有最小投影。
+- **验证**：`pnpm run verify:i66`。
+
+### I67：B1 规则与 B4 文风控制面
+
+- **目标**：提供规则优先级/immutable 与人称、时态、POV、禁用表达等 Host-validated 表单。
+- **明确不做**：不改变规则/风格 Schema、不复制检测器、不引入主题设置。
+- **交付物**：rule/style Remote；列表/详情表单；中文枚举和错误反馈；触发检测消费者夹具。
+- **验收**：round-trip；非法枚举、越界优先级、immutable 非法改写失败；保存后生成与检测读取同一 Host 真相；Client 无领域 fallback。
+- **验证**：`pnpm run verify:i67`。
+
+### I68：C6 进度与灵感方向落地
+
+- **目标**：可视化当前幕/节/场景卡和偏差，并让用户选定的灵感方向经 Gate apply 到 B5/C6。
+- **明确不做**：不自动选方向、不强制改大纲、不绕过 N-5。
+- **交付物**：progress/deviation projection；导航/完成状态 UI；inspiration select→propose→apply；刷新与审计记录。
+- **验收**：未选择/拒绝时层哈希不变；选择并确认后只改授权的 B5/C6；重复 apply 幂等；当前导航与 detailBeat 状态一致。
+- **验证**：`pnpm run verify:i68`。
+
+### I69：导入导出与备份 UI
+
+- **目标**：把 I37–I38 的通用导入管线与 I39 的全项目包、shareable-template、纯文本及 round-trip 恢复能力接入作品设置。
+- **明确不做**：不做 ST 迁移、不做非空作品静默合并、不让 Client 持有 Host 路径。
+- **交付物**：受控 import/export Remote；格式/范围选择；下载/恢复反馈；冲突与 N-7 阻断说明。
+- **验收**：full/shareable/txt/md round-trip；路径/secret 不进入 Client；非空合并按 N-7 fail closed；取消/失败无半导入；可移植性既有回归全绿。
+- **验证**：`pnpm run verify:i69`。
+
+### I70：C5 正文版本与分支
+
+- **目标**：补齐 Host-owned 正文版本/分支模型，使候选可保留为分支、比较并选择唯一 chosen。
+- **明确不做**：不复制完整项目版本控制、不隐式 reparse、不改 C4 append-only。
+- **交付物**：C5 branch/version Schema 与迁移；Repository/Service；branch diff/choose UI；旧单版本文档兼容迁移与回滚边界。
+- **验收**：旧项目重开不丢正文；chosen 唯一；分支切换可逆且不改 B2/C1/C2/C3/C4；显式 reparse 才同步；冲突/坏迁移 fail closed。
+- **验证**：`pnpm run verify:i70`。
+
+### I71：全局搜索与上下文追踪
+
+- **目标**：提供跨正文/角色/世界观/大纲/正史/知情搜索、交叉引用和生成注入解释。
+- **明确不做**：不引入向量检索、不泄露 secret/完整 live object/未授权 POV 知识、不让索引成为真相。
+- **交付物**：可重建搜索投影；实体引用；结果跳转；context trace（层、触发原因、裁剪/预算摘要）。
+- **验收**：删除索引可重建；关键词/精确引用稳定；POV/secret 负测；trace 与 ContextAssembler 实际选择一致；大规模项目响应 smoke。
+- **验证**：`pnpm run verify:i71`。
+
+### I72：写作进度面板
+
+- **目标**：以可重建派生统计展示章节字数、目标完成度、场景卡状态、POV 分布和任务历史。
+- **明确不做**：不建立第二份作品进度真相、不做云同步/多用户统计、不自动改变大纲状态。
+- **交付物**：Host statistics projection；进度概览与筛选；空作品/大规模作品视图；重建命令/测试。
+- **验收**：统计由 C5/B5/C6/任务记录重建且一致；删除派生统计可恢复；空作品无假进度；POV/字数/场景状态正确；Client 不持久化统计真相。
+- **验证**：`pnpm run verify:i72`。
+
+---
+
+## 15. 完成线
+
+I45 通过时 v2.0 核心闭环完成，I49 通过时首轮创作台 UI 完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成；这些 I1–I53 状态均已完成。v2.2 的新增完成线为：I59 通过时停靠侧板与现有 UI 修复完成，I65 通过时 P0 正文写作闭环完成，I72 通过时 P1 能力可达性完成。
+
+I72 完成时还必须证明：
+
+- ordinary persistent DSH/Cordis Host+Client 插件仍可安装、装载、升级、卸载，且 Host/Client owner 与 §0.1 不变；
+- 创作台不再呈现为居中独立浮窗，不替换 DSH 单槽；没有公共侧区 Slot 时只存在 `shell.overlay` 右侧停靠侧板主路径；
+- 多作品可切换且草稿隔离，六层初始化的编辑/重生成/进度/取消/重试与 apply 刷新行为正确；
+- C5 章节/场景可在创作台阅读和编辑，生成统一先形成候选，作者在生成后裁决，拒绝零写；
+- 一致性问题可定位，自动生成队列可恢复且不绕过 ConfirmationGate；
+- C3、B1、B4、C6、导入导出、正文分支、搜索/上下文追踪和进度统计均有 UI 消费者；
+- 所有用户确认统一经 I11 Gate，C4 保持 append-only，派生索引/统计可删除重建；
+- 卸载不删除作品 source of truth，Fiber dispose 后 Service/Tool/Remote/Slot/样式/任务监听零残留。
+
+语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入与 novel 自有主题引擎继续后置为 backlog。
+
+---
+
+## 16. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
-- **DSH 版本漂移**：任何 DSH/Cordis 升级进入专门兼容性迭代，重跑 selected-profile boot 与完整 Client gate。
+- **DSH 版本漂移与侧区 Slot 门**：I54 执行前核验所选版本和当时最新版。若出现 additive 侧区内容 Slot，停止并通知用户升级，更新项目 pin/lockfile 后重跑 selected-profile boot 与完整 Client gate；若没有则只实现 `shell.overlay` 右侧停靠侧板。禁止运行时双路 fallback。
 - **旧路径残留**：旧 I1a/I1b 独立 Vite/浏览器 LLM 路径必须零引用；不保留双主路径兼容层。
 - **作品数据安全**：卸载/回退不删除作品 source of truth；只退役 tracked 固定 mock 产物，不触碰未跟踪存档或真实作品目录。
 - **创作台 UI 重设计风险**：I46 将测试锚点从 `data-novel-editors` 迁移到新契约并重写 `client.test.ts`；I33–I36 既有 Host 契约（`novelWorkspace` Remote）不得回退，样式必须归属 Fiber 并在卸载后归零。
 - **作品启动风险**：I50 必须由 Host project lifecycle 统一证明 readiness；禁止在 Client、Remote 转发层或六个面板增加各自的自动建目录/吞错 fallback。现有 `default` 与重复 ConfirmationService owner 在 I50 主路径通过后 delete-first 退役。
 - **DOCX 安全与退役**：I51 的临时上传只属派生数据；真实作品文件不可删除。成熟解析器主路径通过后删除手写 parser 并扫描零引用，不保留兼容双路径。
 - **六层推断风险**：I52–I53 只面向新建/空作品，C4 仅允许文本明确事件，C3 始终禁止；未确认候选零写，跨层引用先预检，跨文件失败必须可重试而非补偿性删除。
-- **Historical record**：Git 历史保留旧提交；v2.1 文档记录旧路线与被退役内部路径，不把死代码留在主分支。
+- **候选与自动化风险**：I62–I65 必须保持“先候选、后裁决”；队列只编排生成，不自动接受、不静默改 B5/C6。任务恢复依赖稳定 ID 与幂等状态，不以重复追加正文作为重试。
+- **正文分支迁移风险**：I70 是 C5 source-of-truth 迁移迭代；必须先锁旧单版本项目 fixture，失败时 fail closed，禁止为了兼容保留两个可写 owner。
+- **派生视图风险**：I71 搜索索引与 I72 统计均可删除重建，不得成为正文/设定/进度的第二真相，也不得越过 C3/POV 知识边界。
+- **Historical record**：Git 历史保留旧提交；v2.2 文档记录旧路线与被退役内部路径，不把死代码留在主分支。

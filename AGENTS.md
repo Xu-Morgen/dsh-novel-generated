@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v2.1
+> 规则版本：v2.2
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -10,9 +10,9 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v2.1）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-requirements.md`（v2.1）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v2.1）—— 执行层，53 个迭代（I1–I53），每一步从它的阶段/迭代卡片出发。
+1. `docs/novel-creation-tool-design.md`（v2.2）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v2.2）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v2.2）—— 执行层，14 个阶段、72 个迭代（I1–I72）；I1–I53 已完成，I54–I72 待逐迭代执行，每一步从对应阶段/迭代卡片出发。
 
 ## 1.1 宪法级宿主基线（不可修改）
 

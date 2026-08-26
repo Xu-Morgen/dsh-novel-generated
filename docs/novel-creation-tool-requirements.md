@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.1
-> 日期：2026-08-24
+> 版本：v2.2
+> 日期：2026-08-26
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,18 +11,18 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.1：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
-2. 本文件 v2.1：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.1：I1–I53 的执行卡片、交付物与命令细节。
-4. `AGENTS.md` v2.1：执行纪律。
+1. `docs/novel-creation-tool-design.md` v2.2：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
+2. 本文件 v2.2：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v2.2：I1–I72 的执行卡片、交付物与命令细节。
+4. `AGENTS.md` v2.2：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 
 ### 0.2 v1.x supersession 与 provenance
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I53**。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R11 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
+- 当前迭代身份只有本文件定义的 **I1–I72**：I1–I53 已完成，I54–I72 已批准待逐迭代执行。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R14 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -31,11 +31,11 @@
 3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有 LLM 调用只能走 Host 的 `ctx.llm`；禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
 4. 硬检测器：canonical 违规样本 **100% 命中**且整体准确率 **≥90%**；正史解析器准确率 **≥85%**；其他 LLM 模块准确率 **≥80%**。
 5. 样本、held-out 子集和 gold 均为不可变验收资产；不得为过关修改样本、held-out、gold 或阈值。dev 可用于调优，held-out 只用于收尾验收。
-6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`。
+6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`。
 7. 所有用户确认复用 I11 ConfirmationGate。未确认不得写回；重复确认必须幂等。
 8. 每个迭代只有在对应 `verify:iN` 通过后才可完成；每个阶段只有在全部迭代验证和 `verify:stage-N` 通过后才可完成。
 
-### 0.4 v2.1 阶段与验证命令
+### 0.4 v2.2 阶段与验证命令
 
 | 阶段 | 迭代 | 累积门 |
 |---|---|---|
@@ -50,6 +50,9 @@
 | Stage 8 索引分类与写作辅助 | I41–I45 | `pnpm run verify:stage-8` |
 | Stage 9 创作台 UI 重设计 | I46–I49 | `pnpm run verify:stage-9` |
 | Stage 10 作品启动与六层初始化 | I50–I53 | `pnpm run verify:stage-10` |
+| Stage 11 侧板化与现有 UI 修复 | I54–I59 | `pnpm run verify:stage-11` |
+| Stage 12 P0 正文写作闭环 | I60–I65 | `pnpm run verify:stage-12` |
+| Stage 13 P1 能力可达性 | I66–I72 | `pnpm run verify:stage-13` |
 
 ---
 
@@ -194,7 +197,7 @@
 
 ## R10. 创作台 UI 重设计（视觉与信息架构）
 
-> 定位：在 I33–I36 已交付并验证的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），提升用户可识别度与美观度；不改变 Client 职责边界（H0-5）与 Host 数据所有权（H0-4），不新增 Host 能力或持久化。
+> 历史定位：R10/I46–I49 已完成，记录首轮创作台信息架构与视觉体系；其中居中浮动面板是已交付历史合同，将由 R12/I54 按 D20 退役为 DSH 内停靠侧板。Client 职责边界（H0-5）与 Host 数据所有权（H0-4）继续有效。
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
@@ -220,6 +223,44 @@
 
 ---
 
+## R12. DSH 停靠侧板与现有 UI 修复
+
+> 定位：I1–I53 已完成后的第一优先级修复。先消除“居中独立浮窗”形态和现有 UI 正确性缺口，不新增正文领域能力；Slot 选择必须服从设计 D20。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R12-1 | I54 执行前核验所选 DSH 与当时最新版公开 Slot tree；若存在 additive 侧区内容 Slot，停止并通知用户升级、更新兼容基线后再实现；否则将 `shell.overlay` 创作台退役为贴右、全高、非模态停靠侧板。禁止接管 root/sidebar/conversation/details 单槽，禁止双落点 fallback。 | Slot manifest/Inspect 证据；当前 `0.1.0-rc.7` 与已核验 `0.1.1-rc.2` 均走右侧板；selected-profile mount/unmount；扫描无第二路径和居中浮窗样式。 | I54 | `pnpm run verify:i54`; `pnpm run verify:stage-11` |
+| R12-2 | 当前作品持续可见，并可返回作品列表、新建/切换；跨项目切换清空旧 Client draft，由 Host 重新 open/验证，脏表单有明确裁决。 | 两作品往返、脏表单、失败 open、重启恢复与零串写断言。 | I55 | `pnpm run verify:i55`; `pnpm run verify:stage-11` |
+| R12-3 | 六层“修改后接受”必须提交用户编辑后的 `editedValue`；重生成必须提交 feedback；空候选、pending 和错绑定阻止裁决/apply。 | Remote payload 精确断言；Host 不得回退使用旧值；六层终态门与负向夹具。 | I56 | `pnpm run verify:i56`; `pnpm run verify:stage-11` |
+| R12-4 | 初始化分析显示进度并支持取消/失败重试；final apply 成功后刷新六层并进入创作台，partial-retryable 只重试未完成层。 | progress/cancel/retry、apply refresh、失败隔离、Fiber dispose 零任务残留。 | I57 | `pnpm run verify:i57`; `pnpm run verify:stage-11` |
+| R12-5 | 创作台导航改为“写作/策划/连续性/作品设置”任务分组，技术层编号只作辅助标识；现有六层与设置页不丢失。 | IA 渲染与导航可达性断言；旧九项扁平导航退役扫描。 | I58 | `pnpm run verify:i58`; `pnpm run verify:stage-11` |
+| R12-6 | 侧板具备响应式、键盘、焦点恢复、`focus-visible`、`aria-live`、保存状态和防重复提交；窄屏仍使用同一 DSH Slot。 | 键盘/焦点/异步播报/窄屏夹具；无 `outline:none` 无替代焦点；重复提交最多一次。 | I59 | `pnpm run verify:i59`; `pnpm run verify:stage-11` |
+
+## R13. P0 正文写作闭环
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R13-1 | Host 提供 C5 章节/场景最小只读 Remote；侧板提供章节树、场景列表和正文读取，不暴露文件路径。 | 多章/空章/坏引用/跨项目读取；Client bundle 无 fs；重载语义一致。 | I60 | `pnpm run verify:i60`; `pnpm run verify:stage-12` |
+| R13-2 | 正文编辑器支持固定范围逐字保存和可选 reparse；范围外哈希不变，未选择或未确认 reparse 时结构层不变。 | exact round-trip、范围 diff、Gate 未确认/确认 fan-out 与撤销失败路径。 | I61 | `pnpm run verify:i61`; `pnpm run verify:stage-12` |
+| R13-3 | 生成、续写、按场景卡写作和局部重写共用 Host 候选命令合同；调用只产生绑定 project/chapter/scene/sourceHash 的候选，不预先接受或写层。 | fake backend 消费者夹具；错绑定/取消/非法输出零写；旧能力复用而非复制。 | I62 | `pnpm run verify:i62`; `pnpm run verify:stage-12` |
+| R13-4 | Client 在正文、diff 和校验结果可见后才允许接受、拒绝或重写；接受进入标准生命周期，拒绝零写，退役生成前 `decision=accept` 产品语义。 | accept/reject/rewrite E2E；双击幂等；旧预先接受入口零引用。 | I63 | `pnpm run verify:i63`; `pnpm run verify:stage-12` |
+| R13-5 | 一致性审校中心统一展示规则、正史、知情、关系与风格五类问题，包含严重度、引用和正文定位；硬冲突阻止接受，软警告需显式裁决。 | 五类问题投影消费者夹具；定位引用；硬/软策略与审计记录。 | I64 | `pnpm run verify:i64`; `pnpm run verify:stage-12` |
+| R13-6 | Host 持有可恢复自动生成队列；支持场景范围、暂停/继续/取消、重试、字数/token 预算和硬/软停止策略。每场景独立候选，不绕过 Gate、不静默改 B5/C6。 | stop/restart 恢复、任务幂等、预算、硬停/软停、取消和 Fiber 清理 E2E。 | I65 | `pnpm run verify:i65`; `pnpm run verify:stage-12` |
+
+## R14. P1 能力可达性
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R14-1 | C3 UI 按事实/角色展示 holders、revealPlan、status；揭示与 holder 变更遵守知情不倒退并复用 Gate。 | 角色/事实双视图、逆向状态失败、POV 边界与确认断言。 | I66 | `pnpm run verify:i66`; `pnpm run verify:stage-13` |
+| R14-2 | B1/B4 UI 支持规则优先级/immutable 与人称、时态、POV、禁用表达等；Client 不复制领域校验。 | round-trip、非法枚举/immutable 改写失败、生成消费者仍读 Host 真相。 | I67 | `pnpm run verify:i67`; `pnpm run verify:stage-13` |
+| R14-3 | C6 UI 展示当前幕/节/场景卡与偏差；灵感默认只读，用户选定后才经 Gate apply 到 B5/C6。 | 未选择零写、选择确认、拒绝/重复 apply、导航刷新断言。 | I68 | `pnpm run verify:i68`; `pnpm run verify:stage-13` |
+| R14-4 | 创作台暴露 I37–I38 通用导入与 I39 项目包/纯文本导出及 round-trip 备份恢复；Client 不拥有源路径，不扩张非空作品合并语义。 | 格式选择、下载/恢复、round-trip、路径与 N-7 负向扫描。 | I69 | `pnpm run verify:i69`; `pnpm run verify:stage-13` |
+| R14-5 | C5 建立 Host-owned 版本/分支模型；候选可保留为分支并比较，chosen 唯一；切换分支不隐式修改结构层。 | Schema/迁移/重开、chosen 约束、分支 diff、未 reparse 结构层哈希不变。 | I70 | `pnpm run verify:i70`; `pnpm run verify:stage-13` |
+| R14-6 | 支持跨正文与结构层全局搜索、实体交叉引用和生成上下文追踪；追踪解释注入层、触发原因与裁剪，不泄露 secret 或未授权 POV 知识。 | 搜索索引可重建；引用跳转；注入解释与知识边界/secret 负测。 | I71 | `pnpm run verify:i71`; `pnpm run verify:stage-13` |
+| R14-7 | 展示章节字数、目标完成度、场景卡状态、POV 分布和任务历史；统计可重建且不成为 source of truth。 | 重建一致性、空作品、大规模作品和删除派生数据后恢复断言。 | I72 | `pnpm run verify:i72`; `pnpm run verify:stage-13` |
+
+---
+
 ## 覆盖矩阵
 
 ### M-H0. 宿主覆盖矩阵
@@ -241,17 +282,17 @@
 |---|---|---|---|
 | A1 | I1, I3 | I12 | I30 |
 | A2 | I31 | I31–I32 | I33 |
-| B1 | I7 | I13, I21 | I32 |
+| B1 | I7 | I13, I21 | I32, I67 |
 | B2 | I8 | I13 | I29, I34, I38, I47, I52–I53 |
 | B3 | I9 | I13 | I34, I47, I52–I53 |
-| B4 | I10 | I13, I20, I24 | I31 |
-| B5 | I14 | I15 | I35, I38, I43, I45, I48, I52–I53 |
+| B4 | I10 | I13, I20, I24 | I31, I67 |
+| B5 | I14 | I15 | I35, I38, I43, I45, I48, I52–I53, I68 |
 | C1 | I16 | I16 | I27, I35, I48, I52–I53 |
 | C2 | I4 | I13 | I25, I36, I49, I50, I52–I53 |
-| C3 | I18 | I18, I22 | I28 |
+| C3 | I18 | I18, I22 | I28, I66 |
 | C4 | I5 | I18, I21 | I26, I36, I39, I49, I50, I52–I53 |
-| C5 | I6 | I18–I19 | I42–I44 |
-| C6 | I15 | I15 | I35, I45 |
+| C5 | I6, I70 | I18–I19, I62–I65 | I42–I44, I60–I63, I69–I72 |
+| C6 | I15 | I15 | I35, I45, I68 |
 
 ### M-E. 引擎覆盖矩阵
 
@@ -268,7 +309,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I53 全覆盖矩阵
+### M-P. 产品能力与 I1–I72 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -325,6 +366,25 @@
 | 受控 DOCX 上传与真实文本提取 | I51 | R11 |
 | 六层初始化分析器 | I52 | R11 |
 | 六层审阅、逐层确认与幂等落地 | I53 | R11 |
+| Slot 版本门 + 右侧停靠侧板 | I54 | R12 |
+| 作品切换与上下文隔离 | I55 | R12 |
+| 初始化裁决正确性 | I56 | R12 |
+| 初始化进度、取消、重试与刷新 | I57 | R12 |
+| 任务型创作台信息架构 | I58 | R12 |
+| 响应式、可访问性与保存反馈 | I59 | R12 |
+| C5 章节/场景读取与导航 | I60 | R13 |
+| C5 正文编辑与可选 reparse | I61 | R13 |
+| 统一写作候选命令合同 | I62 | R13 |
+| 候选预览与生成后裁决 | I63 | R13 |
+| 一致性审校中心 | I64 | R13 |
+| 可恢复自动生成队列 | I65 | R13 |
+| C3 知情/揭示 UI | I66 | R14 |
+| B1/B4 控制面 | I67 | R14 |
+| C6 进度与灵感 apply | I68 | R14 |
+| 导入导出与备份 UI | I69 | R14 |
+| C5 正文版本/分支 | I70 | R14 |
+| 全局搜索与上下文追踪 | I71 | R14 |
+| 写作进度面板 | I72 | R14 |
 
 ---
 
@@ -345,6 +405,6 @@
 
 ## 结论
 
-**直接结论：设计 v2.1 中所有保留的宿主与产品需求，均已由 I1–I53 覆盖，并具有可机器执行的 `pnpm run verify:iN` 与阶段 `pnpm run verify:stage-N` 证据要求；Stage 10 的新增需求由 I50–I53 独立覆盖，不改写 I37–I38 的历史合同。**
+**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并为每个迭代和 Stage 11–13 定义可机器执行的验证门。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展改变 Host source-of-truth。**
 
-H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only，并在公共 out-of-tree Client/Remote/Slot 合同无法证明时停止。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
+H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 还必须执行 D20 Slot 兼容门：若新版出现 additive 侧区公共 Slot，先通知升级并更新兼容基线；否则使用单一 `shell.overlay` 右侧停靠侧板路径。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
