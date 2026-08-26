@@ -799,6 +799,70 @@ export const WORKBENCH_STYLES = `
   cursor: not-allowed;
 }
 
+/* I56 逐层终态状态徽标（空候选 / 待裁决 / 已接受 / 已修改并接受 / 已跳过 / 已重生成）。 */
+.nv-onboarding__status {
+  display: inline-block;
+  margin-left: calc(var(--nv-grid) * 0.5);
+  padding: 0 calc(var(--nv-grid) * 0.375);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.375);
+  font-family: var(--nv-sans);
+  font-size: 11px;
+  color: var(--nv-ink-faint);
+}
+
+/* I56 逐层裁决面板：编辑候选 JSON / 重生成反馈。 */
+.nv-onboarding__panel {
+  margin-top: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.6) calc(var(--nv-grid) * 0.75);
+  border: 1px dashed var(--nv-cinnabar);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  background: var(--nv-paper-raised);
+}
+
+.nv-onboarding__panel .nv-field__input {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nv-ink);
+  resize: vertical;
+}
+
+.nv-onboarding__panel-actions {
+  display: flex;
+  gap: calc(var(--nv-grid) * 0.5);
+  margin-top: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-onboarding__panel-confirm,
+.nv-onboarding__panel-cancel {
+  border-radius: calc(var(--nv-grid) * 0.6);
+  padding: calc(var(--nv-grid) * 0.375) calc(var(--nv-grid) * 0.75);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nv-onboarding__panel-confirm {
+  border: 1px solid var(--nv-cinnabar);
+  background: var(--nv-cinnabar);
+  color: #fff;
+}
+
+.nv-onboarding__panel-cancel {
+  border: 1px solid var(--nv-line);
+  background: var(--nv-paper);
+  color: var(--nv-ink-dim);
+}
+
+/* I56 六层终态门：apply 前置资格说明。 */
+.nv-onboarding__eligibility {
+  margin: var(--nv-grid) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
 .nv-onboarding__candidates {
   display: flex;
   flex-direction: column;

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import type {
   OnboardingAcceptedLayer,
@@ -11,7 +12,13 @@ import type {
 import {
   onboardingAdjudicateInputSchema,
   onboardingApplyResultSchema,
+  onboardingCanonLayerSchema,
+  onboardingCharacterLayerSchema,
   onboardingFinalApplyInputSchema,
+  onboardingOutlineLayerSchema,
+  onboardingRelationshipLayerSchema,
+  onboardingStateLayerSchema,
+  onboardingWorldviewLayerSchema,
   ONBOARDING_LAYER_KEYS,
 } from '../core/schema/onboarding.js';
 import { topologicalWorldviewOrder, APPLY_ORDER } from '../core/onboarding/apply.js';
@@ -39,10 +46,15 @@ import type { ConfirmationRecord } from '../core/schema/confirm.js';
  * facade is the only component that maps the four user verdicts onto that Gate:
  *
  *   accept      → ensure an active proposal exists, then resolve it `accepted`.
+ *                 An empty candidate layer (no candidates) is NOT acceptable:
+ *                 the user must regenerate it or skip it explicitly (I56/R12-3).
  *   edit        → reject the current proposal, then propose a successor
- *                 carrying `{ replacesId, mode:'edited', value }` (the user's
- *                 validated candidate); the successor is accepted immediately —
- *                 this is the「手动修改后接受」verdict.
+ *                 carrying `{ replacesId, mode:'edited', value }` where `value`
+ *                 is EXACTLY the user-validated `editedValue` from the Remote
+ *                 payload — the Host never falls back to the original candidate
+ *                 (I56/R12-3). The value is validated against the layer's
+ *                 onboarding schema (and the B3 forced-empty contract) and must
+ *                 be non-empty; the successor is accepted immediately.
  *   regenerate  → reject the current proposal, then re-run exactly one layer
  *                 through the analyzer and propose a successor carrying
  *                 `{ replacesId, mode:'regenerated', value, feedback }`. The
@@ -56,7 +68,8 @@ import type { ConfirmationRecord } from '../core/schema/confirm.js';
  * layer never rolls back an independent applied layer; a retry only continues
  * unfinished layers (no compensating data deletion), and repeated apply of an
  * already-applied layer is idempotent by domain-identity (create/append reject
- * duplicate ids; state re-application converges).
+ * duplicate ids; state re-application converges). An accepted layer whose
+ * value holds no candidates fails closed at apply too (I56/R12-3).
  */
 
 export interface NovelOnboardingAdjudicationService {
@@ -162,9 +175,12 @@ export function createOnboardingAdjudicationService(
     }
 
     if (parsed.decision === 'accept') {
+      // 空候选不能「接受」：没有可授权的候选，用户必须重生成或显式跳过（I56/R12-3）。
+      const value = layerValue(session.layers, layer);
+      assertCandidateable(layer, value, '接受');
       let proposalId = priorId;
       if (proposalId === undefined) {
-        const created = await propose(session, layer, parsed.editedValue ?? layerValue(session.layers, layer));
+        const created = await propose(session, layer, value);
         proposalId = created.id;
       }
       return owners.confirmation.accept(session.projectId, proposalId).then((record) => {
@@ -175,11 +191,14 @@ export function createOnboardingAdjudicationService(
     }
 
     if (parsed.decision === 'edit') {
+      // 「修改后接受」必须提交真实 editedValue；Host 精确采用用户值，绝不回退
+      // 写原候选（I56/R12-3，schema 层已强制 edit 必带 editedValue）。
+      const edited = assertCandidateable(layer, parsed.editedValue, '修改后接受');
       if (priorId !== undefined) {
         const record = owners.confirmation.get(session.projectId, priorId);
         if (record.status === 'pending') await owners.confirmation.reject(session.projectId, priorId);
       }
-      const successor = await propose(session, layer, parsed.editedValue ?? layerValue(session.layers, layer), { replacesId: priorId ?? null, mode: 'edited' });
+      const successor = await propose(session, layer, edited, { replacesId: priorId ?? null, mode: 'edited' });
       session.proposalByLayer.set(layer, successor.id);
       session.skippedLayers.delete(layer);
       // 「手动修改后接受」: the edited, user-validated value is accepted now.
@@ -256,6 +275,16 @@ export function createOnboardingAdjudicationService(
       skippedLayers.push(layer);
     }
 
+    // Fail closed: an accepted layer with no candidates has nothing to land
+    // (I56/R12-3 空候选阻止 apply). Normal adjudication already blocks accept/
+    // edit on empty layers; this guards any legacy/buggy accepted record.
+    for (const [layer, item] of byLayer) {
+      if (item.candidates.length === 0) {
+        blockedLayers.push(layer);
+        errors.push(`${layer}: accepted layer has no candidates — nothing to apply`);
+      }
+    }
+
     const existingCharacterIds = await existingCharacters(owners.characters, parsed.projectId);
     // Full preflight is read-only: it classifies bad layers (and their
     // dependents) before the first Domain Service write, per design §14.7.4.
@@ -264,7 +293,7 @@ export function createOnboardingAdjudicationService(
       blockedLayers.push(layer);
       errors.push(`${layer}: ${message}`);
     }
-    const failed = new Set<OnboardingLayerKey>(preflight.keys());
+    const failed = new Set<OnboardingLayerKey>(blockedLayers);
 
     for (const layer of APPLY_ORDER) {
       const item = byLayer.get(layer);
@@ -303,6 +332,54 @@ async function regenerateLayer(
 ): Promise<{ layers: OnboardingLayers }> {
   if (!layerSource) throw new Error('Onboarding analyzer source is unavailable for regeneration');
   return layerSource.regenerate(session.onboardingSessionId, layer, settings);
+}
+
+/** Per-layer onboarding value schema, keyed by layer (edited values must reuse
+ * the exact analyzer contract — no second layer model, design §14.7.3). */
+const LAYER_VALUE_SCHEMAS: Record<OnboardingLayerKey, z.ZodType<OnboardingLayers[OnboardingLayerKey]>> = {
+  characters: onboardingCharacterLayerSchema,
+  worldview: onboardingWorldviewLayerSchema,
+  outline: onboardingOutlineLayerSchema,
+  relationship: onboardingRelationshipLayerSchema,
+  state: onboardingStateLayerSchema,
+  canon: onboardingCanonLayerSchema,
+};
+
+const LAYER_DISPLAY: Record<OnboardingLayerKey, string> = {
+  characters: '角色（B3）',
+  worldview: '世界观（B2）',
+  outline: '大纲（B5）',
+  relationship: '关系（C1）',
+  state: '状态（C2）',
+  canon: '正史（C4）',
+};
+
+/**
+ * I56/R12-3 adjudication gate: a value may only be accepted (or edited) when it
+ * parses against the layer's onboarding schema, carries at least one candidate
+ * (空候选阻止裁决), and honours the B3 forced-empty contract (design §14.7.3:
+ * `relationships` / `knowledgeIds` / `arc.keyBeats` stay empty, including for
+ * manually edited proposals). Returns the parsed canonical value.
+ */
+export function assertCandidateable(layer: OnboardingLayerKey, value: unknown, verdict: string): OnboardingLayers[OnboardingLayerKey] {
+  const parsed = LAYER_VALUE_SCHEMAS[layer].safeParse(value);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.slice(0, 3)
+      .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`);
+    throw new Error(`${LAYER_DISPLAY[layer]}「${verdict}」的候选值不符合层契约${issues.length > 0 ? `（前 ${issues.length} 项：${issues.join('；')}）` : ''}；请修正候选值后重试，或整层重生成/显式跳过。`);
+  }
+  if (parsed.data.candidates.length === 0) {
+    throw new Error(`${LAYER_DISPLAY[layer]}无候选，不能${verdict}；请整层重生成或显式跳过（空候选阻止裁决）。`);
+  }
+  if (layer === 'characters') {
+    const candidates = parsed.data.candidates as OnboardingLayers['characters']['candidates'];
+    for (const candidate of candidates) {
+      if (candidate.relationships.length !== 0 || candidate.knowledgeIds.length !== 0 || candidate.arc.keyBeats.length !== 0) {
+        throw new Error(`B3 角色 ${candidate.id} 必须保持 relationships/knowledgeIds/arc.keyBeats 为空（初始化合同 §14.7.3）。`);
+      }
+    }
+  }
+  return parsed.data;
 }
 
 function toCandidateJson(value: unknown): OnboardingAcceptedLayer['candidates'] {

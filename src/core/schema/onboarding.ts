@@ -278,11 +278,16 @@ export const onboardingAdjudicateInputSchema = z.object({
   sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
   layer: z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon']),
   decision: onboardingLayerDecisionRequirementSchema,
-  /** Only present for `decision === 'edit'`; the user-validated candidate value. */
+  /** The user-validated candidate value, REQUIRED for `decision === 'edit'` (I56 / R12-3). */
   editedValue: z.json().optional(),
   /** Optional free-text feedback forwarded on `regenerate` (single-layer re-run). */
   feedback: z.string().max(4000).optional(),
-}).strict();
+}).strict().superRefine((input, ctx) => {
+  // 「修改后接受」必须提交真实 editedValue，Host 不得回退写原候选（R12-3）。
+  if (input.decision === 'edit' && input.editedValue === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['editedValue'], message: 'decision "edit" requires editedValue' });
+  }
+});
 export type OnboardingAdjudicateInput = z.infer<typeof onboardingAdjudicateInputSchema>;
 
 export const onboardingFinalApplyInputSchema = z.object({

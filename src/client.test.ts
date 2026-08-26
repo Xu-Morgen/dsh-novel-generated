@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -210,6 +210,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const remote = { $mount: async () => async () => {} };
   const llmConfig = mountOptions.llmConfig ?? {};
   const analyzer = mountOptions.onboardingAnalyzer;
+  const onboardingStub = mountOptions.onboarding;
   const workbenchSettingsStub = mountOptions.workbenchSettings;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
@@ -222,6 +223,11 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       openProjectFolder: workbenchSettingsStub?.openProjectFolder ?? (async () => ({ opened: true, path: 'C:\\dummy\\projects\\fixture-project' })),
     }
     : name === 'remote.novelOnboardingAnalyzer' ? (analyzer ?? { start: async () => { throw new Error('未注入 remote.novelOnboardingAnalyzer'); } })
+    : name === 'remote.novelOnboarding' ? (onboardingStub ?? {
+      adjudicate: async () => { throw new Error('未注入 remote.novelOnboarding'); },
+      acceptedLayers: async () => [],
+      finalApply: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', appliedLayers: [], skippedLayers: [], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
+    })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
@@ -1037,6 +1043,159 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     navClick({ 'data-novel-onboarding-nav': '' });
     await flush();
     expect(reviewVisible()).toBe(true);
+  });
+});
+
+/** I56 夹具：仅 characters 有候选，其余五层为空候选。 */
+const I56_LAYERS = {
+  characters: { candidates: [{ id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '见习测绘师', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }], confidence: 'high', warnings: [], evidenceIds: ['e1'] },
+  worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+  outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+  relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+  state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+  canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+};
+
+/** I56：切到审阅页签、粘贴原文并启动分析，返回可随时重渲染的 render 函数。 */
+async function openOnboardingReview(registrations: Record<string, Array<{ component: () => unknown }>>, layers: unknown): Promise<() => FakeNode> {
+  // 等待 mount 的自动开项目循环完成，再进入审阅页签（与既有 I52 测试一致）。
+  await flush();
+  const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+  (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-nav'] === '')?.props?.onClick as () => void)();
+  await flush();
+  const tree = render();
+  const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
+  const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
+  (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '北港位于内海西岸。' } });
+  (start?.props?.onClick as () => void)();
+  await flush();
+  return render;
+}
+
+describe('I56 six-layer adjudication correctness (R12-3)', () => {
+  const baseMount = (onboarding: NonNullable<MountOptions['onboarding']>) => mount(
+    () => Promise.resolve({ ok: true, value: READY_MODEL }),
+    {},
+    {
+      onboardingAnalyzer: { start: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', sourceHash: 'a'.repeat(64), evidence: {}, layers: I56_LAYERS }) },
+      onboarding,
+    },
+  );
+
+  it('修改后接受 opens a per-layer edit panel and submits the exact editedValue', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const { registrations } = baseMount({
+      adjudicate: async (input) => { calls.push(input as Record<string, unknown>); return { id: 'proposal-1', status: 'accepted' }; },
+    });
+    const render = await openOnboardingReview(registrations, I56_LAYERS);
+    const clickVerdict = (layer: string, decision: string) => {
+      const button = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === layer && node.props?.['data-novel-onboarding-decision'] === decision);
+      (button?.props?.onClick as () => void)();
+    };
+    clickVerdict('characters', 'edit');
+    await flush();
+    // 面板打开且预填当前候选 JSON。
+    const editText = collect(render(), 'textarea').find((node) => node.props?.['data-novel-onboarding-edit-text'] === 'characters');
+    expect(editText).toBeDefined();
+    const editedLayer = {
+      candidates: [{ ...(I56_LAYERS.characters.candidates[0] as { id: string }), personality: '大胆' }],
+      confidence: 'high', warnings: [], evidenceIds: ['e1'],
+    };
+    (editText?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: JSON.stringify(editedLayer) } });
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-edit-confirm'] === 'characters')?.props?.onClick as () => void)();
+    await flush();
+    // Host 精确收到用户值（Remote payload 断言），且状态翻转为已修改并接受。
+    expect(calls).toHaveLength(1);
+    expect(calls[0].layer).toBe('characters');
+    expect(calls[0].decision).toBe('edit');
+    expect(calls[0].editedValue).toEqual(editedLayer);
+    const status = collect(render(), 'span').find((node) => node.props?.['data-novel-onboarding-status'] === 'characters');
+    expect(String(status?.children?.[0] ?? '')).toContain('已修改并接受');
+  });
+
+  it('非法 JSON 编辑值阻止提交且不调用 Remote', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const { registrations } = baseMount({
+      adjudicate: async (input) => { calls.push(input as Record<string, unknown>); return { id: 'proposal-1', status: 'accepted' }; },
+    });
+    const render = await openOnboardingReview(registrations, I56_LAYERS);
+    const editButton = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === 'characters' && node.props?.['data-novel-onboarding-decision'] === 'edit');
+    (editButton?.props?.onClick as () => void)();
+    await flush();
+    const editText = collect(render(), 'textarea').find((node) => node.props?.['data-novel-onboarding-edit-text'] === 'characters');
+    (editText?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '{ 不是合法 JSON' } });
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-edit-confirm'] === 'characters')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual([]);
+    const error = collect(render(), 'p').find((node) => node.props?.['data-novel-onboarding-error'] !== undefined);
+    expect(String(error?.children?.[0] ?? '')).toContain('不是合法 JSON');
+  });
+
+  it('打回重生成 opens a feedback panel and submits the user feedback', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const { registrations } = baseMount({
+      adjudicate: async (input) => { calls.push(input as Record<string, unknown>); return { id: 'proposal-2', status: 'pending' }; },
+    });
+    const render = await openOnboardingReview(registrations, I56_LAYERS);
+    const regenButton = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === 'characters' && node.props?.['data-novel-onboarding-decision'] === 'regenerate');
+    (regenButton?.props?.onClick as () => void)();
+    await flush();
+    const feedback = collect(render(), 'textarea').find((node) => node.props?.['data-novel-onboarding-feedback'] === 'characters');
+    expect(feedback).toBeDefined();
+    (feedback?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '角色缺少动机，请补充' } });
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-regenerate-confirm'] === 'characters')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].decision).toBe('regenerate');
+    expect(calls[0].feedback).toBe('角色缺少动机，请补充');
+    // 重生成后继仍 pending：状态提示待再次裁决。
+    const status = collect(render(), 'span').find((node) => node.props?.['data-novel-onboarding-status'] === 'characters');
+    expect(String(status?.children?.[0] ?? '')).toContain('已重生成');
+  });
+
+  it('apply 在六层全部进入终态前禁用，资格文案实时更新', async () => {
+    const { registrations } = baseMount({
+      adjudicate: async () => ({ id: 'proposal-1', status: 'accepted' }),
+    });
+    const render = await openOnboardingReview(registrations, I56_LAYERS);
+    const apply = () => collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-apply'] === '');
+    const eligibility = () => collect(render(), 'p').find((node) => node.props?.['data-novel-onboarding-eligibility'] !== undefined);
+    expect(apply()?.props?.disabled).toBe(true);
+    expect(String(eligibility()?.children?.[0] ?? '')).toContain('待 6 层');
+    const clickVerdict = (layer: string, decision: string) => {
+      const button = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === layer && node.props?.['data-novel-onboarding-decision'] === decision);
+      (button?.props?.onClick as () => void)();
+    };
+    clickVerdict('characters', 'accept');
+    await flush();
+    expect(String(eligibility()?.children?.[0] ?? '')).toContain('待 5 层');
+    for (const layer of ['worldview', 'outline', 'relationship', 'state', 'canon']) {
+      clickVerdict(layer, 'skip');
+      await flush();
+    }
+    expect(apply()?.props?.disabled).toBe(false);
+    expect(String(eligibility()?.children?.[0] ?? '')).toContain('已锁定');
+  });
+
+  it('空候选层禁用接受/修改后接受，仍可重生成与跳过；状态显示无候选', async () => {
+    const { registrations } = baseMount({
+      adjudicate: async () => ({ id: 'proposal-1', status: 'accepted' }),
+    });
+    const render = await openOnboardingReview(registrations, I56_LAYERS);
+    const verdictDisabled = (layer: string, decision: string): boolean => {
+      const button = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === layer && node.props?.['data-novel-onboarding-decision'] === decision);
+      return button?.props?.disabled === true;
+    };
+    expect(verdictDisabled('worldview', 'accept')).toBe(true);
+    expect(verdictDisabled('worldview', 'edit')).toBe(true);
+    expect(verdictDisabled('worldview', 'regenerate')).toBe(false);
+    expect(verdictDisabled('worldview', 'skip')).toBe(false);
+    expect(verdictDisabled('characters', 'accept')).toBe(false);
+    const status = collect(render(), 'span').find((node) => node.props?.['data-novel-onboarding-status'] === 'worldview');
+    expect(String(status?.children?.[0] ?? '')).toContain('无候选');
   });
 });
 

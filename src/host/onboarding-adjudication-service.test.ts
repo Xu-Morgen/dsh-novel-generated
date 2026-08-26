@@ -51,7 +51,21 @@ function backend() {
   } };
 }
 
-async function fixture() {
+/** Backend whose regenerate pass returns a *changed* characters layer. */
+function changedCharactersBackend() {
+  let calls = 0;
+  return { async *stream() {
+    const value = calls++ === 0 ? output() : (() => {
+      const characters = structuredClone(output().layers.characters);
+      characters.candidates[0].personality = '果敢';
+      return characters;
+    })();
+    yield { type: 'text-delta', text: JSON.stringify(value) };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  } };
+}
+
+async function fixture(backendValue?: unknown) {
   const rootPath = await temporaryRoot();
   const characters = createCharacterService(rootPath);
   const worldview = createWorldviewService(rootPath);
@@ -60,7 +74,7 @@ async function fixture() {
   const state = createStateService(rootPath);
   const canon = createCanonService(rootPath);
   const confirmation = createConfirmationService(rootPath);
-  const analyzer = createOnboardingAnalyzerService(backend());
+  const analyzer = createOnboardingAnalyzerService(backendValue ?? backend());
   const layerSource: OnboardingLayerSource = {
     getResult: (id) => analyzer.getResult(id),
     async regenerate(id, layer, settings) {
@@ -93,13 +107,17 @@ describe('I53 onboarding adjudication + idempotent landing', () => {
     const { start, adjudication, characters, worldview, outline, state, canon } = await fixture();
     const sessionId = await start('demo');
 
-    for (const layer of ['characters', 'worldview', 'outline', 'state', 'canon', 'relationship'] as const) {
+    // I56/R12-3: the empty-candidate layer (relationship) cannot be accepted —
+    // 空候选阻止裁决; it must be explicitly skipped or regenerated.
+    for (const layer of ['characters', 'worldview', 'outline', 'state', 'canon'] as const) {
       await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer, decision: 'accept' });
     }
+    await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'relationship', decision: 'skip' });
 
     const result = await adjudication.finalApply({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash });
     expect(result.pendingLayers).toEqual([]);
-    expect(result.appliedLayers.sort()).toEqual(['canon', 'characters', 'outline', 'relationship', 'state', 'worldview'].sort());
+    expect(result.appliedLayers.sort()).toEqual(['canon', 'characters', 'outline', 'state', 'worldview'].sort());
+    expect(result.skippedLayers).toEqual(['relationship']);
     expect(result.blockedLayers).toEqual([]);
     expect(result.retryable).toBe(false);
 
@@ -147,11 +165,12 @@ describe('I53 onboarding adjudication + idempotent landing', () => {
   it('is idempotent: re-applying after success continues only unfinished layers', async () => {
     const { start, adjudication, characters } = await fixture();
     const sessionId = await start('demo');
-    for (const layer of ['characters', 'worldview', 'outline', 'state', 'canon', 'relationship'] as const) {
+    for (const layer of ['characters', 'worldview', 'outline', 'state', 'canon'] as const) {
       await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer, decision: 'accept' });
     }
+    await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'relationship', decision: 'skip' });
     const first = await adjudication.finalApply({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash });
-    expect(first.appliedLayers).toHaveLength(6);
+    expect(first.appliedLayers).toHaveLength(5);
     expect(first.blockedLayers).toEqual([]);
 
     const second = await adjudication.finalApply({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash });
@@ -175,5 +194,122 @@ describe('I53 onboarding adjudication + idempotent landing', () => {
     const sessionId = await start('demo');
     await expect(adjudication.adjudicate({ projectId: 'other', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'accept' })).rejects.toThrow(/binding mismatch/);
     await expect(adjudication.finalApply({ projectId: 'other', onboardingSessionId: sessionId, sourceHash })).rejects.toThrow(/binding mismatch/);
+  });
+});
+
+describe('I56 six-layer adjudication correctness (R12-3)', () => {
+  it('edit submits the exact user value and never falls back to the original candidate', async () => {
+    const { start, adjudication, characters, confirmation } = await fixture();
+    const sessionId = await start('demo');
+    // Original analyzer candidate has personality 谨慎; the user edits it to 大胆.
+    const editedLayer = {
+      candidates: [{ ...output().layers.characters.candidates[0], personality: '大胆' }],
+      confidence: 'high', warnings: [], evidenceIds: ['e1'],
+    };
+    const record = await adjudication.adjudicate({
+      projectId: 'demo', onboardingSessionId: sessionId, sourceHash,
+      layer: 'characters', decision: 'edit', editedValue: editedLayer,
+    });
+    expect(record.status).toBe('accepted');
+    // Host 精确收到用户值：提案 payload 即用户提交的整层候选。
+    const payload = confirmation.get('demo', record.id).payload as { value?: unknown };
+    expect(payload.value).toEqual(editedLayer);
+    for (const layer of ['worldview', 'outline', 'state', 'canon'] as const) {
+      await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer, decision: 'accept' });
+    }
+    await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'relationship', decision: 'skip' });
+    const result = await adjudication.finalApply({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash });
+    expect(result.blockedLayers).toEqual([]);
+    const mira = (await characters.list('demo')).find((c) => c.id === 'mira');
+    expect(mira?.personality).toBe('大胆');
+    // 其他已接受层仍保持分析器原候选（编辑只影响本层）。
+    for (const other of adjudication.acceptedLayers(sessionId).filter((a) => a.layer !== 'characters')) {
+      expect(other.candidates).toEqual(output().layers[other.layer].candidates);
+    }
+  });
+
+  it('rejects edit without editedValue (no silent fallback to the original)', async () => {
+    const { start, adjudication } = await fixture();
+    const sessionId = await start('demo');
+    await expect(adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'edit' }))
+      .rejects.toThrow(/editedValue/);
+  });
+
+  it('rejects edit with an empty candidate value (空候选阻止裁决)', async () => {
+    const { start, adjudication } = await fixture();
+    const sessionId = await start('demo');
+    const emptyLayer = { candidates: [], confidence: 'high' as const, warnings: [], evidenceIds: [] };
+    await expect(adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'edit', editedValue: emptyLayer }))
+      .rejects.toThrow(/无候选/);
+  });
+
+  it('rejects accept on an empty-candidate layer (空候选阻止裁决)', async () => {
+    const { start, adjudication } = await fixture();
+    const sessionId = await start('demo');
+    // Fixture relationship layer has zero candidates.
+    await expect(adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'relationship', decision: 'accept' }))
+      .rejects.toThrow(/无候选/);
+  });
+
+  it('enforces the B3 forced-empty contract on edited proposals (§14.7.3)', async () => {
+    const { start, adjudication } = await fixture();
+    const sessionId = await start('demo');
+    const edited = structuredClone(output().layers.characters);
+    edited.candidates[0].relationships = ['mira-laozhou-search'];
+    await expect(adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'edit', editedValue: edited }))
+      .rejects.toThrow(/relationships\/knowledgeIds\/arc\.keyBeats/);
+  });
+
+  it('regenerate rejects the pending prior, forwards feedback, and keeps the other five layers unchanged', async () => {
+    const { start, adjudication, confirmation, analyzer } = await fixture(changedCharactersBackend());
+    const sessionId = await start('demo');
+    const original = await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'accept' });
+    const before = structuredClone(analyzer.getResult(sessionId)!.layers);
+
+    const successor = await adjudication.adjudicate({
+      projectId: 'demo', onboardingSessionId: sessionId, sourceHash,
+      layer: 'characters', decision: 'regenerate', feedback: '角色性格与动机不符',
+    }, settings);
+    expect(successor.status).toBe('pending');
+    // 旧提案先 reject（regenerate 前为 accepted 记录不 reject，但后继 lineage 仍指向它）。
+    const payload = confirmation.get('demo', successor.id).payload as { replacesId?: string; mode?: string; feedback?: string; value?: unknown };
+    expect(payload.replacesId).toBe(original.id);
+    expect(payload.mode).toBe('regenerated');
+    expect(payload.feedback).toBe('角色性格与动机不符');
+    // 新值来自重生成（personality 果敢），不是旧候选。
+    const after = analyzer.getResult(sessionId)!.layers;
+    expect(after.characters.candidates[0].personality).toBe('果敢');
+    for (const other of ['worldview', 'outline', 'relationship', 'state', 'canon'] as const) {
+      expect(after[other]).toEqual(before[other]);
+    }
+    // 重生成后的 pending 后继阻止 apply。
+    for (const layer of ['worldview', 'outline', 'state', 'canon'] as const) {
+      await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer, decision: 'accept' });
+    }
+    await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'relationship', decision: 'skip' });
+    const result = await adjudication.finalApply({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash });
+    expect(result.pendingLayers).toContain('characters');
+    expect(result.appliedLayers).toEqual([]);
+  });
+
+  it('edit after regenerate rejects the pending prior and carries replacesId lineage', async () => {
+    const { start, adjudication, confirmation } = await fixture(changedCharactersBackend());
+    const sessionId = await start('demo');
+    await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'accept' });
+    const regenerated = await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'regenerate', feedback: '补充动机' }, settings);
+    expect(regenerated.status).toBe('pending');
+
+    const edited = {
+      candidates: [{ ...output().layers.characters.candidates[0], motivation: '用户补充的动机' }],
+      confidence: 'high', warnings: [], evidenceIds: ['e1'],
+    };
+    const successor = await adjudication.adjudicate({ projectId: 'demo', onboardingSessionId: sessionId, sourceHash, layer: 'characters', decision: 'edit', editedValue: edited });
+    // 旧 pending 提案先被 reject。
+    expect(confirmation.get('demo', regenerated.id).status).toBe('rejected');
+    const payload = confirmation.get('demo', successor.id).payload as { replacesId?: string; mode?: string; value?: unknown };
+    expect(payload.replacesId).toBe(regenerated.id);
+    expect(payload.mode).toBe('edited');
+    expect(payload.value).toEqual(edited);
+    expect(successor.status).toBe('accepted');
   });
 });

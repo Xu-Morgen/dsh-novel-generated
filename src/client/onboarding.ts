@@ -54,6 +54,18 @@ export interface OnboardingState {
   layers?: unknown;
   applyResult?: OnboardingApplyResultShape;
   error?: string;
+  /** I56 逐层裁决草稿：编辑候选的 JSON 文本（经 store 持久化，重渲染不丢）。 */
+  editTexts?: Partial<Record<OnboardingLayerId, string>>;
+  /** I56 重生成反馈草稿文本。 */
+  feedbackTexts?: Partial<Record<OnboardingLayerId, string>>;
+  /** I56 当前打开的裁决面板（edit 或 regenerate），同一层同一时刻至多一个。 */
+  openPanel?: Partial<Record<OnboardingLayerId, 'edit' | 'regenerate'>>;
+}
+
+/** I56 裁决附带载荷：edit 必须携带用户编辑后的整层候选值；regenerate 可带反馈。 */
+export interface OnboardingAdjudicationExtra {
+  editedValue?: unknown;
+  feedback?: string;
 }
 
 /** Text projection of an unknown candidate value (strings / arrays of strings). */
@@ -138,44 +150,142 @@ function candidateCards(h: El, layer: OnboardingLayerId, state: OnboardingState)
   );
 }
 
+/** Candidates of one layer from the raw package (plain JSON). */
+function layerCandidates(state: OnboardingState, layer: OnboardingLayerId): unknown[] {
+  const layers = state.layers as Record<string, { candidates?: unknown[] }> | undefined;
+  return layers?.[layer]?.candidates ?? [];
+}
+
+/** I56 逐层终态状态：空候选 / 待裁决 / 已接受 / 已修改并接受 / 已跳过 / 已重生成待再次裁决。 */
+function layerStatusText(state: OnboardingState, layer: OnboardingLayerId): string {
+  const decision = state.decisions[layer];
+  if (decision === 'accept') return '已接受';
+  if (decision === 'edit') return '已修改并接受';
+  if (decision === 'skip') return '已跳过';
+  if (decision === 'regenerate') return '已重生成 · 待再次裁决';
+  return layerCandidates(state, layer).length === 0 ? '无候选 · 待裁决' : '待裁决';
+}
+
+/** I56 六层终态门：全部进入 accepted/edited/skipped 终态才可 apply；regenerate 仍留 pending。 */
+function applyEligibility(state: OnboardingState): { ready: boolean; pendingCount: number } {
+  let pendingCount = 0;
+  for (const { id } of ONBOARDING_LAYERS) {
+    const decision = state.decisions[id];
+    if (decision === undefined || decision === 'regenerate') pendingCount += 1;
+  }
+  return { ready: pendingCount === 0, pendingCount };
+}
+
+/** The layer's current candidate value as pretty JSON (edit panel seed). */
+function currentLayerJson(state: OnboardingState, layer: OnboardingLayerId): string {
+  const layers = state.layers as Record<string, unknown> | undefined;
+  try { return JSON.stringify(layers?.[layer] ?? null, null, 2); } catch { return ''; }
+}
+
 /**
- * 渲染六层审阅面板：每层一个裁决按钮组 + 候选内容 + 一个最终「应用已接受层」按钮。
- * 裁决结果（接受/跳过/重生成/编辑）与 apply 结果由宿主回调驱动。
+ * 渲染六层审阅面板（I56 锁终态门，design §14.7.4 / R12-3）：
+ * - 每层显示终态状态；空候选层禁用「接受 / 修改后接受」（须重生成或显式跳过）。
+ * - 「修改后接受」打开逐层编辑面板：JSON 编辑整层候选，确认时提交真实 editedValue。
+ * - 「打回重生成」打开反馈面板：用户 feedback 随 regenerate 提交 Host。
+ * - apply 按钮在六层全部进入终态前禁用（pending 阻止 apply，Host 侧同语义）。
  */
 export function onboardingReview(
   h: El,
   namespace: OnboardingNamespace | undefined,
   state: OnboardingState,
-  dispatch: (fn: (s: OnboardingState) => void) => void,
-  decide: (layer: OnboardingLayerId, decision: OnboardingDecision) => void,
+  patch: (patch: Partial<OnboardingState>) => void,
+  decide: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void,
   apply: () => void,
 ): unknown {
   const result = state.applyResult;
+  const eligibility = applyEligibility(state);
+  const openPanelFor = (layer: OnboardingLayerId): 'edit' | 'regenerate' | undefined => state.openPanel?.[layer];
+  const openPanel = (layer: OnboardingLayerId, panel: 'edit' | 'regenerate'): void => {
+    patch({ openPanel: { ...state.openPanel, [layer]: panel }, error: undefined });
+  };
+  const closePanel = (layer: OnboardingLayerId): void => {
+    patch({ openPanel: { ...state.openPanel, [layer]: undefined } });
+  };
+  const confirmEdit = (layer: OnboardingLayerId): void => {
+    const text = (state.editTexts?.[layer] ?? '').trim();
+    if (!text) { patch({ error: '「修改后接受」的候选值不能为空' }); return; }
+    let value: unknown;
+    try { value = JSON.parse(text); } catch { patch({ error: '编辑的候选值不是合法 JSON，请修正后重试' }); return; }
+    decide(layer, 'edit', { editedValue: value });
+  };
+  const confirmRegenerate = (layer: OnboardingLayerId): void => {
+    const feedback = state.feedbackTexts?.[layer] ?? '';
+    decide(layer, 'regenerate', { feedback });
+  };
   return h('section', { className: 'nv-onboarding', 'data-novel-onboarding': '' },
     h('h3', { className: 'nv-onboarding__title' }, '六层初始化审阅'),
-    h('p', { className: 'nv-onboarding__hint' }, '逐层接受、修改后接受、打回重生成或显式跳过，全部落到终态后可进入创作台。'),
+    h('p', { className: 'nv-onboarding__hint' }, '逐层接受、修改后接受、打回重生成或显式跳过；空候选层须重生成或跳过。全部落到终态后才可应用。'),
     h('ul', { className: 'nv-onboarding__layers', 'data-novel-onboarding-layers': '' },
-      ONBOARDING_LAYERS.map((layer) => h('li', { key: layer.id, className: 'nv-onboarding__layer', 'data-novel-onboarding-layer': layer.id },
-        h('span', { className: 'nv-onboarding__layer-label' }, layer.label),
-        h('div', { className: 'nv-onboarding__verdicts', role: 'group', 'aria-label': `${layer.label} 裁决` },
-          (['accept', 'edit', 'regenerate', 'skip'] as const).map((decision) => h('button', {
-            key: decision,
-            type: 'button',
-            className: 'nv-onboarding__verdict' + (state.decisions[layer.id] === decision ? ' is-active' : ''),
-            'data-novel-onboarding-verdict': layer.id,
-            'data-novel-onboarding-decision': decision,
-            disabled: namespace === undefined,
-            onClick: () => decide(layer.id, decision),
-          }, decisionLabel(decision))),
-        ),
-        candidateCards(h, layer.id, state),
-      )),
+      ONBOARDING_LAYERS.map((layer) => {
+        const empty = layerCandidates(state, layer.id).length === 0;
+        const panel = openPanelFor(layer.id);
+        return h('li', { key: layer.id, className: 'nv-onboarding__layer', 'data-novel-onboarding-layer': layer.id },
+          h('span', { className: 'nv-onboarding__layer-label' }, layer.label),
+          h('span', { className: 'nv-onboarding__status', 'data-novel-onboarding-status': layer.id }, layerStatusText(state, layer.id)),
+          h('div', { className: 'nv-onboarding__verdicts', role: 'group', 'aria-label': `${layer.label} 裁决` },
+            (['accept', 'edit', 'regenerate', 'skip'] as const).map((decision) => h('button', {
+              key: decision,
+              type: 'button',
+              className: 'nv-onboarding__verdict' + (state.decisions[layer.id] === decision ? ' is-active' : ''),
+              'data-novel-onboarding-verdict': layer.id,
+              'data-novel-onboarding-decision': decision,
+              disabled: namespace === undefined || ((decision === 'accept' || decision === 'edit') && empty),
+              onClick: () => {
+                if (decision === 'edit' || decision === 'regenerate') openPanel(layer.id, decision);
+                else decide(layer.id, decision);
+              },
+            }, decisionLabel(decision))),
+          ),
+          panel === 'edit' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-edit-open': layer.id },
+            h('label', { className: 'nv-field' },
+              h('span', { className: 'nv-field__label' }, '编辑候选值（JSON，整层结构）'),
+              h('textarea', {
+                className: 'nv-field__input nv-onboarding__edit-text',
+                rows: 8,
+                spellCheck: false,
+                'data-novel-onboarding-edit-text': layer.id,
+                value: state.editTexts?.[layer.id] ?? currentLayerJson(state, layer.id),
+                onChange: (event: { target: { value: string } }) => patch({ editTexts: { ...state.editTexts, [layer.id]: event.target.value }, error: undefined }),
+              }),
+            ),
+            h('div', { className: 'nv-onboarding__panel-actions' },
+              h('button', { type: 'button', className: 'nv-onboarding__panel-confirm', 'data-novel-onboarding-edit-confirm': layer.id, onClick: () => confirmEdit(layer.id) }, '确认修改并接受'),
+              h('button', { type: 'button', className: 'nv-onboarding__panel-cancel', 'data-novel-onboarding-edit-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消'),
+            ),
+          ) : null,
+          panel === 'regenerate' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-regenerate-open': layer.id },
+            h('label', { className: 'nv-field' },
+              h('span', { className: 'nv-field__label' }, '重生成反馈（可选，将随重生成提交 Host）'),
+              h('textarea', {
+                className: 'nv-field__input',
+                rows: 3,
+                'data-novel-onboarding-feedback': layer.id,
+                value: state.feedbackTexts?.[layer.id] ?? '',
+                placeholder: '例如：候选缺少动机；地点应为北港而非南港。',
+                onChange: (event: { target: { value: string } }) => patch({ feedbackTexts: { ...state.feedbackTexts, [layer.id]: event.target.value }, error: undefined }),
+              }),
+            ),
+            h('div', { className: 'nv-onboarding__panel-actions' },
+              h('button', { type: 'button', className: 'nv-onboarding__panel-confirm', 'data-novel-onboarding-regenerate-confirm': layer.id, onClick: () => confirmRegenerate(layer.id) }, '确认重生成'),
+              h('button', { type: 'button', className: 'nv-onboarding__panel-cancel', 'data-novel-onboarding-regenerate-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消'),
+            ),
+          ) : null,
+          candidateCards(h, layer.id, state),
+        );
+      }),
     ),
+    h('p', { className: 'nv-onboarding__eligibility', 'data-novel-onboarding-eligibility': '' },
+      eligibility.ready ? '六层终态已锁定，可应用已接受层。' : `待 ${eligibility.pendingCount} 层进入终态（已接受/已修改/已跳过）后启用应用。`),
     h('button', {
       type: 'button',
       className: 'nv-onboarding__apply',
       'data-novel-onboarding-apply': '',
-      disabled: namespace === undefined,
+      disabled: namespace === undefined || !eligibility.ready,
       onClick: () => apply(),
     }, '应用已接受层并进入创作台'),
     state.error ? h('p', { className: 'nv-onboarding__error', 'data-novel-onboarding-error': '', role: 'alert' }, state.error) : null,
@@ -199,15 +309,32 @@ function decisionLabel(decision: OnboardingDecision): string {
   }
 }
 
-/** 把一个裁决指令送往 Host（归一到 Remote 返回值）。 */
-export async function adjudicateOne(namespace: OnboardingNamespace, state: OnboardingState, layer: OnboardingLayerId, decision: OnboardingDecision): Promise<OnboardingAdjudicationRecord> {
-  return unwrap(namespace.adjudicate({
+/** 把一个裁决指令送往 Host（归一到 Remote 返回值）。I56/R12-3：
+ * `edit` 必须携带用户编辑后的真实 editedValue（绝不空手发）；`regenerate`
+ * 携带用户 feedback（非空才发送）。 */
+export async function adjudicateOne(
+  namespace: OnboardingNamespace,
+  state: OnboardingState,
+  layer: OnboardingLayerId,
+  decision: OnboardingDecision,
+  extra?: OnboardingAdjudicationExtra,
+): Promise<OnboardingAdjudicationRecord> {
+  const input: { projectId: string; onboardingSessionId: string; sourceHash: string; layer: OnboardingLayerId; decision: OnboardingDecision; editedValue?: unknown; feedback?: string } = {
     projectId: state.projectId,
     onboardingSessionId: state.onboardingSessionId,
     sourceHash: state.sourceHash,
     layer,
     decision,
-  }, undefined)) as unknown as OnboardingAdjudicationRecord;
+  };
+  if (decision === 'edit') {
+    if (extra?.editedValue === undefined) throw new Error('「修改后接受」必须提供编辑后的候选值');
+    input.editedValue = extra.editedValue;
+  }
+  if (decision === 'regenerate' && extra?.feedback !== undefined) {
+    const feedback = extra.feedback.trim();
+    if (feedback.length > 0) input.feedback = feedback;
+  }
+  return unwrap(namespace.adjudicate(input, undefined)) as unknown as OnboardingAdjudicationRecord;
 }
 
 /** 触发 Host final apply 并解析为结构化结果。 */

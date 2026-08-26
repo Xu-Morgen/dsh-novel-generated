@@ -58,7 +58,7 @@ import {
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
-import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
+import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
@@ -118,6 +118,7 @@ export type WorkbenchActions = {
   uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
   onboarding(state: OnboardingState | undefined): void;
   onboardingDecision(layer: OnboardingLayerId, decision: OnboardingDecision): void;
+  onboardingPatch(patch: Partial<OnboardingState>): void;
   onboardingApplyResult(result: OnboardingState['applyResult']): void;
   onboardingError(message: string): void;
   creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
@@ -293,7 +294,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -315,7 +316,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     ),
     uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
   );
-  const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
+  const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
@@ -514,9 +515,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
           uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
           onboarding: (d, state: OnboardingState | undefined) => { d.onboarding = state; },
-          onboardingDecision: (d, layer: OnboardingLayerId, decision: OnboardingDecision) => { if (d.onboarding) d.onboarding.decisions = { ...d.onboarding.decisions, [layer]: decision }; },
-          onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding.applyResult = result; },
-          onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding.error = message; },
+          onboardingDecision: (d, layer: OnboardingLayerId, decision: OnboardingDecision) => { if (d.onboarding) d.onboarding = { ...d.onboarding, decisions: { ...d.onboarding.decisions, [layer]: decision }, error: undefined }; },
+          onboardingPatch: (d, patch: Partial<OnboardingState>) => { if (d.onboarding) d.onboarding = { ...d.onboarding, ...patch }; },
+          onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding = { ...d.onboarding, applyResult: result, error: undefined }; },
+          onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding = { ...d.onboarding, error: message }; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -632,12 +634,23 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {}, layers: session.layers });
         }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : { projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: (cause as Error).message }));
       };
-      const decideLayer = (layer: OnboardingLayerId, decision: OnboardingDecision): void => {
+      // I56: 逐层裁决草稿（编辑 JSON 文本 / 重生成反馈 / 打开面板）与终态门都经
+      // store 持久化；`currentOnboarding` 闭包镜像同步更新，保证裁决回调读到最新绑定。
+      const patchOnboarding = (patch: Partial<OnboardingState>): void => {
+        if (!active) return;
+        if (currentOnboarding) currentOnboarding = { ...currentOnboarding, ...patch };
+        dispatch((actions) => actions.onboardingPatch(patch));
+      };
+      const decideLayer = (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra): void => {
         const target = onboarding;
         const state = currentOnboarding;
         if (!active || target === undefined || !state) return;
         dispatch((actions) => actions.onboardingDecision(layer, decision));
-        void adjudicateOne(target, state, layer, decision).catch((cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
+        void adjudicateOne(target, state, layer, decision, extra).then(() => {
+          if (!active) return;
+          // 裁决成功即关闭该层打开的裁决面板（草稿保留，可再次编辑）。
+          patchOnboarding({ openPanel: { ...(currentOnboarding?.openPanel ?? {}), [layer]: undefined } });
+        }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
       };
       const applyOnboarding = (): void => {
         const target = onboarding;
@@ -903,7 +916,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, {
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
