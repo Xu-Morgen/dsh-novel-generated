@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -83,6 +83,10 @@ async function seedProject(deps: NovelAgentDeps, projectId: string): Promise<voi
     goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [],
     arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
   });
+  await deps.worldview.create(projectId, {
+    id: 'north-harbor', kind: 'geography', title: '北港', content: '北港位于内海西岸。', keywords: ['北港'],
+    triggerMode: 'keyword', weight: 1, parent: null, mutable: true, status: 'active', supersededBy: null,
+  });
   await deps.outline.save(projectId, {
     id: 'outline-demo', structure: 'three-act', logline: '一名测绘师追查灯塔守夜人失踪之谜。', themes: ['追查'],
     acts: [{ id: 'act-1', index: 0, title: '第一幕', goal: '接受委托', beats: [{ id: 'beat-1', title: '午夜旧灯塔', description: '米拉在旧灯塔发现线索。', charactersInvolved: ['mira'], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [{ id: 'detail-1', title: '发现海图', summary: '米拉发现半张烧焦海图', pov: 'mira', wordTarget: 20, points: ['发现海图'], status: 'writing' }] }] }],
@@ -151,6 +155,19 @@ describe('novel agent tools（对话创作入口）', () => {
       const chapters = await deps.text.listChapters('demo');
       expect(chapters).toHaveLength(1);
       expect(chapters[0].scenes).toHaveLength(1);
+      // 文件级证据：重启后数据仍在磁盘上（结构化文档，无需重新上传/初始化）。
+      const projectDir = join(root, 'demo');
+      const chapterFile = await readFile(join(projectDir, 'text', 'chapter-1.json'), 'utf8');
+      expect(JSON.parse(chapterFile).scenes[0].content).toBe('米拉在码头找到铜钥匙。');
+      const canonFile = await readFile(join(projectDir, 'canon', 'canon.jsonl'), 'utf8');
+      expect(canonFile).toContain('evt-1');
+      const stateFile = await readFile(join(projectDir, 'state', 'snapshots.yaml'), 'utf8');
+      expect(stateFile).toContain('dawn');
+      // 六层初始化产物：大纲/关系/角色/世界观文件存在（重启后直接读取，无需重传）。
+      await expect(readFile(join(projectDir, 'outline.yaml'), 'utf8')).resolves.toContain('outline-demo');
+      await expect(readFile(join(projectDir, 'relationships.yaml'), 'utf8')).resolves.toMatch(/\S/);
+      await expect(readFile(join(projectDir, 'characters', 'mira.yaml'), 'utf8')).resolves.toContain('米拉');
+      await expect(readFile(join(projectDir, 'worldview', 'north-harbor.yaml'), 'utf8')).resolves.toContain('北港');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
