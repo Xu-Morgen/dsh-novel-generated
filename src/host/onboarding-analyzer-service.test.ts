@@ -86,4 +86,46 @@ describe('I52 onboarding analyzer Host service', () => {
     // After dispose the session store is cleared, so status must throw.
     expect(() => service.status(started.onboardingSessionId)).toThrow(/Unknown onboarding session/);
   });
+
+  it('I57 begin returns the session id immediately and reaches succeeded with a bound result', async () => {
+    const service = createOnboardingAnalyzerService(backendReturning(emptyOutput()));
+    const begun = service.begin({ projectId: 'demo', sourceHash, text: '米拉是一名测绘师。' }, settings);
+    expect(begun.onboardingSessionId).toBeTruthy();
+    // Background job: wait for the fake backend to settle.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(service.status(begun.onboardingSessionId)).toBe('succeeded');
+    const result = service.result(begun.onboardingSessionId);
+    expect(result.onboardingSessionId).toBe(begun.onboardingSessionId);
+    expect(result.projectId).toBe('demo');
+    expect(result.layers.characters.candidates).toHaveLength(1);
+  });
+
+  it('I57 result throws for unfinished / failed / cancelled / unknown sessions', async () => {
+    const service = createOnboardingAnalyzerService(undefined);
+    expect(() => service.result('does-not-exist')).toThrow(/Unknown onboarding session/);
+    // Unavailable backend → the background job fails closed and result surfaces it.
+    const begun = service.begin({ projectId: 'demo', sourceHash, text: '米拉是一名测绘师。' }, settings);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(service.status(begun.onboardingSessionId)).toBe('failed');
+    expect(() => service.result(begun.onboardingSessionId)).toThrow();
+  });
+
+  it('I57 cancel mid-flight stops the job with zero result and no layer writes', async () => {
+    // A backend that never settles until the job is cancelled.
+    let release: undefined | (() => void);
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const hangingBackend = { async *stream() {
+      yield { type: 'text-delta', text: '{"evidence":{},"layers":{}}' };
+      await gate;
+      throw new Error('aborted by controller');
+    } };
+    const service = createOnboardingAnalyzerService(hangingBackend);
+    const begun = service.begin({ projectId: 'demo', sourceHash, text: '米拉是一名测绘师。' }, settings);
+    await service.cancel(begun.onboardingSessionId);
+    expect(service.status(begun.onboardingSessionId)).toBe('cancelled');
+    expect(service.getResult(begun.onboardingSessionId)).toBeUndefined();
+    expect(() => service.result(begun.onboardingSessionId)).toThrow(/取消/);
+    release?.();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  });
 });

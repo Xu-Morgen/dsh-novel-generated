@@ -210,11 +210,16 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     }
   };
   // The analyzer is frozen by its constructor. The small mutable Remote carrier
-  // delegates to that single owner under the same canonical service key.
+  // delegates to that single owner under the same canonical service key. I57:
+  // `begin` resolves settings once, then hands the resolved settings to the
+  // background job so the client can poll `status`/`cancel` without a second
+  // resolution path.
   const analyzerRemote = bindRemote({
+    begin: async (input: unknown, settings: unknown) => analyzerService.begin(input as Parameters<typeof analyzerService.begin>[0], await resolveAnalyzerSettings(settings)),
     start: async (input: unknown, settings: unknown) => analyzerService.start(input as Parameters<typeof analyzerService.start>[0], await resolveAnalyzerSettings(settings)),
     status: (onboardingSessionId: string) => analyzerService.status(onboardingSessionId),
     cancel: (onboardingSessionId: string) => analyzerService.cancel(onboardingSessionId),
+    result: (onboardingSessionId: string) => analyzerService.result(onboardingSessionId),
   }, 'novelOnboardingAnalyzer', 'novelOnboardingAnalyzer');
   ctx.provide('novelOnboardingAnalyzer', analyzerRemote);
   // I53: adjudication builds on the analyzer's bound results. The layer source

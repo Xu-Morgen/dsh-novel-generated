@@ -58,7 +58,7 @@ import {
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
-import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
+import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
@@ -121,6 +121,8 @@ export type WorkbenchActions = {
   onboardingPatch(patch: Partial<OnboardingState>): void;
   onboardingApplyResult(result: OnboardingState['applyResult']): void;
   onboardingError(message: string): void;
+  /** I57 分析生命周期状态（busy/progress/cancel/retry）。 */
+  onboardingAnalysis(analysis: OnboardingAnalysisState | undefined): void;
   creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
   creationSettingsMutate(patch: Partial<WorkbenchSettingsDraftShape>): void;
   creationSettingsSettled(patch: Partial<WorkbenchSettingsDraftShape>): void;
@@ -294,7 +296,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -309,7 +311,16 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       h('span', { className: 'nv-field__label' }, '原文初始化'),
       h('textarea', { className: 'nv-field__input', rows: 4, placeholder: '粘贴原文以生成六层候选', onChange: (event: { target: { value: string } }) => { sourceText = event.target.value; } }),
     ),
-    h('button', { type: 'button', className: 'nv-onboarding-entry__start', 'data-novel-onboarding-start': '', onClick: () => ui.analyzeText(sourceText) }, '分析原文'),
+    h('button', {
+      type: 'button',
+      className: 'nv-onboarding-entry__start',
+      'data-novel-onboarding-start': '',
+      // I57：分析中防重复 start —— queued/running 期间禁用「分析原文」。
+      disabled: onboardingState?.analysis !== undefined && (onboardingState.analysis.status === 'queued' || onboardingState.analysis.status === 'running'),
+      onClick: () => ui.analyzeText(sourceText),
+    }, '分析原文'),
+    // I57：busy/progress/cancel/retry 面板（R12-4），分析失败/取消后可重试。
+    onboardingState === undefined ? null : analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
     h('label', { className: 'nv-upload', 'data-novel-onboarding-upload': '' },
       h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
       h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
@@ -444,7 +455,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
     apply(ctx): void {
       let workspace: WorkspaceNamespace | undefined;
       let onboarding: OnboardingNamespace | undefined;
-      let analyzer: { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
+      let analyzer: OnboardingAnalyzerNamespace | undefined;
       let llmConfig: LlmConfigNamespace | undefined;
       let workbenchSettings: WorkbenchSettingsNamespace | undefined;
       let currentProjectId: string | undefined;
@@ -519,6 +530,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           onboardingPatch: (d, patch: Partial<OnboardingState>) => { if (d.onboarding) d.onboarding = { ...d.onboarding, ...patch }; },
           onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding = { ...d.onboarding, applyResult: result, error: undefined }; },
           onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding = { ...d.onboarding, error: message }; },
+          onboardingAnalysis: (d, analysis: OnboardingAnalysisState | undefined) => { if (d.onboarding) d.onboarding = { ...d.onboarding, analysis }; },
           setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
           setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
           setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
@@ -619,20 +631,95 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         currentOnboarding = next;
         dispatch((actions) => actions.onboarding(next));
       };
-      const startOnboarding = (projectId: string, sourceHash: string, text: string): void => {
-        // 分析开始即切到独立「六层初始化审阅」页签，让原文入口与审阅面板可见
-        // （设计 §14.7.4：审阅不再叠加在六层编辑页底部）。
-        dispatch((actions) => actions.activateOnboarding());
+      // I57 session-first flow (R12-4): `begin` returns the session id immediately,
+      // then the client polls `status` for busy/progress and calls `cancel` or
+      // `result` on terminal states. The poll timer belongs to the Fiber and is
+      // cleared on dispose, so no listener leaks after unload.
+      let analysisPollTimer: ReturnType<typeof setTimeout> | undefined;
+      const clearAnalysisPoll = (): void => {
+        if (analysisPollTimer !== undefined) { clearTimeout(analysisPollTimer); analysisPollTimer = undefined; }
+      };
+      const setAnalysis = (analysis: OnboardingAnalysisState | undefined): void => {
+        if (currentOnboarding === undefined) return;
+        currentOnboarding = { ...currentOnboarding, analysis };
+        dispatch((actions) => actions.onboardingAnalysis(analysis));
+      };
+      const startAnalysis = (projectId: string, sourceHash: string, text: string): void => {
         const target = analyzer;
-        if (!active || target === undefined) { setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: '分析服务不可用' }); return; }
-        void unwrap(target.start({ projectId, sourceHash, text }, undefined)).then((result) => {
+        if (!active || target === undefined) { setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, analysis: { status: 'failed', error: '分析服务不可用', sourceText: text } }); return; }
+        // 分析中防重复 start：queued/running 期间忽略再次点击（R12-4）。
+        const status = currentOnboarding?.analysis?.status;
+        if (status === 'queued' || status === 'running') return;
+        // 分析开始即切到独立「六层初始化审阅」页签，让原文入口与审阅面板可见。
+        dispatch((actions) => actions.activateOnboarding());
+        clearAnalysisPoll();
+        // 以原文本（或 DOCX 提取文本）发起分析；busy 状态先行，让进度立即可见。
+        setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, analysis: { status: 'queued', sourceText: text } });
+        void beginAnalysis(target, { projectId, sourceHash, text }).then((sessionId) => {
           if (!active) return;
-          const session = result as { onboardingSessionId?: string; layers?: unknown };
-          if (!session.onboardingSessionId) throw new Error('分析未返回会话 id');
-          // Keep the six-layer candidate package so the review panel can show
-          // what the model produced before the user decides (design §14.7.4).
-          setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {}, layers: session.layers });
-        }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : { projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: (cause as Error).message }));
+          if (currentOnboarding?.projectId !== projectId || currentOnboarding?.sourceHash !== sourceHash) return;
+          setAnalysis({ status: 'running', sessionId, sourceText: text });
+          const poll = (): void => {
+            const next = analyzer;
+            if (!active || next === undefined) { clearAnalysisPoll(); return; }
+            void unwrap(next.status(sessionId)).then((statusRaw) => {
+              if (!active) return;
+              // 取消竞态防护：用户已取消/失败后，即使上一次 status 刚返回 running
+              // 也不再继续轮询（R12-4 监听归零）。
+              const local = currentOnboarding?.analysis;
+              if (local !== undefined && (local.status === 'cancelled' || local.status === 'failed' || local.status === 'succeeded')) { clearAnalysisPoll(); return; }
+              const s = statusRaw as string;
+              if (s === 'succeeded') {
+                clearAnalysisPoll();
+                void analysisResult(next, sessionId).then((result) => {
+                  if (!active) return;
+                  const session = result as { onboardingSessionId?: string; sourceHash?: string; layers?: unknown };
+                  setOnboarding({
+                    projectId,
+                    onboardingSessionId: session.onboardingSessionId ?? sessionId,
+                    sourceHash: session.sourceHash ?? sourceHash,
+                    decisions: {},
+                    layers: session.layers,
+                    analysis: { status: 'succeeded', sessionId, sourceText: text },
+                  });
+                }, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text }));
+                return;
+              }
+              if (s === 'failed' || s === 'cancelled') {
+                clearAnalysisPoll();
+                if (s === 'failed') {
+                  void analysisResult(next, sessionId).then(() => undefined, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text }));
+                } else {
+                  setAnalysis({ status: 'cancelled', sessionId, error: '分析已取消', sourceText: text });
+                }
+                return;
+              }
+              analysisPollTimer = setTimeout(poll, ANALYSIS_POLL_INTERVAL_MS);
+            }, (cause: Error) => {
+              clearAnalysisPoll();
+              setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text });
+            });
+          };
+          poll();
+        }, (cause: Error) => {
+          if (!active) return;
+          setAnalysis({ status: 'failed', error: (cause as Error).message, sourceText: text });
+        });
+      };
+      const cancelAnalysis = (): void => {
+        const target = analyzer;
+        const sessionId = currentOnboarding?.analysis?.sessionId;
+        if (!active || target === undefined || !sessionId) return;
+        clearAnalysisPoll();
+        setAnalysis({ status: 'cancelled', sessionId, error: '分析已取消', sourceText: currentOnboarding?.analysis?.sourceText });
+        void unwrap(target.cancel(sessionId)).catch(() => undefined);
+      };
+      const retryAnalysis = (): void => {
+        const state = currentOnboarding;
+        const text = state?.analysis?.sourceText;
+        if (state === undefined || !text) return;
+        // 重试复用同一原文重新分析；busy 状态由 startAnalysis 重建（R12-4）。
+        startAnalysis(state.projectId, state.sourceHash, text);
       };
       // I56: 逐层裁决草稿（编辑 JSON 文本 / 重生成反馈 / 打开面板）与终态门都经
       // store 持久化；`currentOnboarding` 闭包镜像同步更新，保证裁决回调读到最新绑定。
@@ -652,12 +739,22 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           patchOnboarding({ openPanel: { ...(currentOnboarding?.openPanel ?? {}), [layer]: undefined } });
         }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
       };
+      // I57 (R12-4): final apply 成功后刷新六层并激活创作台；partial-retryable
+      // 只重试未完成层 —— 重试按钮直接再次调用 finalApply，Host 侧按领域身份
+      // 幂等（已应用层不重复写，见 I53 验收「重复 apply 语义幂等」）。
       const applyOnboarding = (): void => {
         const target = onboarding;
         const state = currentOnboarding;
         if (!active || target === undefined || !state) return;
         void applyAccepted(target, state).then((result) => {
           if (!active) return;
+          if (result.blockedLayers.length === 0 && result.pendingLayers.length === 0 && !result.retryable) {
+            // 成功：离开审阅页签，经 Host projectOpen 复核并刷新六层（成功刷新六层）。
+            setOnboarding(undefined);
+            openProject(state.projectId);
+            dispatch((actions) => actions.activate('characters'));
+            return;
+          }
           dispatch((actions) => actions.onboardingApplyResult(result));
         }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
       };
@@ -877,7 +974,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                   dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
                   const projectId = currentProjectId;
                   if (projectId !== undefined) {
-                    startOnboarding(projectId, result.sourceHash, result.text);
+                    startAnalysis(projectId, result.sourceHash, result.text);
                     return;
                   }
                   // I53 DOCX new-work entry: with no project open yet, create one
@@ -885,7 +982,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                   // review (design §14.7.4; I53 goal 三入口).
                   const name = result.fileName.replace(/\.docx$/i, '') || '未命名作品';
                   createProject({ projectId: slug(name), name }, () => {
-                    if (currentProjectId !== undefined) startOnboarding(currentProjectId, result.sourceHash, result.text);
+                    if (currentProjectId !== undefined) startAnalysis(currentProjectId, result.sourceHash, result.text);
                   });
                 },
                 () => dispatch((x) => x.uploadSettled(undefined)),
@@ -898,9 +995,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               void crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)).then((digest) => {
                 const bytes = new Uint8Array(digest);
                 const hash = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-                startOnboarding(projectId, hash, normalized);
+                startAnalysis(projectId, hash, normalized);
               });
             },
+            cancelAnalysis() { cancelAnalysis(); },
+            retryAnalysis() { retryAnalysis(); },
           };
           const layers: LayerData = {
             characters: s.characters,
@@ -964,7 +1063,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         void ctx.remote.$mount(onboardingAnalyzerRemoteContribution).then((dispose) => {
           if (!active) { void dispose(); return; }
           analyzerDisposer = dispose;
-          analyzer = ctx.get('remote.novelOnboardingAnalyzer', false) as { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
+          analyzer = ctx.get('remote.novelOnboardingAnalyzer', false) as OnboardingAnalyzerNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: analyzer Remote mount failed', cause); });
         void ctx.remote.$mount(onboardingRemoteContribution).then((dispose) => {
           if (!active) { void dispose(); return; }
@@ -983,6 +1082,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         }, (cause: Error) => { console.error('novel-creation-tool: workbench settings Remote mount failed', cause); });
         return () => {
           active = false;
+          clearAnalysisPoll();
           capturedActions = undefined;
           pending.splice(0);
           workspace = undefined;

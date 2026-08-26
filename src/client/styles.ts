@@ -950,6 +950,69 @@ export const WORKBENCH_STYLES = `
   color: var(--nv-ink-dim);
 }
 
+/* I57 分析生命周期面板：busy/progress 行 + 取消/重试（R12-4）。 */
+.nv-analysis {
+  margin: var(--nv-grid) 0 0;
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  border: 1px solid var(--nv-border);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  background: var(--nv-paper-raised);
+  display: flex;
+  align-items: center;
+  gap: var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-analysis__status {
+  margin: 0;
+  flex: 1;
+}
+
+.nv-analysis__cancel,
+.nv-analysis__retry {
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  background: transparent;
+  color: var(--nv-cinnabar);
+  padding: calc(var(--nv-grid) * 0.375) var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nv-analysis__retry {
+  border-color: var(--nv-cinnabar);
+  background: var(--nv-cinnabar);
+  color: #fff;
+}
+
+.nv-analysis--terminal .nv-analysis__error {
+  margin: 0;
+  flex: 1;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.nv-onboarding__apply-retry {
+  margin-top: var(--nv-grid);
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-cinnabar);
+  color: #fff;
+  padding: calc(var(--nv-grid) * 0.625) var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.nv-onboarding__apply-retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* 明暗适配：暗色下朱砂提亮（D12）；中性色已由宿主 --dsw-alias-* 在
    body[data-ds-dark-theme] 下自动切换，无需 novel 自有主题引擎。 */
 body[data-ds-dark-theme] .nv-workbench {

@@ -36,6 +36,14 @@ export interface OnboardingNamespace {
   finalApply(input: { projectId: string; onboardingSessionId: string; sourceHash: string }): Promise<unknown>;
 }
 
+/** Mounted `remote.novelOnboardingAnalyzer` namespace surface (I57 session-first). */
+export interface OnboardingAnalyzerNamespace {
+  begin(input: { projectId: string; sourceHash: string; text: string }, settings?: unknown): Promise<unknown>;
+  status(onboardingSessionId: string): Promise<unknown>;
+  cancel(onboardingSessionId: string): Promise<unknown>;
+  result(onboardingSessionId: string): Promise<unknown>;
+}
+
 export const ONBOARDING_LAYERS: readonly { id: OnboardingLayerId; label: string }[] = [
   { id: 'characters', label: '角色（B3）' },
   { id: 'worldview', label: '世界观（B2）' },
@@ -44,6 +52,19 @@ export const ONBOARDING_LAYERS: readonly { id: OnboardingLayerId; label: string 
   { id: 'state', label: '状态（C2）' },
   { id: 'canon', label: '正史（C4）' },
 ];
+
+/** I57 analysis lifecycle: the client mirrors the Host job status while
+ * showing busy/progress, and surfaces failure/cancel with a retry entry. */
+export type OnboardingAnalysisStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+export interface OnboardingAnalysisState {
+  status: OnboardingAnalysisStatus;
+  /** Session id once the Host `begin` returned it. */
+  sessionId?: string;
+  /** User-facing failure message (failed) or '分析已取消' (cancelled). */
+  error?: string;
+  /** 触发本次分析的原文（失败/取消后重试复用，R12-4）。 */
+  sourceText?: string;
+}
 
 export interface OnboardingState {
   projectId: string;
@@ -60,6 +81,8 @@ export interface OnboardingState {
   feedbackTexts?: Partial<Record<OnboardingLayerId, string>>;
   /** I56 当前打开的裁决面板（edit 或 regenerate），同一层同一时刻至多一个。 */
   openPanel?: Partial<Record<OnboardingLayerId, 'edit' | 'regenerate'>>;
+  /** I57 分析生命周期（busy/progress/cancel/retry，R12-4）。 */
+  analysis?: OnboardingAnalysisState;
 }
 
 /** I56 裁决附带载荷：edit 必须携带用户编辑后的整层候选值；regenerate 可带反馈。 */
@@ -296,6 +319,13 @@ export function onboardingReview(
       h('dt', null, '待处理'), h('dd', null, result.pendingLayers.join(', ') || '—'),
       result.retryable ? h('p', { className: 'nv-onboarding__retryable' }, '可重试：仅补齐未完成层，不删除已写数据。') : null,
       result.errors.length > 0 ? h('p', { className: 'nv-onboarding__errors' }, result.errors.join('；')) : null,
+      result.retryable ? h('button', {
+        type: 'button',
+        className: 'nv-onboarding__apply-retry',
+        'data-novel-onboarding-apply-retry': '',
+        disabled: namespace === undefined,
+        onClick: () => apply(),
+      }, '重试应用未完成层') : null,
     ) : null,
   );
 }
@@ -309,9 +339,63 @@ function decisionLabel(decision: OnboardingDecision): string {
   }
 }
 
-/** 把一个裁决指令送往 Host（归一到 Remote 返回值）。I56/R12-3：
- * `edit` 必须携带用户编辑后的真实 editedValue（绝不空手发）；`regenerate`
- * 携带用户 feedback（非空才发送）。 */
+/** I57 分析生命周期面板：busy/progress（进行中 + 取消）、失败/取消（错误 + 重试）。
+ * 渲染在原文入口下方，让「分析中防重复 start / 取消零层写入 / 错误可重试不砖化」
+ * 都落在同一可见区域（R12-4）。分析成功后此面板消失，进入审阅。 */
+export function analysisPanel(
+  h: El,
+  state: OnboardingState,
+  cancel: () => void,
+  retry: () => void,
+): unknown {
+  const analysis = state.analysis;
+  if (analysis === undefined || analysis.status === 'succeeded') return null;
+  const busy = analysis.status === 'queued' || analysis.status === 'running';
+  if (busy) {
+    return h('section', { className: 'nv-analysis', 'data-novel-analysis-busy': analysis.status },
+      h('p', { className: 'nv-analysis__status', 'data-novel-analysis-status': analysis.status },
+        analysis.status === 'queued' ? '正在排队等待分析…' : '正在分析原文（生成六层候选）…'),
+      h('button', {
+        type: 'button',
+        className: 'nv-analysis__cancel',
+        'data-novel-analysis-cancel': '',
+        onClick: () => cancel(),
+      }, '取消分析'),
+    );
+  }
+  const cancelled = analysis.status === 'cancelled';
+  return h('section', {
+    className: 'nv-analysis nv-analysis--terminal',
+    'data-novel-analysis-cancelled': cancelled ? '' : undefined,
+    'data-novel-analysis-failed': cancelled ? undefined : '',
+  },
+    h('p', { className: 'nv-analysis__error', 'data-novel-analysis-error': '', role: 'alert' },
+      cancelled ? '分析已取消，未写入任何层。' : `分析失败：${analysis.error ?? '未知错误'}`),
+    h('button', {
+      type: 'button',
+      className: 'nv-analysis__retry',
+      'data-novel-analysis-retry': '',
+      onClick: () => retry(),
+    }, '重新分析'),
+  );
+}
+
+/** 触发 Host session-first `begin`，返回会话 id（I57/R12-4）。 */
+export async function beginAnalysis(namespace: OnboardingAnalyzerNamespace, state: { projectId: string; sourceHash: string; text: string }): Promise<string> {
+  const begun = await unwrap(namespace.begin({ projectId: state.projectId, sourceHash: state.sourceHash, text: state.text }, undefined)) as unknown as { onboardingSessionId?: string };
+  if (!begun?.onboardingSessionId) throw new Error('分析未返回会话 id');
+  return begun.onboardingSessionId;
+}
+
+/** 读取已完成的候选包（I57：`status` 报告 succeeded 后调用）。 */
+export async function analysisResult(namespace: OnboardingAnalyzerNamespace, onboardingSessionId: string): Promise<unknown> {
+  return unwrap(namespace.result(onboardingSessionId));
+}
+
+/** I57 轮询间隔：分析状态查询节流（毫秒）。 */
+export const ANALYSIS_POLL_INTERVAL_MS = 800;
+
+/** 裁决一条层（I53 契约）：`edit` 必须携带真实 editedValue，`regenerate` 携带反馈。 */
 export async function adjudicateOne(
   namespace: OnboardingNamespace,
   state: OnboardingState,

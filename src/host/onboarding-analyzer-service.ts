@@ -27,9 +27,16 @@ import type {
  * Gate-backed apply). Free-text input is guarded before any LLM call.
  */
 export interface NovelOnboardingAnalyzerService {
+  /** I57 session-first entry: create the job, run the analysis in the background
+   * and return the session id immediately so the client can show busy/progress,
+   * poll `status` and `cancel` mid-flight (R12-4). */
+  begin(input: OnboardingAnalysisStartInput, settings: unknown): { onboardingSessionId: string };
   start(input: OnboardingAnalysisStartInput, settings: unknown, signal?: AbortSignal): Promise<OnboardingAnalysisResult>;
   status(onboardingSessionId: string): OnboardingAnalysisStatus;
   cancel(onboardingSessionId: string): Promise<void>;
+  /** The bound result once `succeeded`; throws the captured error for failed /
+   * cancelled / unfinished sessions (I57 UI failure recovery). */
+  result(onboardingSessionId: string): OnboardingAnalysisResult;
   regenerate(onboardingSessionId: string, layer: OnboardingLayerKey, settings: unknown, signal?: AbortSignal): Promise<OnboardingAnalysisResult>;
   /** Read the bound result for a session (I53 adjudication needs the candidate layers). */
   getResult(onboardingSessionId: string): OnboardingAnalysisResult | undefined;
@@ -85,24 +92,36 @@ export function createOnboardingAnalyzerService(
     return current;
   }
 
+  /** Run one job to a terminal status; the job's own controller owns abort. */
+  async function runJob(current: Job, settings: unknown, signal?: AbortSignal): Promise<OnboardingAnalysisResult> {
+    const forwardAbort = () => current.controller.abort();
+    signal?.addEventListener('abort', forwardAbort, { once: true });
+    current.status = 'running';
+    try {
+      const result = await analyzeOnboardingText(backend, current.input, settings, current.controller.signal);
+      current.result = result;
+      current.status = 'succeeded';
+      return result;
+    } catch (error) {
+      current.error = error;
+      current.status = current.controller.signal.aborted ? 'cancelled' : 'failed';
+      throw error;
+    } finally {
+      signal?.removeEventListener('abort', forwardAbort);
+    }
+  }
+
   return Object.freeze({
+    begin(input: OnboardingAnalysisStartInput, settings: unknown): { onboardingSessionId: string } {
+      const current = startJob(input);
+      // Background run: the job state machine owns the outcome; errors are
+      // captured into `status`/`result`, never thrown to the caller.
+      void runJob(current, settings).catch(() => undefined);
+      return { onboardingSessionId: current.onboardingSessionId };
+    },
     async start(input: OnboardingAnalysisStartInput, settings: unknown, signal?: AbortSignal) {
       const current = startJob(input);
-      const forwardAbort = () => current.controller.abort();
-      signal?.addEventListener('abort', forwardAbort, { once: true });
-      current.status = 'running';
-      try {
-        const result = await analyzeOnboardingText(backend, current.input, settings, current.controller.signal);
-        current.result = result;
-        current.status = 'succeeded';
-        return result;
-      } catch (error) {
-        current.error = error;
-        current.status = current.controller.signal.aborted ? 'cancelled' : 'failed';
-        throw error;
-      } finally {
-        signal?.removeEventListener('abort', forwardAbort);
-      }
+      return runJob(current, settings, signal);
     },
     status(onboardingSessionId: string) {
       return job(onboardingSessionId).status;
@@ -110,6 +129,13 @@ export function createOnboardingAnalyzerService(
     getResult(onboardingSessionId: string) {
       const found = jobs.get(onboardingSessionId);
       return found?.result;
+    },
+    result(onboardingSessionId: string) {
+      const current = job(onboardingSessionId);
+      if (current.status === 'succeeded' && current.result) return current.result;
+      if (current.status === 'failed') throw current.error instanceof Error ? current.error : new Error(`分析失败：${current.status}`);
+      if (current.status === 'cancelled') throw new Error('分析已取消');
+      throw new Error(`分析尚未完成：${current.status}`);
     },
     async cancel(onboardingSessionId: string) {
       const current = job(onboardingSessionId);

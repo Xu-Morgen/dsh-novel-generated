@@ -209,6 +209,17 @@ export const onboardingAnalysisStartInputSchema = z.object({
 }).strict();
 export type OnboardingAnalysisStartInput = z.infer<typeof onboardingAnalysisStartInputSchema>;
 
+/**
+ * I57 session-first `begin` result: the Host creates the job and returns the
+ * session id immediately so the client can show busy/progress, poll `status`
+ * and `cancel` mid-flight (R12-4). The candidate package itself is fetched
+ * through `result(onboardingSessionId)` once `status` reports `succeeded`.
+ */
+export const onboardingAnalysisBeginResultSchema = z.object({
+  onboardingSessionId: z.string().min(1),
+}).strict();
+export type OnboardingAnalysisBeginResult = z.infer<typeof onboardingAnalysisBeginResultSchema>;
+
 /* --------------------------------------------------------------------------
  * I53 six-layer review / per-layer adjudication / idempotent landing
  * (design §14.7.4 / R11-4).
