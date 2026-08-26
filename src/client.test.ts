@@ -290,16 +290,32 @@ describe('I46 创作台 workbench shell', () => {
     expect(registrations['sidebar.footer.action'][0].options).toMatchObject({ id: 'novel-creation-tool-workspace', label: '创作台' });
   });
 
-  it('renders the brand header and six-layer navigation in the ready state', async () => {
+  it('renders the brand header and the four task-group navigation in the ready state', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const tree = registrations['shell.overlay'][0].component() as FakeNode;
     expect(tree.props?.['data-novel-workspace']).toBe('ready');
+    expect(tree.props?.['data-novel-route']).toBe('characters');
     expect(collect(tree, 'header').some((n) => n.props?.['data-novel-brand'] !== undefined)).toBe(true);
     expect(collect(tree, 'h2').some((n) => (n.children ?? []).includes('创作台'))).toBe(true);
+    // I58：导航从九项扁平改为四组任务导航（写作/策划/连续性/作品设置，R12-5）。
+    const groups = collect(tree, 'section').filter((n) => n.props?.['data-novel-nav-group'] !== undefined);
+    expect(groups.map((n) => n.props?.['data-novel-nav-group'])).toEqual(['writing', 'planning', 'continuity', 'settings']);
+    const groupLabels = collect(tree, 'h3').filter((n) => n.props?.['data-novel-nav-group-label'] !== undefined);
+    expect(groupLabels.map((n) => n.props?.['data-novel-nav-group-label'])).toEqual(['writing', 'planning', 'continuity', 'settings']);
+    expect(groupLabels.map((n) => String((n.children?.[0] ?? '')))).toEqual(['写作', '策划', '连续性', '作品设置']);
+    // 六层按钮仍可达（data-novel-layer 数据锚点不变，顺序随分组变化）。
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
-      'characters', 'worldview', 'outline', 'relationship', 'state', 'canon',
+      'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
+    // 稳定 data 锚点：九项视图按钮各带 data-novel-view。
+    const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
+    expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
+      'outline', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings',
+    ]);
+    // 技术层编号只作辅助徽标（B5/B3/B2/C1/C2/C4），非层视图无徽标。
+    const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
+    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'B3', 'B2', 'C1', 'C2', 'C4']);
   });
 
   it('fails loud when the required DSH defineStore runtime is unavailable', () => {
@@ -2090,5 +2106,136 @@ describe('I54 右侧停靠侧板（D20 / §14.8 / R12-1）', () => {
     for (const single of ['root', 'sidebar', 'conversation', 'details']) {
       expect(registrations[single]).toBeUndefined();
     }
+  });
+});
+
+describe('I58 任务型创作台信息架构 (R12-5)', () => {
+  const navGroupOf = (tree: FakeNode, id: string): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-nav-group'] === id);
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const viewPanelOf = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'div').find((node) => node.props?.['data-novel-view-panel'] === view);
+  const routeOf = (tree: FakeNode): unknown => tree.props?.['data-novel-route'];
+
+  it('renders the four task groups with the exact migration mapping (六层 + 初始化 + 设置页不丢失)', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const tree = registrations['shell.overlay'][0].component() as FakeNode;
+    // 四组及组标签（写作/策划/连续性/作品设置）。
+    expect(['writing', 'planning', 'continuity', 'settings'].every((id) => navGroupOf(tree, id) !== undefined)).toBe(true);
+    expect(String(((navGroupOf(tree, 'writing')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('写作');
+    expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
+    expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
+    expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
+    // 迁移映射：写作={大纲} 策划={角色,世界观} 连续性={关系,状态,正史} 设置={初始化,创作设置,LLM 设置}。
+    const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline']);
+    expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview']);
+    expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon']);
+    expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'settings']);
+  });
+
+  it('navigates to every existing panel through the grouped nav with the stable data anchor', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const views = ['outline', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings'];
+    for (const view of views) {
+      const button = navButton(render(), view);
+      expect(button, `nav button for ${view}`).toBeDefined();
+      (button?.props?.onClick as () => void)();
+      await flush();
+      const tree = render();
+      expect(routeOf(tree), `route anchor for ${view}`).toBe(view);
+      expect(viewPanelOf(tree, view), `view panel for ${view}`).toBeDefined();
+    }
+    // 层视图仍渲染真面板（data-novel-layer-panel + ready），非空态占位。
+    for (const layer of ['characters', 'worldview', 'outline', 'relationship', 'state', 'canon']) {
+      (navButton(render(), layer)?.props?.onClick as () => void)();
+      await flush();
+      const panel = collect(render(), 'section').find((n) => n.props?.['data-novel-layer-panel'] === layer);
+      expect(panel?.props?.['data-novel-layer-state'], `layer panel ${layer} ready`).toBe('ready');
+    }
+  });
+
+  it('keeps editor drafts while switching views (状态不丢)', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    // 默认在角色层：编辑新建草稿的名字。
+    const nameInput = () => collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput()?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
+    expect((nameInput()?.props?.value)).toBe('Mara');
+    // 切到正史（连续性组）再切回角色层：草稿保留。
+    (navButton(render(), 'canon')?.props?.onClick as () => void)();
+    await flush();
+    expect(routeOf(render())).toBe('canon');
+    (navButton(render(), 'characters')?.props?.onClick as () => void)();
+    await flush();
+    expect(routeOf(render())).toBe('characters');
+    expect((nameInput()?.props?.value)).toBe('Mara');
+  });
+
+  it('keeps a legal active view across collapse/expand (折叠不丢 view)', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'canon')?.props?.onClick as () => void)();
+    await flush();
+    expect(routeOf(render())).toBe('canon');
+    // 折叠 → 展开：active view 与面板均保持。
+    const collapse = collect(render(), 'button').find((n) => n.props?.['aria-expanded'] !== undefined);
+    (collapse?.props?.onClick as () => void)();
+    expect(collect(render(), 'nav')).toHaveLength(0);
+    (collapse?.props?.onClick as () => void)();
+    await flush();
+    expect(routeOf(render())).toBe('canon');
+    expect(viewPanelOf(render(), 'canon')).toBeDefined();
+  });
+
+  it('retires the nine-item flat navigation: grouped sections only, zero old markers', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const tree = registrations['shell.overlay'][0].component() as FakeNode;
+    // 所有导航项都归属某个组 section，不存在脱离分组的扁平九项。
+    const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
+    const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
+    const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
+    expect(grouped).toHaveLength(9);
+    // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
+    const navSource = readFileSync(resolve(root, 'src/client/nav.ts'), 'utf8');
+    expect(client).not.toContain('创作台层级');
+    expect(client).not.toContain('showOnboarding');
+    expect(client).not.toContain('showCreationSettings');
+    for (const label of ['写作', '策划', '连续性', '作品设置']) {
+      expect(navSource).toContain(`label: '${label}'`);
+    }
+  });
+});
+
+describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
+  it('converges unknown or stale views to a legal default and keeps legal views', async () => {
+    const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId } = await import('./client/nav.js');
+    expect(NAV_ITEMS).toHaveLength(9);
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
+    // 非法/陈旧/空值一律回退默认视图（characters）。
+    expect(resolveWorkbenchView('bogus-view')).toBe('characters');
+    expect(resolveWorkbenchView(undefined)).toBe('characters');
+    expect(resolveWorkbenchView(null)).toBe('characters');
+    expect(resolveWorkbenchView(42)).toBe('characters');
+    expect(isWorkbenchViewId('bogus-view')).toBe(false);
+    // 合法视图原样保留。
+    for (const view of NAV_ITEMS.map((item) => item.view)) {
+      expect(isWorkbenchViewId(view)).toBe(true);
+      expect(resolveWorkbenchView(view)).toBe(view);
+    }
+    // 技术层编号只作徽标：六层项有 badge，非层视图无 badge。
+    const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
+    expect(badges).toEqual(['B5', 'B3', 'B2', 'C1', 'C2', 'C4']);
+    const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
+    expect(noBadge).toEqual(['onboarding', 'creationSettings', 'settings']);
   });
 });

@@ -275,6 +275,42 @@ export const WORKBENCH_STYLES = `
   background: var(--nv-hover);
 }
 
+/* I58 任务分组导航（design §14.8 / R12-5）：组标签 + 技术层辅助徽标。 */
+.nv-workbench__nav-group {
+  margin-bottom: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-workbench__nav-group-label {
+  margin: calc(var(--nv-grid) * 0.75) 0 calc(var(--nv-grid) * 0.375);
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--nv-ink-faint);
+}
+
+.nv-workbench__nav-item-label {
+  display: inline-block;
+}
+
+/* 技术层编号只作辅助徽标（I58）：小号弱对比，不作为首要导航语言。 */
+.nv-workbench__nav-item-badge {
+  display: inline-block;
+  margin-left: calc(var(--nv-grid) * 0.5);
+  padding: 0 calc(var(--nv-grid) * 0.375);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.375);
+  font-family: var(--nv-sans);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--nv-ink-faint);
+}
+
+.nv-workbench__nav-item.is-active .nv-workbench__nav-item-badge {
+  color: var(--nv-cinnabar);
+  border-color: var(--nv-cinnabar);
+}
+
 .nv-workbench__content {
   flex: none;
   min-width: 0;

@@ -63,6 +63,7 @@ import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } fr
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
+import { DEFAULT_VIEW, NAV_GROUPS, isLayerView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
 function el(React: ReactFace): El {
@@ -101,7 +102,9 @@ export type WorkbenchActions = {
   open(): void;
   close(): void;
   collapse(): void;
-  activate(id: string): void;
+  activate(id: LayerId): void;
+  /** I58 稳定视图导航：以 WorkbenchViewId 为唯一 route/state 锚点。 */
+  activateView(view: WorkbenchViewId): void;
   activateOnboarding(): void;
   activateCreationSettings(): void;
   ready(model: WorkspaceViewModel): void;
@@ -161,41 +164,37 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
   );
 }
 
-/** 左侧层级导航：六层一桌 + 六层初始化审阅 + 创作设置 + LLM 设置页，激活项打朱砂。 */
-function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showOnboarding: boolean, activateOnboarding: () => void, showCreationSettings: boolean, activateCreationSettings: () => void, showSettings: boolean, toggleSettings: () => void): unknown {
-  return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
-    LAYERS.map((layer) => h('button', {
-      key: layer.id,
-      type: 'button',
-      className: 'nv-workbench__nav-item' + (activeLayer === layer.id && !showOnboarding ? ' is-active' : ''),
-      'data-novel-layer': layer.id,
-      'aria-current': activeLayer === layer.id && !showOnboarding ? 'page' : undefined,
-      onClick: () => activate(layer.id),
-    }, layer.label)),
-    h('button', {
-      key: '__onboarding__',
-      type: 'button',
-      className: 'nv-workbench__nav-item' + (showOnboarding ? ' is-active' : ''),
-      'data-novel-onboarding-nav': '',
-      'aria-current': showOnboarding ? 'page' : undefined,
-      onClick: () => activateOnboarding(),
-    }, '六层初始化审阅'),
-    h('button', {
-      key: '__creation-settings__',
-      type: 'button',
-      className: 'nv-workbench__nav-item' + (showCreationSettings ? ' is-active' : ''),
-      'data-novel-workbench-settings-nav': '',
-      'aria-current': showCreationSettings ? 'page' : undefined,
-      onClick: () => activateCreationSettings(),
-    }, '创作设置'),
-    h('button', {
-      key: '__settings__',
-      type: 'button',
-      className: 'nv-workbench__nav-item' + (showSettings ? ' is-active' : ''),
-      'data-novel-settings-nav': '',
-      'aria-current': showSettings ? 'page' : undefined,
-      onClick: () => toggleSettings(),
-    }, 'LLM 设置'),
+/**
+ * I58 任务分组导航（design §14.8 / R12-5）：九项扁平导航退役，改为
+ * 「写作 / 策划 / 连续性 / 作品设置」四组。技术层编号只作辅助徽标（badge），
+ * 不作为首要导航语言；每项携带稳定 data 锚点 `data-novel-view`（route/state/data
+ * 三锚点的 data 位），层项同时保留 `data-novel-layer` 既有契约。
+ */
+function groupNav(h: El, activeView: WorkbenchViewId, activateView: (view: WorkbenchViewId) => void): unknown {
+  return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台任务导航' },
+    NAV_GROUPS.map((group) => h('section', {
+      key: group.id,
+      className: 'nv-workbench__nav-group',
+      'data-novel-nav-group': group.id,
+    },
+      h('h3', { className: 'nv-workbench__nav-group-label', 'data-novel-nav-group-label': group.id }, group.label),
+      group.items.map((item) => h('button', {
+        key: item.view,
+        type: 'button',
+        className: 'nv-workbench__nav-item' + (activeView === item.view ? ' is-active' : ''),
+        'data-novel-view': item.view,
+        'data-novel-nav-item': item.view,
+        ...(item.layer !== undefined ? { 'data-novel-layer': item.layer } : {}),
+        ...(item.view === 'onboarding' ? { 'data-novel-onboarding-nav': '' } : {}),
+        ...(item.view === 'creationSettings' ? { 'data-novel-workbench-settings-nav': '' } : {}),
+        ...(item.view === 'settings' ? { 'data-novel-settings-nav': '' } : {}),
+        'aria-current': activeView === item.view ? 'page' : undefined,
+        onClick: () => activateView(item.view),
+      },
+        h('span', { className: 'nv-workbench__nav-item-label' }, item.label),
+        item.badge === undefined ? null : h('span', { className: 'nv-workbench__nav-item-badge', 'data-novel-nav-badge': item.badge }, item.badge),
+      )),
+    )),
   );
 }
 
@@ -270,6 +269,35 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
   return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' }, emptyState(h, layer));
 }
 
+/**
+ * I58 视图分发（design §14.8 / R12-5）：按稳定 activeView 渲染对应面板，
+ * 每个内容区携带 `data-novel-view-panel` data 锚点。非层视图（LLM 设置 /
+ * 创作设置 / 六层初始化审阅）与层视图互斥，由单一视图状态决定。
+ */
+function viewPanel(
+  h: El,
+  activeView: WorkbenchViewId,
+  projectId: string,
+  workspace: WorkspaceNamespace | undefined,
+  layers: LayerData,
+  ops: WorkbenchOps,
+  sourceEntry: unknown,
+  review: unknown,
+  settings: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void } | undefined,
+  creationSettings: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void } | undefined,
+): unknown {
+  if (activeView === 'settings') {
+    return h('div', { 'data-novel-view-panel': 'settings' }, settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null);
+  }
+  if (activeView === 'creationSettings') {
+    return h('div', { 'data-novel-view-panel': 'creationSettings' }, creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null);
+  }
+  if (activeView === 'onboarding') {
+    return h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '', 'data-novel-view-panel': 'onboarding' }, sourceEntry, review);
+  }
+  return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
+}
+
 /** I47/I48/I49 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
 interface LayerData {
   readonly characters: CharacterLayerState;
@@ -295,8 +323,8 @@ interface WorkbenchOps {
   readonly canon: CanonEditOps;
 }
 
-/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+/** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -332,16 +360,10 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
       h('div', { className: 'nv-workbench__body-row' },
-        layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.creationSettingsTab, ui.activateCreationSettings, ui.showSettings, () => ui.toggleSettings()),
+        groupNav(h, ui.activeView, ui.activateView),
         h('div', { className: 'nv-workbench__main' },
-          // 四个互斥页签：LLM 设置 / 创作设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
-          ui.showSettings
-            ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
-            : ui.creationSettingsTab
-              ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null)
-              : ui.onboardingTab
-                ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
-                : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
+          // I58：单一 activeView 分发四个任务组的视图（层 / 初始化审阅 / 创作设置 / LLM 设置）。
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, layers, ops, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -349,8 +371,8 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '', ...(browsing ? { 'data-novel-project-browsing': '' } : {}) },
         browsing ? h('button', { type: 'button', className: 'nv-workbench__nav-item', 'data-novel-browse-cancel': '', onClick: () => ui.cancelBrowse() }, '返回当前作品') : null,
         projectError !== undefined ? h('p', { className: 'nv-workbench__project-error', 'data-novel-project-error': '', role: 'alert' }, projectError) : null,
-        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.showSettings ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.toggleSettings() }, 'LLM 设置'),
-        ui.showSettings
+        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.activeView === 'settings' ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.activateView('settings') }, 'LLM 设置'),
+        ui.activeView === 'settings'
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
           : (projects.length === 0 ? h('div', null,
               h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
@@ -368,7 +390,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       'data-novel-workspace-state': effectiveStatus,
       role: effectiveStatus === 'error' ? 'alert' : undefined,
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
-  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus, 'data-novel-project-open': selectedProjectId },
+  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus, 'data-novel-project-open': selectedProjectId, 'data-novel-route': ui.activeView },
     brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
     ui.collapsed ? null : body,
   );
@@ -402,7 +424,8 @@ function uploadStatusLabel(upload: UploadProgress | undefined): string {
 interface WorkbenchState {
   open: boolean;
   collapsed: boolean;
-  activeLayer: LayerId;
+  /** I58 稳定视图状态锚点：唯一 active view（route/state/data 三锚点的 state 位）。 */
+  activeView: WorkbenchViewId;
   status: WorkspaceStatus;
   characters: CharacterLayerState;
   worldview: WorldLayerState;
@@ -430,11 +453,6 @@ interface WorkbenchState {
   upload: UploadProgress;
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
   onboarding: OnboardingState | undefined;
-  showSettings: boolean;
-  /** 六层初始化审阅是否为当前激活页签（独立边栏，设计 §14.7.4）。 */
-  showOnboarding: boolean;
-  /** 创作设置（目标字数/询问开关）是否为当前激活页签。 */
-  showCreationSettings: boolean;
   settingsView: LlmConfigViewShape | undefined;
   settingsDraft: LlmConfigDraftShape;
   creationSettingsView: WorkbenchSettingsViewShape | undefined;
@@ -474,7 +492,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         init: (): WorkbenchState => ({
           open: true,
           collapsed: false,
-          activeLayer: 'characters',
+          activeView: DEFAULT_VIEW,
           status: { status: 'loading' },
           characters: { status: 'loading', list: [] },
           worldview: { status: 'loading', list: [] },
@@ -498,9 +516,6 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           upload: { phase: 'idle' },
           uploadResult: undefined,
           onboarding: undefined,
-          showSettings: false,
-          showOnboarding: false,
-          showCreationSettings: false,
           settingsView: undefined,
           settingsDraft: freshLlmConfigDraft(),
           creationSettingsView: undefined,
@@ -510,9 +525,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           open: (d) => { d.open = true; d.collapsed = false; },
           close: (d) => { d.open = false; },
           collapse: (d) => { d.collapsed = !d.collapsed; },
-          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; d.showOnboarding = false; d.showCreationSettings = false; },
-          activateOnboarding: (d) => { d.showOnboarding = true; d.showSettings = false; d.showCreationSettings = false; },
-          activateCreationSettings: (d) => { d.showCreationSettings = true; d.showSettings = false; d.showOnboarding = false; },
+          activate: (d, id: LayerId) => { d.activeView = resolveWorkbenchView(id); },
+          activateView: (d, view: WorkbenchViewId) => { d.activeView = resolveWorkbenchView(view); },
+          activateOnboarding: (d) => { d.activeView = 'onboarding'; },
+          activateCreationSettings: (d) => { d.activeView = 'creationSettings'; },
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
@@ -550,7 +566,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
-          toggleSettings: (d) => { d.showSettings = !d.showSettings; d.showOnboarding = false; d.showCreationSettings = false; },
+          // I58：非层视图重复点击回退默认层视图（保留旧 settings toggle 语义）；
+          // 层视图之间直接切换，不做 toggle。
+          toggleSettings: (d) => { d.activeView = d.activeView === 'settings' ? DEFAULT_VIEW : 'settings'; },
           settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model, maxTokens: view.maxTokens, thinking: view.thinking, reasoningEffort: view.reasoningEffort }; },
           settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
           settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
@@ -882,28 +900,25 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           const ui = {
             get open() { return s.open; },
             get collapsed() { return s.collapsed; },
-            get activeLayer() { return s.activeLayer; },
-            get showSettings() { return s.showSettings; },
-            get onboardingTab() { return s.showOnboarding; },
-            get creationSettingsTab() { return s.showCreationSettings; },
+            get activeView() { return s.activeView; },
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
-            activateOnboarding() { props.actions.activateOnboarding(); },
-            activateCreationSettings() {
-              const next = !s.showCreationSettings;
-              props.actions.activateCreationSettings();
-              if (next && s.creationSettingsView === undefined && workbenchSettings) {
-                void unwrap(workbenchSettings.load()).then((view) => { if (active) dispatch((x) => x.creationSettingsLoaded(view as WorkbenchSettingsViewShape)); }, () => dispatch((x) => x.creationSettingsSettled({ error: '创作设置读取失败' })));
+            // I58：统一视图导航。非层视图重复点击回退默认层视图（保留旧 toggle 语义），
+            // 层视图重复点击保持；首次进入设置视图时惰性装载 Host 视图。
+            activateView(view: WorkbenchViewId) {
+              const target = view === s.activeView && !isLayerView(view) ? DEFAULT_VIEW : view;
+              props.actions.activateView(resolveWorkbenchView(target));
+              if (target === 'creationSettings' && s.creationSettingsView === undefined && workbenchSettings) {
+                void unwrap(workbenchSettings.load()).then((loaded) => { if (active) dispatch((x) => x.creationSettingsLoaded(loaded as WorkbenchSettingsViewShape)); }, () => dispatch((x) => x.creationSettingsSettled({ error: '创作设置读取失败' })));
+              }
+              if (target === 'settings' && s.settingsView === undefined && llmConfig) {
+                void unwrap(llmConfig.load()).then((loaded) => { if (active) dispatch((x) => x.settingsLoaded(loaded as LlmConfigViewShape)); }, () => dispatch((x) => x.settingsSettled({ error: '设置读取失败' })));
               }
             },
-            toggleSettings() {
-              const next = !s.showSettings;
-              dispatch((x) => x.toggleSettings());
-              if (next && s.settingsView === undefined && llmConfig) {
-                void unwrap(llmConfig.load()).then((view) => { if (active) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => dispatch((x) => x.settingsSettled({ error: '设置读取失败' })));
-              }
-            },
+            activateOnboarding() { ui.activateView('onboarding'); },
+            activateCreationSettings() { ui.activateView('creationSettings'); },
+            toggleSettings() { ui.activateView('settings'); },
             saveLlmConfig() {
               const target = llmConfig;
               const draft = s.settingsDraft;
