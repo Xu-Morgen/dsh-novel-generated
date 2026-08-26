@@ -1,4 +1,5 @@
 import type { El } from './shared.js';
+import { saveButtonLabel } from './save-status.js';
 
 /**
  * 创作台通用设置页（额外页面）：每次续写的目标字数，以及当用户提供的内容不足以
@@ -63,9 +64,12 @@ export function workbenchSettingsPanel(
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-open-project-folder': '', disabled: namespace === undefined || projectId === undefined, onClick: () => openFolder?.() },
         projectId === undefined ? '打开落地文件夹（请先选择作品）' : `打开落地文件夹（${projectId}）`),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workbench-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, draft.saving ? '保存中…' : '保存设置'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workbench-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
     ),
-    draft.message ? h('p', { className: 'nv-settings__ok', 'data-novel-workbench-message': '' }, draft.message) : null,
-    draft.error ? h('p', { className: 'nv-settings__error', 'data-novel-workbench-error': '', role: 'alert' }, draft.error) : null,
+    // I59 保存状态（R12-6）：保存中/已保存/失败三态可播报；saved/failed 行保留既有
+    // data-novel-workbench-message / data-novel-workbench-error 锚点。
+    draft.saving ? h('p', { className: 'nv-save-status nv-save-status--saving', 'data-novel-save-status': 'workbench', 'data-novel-save-state': 'saving', role: 'status', 'aria-live': 'polite' }, '正在保存…') : null,
+    draft.message ? h('p', { className: 'nv-settings__ok', 'data-novel-workbench-message': '', 'data-novel-save-status': 'workbench', 'data-novel-save-state': 'saved', role: 'status', 'aria-live': 'polite' }, draft.message) : null,
+    draft.error ? h('p', { className: 'nv-settings__error', 'data-novel-workbench-error': '', 'data-novel-save-status': 'workbench', 'data-novel-save-state': 'failed', role: 'alert', 'aria-live': 'assertive' }, draft.error) : null,
   );
 }

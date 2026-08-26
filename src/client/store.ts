@@ -7,20 +7,20 @@ import { type CanonEditor } from './layers/canon.js';
 
 /** Fresh form state for the reactive workbench store. */
 export function freshCharacterEditor(): CharacterEditor {
-  return { selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '' };
+  return { selectedId: undefined, draft: { id: '', name: '' }, dirty: false, error: '', saving: false, saveMessage: '' };
 }
 export function freshWorldEditor(): WorldEditor {
-  return { selectedId: undefined, draft: { id: '' }, dirty: false, error: '' };
+  return { selectedId: undefined, draft: { id: '' }, dirty: false, error: '', saving: false, saveMessage: '' };
 }
 export function freshOutlineEditor(): OutlineEditor {
-  return { draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined };
+  return { draft: emptyOutline(), dirty: false, error: '', selectedActId: undefined, selectedBeatId: undefined, selectedDetailId: undefined, saving: false, saveMessage: '' };
 }
 export function freshRelationshipEditor(): RelationshipEditor {
-  return { selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '' };
+  return { selectedId: undefined, draft: newRelationshipDraft(), dirty: false, error: '', saving: false, saveMessage: '' };
 }
 export function freshStateEditor(): StateEditor {
   return { selectedSeq: undefined, fromSeq: undefined, toSeq: undefined, diff: undefined, error: '' };
 }
 export function freshCanonEditor(): CanonEditor {
-  return { selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '' };
+  return { selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '', saving: false, saveMessage: '' };
 }

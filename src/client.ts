@@ -64,6 +64,7 @@ import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, typ
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isLayerView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
+import { focusSelector, scheduleFocus } from './client/focus.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
 function el(React: ReactFace): El {
@@ -151,9 +152,10 @@ export type WorkbenchActions = {
   settingsSettled(patch: Partial<LlmConfigDraftShape>): void;
 };
 
-/** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。 */
+/** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。tabIndex=-1 + data-novel-focus-target
+ *  作为 I59 打开面板后的焦点进入落点（R12-6 焦点进入）。 */
 function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }): unknown {
-  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '' },
+  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '', 'data-novel-focus-target': '', tabIndex: -1 },
     h('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
     h('div', null,
       h('h2', { className: 'nv-workbench__title' }, '创作台'),
@@ -350,10 +352,10 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     // I57：busy/progress/cancel/retry 面板（R12-4），分析失败/取消后可重试。
     onboardingState === undefined ? null : analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
     h('label', { className: 'nv-upload', 'data-novel-onboarding-upload': '' },
-      h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
+      h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
       h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
     ),
-    uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+    uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
   );
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
@@ -378,10 +380,10 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
               h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
               h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'),
               h('label', { className: 'nv-upload', 'data-novel-upload': '' },
-                h('span', { className: 'nv-upload__label' }, uploadStatusLabel(upload)),
+                h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
                 h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
               ),
-              uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+              uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
             )
               : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name)))),
       )
@@ -389,8 +391,26 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
       'data-novel-workspace-state': effectiveStatus,
       role: effectiveStatus === 'error' ? 'alert' : undefined,
+      // I59 异步状态可播报（R12-6）：loading→error 文案变化由 aria-live=polite 播报，
+      // error 时 role=alert 以 assertive 覆盖。
+      'aria-live': 'polite',
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
-  return h('section', { className: 'nv-workbench', 'data-novel-workspace': effectiveStatus, 'data-novel-project-open': selectedProjectId, 'data-novel-route': ui.activeView },
+  return h('section', {
+    className: 'nv-workbench',
+    'data-novel-workspace': effectiveStatus,
+    'data-novel-project-open': selectedProjectId,
+    'data-novel-route': ui.activeView,
+    // I59 键盘/Esc（R12-6）：面板内 Esc 先取消脏表单离开确认，否则关闭面板
+    // （关闭时焦点恢复到侧栏启动按钮，见 ui.close）。data-novel-focus-scope 是
+    // 打开后的焦点进入范围锚点。
+    'data-novel-focus-scope': '',
+    onKeyDown: (event: { key: string; preventDefault(): void }): void => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      if (leaveConfirm) { ui.cancelLeave(); return; }
+      ui.close();
+    },
+  },
     brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
     ui.collapsed ? null : body,
   );
@@ -484,6 +504,17 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let llmConfigDisposer: TypertDisposer | undefined;
       let workbenchSettingsDisposer: TypertDisposer | undefined;
 
+      // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
+      // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
+      // 按 projectId、裁决按层；synchronous 判定，React 重渲染前的同 tick 连点也能挡住。
+      const inflight = new Set<string>();
+      const beginOp = (key: string): boolean => {
+        if (inflight.has(key)) return false;
+        inflight.add(key);
+        return true;
+      };
+      const endOp = (key: string): void => { inflight.delete(key); };
+
       // The store is the wiring hub: actions write it; the component subscribes
       // via useStore and re-renders. Every load result and every editor draft
       // mutation flows through an action, so no plain `let` mutation can leave
@@ -562,10 +593,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           // Mutator actions: apply an update function to the LIVE draft (immer
           // semantics) so consecutive edits in one tick never read a stale render
           // snapshot — the root of the "unresponsive UI" defect.
-          characterMutate: (d, update: (draft: CharacterShape) => CharacterShape) => { d.characterEditor.draft = update(d.characterEditor.draft); d.characterEditor.dirty = true; },
-          worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
-          outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
-          relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
+          characterMutate: (d, update: (draft: CharacterShape) => CharacterShape) => { d.characterEditor.draft = update(d.characterEditor.draft); d.characterEditor.dirty = true; d.characterEditor.saveMessage = ''; },
+          worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; d.worldEditor.saveMessage = ''; },
+          outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; d.outlineEditor.saveMessage = ''; },
+          relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; d.relationshipEditor.saveMessage = ''; },
           // I58：非层视图重复点击回退默认层视图（保留旧 settings toggle 语义）；
           // 层视图之间直接切换，不做 toggle。
           toggleSettings: (d) => { d.activeView = d.activeView === 'settings' ? DEFAULT_VIEW : 'settings'; },
@@ -601,7 +632,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       const openProject = (projectId: string, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
+        if (!beginOp(`project:open:${projectId}`)) return;
+        const release = (): void => endOp(`project:open:${projectId}`);
         void unwrap(target.projectOpen(projectId)).then((result) => {
+          release();
           if (!active) return;
           currentProjectId = projectId;
           const layers = (result as { layers?: ProjectOpenLayers } | undefined)?.layers;
@@ -613,28 +647,35 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             reloadProject(target, projectId, actions, dispatch, () => active, layers);
           });
           if (onOpened) onOpened();
-        }, (cause: Error) => dispatch((actions) => actions.projectFailed(`作品打开失败：${cause?.message ?? '未知错误'}`)));
+        }, (cause: Error) => { release(); dispatch((actions) => actions.projectFailed(`作品打开失败：${cause?.message ?? '未知错误'}`)); });
       };
       const createProject = (input: { projectId: string; name: string }, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
+        if (!beginOp('project:create')) return;
+        const release = (): void => endOp('project:create');
         dispatch((actions) => actions.createProject(input));
         void unwrap(target.projectCreate(input)).then((project) => {
+          release();
           if (!active) return;
           dispatch((actions) => actions.setProjects([project]));
           openProject((project as { id: string }).id, onOpened);
-        }, () => dispatch((actions) => actions.fail('作品创建失败')));
+        }, () => { release(); dispatch((actions) => actions.fail('作品创建失败')); });
       };
       // I55：返回作品列表（切换入口）。脏表单裁决由组件层 `requestBrowse` 先行完成，
       // 这里只切换为列表视图并刷新作品列表，不丢当前作品（browseProjects 保留 selectedProjectId）。
       const browseToProjects = (): void => {
+        if (!beginOp('browse:list')) return;
+        const release = (): void => endOp('browse:list');
         dispatch((actions) => actions.browseProjects());
         const target = workspace;
         if (target !== undefined) {
           void unwrap(target.projectList()).then(
-            (projects) => { if (active) dispatch((actions) => actions.setProjects(projects as unknown[])); },
-            () => undefined, // 列表刷新失败不 brick：保留既有列表，切换本身非破坏性。
+            (projects) => { release(); if (active) dispatch((actions) => actions.setProjects(projects as unknown[])); },
+            () => release(), // 列表刷新失败不 brick：保留既有列表，切换本身非破坏性。
           );
+        } else {
+          release();
         }
       };
       const cancelBrowse = (): void => {
@@ -750,22 +791,32 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         const target = onboarding;
         const state = currentOnboarding;
         if (!active || target === undefined || !state) return;
+        // I59 防重复提交（R12-6）：同一层在裁决返回前忽略再次点击。
+        if (!beginOp(`onboarding:decide:${layer}`)) return;
+        const release = (): void => endOp(`onboarding:decide:${layer}`);
         dispatch((actions) => actions.onboardingDecision(layer, decision));
         void adjudicateOne(target, state, layer, decision, extra).then(() => {
+          release();
           if (!active) return;
           // 裁决成功即关闭该层打开的裁决面板（草稿保留，可再次编辑）。
           patchOnboarding({ openPanel: { ...(currentOnboarding?.openPanel ?? {}), [layer]: undefined } });
-        }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
+        }, (cause: Error) => { release(); if (!active) return; dispatch((actions) => actions.onboardingError((cause as Error).message)); });
       };
       // I57 (R12-4): final apply 成功后刷新六层并激活创作台；partial-retryable
       // 只重试未完成层 —— 重试按钮直接再次调用 finalApply，Host 侧按领域身份
       // 幂等（已应用层不重复写，见 I53 验收「重复 apply 语义幂等」）。
+      // I59：apply 进行中置 applying（按钮忙碌禁用），同 tick 连点至多一次 finalApply。
       const applyOnboarding = (): void => {
         const target = onboarding;
         const state = currentOnboarding;
         if (!active || target === undefined || !state) return;
+        if (state.applying === true || !beginOp('onboarding:apply')) return;
+        const release = (): void => endOp('onboarding:apply');
+        patchOnboarding({ applying: true, error: undefined });
         void applyAccepted(target, state).then((result) => {
+          release();
           if (!active) return;
+          patchOnboarding({ applying: false });
           if (result.blockedLayers.length === 0 && result.pendingLayers.length === 0 && !result.retryable) {
             // 成功：离开审阅页签，经 Host projectOpen 复核并刷新六层（成功刷新六层）。
             setOnboarding(undefined);
@@ -774,7 +825,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             return;
           }
           dispatch((actions) => actions.onboardingApplyResult(result));
-        }, (cause: Error) => dispatch((actions) => actions.onboardingError((cause as Error).message)));
+        }, (cause: Error) => { release(); if (!active) return; patchOnboarding({ applying: false }); dispatch((actions) => actions.onboardingError((cause as Error).message)); });
       };
 
       // Edit-op closures: derive from the current store snapshot and write back
@@ -785,35 +836,42 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         const projectId = currentProjectId;
         return {
           characters: {
-            select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '' }),
-            newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '' }); },
+            select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '', saving: false, saveMessage: '' }),
+            newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },
             mutate: (update) => act.characterMutate(update),
             save: () => {
               const e = snapshot.characterEditor;
-              if (!workspace || projectId === undefined) { act.characterDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.name.trim() === '') { act.characterDraft({ error: '角色名不能为空' }); return; }
+              // I59：saving 忙碌挡 + 同 tick 连点 inflight 挡（R12-6 至多一次 Remote）。
+              if (e.saving || !beginOp('characters:save')) return;
+              const release = (): void => endOp('characters:save');
+              if (!workspace || projectId === undefined) { release(); act.characterDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.name.trim() === '') { release(); act.characterDraft({ error: '角色名不能为空' }); return; }
               const effectiveId = e.selectedId ?? slug(e.draft.name);
+              act.characterDraft({ saving: true, error: '', saveMessage: '' });
               if (e.selectedId === undefined) {
-                void unwrap(workspace.characterCreate(projectId, buildCharacterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.characterDraft({ draft: created as CharacterShape, selectedId: (created as CharacterShape).id, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+                void unwrap(workspace.characterCreate(projectId, buildCharacterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!active) return; const shape = created as CharacterShape; act.characterDraft({ draft: shape, selectedId: shape.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
               } else {
-                void unwrap(workspace.characterUpdate(projectId, e.selectedId, buildCharacterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => act.characterDraft({ error: cause.message }));
+                void unwrap(workspace.characterUpdate(projectId, e.selectedId, buildCharacterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { release(); if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
               }
             },
           },
           worldview: {
-            select: (entry) => act.worldDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '' }),
-            newDraft: () => { const draft: WorldShape = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }; act.worldDraft({ selectedId: undefined, draft, dirty: false, error: '' }); },
+            select: (entry) => act.worldDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
+            newDraft: () => { const draft: WorldShape = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }; act.worldDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },
             mutate: (update) => act.worldMutate(update),
             save: () => {
               const e = snapshot.worldEditor;
-              if (!workspace || projectId === undefined) { act.worldDraft({ error: '创作台远程服务不可用' }); return; }
-              if ((e.draft.title ?? '').trim() === '') { act.worldDraft({ error: '标题不能为空' }); return; }
+              if (e.saving || !beginOp('worldview:save')) return;
+              const release = (): void => endOp('worldview:save');
+              if (!workspace || projectId === undefined) { release(); act.worldDraft({ error: '创作台远程服务不可用' }); return; }
+              if ((e.draft.title ?? '').trim() === '') { release(); act.worldDraft({ error: '标题不能为空' }); return; }
+              act.worldDraft({ saving: true, error: '', saveMessage: '' });
               if (e.selectedId === undefined) {
                 const effectiveId = slug(e.draft.title ?? 'untitled');
-                void unwrap(workspace.worldviewCreate(projectId, buildWorldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+                void unwrap(workspace.worldviewCreate(projectId, buildWorldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: cause.message }); });
               } else {
                 const replacementId = slug(e.draft.title ?? e.selectedId);
-                void unwrap(workspace.worldviewRewrite(projectId, e.selectedId, buildWorldviewInput({ ...e.draft, id: replacementId }))).then((result) => { if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => act.worldDraft({ error: cause.message }));
+                void unwrap(workspace.worldviewRewrite(projectId, e.selectedId, buildWorldviewInput({ ...e.draft, id: replacementId }))).then((result) => { release(); if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: cause.message }); });
               }
             },
           },
@@ -830,53 +888,69 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             removeDetailBeat: (actId, beatId, cardId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).map((beat) => beat.id === beatId ? { ...beat, detailBeats: (beat.detailBeats ?? []).filter((card) => card.id !== cardId) } : beat) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedDetailId: snapshot.outlineEditor.selectedDetailId === cardId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
             save: () => {
               const e = snapshot.outlineEditor;
-              if (!workspace || projectId === undefined) { act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.logline.trim() === '') { act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
-              void unwrap(workspace.outlineSave(projectId, buildOutlineInput(e.draft))).then((saved) => { if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, error: '' }); act.setOutline('ready', outline); }, (cause: Error) => act.outlineDraft({ error: cause.message }));
+              if (e.saving || !beginOp('outline:save')) return;
+              const release = (): void => endOp('outline:save');
+              if (!workspace || projectId === undefined) { release(); act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.logline.trim() === '') { release(); act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
+              act.outlineDraft({ saving: true, error: '', saveMessage: '' });
+              void unwrap(workspace.outlineSave(projectId, buildOutlineInput(e.draft))).then((saved) => { release(); if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setOutline('ready', outline); }, (cause: Error) => { release(); act.outlineDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
           },
           relationship: {
-            select: (entry) => act.relationshipDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '' }),
-            newDraft: () => act.relationshipDraft({ selectedId: undefined, draft: freshRelationshipEditor().draft, dirty: false, error: '' }),
+            select: (entry) => act.relationshipDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
+            newDraft: () => act.relationshipDraft({ selectedId: undefined, draft: freshRelationshipEditor().draft, dirty: false, error: '', saving: false, saveMessage: '' }),
             mutate: (update) => act.relationshipMutate(update),
             save: () => {
               const e = snapshot.relationshipEditor;
-              if (!workspace || projectId === undefined) { act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
+              if (e.saving || !beginOp('relationship:save')) return;
+              const release = (): void => endOp('relationship:save');
+              if (!workspace || projectId === undefined) { release(); act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { release(); act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
               const effectiveId = e.selectedId ?? `${slug(e.draft.from)}+${slug(e.draft.to)}`;
-              void unwrap(workspace.relationshipSave(projectId, buildRelationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => act.relationshipDraft({ error: cause.message }));
+              act.relationshipDraft({ saving: true, error: '', saveMessage: '' });
+              void unwrap(workspace.relationshipSave(projectId, buildRelationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { release(); if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.relationshipDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
           },
           state: {
             select: (seq) => { const e = snapshot.stateEditor; let fromSeq = e.fromSeq; let toSeq = e.toSeq; if (fromSeq === undefined) fromSeq = seq; else if (toSeq === undefined && seq !== fromSeq) toSeq = seq; else { fromSeq = seq; toSeq = undefined; } act.stateDraft({ selectedSeq: seq, fromSeq, toSeq, diff: undefined }); },
             showDiff: () => {
               const e = snapshot.stateEditor;
-              if (!workspace || projectId === undefined) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.fromSeq === undefined || e.toSeq === undefined) { act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
-              void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => act.stateDraft({ diff: diff as StateDiffShape, error: '' }), (cause: Error) => act.stateDraft({ error: cause.message, diff: undefined }));
+              if (!beginOp('state:diff')) return;
+              const release = (): void => endOp('state:diff');
+              if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.fromSeq === undefined || e.toSeq === undefined) { release(); act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
+              void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => { release(); act.stateDraft({ diff: diff as StateDiffShape, error: '' }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message, diff: undefined }); });
             },
             rollback: () => {
               const e = snapshot.stateEditor;
-              if (!workspace || projectId === undefined) { act.stateDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.selectedSeq === undefined) { act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
-              void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => act.stateDraft({ error: cause.message }));
+              if (!beginOp('state:rollback')) return;
+              const release = (): void => endOp('state:rollback');
+              if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.selectedSeq === undefined) { release(); act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
+              void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message }); });
             },
           },
           canon: {
-            select: (event) => act.canonDraft({ selectedId: event.id, proposalId: undefined, draft: { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' }, dirty: false, error: '' }),
+            select: (event) => act.canonDraft({ selectedId: event.id, proposalId: undefined, draft: { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' }, dirty: false, error: '', saving: false, saveMessage: '' }),
             mutate: (update) => act.canonDraft({ draft: update(snapshot.canonEditor.draft), dirty: true }),
             propose: () => {
               const e = snapshot.canonEditor;
-              if (!workspace || projectId === undefined) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.selectedId === undefined) { act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
-              if ((e.draft.summary ?? '').trim() === '') { act.canonDraft({ error: '更正摘要不能为空' }); return; }
-              void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, buildCanonCorrectionInput(e.draft))).then((proposal) => act.canonDraft({ proposalId: (proposal as { id?: string }).id, error: '' }), (cause: Error) => act.canonDraft({ error: cause.message }));
+              if (e.saving || !beginOp('canon:propose')) return;
+              const release = (): void => endOp('canon:propose');
+              if (!workspace || projectId === undefined) { release(); act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.selectedId === undefined) { release(); act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
+              if ((e.draft.summary ?? '').trim() === '') { release(); act.canonDraft({ error: '更正摘要不能为空' }); return; }
+              act.canonDraft({ saving: true, saveMessage: '', error: '' });
+              void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, buildCanonCorrectionInput(e.draft))).then((proposal) => { release(); if (!active) return; act.canonDraft({ proposalId: (proposal as { id?: string }).id, saving: false, saveMessage: '更正提案已发起', error: '' }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
             accept: () => {
               const e = snapshot.canonEditor;
-              if (!workspace || projectId === undefined) { act.canonDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.proposalId === undefined) { act.canonDraft({ error: '请先发起更正提案' }); return; }
-              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => act.canonDraft({ error: cause.message }));
+              if (e.saving || !beginOp('canon:accept')) return;
+              const release = (): void => endOp('canon:accept');
+              if (!workspace || projectId === undefined) { release(); act.canonDraft({ error: '创作台远程服务不可用' }); return; }
+              if (e.proposalId === undefined) { release(); act.canonDraft({ error: '请先发起更正提案' }); return; }
+              act.canonDraft({ saving: true, saveMessage: '', error: '' });
+              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
           },
         };
@@ -892,6 +966,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       }, 'novel-creation-tool: workbench styles');
 
       ctx.slots.inject('shell.overlay', () => {
+        // I59 焦点恢复（R12-6）：关闭/Esc 时把焦点恢复到侧栏启动按钮
+        // `data-novel-launch`（焦点进入由侧栏打开入口的 scheduleFocus 负责）。
+        const closeWorkbench = (): void => {
+          dispatch((actions) => actions.close());
+          focusSelector('[data-novel-launch]');
+        };
         // The component is a real React function component subscribing to the
         // store; close/collapse/activate and every draft mutation dispatch an
         // action, and `useStore` re-renders this component on every change.
@@ -902,7 +982,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             get collapsed() { return s.collapsed; },
             get activeView() { return s.activeView; },
             collapse() { props.actions.collapse(); },
-            close() { props.actions.close(); },
+            close() { closeWorkbench(); },
             activate(id: LayerId) { props.actions.activate(id); },
             // I58：统一视图导航。非层视图重复点击回退默认层视图（保留旧 toggle 语义），
             // 层视图重复点击保持；首次进入设置视图时惰性装载 Host 视图。
@@ -922,45 +1002,57 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             saveLlmConfig() {
               const target = llmConfig;
               const draft = s.settingsDraft;
-              if (!target) { dispatch((x) => x.settingsSettled({ error: '设置服务不可用' })); return; }
+              // I59 防重复提交（R12-6）：saving 忙碌挡 + 同 tick inflight 挡。
+              if (draft.saving || !beginOp('settings:llm:save')) return;
+              const release = (): void => endOp('settings:llm:save');
+              if (!target) { release(); dispatch((x) => x.settingsSettled({ error: '设置服务不可用' })); return; }
               const baseUrl = draft.baseUrl.trim();
               const model = draft.model.trim();
-              if (baseUrl === '' || model === '') { dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
-              if (draft.apiKey === '' && !(s.settingsView?.hasKey ?? false)) { dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
+              if (baseUrl === '' || model === '') { release(); dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
+              if (draft.apiKey === '' && !(s.settingsView?.hasKey ?? false)) { release(); dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
               dispatch((x) => x.settingsSettled({ saving: true, message: '', error: '' }));
               void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey, maxTokens: draft.maxTokens, thinking: draft.thinking, reasoningEffort: draft.reasoningEffort })).then(
                 (result) => {
+                  release();
+                  if (!active) return;
                   dispatch((x) => x.settingsSettled({ saving: false, message: `已保存路由 ${(result as { modelRef: string }).modelRef}（重启 DSH 服务后生效）` }));
                   void unwrap(llmConfig?.load()).then((view) => { if (active && view !== undefined) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);
                 },
-                (cause: Error) => dispatch((x) => x.settingsSettled({ saving: false, error: (cause as Error).message })),
+                (cause: Error) => { release(); if (!active) return; dispatch((x) => x.settingsSettled({ saving: false, error: (cause as Error).message })); },
               );
             },
             saveCreationSettings() {
               const target = workbenchSettings;
               const draft = s.creationSettingsDraft;
-              if (!target) { dispatch((x) => x.creationSettingsSettled({ error: '创作设置服务不可用' })); return; }
-              if (!Number.isFinite(draft.wordTarget) || draft.wordTarget < 100) { dispatch((x) => x.creationSettingsSettled({ error: '目标字数至少 100' })); return; }
+              if (draft.saving || !beginOp('settings:workbench:save')) return;
+              const release = (): void => endOp('settings:workbench:save');
+              if (!target) { release(); dispatch((x) => x.creationSettingsSettled({ error: '创作设置服务不可用' })); return; }
+              if (!Number.isFinite(draft.wordTarget) || draft.wordTarget < 100) { release(); dispatch((x) => x.creationSettingsSettled({ error: '目标字数至少 100' })); return; }
               dispatch((x) => x.creationSettingsSettled({ saving: true, message: '', error: '' }));
               void unwrap(target.save({ wordTarget: draft.wordTarget, askWhenThin: draft.askWhenThin })).then(
                 (view) => {
+                  release();
+                  if (!active) return;
                   dispatch((x) => x.creationSettingsSettled({ saving: false, message: '创作设置已保存' }));
                   if (active && view !== undefined) dispatch((x) => x.creationSettingsLoaded(view as WorkbenchSettingsViewShape));
                 },
-                (cause: Error) => dispatch((x) => x.creationSettingsSettled({ saving: false, error: (cause as Error).message })),
+                (cause: Error) => { release(); if (!active) return; dispatch((x) => x.creationSettingsSettled({ saving: false, error: (cause as Error).message })); },
               );
             },
             openCreationFolder() {
               const target = workbenchSettings;
               const projectId = currentProjectId;
-              if (!target || projectId === undefined) { dispatch((x) => x.creationSettingsSettled({ error: '请先选择作品' })); return; }
+              if (!beginOp('settings:open-folder')) return;
+              const release = (): void => endOp('settings:open-folder');
+              if (!target || projectId === undefined) { release(); dispatch((x) => x.creationSettingsSettled({ error: '请先选择作品' })); return; }
               dispatch((x) => x.creationSettingsSettled({ message: '', error: '' }));
               void unwrap(target.openProjectFolder(projectId)).then(
                 (result) => {
+                  release();
                   if (!active) return;
                   dispatch((x) => x.creationSettingsSettled({ message: `已打开作品落地文件夹：${(result as { path: string }).path}` }));
                 },
-                (cause: Error) => dispatch((x) => x.creationSettingsSettled({ error: (cause as Error).message })),
+                (cause: Error) => { release(); if (!active) return; dispatch((x) => x.creationSettingsSettled({ error: (cause as Error).message })); },
               );
             },
             selectProject(id: string) { openProject(id); },
@@ -984,8 +1076,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             uploadFile(file: File) {
               const target = workspace;
               if (!target || !active) return;
+              // I59 防重复上传（R12-6）：一次 Remote 上传链进行中忽略再次选择文件。
+              if (!beginOp('upload')) return;
               void uploadDocx(target, file, (progress) => dispatch((x) => x.uploadProgress(progress))).then(
                 (result) => {
+                  endOp('upload');
                   dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
                   const projectId = currentProjectId;
                   if (projectId !== undefined) {
@@ -1000,7 +1095,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                     if (currentProjectId !== undefined) startAnalysis(currentProjectId, result.sourceHash, result.text);
                   });
                 },
-                () => dispatch((x) => x.uploadSettled(undefined)),
+                () => { endOp('upload'); dispatch((x) => x.uploadSettled(undefined)); },
               );
             },
             analyzeText(text: string) {
@@ -1115,7 +1210,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
 
       ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register(
         { name: 'sidebar.footer.action', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
-        () => launchButton(React, () => dispatch((x) => x.open())),
+        // I59：打开入口同时调度焦点进入（R12-6）。
+        () => launchButton(React, () => {
+          dispatch((actions) => actions.open());
+          scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
+        }),
       ));
     },
   };

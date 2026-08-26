@@ -11,6 +11,14 @@
  * - 8px 网格 + 宽松留白 + 1px 细边 + 分层卡片 + 软阴影。
  * - 零外部字体/网络资产：本常量不得出现 `@import`、`@font-face`、`url(http...)`
  *   或任何网络字体域名。
+ * - 键盘焦点（I59 / R12-6）：`.nv-workbench :focus-visible` 提供 2px 朱砂焦点环
+ *   （outline-offset 2px），环色消费 `--nv-cinnabar`，暗色主题下随 token 自动提亮；
+ *   唯一允许的 `outline: none` 只出现在 `:focus:not(:focus-visible)`（纯鼠标聚焦，
+ *   此时输入框以 border-color 朱砂边作为替代焦点指示），绝不出现裸 `outline: none`。
+ * - 响应式（I59 / R12-6）：断点常量 `RESPONSIVE_BREAKPOINT_NAV` / 
+ *   `RESPONSIVE_BREAKPOINT_COMPACT` 与 `@media` 查询一一对应；窄屏把左右分栏改为
+ *   纵向堆叠、导航退化为横向滚动横条，保证窄屏无不可达内容，且始终由同一
+ *   shell.overlay Slot/Fiber 管理（不创建新容器）。
  * - 本文件只导出样式常量与品牌 token，不操作 DOM；`<style>` 注入与 Fiber 回收
  *   由 `client.ts` 经 `ctx.effect` 完成（R10-3）。
  */
@@ -30,6 +38,12 @@ export const SANS_STACK =
 
 /** 8px 基础网格。 */
 export const GRID = '8px';
+
+/** I59 响应式断点（R12-6）：导航从左右分栏退化为横向滚动横条的宽度上限。 */
+export const RESPONSIVE_BREAKPOINT_NAV = 720;
+
+/** I59 紧凑断点（R12-6）：品牌头栏/作品上下文允许换行的宽度上限。 */
+export const RESPONSIVE_BREAKPOINT_COMPACT = 440;
 
 /**
  * 创作台包内样式。命名空间前缀 `.nv-`（novel）避免与宿主样式冲突；包内品牌层
@@ -72,6 +86,40 @@ export const WORKBENCH_STYLES = `
   font-family: var(--nv-sans);
   box-shadow: -12px 0 32px rgba(0, 0, 0, 0.12);
   pointer-events: auto;
+}
+
+/* I59 键盘焦点可见性（R12-6）：:focus-visible 提供 2px 朱砂焦点环，环色消费
+   --nv-cinnabar（暗色主题随 token 提亮）；纯鼠标聚焦（:focus:not(:focus-visible)）
+   才移除 outline，此时输入框以朱砂 border 作替代焦点指示 —— 绝不出现无替代焦点的
+   裸 outline 移除规则。 */
+.nv-workbench :focus-visible {
+  outline: 2px solid var(--nv-cinnabar);
+  outline-offset: 2px;
+}
+
+.nv-workbench :focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* I59 保存状态行（R12-6）：saving/saved 可播报（role=status + aria-live=polite），
+   failed 由 role=alert 播报；文案色消费宿主 token（明暗自动适配）。 */
+.nv-save-status {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nv-save-status--saving {
+  color: var(--nv-ink-dim);
+}
+
+.nv-save-status--saved {
+  color: var(--nv-ok);
+}
+
+.nv-save-status--failed {
+  color: var(--nv-danger);
 }
 
 .nv-workbench__brand {
@@ -454,7 +502,6 @@ export const WORKBENCH_STYLES = `
 }
 
 .nv-field__input:focus {
-  outline: none;
   border-color: var(--nv-cinnabar);
 }
 
@@ -1047,6 +1094,80 @@ export const WORKBENCH_STYLES = `
 .nv-onboarding__apply-retry:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* I59 响应式断点（design §14.8 / R12-6）：窄屏把左右分栏改为纵向堆叠，导航退化
+   为可横向滚动的横条；仍由同一 shell.overlay Slot/Fiber 管理，不创建新容器，
+   窄屏无不可达内容（主列纵向滚动 + 导航横向滚动双轴可达）。 */
+@media (max-width: ${RESPONSIVE_BREAKPOINT_NAV}px) {
+  .nv-workbench__body-row {
+    flex-direction: column;
+  }
+
+  .nv-workbench__nav {
+    width: auto;
+    max-width: 100%;
+    max-height: 40%;
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--nv-line);
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
+    padding: var(--nv-grid);
+  }
+
+  .nv-workbench__nav-group {
+    display: inline-block;
+    vertical-align: top;
+    min-width: max-content;
+    margin: 0 calc(var(--nv-grid) * 2) 0 0;
+  }
+
+  .nv-workbench__nav-item {
+    display: inline-block;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .nv-editor__columns,
+  .nv-outline__columns {
+    flex-direction: column;
+  }
+
+  .nv-editor__list {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .nv-form__row {
+    flex-direction: column;
+  }
+
+  .nv-state__diff-row {
+    grid-template-columns: 1fr;
+  }
+
+  .nv-workbench__main {
+    padding: var(--nv-grid);
+  }
+
+  .nv-editor__actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: ${RESPONSIVE_BREAKPOINT_COMPACT}px) {
+  .nv-workbench__brand,
+  .nv-workbench__project-context,
+  .nv-workbench__leave-confirm {
+    flex-wrap: wrap;
+  }
+
+  .nv-workbench__title {
+    min-width: 0;
+  }
 }
 
 /* 明暗适配：暗色下朱砂提亮（D12）；中性色已由宿主 --dsw-alias-* 在

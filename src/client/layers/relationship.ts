@@ -1,4 +1,5 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
+import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 
 export interface RelationshipShape {
   id: string;
@@ -14,7 +15,7 @@ export interface RelationshipShape {
   [key: string]: unknown;
 }
 export interface RelationshipLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly list: RelationshipShape[]; readonly message?: string; }
-export interface RelationshipEditor { selectedId: string | undefined; draft: RelationshipShape; dirty: boolean; error: string; }
+export interface RelationshipEditor { selectedId: string | undefined; draft: RelationshipShape; dirty: boolean; error: string; saving: boolean; saveMessage: string; }
 export interface RelationshipEditOps { select(entry: RelationshipShape): void; newDraft(): void; mutate(update: (draft: RelationshipShape) => RelationshipShape): void; save(): void; }
 
 export function relationshipInput(draft: RelationshipShape): unknown {
@@ -45,7 +46,8 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
       listField(h, '\u91cc\u7a0b\u7891', d.milestones ?? [], (value) => ops.mutate((draft) => ({ ...draft, milestones: value }))),
       listField(h, '\u77e5\u60c5\u8fb9\u754c\uff08knownTo\uff09', d.knownTo ?? [], (value) => ops.mutate((draft) => ({ ...draft, knownTo: value }))),
     ),
-    h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty }, '\u4fdd\u5b58')),
+    h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '\u4fdd\u5b58'))),
+    renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'relationship'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, editor.error) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'ready' }, h('div', { className: 'nv-editor__columns' }, list, detail));

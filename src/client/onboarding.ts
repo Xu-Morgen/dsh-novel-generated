@@ -83,6 +83,8 @@ export interface OnboardingState {
   openPanel?: Partial<Record<OnboardingLayerId, 'edit' | 'regenerate'>>;
   /** I57 分析生命周期（busy/progress/cancel/retry，R12-4）。 */
   analysis?: OnboardingAnalysisState;
+  /** I59 apply 进行中（R12-6）：apply/重试按钮忙碌并防重复提交。 */
+  applying?: boolean;
 }
 
 /** I56 裁决附带载荷：edit 必须携带用户编辑后的整层候选值；regenerate 可带反馈。 */
@@ -302,17 +304,17 @@ export function onboardingReview(
         );
       }),
     ),
-    h('p', { className: 'nv-onboarding__eligibility', 'data-novel-onboarding-eligibility': '' },
+    h('p', { className: 'nv-onboarding__eligibility', 'data-novel-onboarding-eligibility': '', 'aria-live': 'polite' },
       eligibility.ready ? '六层终态已锁定，可应用已接受层。' : `待 ${eligibility.pendingCount} 层进入终态（已接受/已修改/已跳过）后启用应用。`),
     h('button', {
       type: 'button',
       className: 'nv-onboarding__apply',
       'data-novel-onboarding-apply': '',
-      disabled: namespace === undefined || !eligibility.ready,
+      disabled: namespace === undefined || !eligibility.ready || state.applying === true,
       onClick: () => apply(),
-    }, '应用已接受层并进入创作台'),
+    }, state.applying === true ? '应用中…' : '应用已接受层并进入创作台'),
     state.error ? h('p', { className: 'nv-onboarding__error', 'data-novel-onboarding-error': '', role: 'alert' }, state.error) : null,
-    result ? h('dl', { className: 'nv-onboarding__result', 'data-novel-onboarding-result': '' },
+    result ? h('dl', { className: 'nv-onboarding__result', 'data-novel-onboarding-result': '', 'aria-live': 'polite' },
       h('dt', null, '已应用'), h('dd', { 'data-novel-onboarding-applied': '' }, result.appliedLayers.join(', ') || '—'),
       h('dt', null, '已跳过'), h('dd', null, result.skippedLayers.join(', ') || '—'),
       h('dt', null, '被阻断'), h('dd', null, result.blockedLayers.join(', ') || '—'),
@@ -323,9 +325,9 @@ export function onboardingReview(
         type: 'button',
         className: 'nv-onboarding__apply-retry',
         'data-novel-onboarding-apply-retry': '',
-        disabled: namespace === undefined,
+        disabled: namespace === undefined || state.applying === true,
         onClick: () => apply(),
-      }, '重试应用未完成层') : null,
+      }, state.applying === true ? '重试中…' : '重试应用未完成层') : null,
     ) : null,
   );
 }
@@ -352,8 +354,8 @@ export function analysisPanel(
   if (analysis === undefined || analysis.status === 'succeeded') return null;
   const busy = analysis.status === 'queued' || analysis.status === 'running';
   if (busy) {
-    return h('section', { className: 'nv-analysis', 'data-novel-analysis-busy': analysis.status },
-      h('p', { className: 'nv-analysis__status', 'data-novel-analysis-status': analysis.status },
+    return h('section', { className: 'nv-analysis', 'data-novel-analysis-busy': analysis.status, 'aria-live': 'polite', 'aria-busy': 'true' },
+      h('p', { className: 'nv-analysis__status', 'data-novel-analysis-status': analysis.status, role: 'status' },
         analysis.status === 'queued' ? '正在排队等待分析…' : '正在分析原文（生成六层候选）…'),
       h('button', {
         type: 'button',

@@ -1,4 +1,5 @@
 import type { El } from './shared.js';
+import { saveButtonLabel } from './save-status.js';
 
 /**
  * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并保存到本地
@@ -99,8 +100,11 @@ export function llmSettingsPanel(
         ),
       ),
     ),
-    h('button', { type: 'button', className: 'nv-btn', 'data-novel-llm-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, draft.saving ? '保存中…' : '保存设置'),
-    draft.message ? h('p', { className: 'nv-settings__ok', 'data-novel-llm-message': '' }, draft.message) : null,
-    draft.error ? h('p', { className: 'nv-settings__error', 'data-novel-llm-error': '', role: 'alert' }, draft.error) : null,
+    h('button', { type: 'button', className: 'nv-btn', 'data-novel-llm-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
+    // I59 保存状态（R12-6）：保存中/已保存/失败三态可播报；saved/failed 行保留既有
+    // data-novel-llm-message / data-novel-llm-error 锚点，新增 data-novel-save-state。
+    draft.saving ? h('p', { className: 'nv-save-status nv-save-status--saving', 'data-novel-save-status': 'llm', 'data-novel-save-state': 'saving', role: 'status', 'aria-live': 'polite' }, '正在保存…') : null,
+    draft.message ? h('p', { className: 'nv-settings__ok', 'data-novel-llm-message': '', 'data-novel-save-status': 'llm', 'data-novel-save-state': 'saved', role: 'status', 'aria-live': 'polite' }, draft.message) : null,
+    draft.error ? h('p', { className: 'nv-settings__error', 'data-novel-llm-error': '', 'data-novel-save-status': 'llm', 'data-novel-save-state': 'failed', role: 'alert', 'aria-live': 'assertive' }, draft.error) : null,
   );
 }

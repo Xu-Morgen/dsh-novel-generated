@@ -1,4 +1,5 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
+import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 
 export interface CharacterShape {
   id: string;
@@ -30,6 +31,10 @@ export interface CharacterEditor {
   draft: CharacterShape;
   dirty: boolean;
   error: string;
+  /** I59 保存中（R12-6）：按钮忙碌禁用 + 状态行。 */
+  saving: boolean;
+  /** I59 已保存反馈文案（R12-6）。 */
+  saveMessage: string;
 }
 
 export interface CharacterEditOps {
@@ -120,8 +125,9 @@ export function characterLayer(
       ),
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: ops.save, disabled: !editor.dirty }, '\u4fdd\u5b58'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '\u4fdd\u5b58')),
     ),
+    renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'characters'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'character', role: 'alert' }, editor.error) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'ready' },

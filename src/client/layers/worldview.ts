@@ -1,4 +1,5 @@
 import { listField, type El, type WorkspaceNamespace } from '../shared.js';
+import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 
 export interface WorldShape {
   id: string;
@@ -26,6 +27,10 @@ export interface WorldEditor {
   draft: WorldShape;
   dirty: boolean;
   error: string;
+  /** I59 保存中（R12-6）：按钮忙碌禁用 + 状态行。 */
+  saving: boolean;
+  /** I59 已保存反馈文案（R12-6）。 */
+  saveMessage: string;
 }
 
 export interface WorldEditOps {
@@ -121,9 +126,10 @@ export function worldviewLayer(
         : null,
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-worldview-save': '', onClick: ops.save, disabled: !editor.dirty },
-        editor.selectedId === undefined ? '\u521b\u5efa' : '\u6539\u5199'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-worldview-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving },
+        saveButtonLabel(editor.saving, editor.selectedId === undefined ? '\u521b\u5efa' : '\u6539\u5199')),
     ),
+    renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'worldview'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'worldview', role: 'alert' }, editor.error) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'ready' },
