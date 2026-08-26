@@ -4,9 +4,9 @@ AI 长篇小说创作器是一个运行在 **DeepSeek Harness（DSH）** 中的 
 
 > **重要**：本项目的唯一运行宿主和主交付形态是 DeepSeek Harness。它**不是**一个独立 Node/Vite 应用，也没有独立的第二前端或浏览器直连 LLM。文件、凭据、LLM 与领域真相全部由 Host 拥有；Client 只拥有注册到 DSH Slot 的 UI。
 
-- 权威设计文档：`docs/novel-creation-tool-design.md`（v2.0）
-- 权威开发计划：`docs/novel-creation-tool-development-plan.md`（v2.0）
-- 需求与验收矩阵：`docs/novel-creation-tool-requirements.md`（v2.0）
+- 权威设计文档：`docs/novel-creation-tool-design.md`（v2.2）
+- 权威开发计划：`docs/novel-creation-tool-development-plan.md`（v2.2；I1–I53 已完成，I54–I72 待执行）
+- 需求与验收矩阵：`docs/novel-creation-tool-requirements.md`（v2.2）
 
 ---
 
@@ -17,6 +17,8 @@ AI 长篇小说创作器是一个运行在 **DeepSeek Harness（DSH）** 中的 
 - [安装到 DSH（唯一生产安装合同）](#安装到-dsh唯一生产安装合同)
   - [方式一：Bundle 路径（推荐，本项目采用）](#方式一bundle-路径推荐本项目采用)
   - [方式二：Plugin patch 路径（二选一，不可混用）](#方式二plugin-patch-路径二选一不可混用)
+- [安装“小说创作助手”Agent Preset](#安装小说创作助手agent-preset)
+- [使用小说创作助手](#使用小说创作助手)
 - [验证安装](#验证安装)
 - [本地 smoke 验证](#本地-smoke-验证)
 - [插件提供的服务](#插件提供的服务)
@@ -154,6 +156,125 @@ dsh --profile <profile-name>
 
 ---
 
+## 安装“小说创作助手”Agent Preset
+
+仓库同时提供一份面向日常写作的 DSH Agent Preset：
+
+- Preset ID：`novel-writer`
+- 显示名称：**小说创作助手**
+- 源文件：[`examples/agent-presets/novel-writer/`](examples/agent-presets/novel-writer/)
+- 用户安装目录：`${DSH_HOME:-$HOME/.dsh}/.agent-presets/novel-writer/`（若部署显式配置了 harness-home 覆盖，则以该覆盖目录为准）
+
+> **插件与 Preset 是两个不同层面。** `novel-creation-tool` 插件必须先按上一节安装到所选 profile，它在 Host 注册作品服务和 `novel_*` 工具；`novel-writer` Preset 只定义该会话使用的人设、提示词和通用 Agent 工具。只复制 Preset 而没有装载插件时，Agent 不会获得小说工具。
+>
+> 当前示例以 DSH 的完整 `standard` Agent 能力为基础，除小说工具外还包含 shell、文件系统、Web、子 Agent、workflow 等工具；它不是“只允许写小说”的最小权限 Preset。实际执行仍受 DSH 会话权限/沙箱控制。安装前请审阅 [`agent.cordis.yml`](examples/agent-presets/novel-writer/agent.cordis.yml)，并按部署需要删减工具。
+
+### 前置条件
+
+1. 已完成 `pnpm install && pnpm build`，并已按 Bundle 路径把 `novel-creation-tool` 装入当前 DSH profile。
+2. 插件配置未把 `agentTools` 设为 `false`；默认值为 `true`。
+3. DSH 已配置可用模型及凭据。LLM 调用由 Host 的 `ctx.llm` 执行，Preset 不保存 API key。
+
+### 复制到用户 Preset 目录
+
+不要编辑 DSH 安装目录中随附的 `standard`、`code`、`minimal` 或 `cordis` Preset；升级 DSH 会覆盖它们。把本仓库提供的 Preset 复制到用户自有目录。以下命令均从本仓库根目录执行。
+
+**Windows PowerShell：**
+
+```powershell
+$DshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME '.dsh' }
+$PresetRoot = Join-Path $DshHome '.agent-presets'
+$Target = Join-Path $PresetRoot 'novel-writer'
+
+if (Test-Path $Target) {
+  throw "Preset 已存在：$Target；请先备份并合并修改，不要直接覆盖。"
+}
+
+New-Item -ItemType Directory -Force $PresetRoot | Out-Null
+Copy-Item -Recurse '.\examples\agent-presets\novel-writer' $Target
+```
+
+**Linux / macOS：**
+
+```bash
+DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
+PRESET_ROOT="$DSH_HOME/.agent-presets"
+TARGET="$PRESET_ROOT/novel-writer"
+
+test ! -e "$TARGET" || { echo "Preset 已存在：$TARGET；请先备份并合并修改。" >&2; exit 1; }
+mkdir -p "$PRESET_ROOT"
+cp -R examples/agent-presets/novel-writer "$TARGET"
+```
+
+复制后目录必须包含：
+
+```text
+<DSH_HOME>/.agent-presets/novel-writer/
+├── preset.yml
+└── agent.cordis.yml
+```
+
+标准 DSH Web 组合默认扫描该用户目录。若部署显式设置了 `agent-presets.includeUserRoot: false`，请改为复制到部署配置的第一个可写 `user` Preset root。
+
+### 让 DSH 发现 Preset
+
+Preset roster 每次读取时都会重新扫描磁盘，但不会主动向浏览器推送变更。复制完成后，打开或刷新 **设置 → Agent Presets**（或新建会话界面），即可看到“小说创作助手”；如仍未出现，再让 Web GUI 重新连接 Host 或重启 DSH 进程。
+
+如需把“小说创作助手”设为新会话默认，可在 Agent Presets 管理界面中设置默认值；具体入口以当前 DSH 版本的设置页为准。
+
+> Preset 只能在新会话或尚未产生消息的空白会话中切换。已有对话一旦运行过，就不能更换 Preset；请新建会话。
+
+---
+
+## 使用小说创作助手
+
+### 1. 先在创作台准备作品
+
+1. 在 DSH Web GUI 左侧栏底部点击 **创作台**。
+2. 在 **LLM 设置**中检查当前模型/模板配置；模型凭据仍由 DSH Host 管理。
+3. 新建空白作品，或上传 `.docx`；打开作品后也可在六层初始化页粘贴原文并执行分析。
+4. 审阅 B3 角色、B2 世界观、B5 大纲/细纲、C1 关系、C2 状态、C4 正史候选，并完成接受、修改后接受、重生成或跳过。
+5. 应用已接受层后，再进入使用 `novel-writer` Preset 的新会话。
+
+默认作品目录为 `~/.dsh/novel-projects/<projectId>/`，也可以通过插件配置 `projectsRoot` 修改。不要直接编辑该目录中的 YAML、JSONL 或正文文件；所有写入应走创作台或 `novel_*` Host 工具，以保留 Schema 校验、ConfirmationGate 和 C4 append-only 约束。
+
+### 2. 新建小说创作助手会话
+
+1. 点击 DSH 的新建会话。
+2. 在新会话界面的 Preset 选择 chip 中选择 **小说创作助手**。
+3. 选择模型和工作目录后创建会话。
+4. 先让 Agent 列出作品，再使用返回的准确 `projectId` 打开目标作品。
+
+推荐的首次指令：
+
+```text
+请先列出所有小说作品，等我选择后再打开，不要续写。
+```
+
+### 3. 常用自然语言指令与工具
+
+Preset 会引导 Agent 使用以下 Host 工具；用户通常只需用自然语言下达任务：
+
+| 想做什么 | 示例指令 | 对应工具 | 是否写入作品 |
+| --- | --- | --- | --- |
+| 列出作品 | `列出所有小说作品和当前就绪状态。` | `novel_status` | 否 |
+| 打开作品 | `打开作品 my-book，并汇报各层是否就绪。` | `novel_open` | 否 |
+| 查看下一场景上下文 | `读取 my-book 的下一场景、当前细纲、状态和最近正文。` | `novel_context` | 否 |
+| 获取灵感 | `为 my-book 给出三个不同的发展方向，不要写入。` | `novel_inspire` | 否 |
+| 只生成预览 | `按当前细纲续写下一场景，只预览，不落盘。` | `novel_continue`，`decision=reject` | 否 |
+| 生成并落盘 | `按当前细纲续写下一场景并落盘。` | `novel_continue`，`decision=accept` | 是 |
+
+建议每次续写前先读取 `novel_context`，确认当前细纲、目标字数、POV、角色状态和最近正文。若 Agent 报告低置信结构化变更需要 ConfirmationGate，请回到创作台完成确认，不要要求 Agent 反复重试绕过确认。
+
+### 4. 当前版本的重要限制
+
+- 当前 `novel_continue decision=reject` 会生成一份预览但不保存；随后调用 `decision=accept` 会**重新生成**并立即落盘，不是接受刚才那份完全相同的预览。精确的“候选预览 → diff → 接受同一候选”计划在 I62–I63 实现。
+- 六层初始化与逐层裁决仍应在创作台 GUI 完成；Preset 不绕过该流程。
+- 修改已有 Preset 的 `agent.cordis.yml` 只影响此后创建的新会话；已经运行的会话继续使用其创建时挂载的版本。若浏览器没有刷新新增 Preset 的 roster 或展示元信息，再重新连接 Host。
+- 当前创作台仍使用 `shell.overlay` 浮动面板；右侧停靠侧板属于待执行的 I54，不应把计划状态误认为当前已经交付。
+
+---
+
 ## 验证安装
 
 安装并启动后，可通过以下任一方式确认插件已正确装载：
@@ -162,7 +283,11 @@ dsh --profile <profile-name>
 
 2. **Fiber dispose 完整性**：停止/卸载插件后，`novelCreation` 等所有由插件提供的服务应随之从上下文移除（这是 H0-6 验收要求）。
 
-3. **Client Slot UI（若已通过 I2 及后续门禁构建）**：在 DSH Web GUI 中应能看到本插件注册的创作台工作区入口。
+3. **Client Slot UI**：在 DSH Web GUI 左侧栏底部应能看到 **创作台** 入口。
+
+4. **Preset roster**：在 **设置 → Agent Presets** 中应能看到 **小说创作助手**（ID 为 `novel-writer`），且没有“Failed to load”标记。
+
+5. **Agent 工具**：使用该 Preset 创建新会话并发送“列出所有小说作品，不要续写”，Agent 应调用 `novel_status`；如果工具不存在，先确认插件 bundle 已在当前 profile 中激活且 `agentTools` 未关闭。
 
 ---
 
@@ -227,7 +352,7 @@ src/
 scripts/           # smoke 与构建脚本（smoke-i*.mjs、build-client.mjs）
 samples/           # LLM 样本集（含 held-out 子集）
 docs/              # 权威设计/计划/需求文档
-examples/          # 安装组合示例（selected-profile.package.json）
+examples/          # 安装组合与 Agent Preset 示例（selected-profile.package.json、agent-presets/novel-writer/）
 cordis.yml         # 本地 Loader smoke 组合（非生产入口）
 cordis.patch.yml   # bundle patch 层（生产组合贡献，package.json dsh.bundle.patch 引用）
 ```
