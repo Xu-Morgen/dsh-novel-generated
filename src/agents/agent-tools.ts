@@ -159,6 +159,16 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
     const characterIds = characters.map((character) => character.id);
     const sceneCharacters = await deps.characters.listForScene(projectId, characterIds);
     const recentScenes = chapters.flatMap((chapter) => chapter.scenes).slice(-3);
+    // B2 触发注入只取 active 命中（设计 §5.4 / R1-B2）：rewritten/obsolete 旧条目与
+    // 尚未在正文揭示的条目不得进入生成上下文——组装器对非 active 命中 fail-closed，
+    // 且全量注入会把未来才应知道的条目泄漏进生成提示（C3 知情边界）。
+    // 触发文本 = 当前细纲卡 + 最近场景正文；parserInputs.b2 仍保留全量 worldview 以支持改写提案。
+    const triggerText = [card.title, card.summary, ...card.points]
+      .concat(recentScenes.map((scene) => scene.content))
+      .filter((text) => text.trim().length > 0)
+      .join('\n');
+    const worldviewHits =
+      triggerText.length > 0 ? await deps.worldview.matchTriggers(projectId, [triggerText], []) : [];
     const sources: StoryGenerationSources = {
       context: {
         macros: { user: '作者', pov: card.pov },
@@ -166,7 +176,7 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
           rules: activeRules,
           style: styleSegment,
           characters: sceneCharacters,
-          worldview: worldview.map((entry) => ({ entry, entryId: entry.id, ancestors: [], level: 0 })),
+          worldview: worldviewHits,
           relationships: { relationships, characterIds },
           state,
         },

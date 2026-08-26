@@ -215,4 +215,30 @@ describe('novel agent tools（对话创作入口）', () => {
     expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_inspire']);
     dispose();
   });
+
+  it('injects only active world entries via trigger matching when a superseded entry exists', async () => {
+    const { agent, deps, root } = await setup();
+    try {
+      await seedProject(deps, 'demo');
+      // B2 supersede（设计 §5.4 / I29）：旧条目标 rewritten + supersededBy，新条目 active。
+      await deps.worldview.rewrite('demo', 'north-harbor', {
+        id: 'north-harbor-v2', kind: 'geography', title: '北港新志', content: '北港位于内海西岸，现为翠玉录展览所在地。',
+        keywords: ['北港'], triggerMode: 'keyword', weight: 1, parent: null, mutable: true, status: 'active', supersededBy: null,
+      });
+      // 一段提到「北港」的最近正文作为触发源（否则无命中，无法验证 active 过滤）。
+      await deps.text.createChapter('demo', { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+      await deps.text.appendScene('demo', 'chapter-1', {
+        id: 'scene-1', content: '米拉站在北港的码头上，望着内海西岸。', summary: '抵达北港', beats: ['beat-1'], canonEvents: [], notes: '',
+      });
+      // 上下文只注入 active 的 north-harbor-v2，绝不注入 rewritten 的 north-harbor。
+      const context = await agent.context('demo');
+      expect(context.sources.context.sources.worldview.map((hit) => hit.entryId)).toEqual(['north-harbor-v2']);
+      // 端到端：存在 rewritten 条目时，续写组装不再抛「World entry hit must be active」。
+      const result = await agent.continueScene('demo', 'reject');
+      expect(result.execution.result.status).toBe('decision-rejected');
+      expect(result.scene).toBeUndefined();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
