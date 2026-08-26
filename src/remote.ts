@@ -13,6 +13,7 @@ export * from './host/remote/probe.js';
 export * from './host/remote/editor.js';
 export * from './host/remote/project-lifecycle.js';
 export * from './host/remote/upload.js';
+export * from './host/remote/text.js';
 export * from './host/remote/onboarding.js';
 export * from './host/remote/onboarding-analyzer.js';
 export * from './host/remote/llm-config.js';

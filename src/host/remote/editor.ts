@@ -13,6 +13,7 @@ import type { CanonCorrectionInput } from '../../core/schema/canon.js';
 import type { ConfirmationRecord } from '../../core/schema/confirm.js';
 import { uploadInvocations } from './upload.js';
 import { projectLifecycleInvocations } from './project-lifecycle.js';
+import { c5Invocations } from './text.js';
 import { characterCoreSchema } from '../../core/schema/characters.js';
 import { worldEntrySchema } from '../../core/schema/worldview.js';
 import { outlineSchema, detailBeatSchema } from '../../core/schema/outline.js';
@@ -68,10 +69,12 @@ export const stateDiffInvocation = editorInvocation('novelWorkspace', 'stateDiff
 export const canonQueryInvocation = editorInvocation('novelWorkspace', 'canonQuery', [projectParameter, filterParameter], z.array(canonEventViewSchema));
 export const canonCorrectionProposeInvocation = editorInvocation('novelWorkspace', 'canonCorrectionPropose', [projectParameter, targetIdParameter, inputParameter], confirmationRecordSchema);
 export const canonCorrectionAcceptInvocation = editorInvocation('novelWorkspace', 'canonCorrectionAccept', [projectParameter, proposalIdParameter], canonCorrectionAcceptResultSchema);
-export const editorInvocations = [characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation, worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation, outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation, relationshipReadInvocation, relationshipSaveInvocation, stateCurrentInvocation, stateSnapshotsInvocation, stateRollbackInvocation, stateDiffInvocation, canonQueryInvocation, canonCorrectionProposeInvocation, canonCorrectionAcceptInvocation] as const;
+export const editorInvocations = [characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation, worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation, outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation, relationshipReadInvocation, relationshipSaveInvocation, stateCurrentInvocation, stateSnapshotsInvocation, stateRollbackInvocation, stateDiffInvocation, canonQueryInvocation, canonCorrectionProposeInvocation, canonCorrectionAcceptInvocation, ...c5Invocations] as const;
 export const workspaceContribution: TypertContribution = { package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] }, invocations: [workspaceViewModelInvocation, ...editorInvocations] };
 // Client-mounted contributions must each carry a UNIQUE `package`: the client
 // Typert registry rejects a second mount whose package is already registered
 // (`RemoteStore.register` → "Remote package ... is already registered").
+// I60 C5 只读方法（chapterList/chapterRead/sceneRead）经 editorInvocations 并入
+// 同一 workspace 挂载面（editorInvocations 已含 c5Invocations，不再重复展开）。
 export const workspaceRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-workspace', descriptors: [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations] };
 export type { CharacterCore, CharacterCoreInput, CharacterCorePatch, WorldEntry, WorldEntryInput, Outline, OutlineBeatCard, OutlineInput, Relationship, RelationshipInput, WorldState, CanonEventView, CanonQuery, StateDiff, CanonCorrectionInput, ConfirmationRecord };

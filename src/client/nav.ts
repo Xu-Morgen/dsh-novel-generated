@@ -5,26 +5,32 @@
  * 重组为「写作 / 策划 / 连续性 / 作品设置」四个任务组，为 I60 之后的正文与审校
  * 面板建立稳定入口。导航语言以作者任务为准，技术层编号只作辅助徽标。
  *
+ * I60（design §5.12 / R13-1）：写作组新增「正文」视图（C5 章节树/场景导航），
+ * 与「大纲」同组；正文视图与层视图一样是稳定视图（重复点击保持原位），设置类
+ * 视图才回退默认。
+ *
  * 契约与不变式：
  * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
  *   内容区携带 `data-novel-view-panel`，创作台根节点携带 `data-novel-route`；
  *   store 只维护单一 activeView，不再并行维护四个互斥页签标记。
  * - 迁移映射（旧九项 → 新四组）：
- *   写作（writing）：大纲 B5（细纲场景卡是写作导航目标，§14.4；I60 起 C5 正文
- *     工作台与审校中心同组）
+ *   写作（writing）：大纲 B5（细纲场景卡是写作导航目标，§14.4）、正文 C5
+ *     （I60 起 C5 正文工作台与审校中心同组）
  *   策划（planning）：角色 B3、世界观 B2（世界与角色设定策划）
  *   连续性（continuity）：关系 C1、状态 C2、正史 C4（故事一致性与事实追踪）
  *   作品设置（settings）：六层初始化审阅、创作设置、LLM 设置（项目级启动与配置）
- * - 技术层编号（B3/B2/B5/C1/C2/C4）只出现在 badge 辅助徽标位，不是首要导航语言。
+ * - 技术层编号（B3/B2/B5/C1/C2/C4/C5）只出现在 badge 辅助徽标位，不是首要导航语言。
  * - resolveWorkbenchView 把任意来源的 view 收敛到合法视图：未知/陈旧值回退默认
  *   视图（characters），保证刷新/折叠/重开作品后 active view 始终合法。
+ * - isStableView：层视图与正文视图重复点击保持原位；设置类视图（onboarding/
+ *   creationSettings/settings）重复点击回退默认层视图（I58 保留的 toggle 语义）。
  * - 本模块只描述导航分组与视图身份，不持有任何领域数据。
  */
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 三个非层视图（I58 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文视图 + 三个非层视图（I58/I60 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -47,6 +53,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
     label: '写作',
     items: [
       { view: 'outline', label: '大纲', badge: 'B5', layer: 'outline' },
+      { view: 'chapters', label: '正文', badge: 'C5' },
     ],
   },
   {
@@ -103,4 +110,9 @@ export function navItemOf(view: WorkbenchViewId): WorkbenchNavItem | undefined {
 /** 层视图判定：非层视图（onboarding/creationSettings/settings）重复点击时回退默认层视图。 */
 export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
+}
+
+/** 稳定视图判定（I60）：层视图与正文视图重复点击保持原位；设置类视图才回退默认。 */
+export function isStableView(view: WorkbenchViewId): boolean {
+  return view === 'chapters' || isLayerView(view);
 }

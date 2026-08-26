@@ -75,16 +75,17 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 // Part 3 — 模型行为：迁移映射 / 徽标仅辅助 / resolve 回退默认视图。
 {
   const { NAV_GROUPS, NAV_ITEMS, DEFAULT_VIEW, isWorkbenchViewId, isLayerView, resolveWorkbenchView } = await import('../lib/client/nav.js');
-  assert.equal(NAV_ITEMS.length, 9, 'exactly nine views migrate from the old flat nav');
+  // I60 在写作组新增「正文 C5」，导航项从 9 增至 10（I58 的稳定入口预留兑现）。
+  assert.equal(NAV_ITEMS.length, 10, 'ten views after I60 adds the C5 正文 entry');
   assert.deepEqual(NAV_GROUPS.map((g) => g.id), ['writing', 'planning', 'continuity', 'settings']);
-  // 迁移映射（旧九项 → 新四组）。
+  // 迁移映射（旧九项 → 新四组；写作组 = 大纲 + 正文）。
   const itemsOf = (id) => NAV_GROUPS.find((g) => g.id === id).items.map((item) => item.view);
-  assert.deepEqual(itemsOf('writing'), ['outline']);
+  assert.deepEqual(itemsOf('writing'), ['outline', 'chapters']);
   assert.deepEqual(itemsOf('planning'), ['characters', 'worldview']);
   assert.deepEqual(itemsOf('continuity'), ['relationship', 'state', 'canon']);
   assert.deepEqual(itemsOf('settings'), ['onboarding', 'creationSettings', 'settings']);
-  // 技术层编号只作辅助徽标：六个层项有 badge，三个设置项无 badge。
-  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge), ['B5', 'B3', 'B2', 'C1', 'C2', 'C4']);
+  // 技术层编号只作辅助徽标：七个带徽标项（含 C5），三个设置项无 badge。
+  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge), ['B5', 'C5', 'B3', 'B2', 'C1', 'C2', 'C4']);
   assert.deepEqual(NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view), ['onboarding', 'creationSettings', 'settings']);
   // 刷新/重开保持合法 active view：非法/陈旧/空值回退默认，合法值原样保留。
   assert.equal(resolveWorkbenchView('bogus-view'), DEFAULT_VIEW);

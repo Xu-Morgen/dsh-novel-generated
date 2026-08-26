@@ -18,7 +18,7 @@ describe('I33 Host workspace Remote', () => {
     disposer();
     expect(root.typert.local.get('novelWorkspace/viewModel')).toBeUndefined();
     expect(workspaceRemoteContribution.descriptors[0]).toBe(workspaceViewModelInvocation);
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(28);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(31);
     await root.fiber.dispose();
   });
 
@@ -36,6 +36,7 @@ describe('I33 Host workspace Remote', () => {
       'novelWorkspace/relationshipRead', 'novelWorkspace/relationshipSave',
       'novelWorkspace/stateCurrent', 'novelWorkspace/stateSnapshots', 'novelWorkspace/stateRollback', 'novelWorkspace/stateDiff',
       'novelWorkspace/canonQuery', 'novelWorkspace/canonCorrectionPropose', 'novelWorkspace/canonCorrectionAccept',
+      'novelWorkspace/chapterList', 'novelWorkspace/chapterRead', 'novelWorkspace/sceneRead',
       'novelWorkspace/uploadStart', 'novelWorkspace/uploadChunk', 'novelWorkspace/uploadFinalize', 'novelWorkspace/uploadCancel',
       'novelWorkspace/projectList', 'novelWorkspace/projectCreate', 'novelWorkspace/projectOpen',
     ]);

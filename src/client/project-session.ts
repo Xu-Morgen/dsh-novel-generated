@@ -11,6 +11,8 @@ export interface ProjectSessionActions {
   setRelationship(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setState(status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string): void;
   setCanon(status: 'loading' | 'ready' | 'error', events: unknown[], message?: string): void;
+  /** I60：章节树随作品打开一并装载（C5 只读 Remote，R13-1）。 */
+  setChapters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   outlineDraft(patch: { draft?: OutlineShape; dirty?: boolean; error?: string; selectedActId?: string; selectedBeatId?: string; selectedDetailId?: string }): void;
   stateDraft(patch: { selectedSeq?: number; fromSeq?: number; toSeq?: number; diff?: unknown; error?: string }): void;
 }
@@ -44,6 +46,8 @@ export function reloadProject(
   actions.setRelationship('loading', []);
   actions.setState('loading', []);
   actions.setCanon('loading', []);
+  actions.setChapters('loading', []);
+  void unwrap(workspace.chapterList(projectId)).then((list) => dispatch((x) => x.setChapters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setChapters('error', [], cause.message)));
   void unwrap(workspace.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
   void unwrap(workspace.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
   if (layers?.outline === 'uninitialized') {

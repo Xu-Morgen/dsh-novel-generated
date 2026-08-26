@@ -55,7 +55,8 @@ import {
   type OutlineLayerState,
   type OutlineShape,
 } from './client/layers/outline.js';
-import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor } from './client/store.js';
+import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
+import { chaptersPanel, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneReadShape } from './client/layers/chapters.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -63,7 +64,7 @@ import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } fr
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
-import { DEFAULT_VIEW, NAV_GROUPS, isLayerView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
+import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 import { focusSelector, scheduleFocus } from './client/focus.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
@@ -136,6 +137,12 @@ export type WorkbenchActions = {
   setRelationship(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setState(status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string): void;
   setCanon(status: 'loading' | 'ready' | 'error', events: unknown[], message?: string): void;
+  /** I60 C5 章节树装载与章节/场景读取（R13-1）。 */
+  setChapters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
+  chaptersSelectChapter(chapterId: string): void;
+  chaptersSelectScene(sceneId: string): void;
+  chaptersRead(status: 'loading' | 'ready' | 'error', read: unknown, message?: string): void;
+  chaptersScene(status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -274,7 +281,7 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
 /**
  * I58 视图分发（design §14.8 / R12-5）：按稳定 activeView 渲染对应面板，
  * 每个内容区携带 `data-novel-view-panel` data 锚点。非层视图（LLM 设置 /
- * 创作设置 / 六层初始化审阅）与层视图互斥，由单一视图状态决定。
+ * 创作设置 / 六层初始化审阅 / I60 正文）与层视图互斥，由单一视图状态决定。
  */
 function viewPanel(
   h: El,
@@ -283,6 +290,7 @@ function viewPanel(
   workspace: WorkspaceNamespace | undefined,
   layers: LayerData,
   ops: WorkbenchOps,
+  chapters: ChaptersLayerState,
   sourceEntry: unknown,
   review: unknown,
   settings: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void } | undefined,
@@ -296,6 +304,10 @@ function viewPanel(
   }
   if (activeView === 'onboarding') {
     return h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '', 'data-novel-view-panel': 'onboarding' }, sourceEntry, review);
+  }
+  // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）。
+  if (activeView === 'chapters') {
+    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, chapters, ops.chapters));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -323,10 +335,12 @@ interface WorkbenchOps {
   readonly relationship: RelationshipEditOps;
   readonly state: StateEditOps;
   readonly canon: CanonEditOps;
+  /** I60：C5 只读导航（章节/场景选择与重试，经 Host Remote 读取）。 */
+  readonly chapters: ChaptersEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -364,8 +378,8 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       h('div', { className: 'nv-workbench__body-row' },
         groupNav(h, ui.activeView, ui.activateView),
         h('div', { className: 'nv-workbench__main' },
-          // I58：单一 activeView 分发四个任务组的视图（层 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, layers, ops, sourceEntry, review, settings, creationSettings),
+          // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 初始化审阅 / 创作设置 / LLM 设置）。
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -459,6 +473,8 @@ interface WorkbenchState {
   relationshipEditor: RelationshipEditor;
   stateEditor: StateEditor;
   canonEditor: CanonEditor;
+  /** I60：C5 章节树 + 章节/场景只读读取状态（R13-1）。 */
+  chapters: ChaptersLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -537,6 +553,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           relationshipEditor: freshRelationshipEditor(),
           stateEditor: freshStateEditor(),
           canonEditor: freshCanonEditor(),
+          chapters: freshChapters(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -564,7 +581,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -584,6 +601,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           setRelationship: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.relationship = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as RelationshipShape[] }; },
           setState: (d, status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string) => { d.state = status === 'error' ? { status: 'error', snapshots: [], message } : { status, snapshots: snapshots as StateSnapshotShape[] }; },
           setCanon: (d, status: 'loading' | 'ready' | 'error', events: unknown[], message?: string) => { d.canon = status === 'error' ? { status: 'error', events: [], message } : { status, events: events as CanonEventShape[] }; },
+          // I60 C5 章节/场景只读导航（R13-1）：选择/读取状态全部经 store 持久化，
+          // 渲染层只消费快照，跨项目切换由 resetEditors 清空。
+          setChapters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.chapters = { ...d.chapters, status, list: list as ChapterListItemShape[], message }; },
+          chaptersSelectChapter: (d, chapterId: string) => { d.chapters = { ...d.chapters, selectedChapterId: chapterId, selectedSceneId: undefined, chapter: { status: 'loading' }, scene: { status: 'idle' } }; },
+          chaptersSelectScene: (d, sceneId: string) => { d.chapters = { ...d.chapters, selectedSceneId: sceneId, scene: { status: 'loading' } }; },
+          chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
+          chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -953,6 +977,56 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
           },
+          // I60 C5 只读导航（R13-1）：选择章节 → chapterRead → 自动选首个场景 →
+          // sceneRead；正文只经 sceneRead 投影读取（最小 owned JSON）。读取失败
+          // 各自可重试；重复点击经 beginOp 去重（I59 至多一次 Remote 语义）。
+          // 注意：loadScene 必须显式接收 chapterId —— makeOps 在渲染时创建的闭包
+          // 快照里 selectedChapterId 尚未更新，不能依赖快照取章（陈旧闭包缺陷）。
+          chapters: (() => {
+            const loadScene = (sceneId: string, chapterId: string): void => {
+              const target = workspace;
+              if (!target || projectId === undefined) return;
+              if (!beginOp(`chapters:scene:${sceneId}`)) return;
+              const release = (): void => endOp(`chapters:scene:${sceneId}`);
+              act.chaptersSelectScene(sceneId);
+              void unwrap(target.sceneRead(projectId, chapterId, sceneId)).then((scene) => {
+                release();
+                if (!active) return;
+                act.chaptersScene('ready', scene, undefined);
+              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); });
+            };
+            const selectChapter = (chapterId: string): void => {
+              const target = workspace;
+              if (!target || projectId === undefined) return;
+              if (!beginOp(`chapters:chapter:${chapterId}`)) return;
+              const release = (): void => endOp(`chapters:chapter:${chapterId}`);
+              act.chaptersSelectChapter(chapterId);
+              void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
+                release();
+                if (!active) return;
+                const shape = read as ChapterReadShape;
+                act.chaptersRead('ready', shape, undefined);
+                if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
+                else act.chaptersScene('idle', undefined, undefined);
+              }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
+            };
+            return {
+              selectChapter,
+              selectScene(sceneId) {
+                const chapterId = snapshot.chapters.selectedChapterId;
+                if (chapterId !== undefined) loadScene(sceneId, chapterId);
+              },
+              retryChapter() {
+                const chapterId = snapshot.chapters.selectedChapterId;
+                if (chapterId !== undefined) selectChapter(chapterId);
+              },
+              retryScene() {
+                const sceneId = snapshot.chapters.selectedSceneId;
+                const chapterId = snapshot.chapters.selectedChapterId;
+                if (sceneId !== undefined && chapterId !== undefined) loadScene(sceneId, chapterId);
+              },
+            };
+          })(),
         };
       };
 
@@ -984,10 +1058,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             collapse() { props.actions.collapse(); },
             close() { closeWorkbench(); },
             activate(id: LayerId) { props.actions.activate(id); },
-            // I58：统一视图导航。非层视图重复点击回退默认层视图（保留旧 toggle 语义），
-            // 层视图重复点击保持；首次进入设置视图时惰性装载 Host 视图。
+            // I58：统一视图导航。设置类视图（非稳定视图）重复点击回退默认层视图
+            // （保留旧 toggle 语义），层视图与 I60 正文视图重复点击保持；首次进入
+            // 设置视图时惰性装载 Host 视图。
             activateView(view: WorkbenchViewId) {
-              const target = view === s.activeView && !isLayerView(view) ? DEFAULT_VIEW : view;
+              const target = view === s.activeView && !isStableView(view) ? DEFAULT_VIEW : view;
               props.actions.activateView(resolveWorkbenchView(target));
               if (target === 'creationSettings' && s.creationSettingsView === undefined && workbenchSettings) {
                 void unwrap(workbenchSettings.load()).then((loaded) => { if (active) dispatch((x) => x.creationSettingsLoaded(loaded as WorkbenchSettingsViewShape)); }, () => dispatch((x) => x.creationSettingsSettled({ error: '创作设置读取失败' })));
@@ -1125,7 +1200,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.chapters, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,

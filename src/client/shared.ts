@@ -28,6 +28,10 @@ export interface EditorRemote {
   canonQuery(projectId: string, filter?: unknown): Promise<unknown[]>;
   canonCorrectionPropose(projectId: string, targetId: string, input: unknown): Promise<unknown>;
   canonCorrectionAccept(projectId: string, proposalId: string): Promise<unknown>;
+  /** I60 C5 最小只读 Remote（design §5.12 / R13-1）：章节树 / 章节 / 场景读取。 */
+  chapterList(projectId: string): Promise<unknown[]>;
+  chapterRead(projectId: string, chapterId: string): Promise<unknown>;
+  sceneRead(projectId: string, chapterId: string, sceneId: string): Promise<unknown>;
   projectList(): Promise<unknown[]>;
   projectCreate(input: unknown): Promise<unknown>;
   projectOpen(projectId: string): Promise<unknown>;

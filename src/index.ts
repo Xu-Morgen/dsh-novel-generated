@@ -253,7 +253,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService, projectService, uploadService,
+    stateService, canonService, confirmationService, projectService, uploadService, textService,
   );
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).

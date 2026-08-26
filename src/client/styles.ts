@@ -527,6 +527,85 @@ export const WORKBENCH_STYLES = `
   padding: 0 var(--nv-grid);
 }
 
+/* I60 C5 章节/场景只读导航（design §5.12 / R13-1）：三栏章节树 → 场景列表 →
+   正文。列面板固定宽度、正文弹性；窄屏整体纵向堆叠（见下方断点查询）。 */
+.nv-chapters {
+  display: grid;
+  grid-template-columns: 220px 220px minmax(0, 1fr);
+  gap: calc(var(--nv-grid) * 2);
+  align-items: start;
+  min-height: 0;
+}
+
+.nv-chapters__pane {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-chapters__pane--body {
+  max-height: none;
+  overflow-y: visible;
+}
+
+.nv-chapters__item-title,
+.nv-chapters__item-meta,
+.nv-chapters__item-summary {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.nv-chapters__item-meta,
+.nv-chapters__item-summary {
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+  margin-top: calc(var(--nv-grid) * 0.25);
+}
+
+.nv-chapters__empty {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink-faint);
+  line-height: 1.7;
+}
+
+.nv-chapters__prose {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 1.25);
+}
+
+.nv-chapters__paragraph {
+  margin: 0;
+  font-family: var(--nv-serif);
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--nv-ink);
+}
+
+.nv-chapters__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--nv-grid);
+  padding: var(--nv-grid);
+  border: 1px solid var(--nv-line);
+  border-radius: var(--nv-grid);
+  background: var(--nv-paper-raised);
+}
+
+.nv-chapters__error-text {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-danger);
+  line-height: 1.6;
+}
+
 .nv-editor__actions {
   display: flex;
   gap: var(--nv-grid);
@@ -1133,6 +1212,15 @@ export const WORKBENCH_STYLES = `
   .nv-editor__columns,
   .nv-outline__columns {
     flex-direction: column;
+  }
+
+  /* I60：正文三栏窄屏纵向堆叠（同一 Slot/Fiber，无不可达内容）。 */
+  .nv-chapters {
+    grid-template-columns: 1fr;
+  }
+
+  .nv-chapters__pane {
+    max-height: none;
   }
 
   .nv-editor__list {

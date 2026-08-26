@@ -46,6 +46,10 @@ interface WorkspaceOverrides {
   canonQuery?: (projectId: string) => Promise<unknown[]>;
   canonCorrectionPropose?: (projectId: string, targetId: string, input: unknown) => Promise<unknown>;
   canonCorrectionAccept?: (projectId: string, proposalId: string) => Promise<unknown>;
+  /** I60：C5 只读 Remote（chapterList/chapterRead/sceneRead）。 */
+  chapterList?: (projectId: string) => Promise<unknown[]>;
+  chapterRead?: (projectId: string, chapterId: string) => Promise<unknown>;
+  sceneRead?: (projectId: string, chapterId: string, sceneId: string) => Promise<unknown>;
 }
 
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
@@ -71,6 +75,9 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   canonQuery: overrides.canonQuery ?? (async () => []),
   canonCorrectionPropose: overrides.canonCorrectionPropose ?? (async () => ({})),
   canonCorrectionAccept: overrides.canonCorrectionAccept ?? (async () => ({})),
+  chapterList: overrides.chapterList ?? (async () => []),
+  chapterRead: overrides.chapterRead ?? (async () => ({ id: '', index: 1, title: '', pov: '', status: 'draft', scenes: [] })),
+  sceneRead: overrides.sceneRead ?? (async () => ({ chapter: { id: '', index: 1, title: '', pov: '' }, scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' } })),
   projectList: overrides.projectList ?? (async () => [{ id: 'fixture-project', name: '夹具作品' }]),
   projectCreate: overrides.projectCreate ?? (async () => ({})),
   projectOpen: overrides.projectOpen ?? (async () => ({})),
@@ -319,14 +326,14 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：九项视图按钮各带 data-novel-view。
+    // 稳定 data 锚点：十项视图按钮各带 data-novel-view（I60 新增正文 C5）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings',
+      'outline', 'chapters', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings',
     ]);
-    // 技术层编号只作辅助徽标（B5/B3/B2/C1/C2/C4），非层视图无徽标。
+    // 技术层编号只作辅助徽标（B5/C5/B3/B2/C1/C2/C4），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
-    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'B3', 'B2', 'C1', 'C2', 'C4']);
+    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'C5', 'B3', 'B2', 'C1', 'C2', 'C4']);
   });
 
   it('fails loud when the required DSH defineStore runtime is unavailable', () => {
@@ -2145,9 +2152,9 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲} 策划={角色,世界观} 连续性={关系,状态,正史} 设置={初始化,创作设置,LLM 设置}。
+    // 迁移映射：写作={大纲,正文} 策划={角色,世界观} 连续性={关系,状态,正史} 设置={初始化,创作设置,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
-    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'chapters']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'settings']);
@@ -2157,7 +2164,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings'];
+    const views = ['outline', 'chapters', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2219,7 +2226,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(9);
+    expect(grouped).toHaveLength(10);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2235,8 +2242,8 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
-    const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(9);
+    const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
+    expect(NAV_ITEMS).toHaveLength(10);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2249,11 +2256,151 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
       expect(isWorkbenchViewId(view)).toBe(true);
       expect(resolveWorkbenchView(view)).toBe(view);
     }
-    // 技术层编号只作徽标：六层项有 badge，非层视图无 badge。
+    // 技术层编号只作徽标：七个层/正文项有 badge，非层视图无 badge。
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
-    expect(badges).toEqual(['B5', 'B3', 'B2', 'C1', 'C2', 'C4']);
+    expect(badges).toEqual(['B5', 'C5', 'B3', 'B2', 'C1', 'C2', 'C4']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
     expect(noBadge).toEqual(['onboarding', 'creationSettings', 'settings']);
+    // I60：层视图与正文视图是稳定视图（重复点击保持），设置类视图回退默认。
+    expect(isStableView('chapters')).toBe(true);
+    expect(isStableView('characters')).toBe(true);
+    expect(isStableView('settings')).toBe(false);
+  });
+});
+
+describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const chaptersTree = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'div').find((node) => node.props?.['data-novel-chapter-tree'] !== undefined);
+  const sceneList = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'div').find((node) => node.props?.['data-novel-chapter-scenes'] !== undefined);
+  const bodyPane = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'div').find((node) => node.props?.['data-novel-scene-body'] !== undefined);
+  const paragraphs = (tree: FakeNode): string[] =>
+    collect(tree, 'p').filter((node) => node.props?.['className'] === 'nv-chapters__paragraph').map((node) => String(node.children?.[0] ?? ''));
+
+  const CHAPTER_LIST = [
+    { id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft', sceneCount: 2 },
+    { id: 'chapter-2', index: 2, title: '第二章', pov: 'lin', status: 'draft', sceneCount: 1 },
+  ];
+  const CHAPTER_1_READ = {
+    ok: true,
+    value: {
+      id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft',
+      scenes: [
+        { id: 'scene-1', index: 0, summary: '相遇' },
+        { id: 'scene-2', index: 1, summary: '分别' },
+      ],
+    },
+  };
+  const SCENE_1_READ = {
+    ok: true,
+    value: {
+      chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'lin' },
+      scene: { id: 'scene-1', index: 0, summary: '相遇', content: '第一段。\n\n第二段。', beats: [], canonEvents: [], notes: '' },
+    },
+  };
+  const SCENE_2_READ = {
+    ok: true,
+    value: {
+      chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'lin' },
+      scene: { id: 'scene-2', index: 1, summary: '分别', content: '第三段。', beats: [], canonEvents: [], notes: '' },
+    },
+  };
+
+  it('写作组新增「正文」视图；章节树/场景列表/正文按 Host 只读投影渲染', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => CHAPTER_LIST,
+      chapterRead: async (_projectId, chapterId) => (chapterId === 'chapter-1' ? CHAPTER_1_READ : { ok: true, value: { id: chapterId, index: 2, title: '第二章', pov: 'lin', status: 'draft', scenes: [] } }),
+      sceneRead: async (_projectId, _chapterId, sceneId) => (sceneId === 'scene-1' ? SCENE_1_READ : SCENE_2_READ),
+    });
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const chaptersButton = navButton(render(), 'chapters');
+    expect(chaptersButton, '正文 nav button').toBeDefined();
+    (chaptersButton?.props?.onClick as () => void)();
+    await flush();
+    const tree = render();
+    expect(tree.props?.['data-novel-route']).toBe('chapters');
+    expect(collect(tree, 'section').some((n) => n.props?.['data-novel-chapters-panel'] !== undefined)).toBe(true);
+    // 章节树（按 Host 返回顺序）与场景列空态（未选章节）。
+    const chapterItems = collect(tree, 'button').filter((n) => n.props?.['data-novel-chapter-item'] !== undefined);
+    expect(chapterItems.map((n) => n.props?.['data-novel-chapter-item'])).toEqual(['chapter-1', 'chapter-2']);
+    expect(collect(sceneList(tree) ?? ({} as FakeNode), 'p').map((node) => String(node.children?.[0] ?? ''))).toContain('选择左侧章节查看场景。');
+    // 选择第一章 → chapterRead → 场景列表 + 自动读取首个场景（sceneRead）。
+    (chapterItems[0]?.props?.onClick as () => void)();
+    await flush();
+    const tree2 = render();
+    const sceneItems = collect(tree2, 'button').filter((n) => n.props?.['data-novel-scene-item'] !== undefined);
+    expect(sceneItems.map((n) => n.props?.['data-novel-scene-item'])).toEqual(['scene-1', 'scene-2']);
+    // 正文：首个场景自动选中并按空行拆段渲染（只经 sceneRead 投影）。
+    expect(paragraphs(tree2)).toEqual(['第一段。', '第二段。']);
+    // 切换场景 → 正文更新。
+    (sceneItems[1]?.props?.onClick as () => void)();
+    await flush();
+    expect(paragraphs(render())).toEqual(['第三段。']);
+  });
+
+  it('空章：章节树显示 0 场景章节，场景列与正文区显示空态而不崩溃', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => [{ id: 'chapter-empty', index: 1, title: '空章', pov: 'lin', status: 'draft', sceneCount: 0 }],
+      chapterRead: async () => ({ ok: true, value: { id: 'chapter-empty', index: 1, title: '空章', pov: 'lin', status: 'draft', scenes: [] } }),
+      sceneRead: async () => { throw new Error('不应读取空章场景'); },
+    });
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-chapter-item'] === 'chapter-empty')?.props?.onClick as () => void)();
+    await flush();
+    const tree = render();
+    // 场景列与正文区各有一个 data-novel-chapters-empty 空态。
+    const empties = collect(tree, 'p').filter((n) => n.props?.['data-novel-chapters-empty'] !== undefined);
+    expect(empties.length).toBeGreaterThanOrEqual(2);
+    expect(collect(tree, 'button').some((n) => n.props?.['data-novel-scene-item'] !== undefined)).toBe(false);
+  });
+
+  it('错误态：章节读取失败显示错误与重试，重试成功后恢复场景列表与正文', async () => {
+    let failChapter = true;
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => CHAPTER_LIST,
+      chapterRead: async (_projectId, chapterId) => {
+        if (failChapter) throw new Error('章节文档损坏');
+        return chapterId === 'chapter-1' ? CHAPTER_1_READ : { ok: true, value: { id: chapterId, index: 2, title: '第二章', pov: 'lin', status: 'draft', scenes: [] } };
+      },
+      sceneRead: async (_projectId, _chapterId, sceneId) => (sceneId === 'scene-1' ? SCENE_1_READ : SCENE_2_READ),
+    });
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'div').some((n) => n.props?.['data-novel-chapters-error'] !== undefined)).toBe(true);
+    // 重试（Host 已恢复）→ 场景列表与正文出现，错误态消失。
+    failChapter = false;
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-chapters-retry'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    const tree = render();
+    expect(collect(tree, 'div').some((n) => n.props?.['data-novel-chapters-error'] !== undefined)).toBe(false);
+    expect(collect(tree, 'button').filter((n) => n.props?.['data-novel-scene-item'] !== undefined).length).toBe(2);
+    expect(paragraphs(tree)).toEqual(['第一段。', '第二段。']);
+  });
+
+  it('正文视图是稳定视图：重复点击保持原位（不回退默认层视图）', async () => {
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const button = navButton(render(), 'chapters');
+    (button?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-route']).toBe('chapters');
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-route']).toBe('chapters');
+    expect(chaptersTree(render())).toBeDefined();
+    expect(bodyPane(render())).toBeDefined();
   });
 });
 

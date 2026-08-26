@@ -4,6 +4,7 @@ import { emptyOutline, type OutlineEditor } from './layers/outline.js';
 import { newRelationshipDraft, type RelationshipEditor } from './layers/relationship.js';
 import { type StateEditor } from './layers/state.js';
 import { type CanonEditor } from './layers/canon.js';
+import { freshChapters, type ChaptersLayerState } from './layers/chapters.js';
 
 /** Fresh form state for the reactive workbench store. */
 export function freshCharacterEditor(): CharacterEditor {
@@ -24,3 +25,5 @@ export function freshStateEditor(): StateEditor {
 export function freshCanonEditor(): CanonEditor {
   return { selectedId: undefined, proposalId: undefined, draft: { storyTime: '', summary: '', detail: '' }, dirty: false, error: '', saving: false, saveMessage: '' };
 }
+export { freshChapters };
+export type { ChaptersLayerState };
