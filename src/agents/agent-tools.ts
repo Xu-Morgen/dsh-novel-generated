@@ -333,11 +333,19 @@ interface AgentToolDefinition {
 }
 
 const TEXT_OUTPUT = {
-  schema: { type: 'object' },
+  schema: { type: 'object', additionalProperties: true },
   render(_args: unknown, value: unknown): Array<{ type: 'text'; text: string }> {
     return [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }];
   },
 };
+
+/** 把工具参数组装成完整 JSON Schema（DSH 运行时要求顶层 type:'object'）。 */
+function objectParams(
+  properties: Record<string, { type: string; description?: string; enum?: readonly string[] }>,
+  required: readonly string[] = [],
+): Record<string, unknown> {
+  return { type: 'object', properties, required: [...required], additionalProperties: false };
+}
 
 /** 注册小说创作工具到 DSH `tools` 注册表；返回卸载器（Fiber 归属）。 */
 export function registerNovelAgentTools(ctx: Context, service: NovelAgentService): () => void {
@@ -349,7 +357,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     {
       name: 'novel_open',
       description: '打开一个小说作品（六层+Gate+文本库），返回各层就绪状态。项目 id 见 novel_status。',
-      parameters: { projectId: { type: 'string', required: true, description: '作品 id（如 1 或 my-book）' } },
+      parameters: objectParams({ projectId: { type: 'string', description: '作品 id（如 1 或 my-book）' } }, ['projectId']),
       output: TEXT_OUTPUT,
       async execute(args) {
         const result = await service.open(String(args.projectId));
@@ -359,7 +367,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     {
       name: 'novel_status',
       description: '列出作品，或返回指定作品的层就绪度与实体数量（角色/世界观/关系/正史/场景）。',
-      parameters: { projectId: { type: 'string', description: '作品 id；省略则列出全部作品' } },
+      parameters: objectParams({ projectId: { type: 'string', description: '作品 id；省略则列出全部作品' } }),
       output: TEXT_OUTPUT,
       async execute(args) {
         if (args.projectId === undefined || args.projectId === '') return { projects: await service.listProjects() };
@@ -369,7 +377,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     {
       name: 'novel_context',
       description: '组装当前写作上下文：大纲导航、当前细纲卡、状态、正史、角色、风格、规则、知情视图、最近文本。用于续写前查看。',
-      parameters: { projectId: { type: 'string', required: true, description: '作品 id' } },
+      parameters: objectParams({ projectId: { type: 'string', description: '作品 id' } }, ['projectId']),
       output: TEXT_OUTPUT,
       async execute(args) {
         const built = await service.context(String(args.projectId));
@@ -388,10 +396,10 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     {
       name: 'novel_continue',
       description: '按当前大纲/细纲/状态/正史续写下一场景。decision=accept 时落盘 C5 文本与结构化层（C2/C1/C3/C4/B2）；reject 时不写入。返回生成文本与执行状态。',
-      parameters: {
-        projectId: { type: 'string', required: true, description: '作品 id' },
-        decision: { type: 'string', required: true, enum: ['accept', 'reject'], description: 'accept=生成并落盘；reject=仅生成不落盘' },
-      },
+      parameters: objectParams({
+        projectId: { type: 'string', description: '作品 id' },
+        decision: { type: 'string', enum: ['accept', 'reject'], description: 'accept=生成并落盘；reject=仅生成不落盘' },
+      }, ['projectId', 'decision']),
       output: TEXT_OUTPUT,
       async execute(args, exec) {
         const result = await service.continueScene(String(args.projectId), args.decision as 'accept' | 'reject', exec.signal);
@@ -406,7 +414,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     {
       name: 'novel_inspire',
       description: '为作品生成 2-3 个可区分的下一阶段创作方向（只读，不写入任何层）。',
-      parameters: { projectId: { type: 'string', required: true, description: '作品 id' } },
+      parameters: objectParams({ projectId: { type: 'string', description: '作品 id' } }, ['projectId']),
       output: TEXT_OUTPUT,
       async execute(args, exec) {
         return service.inspire(String(args.projectId), exec.signal);
