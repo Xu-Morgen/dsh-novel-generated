@@ -38,6 +38,7 @@ import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-serv
 import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './host/onboarding-adjudication-service.js';
 import { SettingsIndex, A2_SETTINGS_FILE, resolveA2GenerationConfig } from './core/settings-index/index.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
+import { createNovelAgentService, registerNovelAgentTools } from './agents/agent-tools.js';
 
 /**
  * I1 Host plugin extended by I2 (design §0.1.3 I2): proves the ordinary
@@ -112,6 +113,8 @@ export interface NovelCreationConfig {
   projectsRoot?: string;
   /** Host-only location for A2 settings; it is not a project/export data path. */
   settingsRoot?: string;
+  /** 是否注册对话创作 Agent 工具（novel_open/status/context/continue/inspire），默认 true。 */
+  agentTools?: boolean;
 }
 
 export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
@@ -138,15 +141,19 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelProject', projectService);
   ctx.provide('novelState', stateService);
   ctx.provide('novelCanon', canonService);
-  ctx.provide('novelText', createTextService(projectsRoot));
-  ctx.provide('novelRule', createRuleService(projectsRoot));
+  const textService = createTextService(projectsRoot);
+  ctx.provide('novelText', textService);
+  const ruleService = createRuleService(projectsRoot);
+  ctx.provide('novelRule', ruleService);
   ctx.provide('novelWorldview', worldviewService);
   ctx.provide('novelCharacter', characterService);
-  ctx.provide('novelStyle', createStyleService(projectsRoot));
+  const styleService = createStyleService(projectsRoot);
+  ctx.provide('novelStyle', styleService);
   ctx.provide('novelConfirmation', confirmationService);
   ctx.provide('novelOutline', outlineService);
   ctx.provide('novelRelationship', relationshipService);
-  ctx.provide('novelKnowledge', createKnowledgeService(projectsRoot));
+  const knowledgeService = createKnowledgeService(projectsRoot);
+  ctx.provide('novelKnowledge', knowledgeService);
   const llm = ctx.get('llm', false);
   const credentials = ctx.get('credentials', false);
   ctx.provide('novelGeneration', createGenerationService(llm, (dispose) => ctx.effect(() => dispose)));
@@ -167,8 +174,10 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelClassifier', createClassifierService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelLocalizedEdit', createLocalizedEditService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelChapterWriting', createChapterWritingService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
-   ctx.provide('novelContinuation', createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
-   ctx.provide('novelInspiration', createInspirationService(llm, (dispose) => ctx.effect(() => dispose)));
+   const continuationService = createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose));
+   ctx.provide('novelContinuation', continuationService);
+   const inspirationService = createInspirationService(llm, (dispose) => ctx.effect(() => dispose));
+   ctx.provide('novelInspiration', inspirationService);
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
   const llmConfigService = createLlmConfigService(undefined, config.settingsRoot);
   ctx.provide('novelLlmConfig', bindRemote({
@@ -235,6 +244,33 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).
   ctx.provide(NOVEL_WORKSPACE_NAMESPACE, bindRemote(workspaceService, NOVEL_WORKSPACE_NAMESPACE, NOVEL_WORKSPACE_NAMESPACE));
+  // 对话创作入口：Agent 工具层包装既有 Host 服务（novel_* 工具），经 DSH `tools`
+  // 注册表暴露给会话。注册与撤销都归属当前 Fiber；`tools` 服务缺席时静默跳过
+  // （与 typert 注册同一模式）。config.agentTools === false 可显式关闭。
+  const agentService = createNovelAgentService({
+    project: projectService,
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    style: styleService,
+    rules: ruleService,
+    knowledge: knowledgeService,
+    text: textService,
+    continuation: continuationService,
+    inspiration: inspirationService,
+    confirmation: confirmationService,
+    resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+  });
+  ctx.provide('novelAgent', agentService);
+  if (config.agentTools !== false) {
+    const tools = ctx.get('tools', false);
+    if (tools !== undefined) {
+      ctx.effect(() => registerNovelAgentTools(ctx, agentService));
+    }
+  }
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {
     ctx.effect(() => typert.register(hostContribution));

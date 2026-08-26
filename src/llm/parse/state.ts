@@ -159,8 +159,12 @@ export async function proposeLowConfidenceC2StateOperations(
   return gate.propose({ id: proposalId, kind: 'c2-state-parser-ops', payload: { ops: output.ops } });
 }
 
-/** Deterministically map already validated operations to a StateEngine draft. */
-function applyC2StateOperationsToDraft(draft: StateDraft, operations: readonly C2StateOperation[]): void {
+/**
+ * Deterministically map already validated operations to a StateEngine draft.
+ * Exported so Host-side orchestrators can apply ops through the StateEngine
+ * `transaction` seam without re-implementing the field mapping (I25 owner).
+ */
+export function applyC2StateOperationsToDraft(draft: StateDraft, operations: readonly C2StateOperation[]): void {
   for (const operation of operations) {
     if (operation.target === 'state') {
       draft.storyTime = operation.value as string;

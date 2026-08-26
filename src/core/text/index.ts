@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   chapterSchema,
@@ -50,6 +50,19 @@ export class TextRepository {
       await this.writeChapter(chapter);
       return structuredClone(chapter);
     });
+  }
+
+  /** List every persisted chapter in the project (agent context assembly; I-agent). */
+  async listChapters(): Promise<Chapter[]> {
+    const files = (await readdir(this.textDirectory, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.json'))
+      .map((entry) => entry.name);
+    const chapters: Chapter[] = [];
+    for (const file of files.sort()) {
+      const chapterId = file.slice(0, -'.json'.length);
+      chapters.push(await this.readChapter(chapterId));
+    }
+    return chapters;
   }
 
   async readChapter(chapterId: string): Promise<Chapter> {

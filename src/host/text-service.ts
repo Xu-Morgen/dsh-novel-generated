@@ -7,6 +7,7 @@ import type { AppendSceneInput, Chapter, CreateChapterInput, Scene } from '../co
 export interface NovelTextService {
   open(projectId: string): Promise<void>;
   createChapter(projectId: string, input: CreateChapterInput): Promise<Chapter>;
+  listChapters(projectId: string): Promise<Chapter[]>;
   readChapter(projectId: string, chapterId: string): Promise<Chapter>;
   appendScene(projectId: string, chapterId: string, input: AppendSceneInput): Promise<Scene>;
   replaceRange(projectId: string, chapterId: string, sceneId: string, range: TextRange, replacement: string): Promise<Scene>;
@@ -30,6 +31,7 @@ export function createTextService(projectsRoot = join(homedir(), '.dsh', 'novel-
       repositories.set(projectId, repository);
     },
     createChapter: (projectId, input) => get(projectId).createChapter(input),
+    listChapters: (projectId) => get(projectId).listChapters(),
     readChapter: (projectId, chapterId) => get(projectId).readChapter(chapterId),
     appendScene: (projectId, chapterId, input) => get(projectId).appendScene(chapterId, input),
     replaceRange: (projectId, chapterId, sceneId, range, replacement) => get(projectId).replaceRange(chapterId, sceneId, range, replacement),
