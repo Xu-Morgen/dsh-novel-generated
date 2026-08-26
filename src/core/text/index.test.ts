@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { TextRepository } from './index.js';
+import { renderChapterMarkdown, TextRepository } from './index.js';
 
 const roots: string[] = [];
 async function temporaryRoot(): Promise<string> {
@@ -84,5 +84,39 @@ describe('I6 TextRepository', () => {
     document.scenes[0].index = 4;
     await writeFile(path, JSON.stringify(document), 'utf8');
     await expect(repository.readChapter('chapter-1')).rejects.toThrow(/Invalid chapter document/);
+  });
+
+  it('renders a readable docs/<chapter>.md with paragraphs on every chapter write', async () => {
+    const root = await temporaryRoot();
+    const repository = new TextRepository(root);
+    await repository.open();
+    await repository.createChapter({ id: 'chapter-1', index: 1, title: '第一章 火车上', pov: 'lin', status: 'draft' });
+    // 两段正文（空行分隔）+ 一个多行场景。
+    await repository.appendScene('chapter-1', scene('scene-1', '第一段。\n\n第二段。'));
+    await repository.appendScene('chapter-1', scene('scene-2', '“你好。”\n记者笑道。'));
+
+    const docs = join(root, 'docs', 'chapter-1.md');
+    const rendered = await readFile(docs, 'utf8');
+    expect(rendered).toContain('# 第一章 火车上');
+    expect(rendered).toContain('## 场景 1 · scene-1 summary');
+    expect(rendered).toContain('第一段。\n\n第二段。');
+    expect(rendered).toContain('## 场景 2 · scene-2 summary');
+    expect(rendered).toContain('“你好。”\n\n记者笑道。');
+
+    // 局部替换后镜像同步更新。
+    await repository.replaceRange('chapter-1', 'scene-1', { start: 0, end: 3 }, '新开头');
+    const updated = await readFile(docs, 'utf8');
+    expect(updated).toContain('新开头。');
+    expect(updated).not.toContain('第一段。');
+  });
+
+  it('renderChapterMarkdown produces paragraphs from newline-separated prose', () => {
+    const rendered = renderChapterMarkdown({
+      id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft',
+      scenes: [{ id: 'scene-1', index: 0, content: '第一段。\n第二段。\n\n第三段。', summary: '相遇', beats: [], canonEvents: [], notes: '' }],
+    });
+    expect(rendered).toContain('# 第一章');
+    expect(rendered).toContain('## 场景 1 · 相遇');
+    expect(rendered).toContain('第一段。\n\n第二段。\n\n第三段。');
   });
 });

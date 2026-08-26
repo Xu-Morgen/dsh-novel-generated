@@ -166,6 +166,10 @@ describe('novel agent tools（对话创作入口）', () => {
       const projectDir = join(root, 'demo');
       const chapterFile = await readFile(join(projectDir, 'text', 'chapter-1.json'), 'utf8');
       expect(JSON.parse(chapterFile).scenes[0].content).toBe('米拉在码头找到铜钥匙。');
+      // 可读镜像：docs/chapter-1.md 带段落，便于直接阅读。
+      const docsFile = await readFile(join(projectDir, 'docs', 'chapter-1.md'), 'utf8');
+      expect(docsFile).toContain('# 正文');
+      expect(docsFile).toContain('米拉在码头找到铜钥匙。');
       const canonFile = await readFile(join(projectDir, 'canon', 'canon.jsonl'), 'utf8');
       expect(canonFile).toContain('evt-1');
       const stateFile = await readFile(join(projectDir, 'state', 'snapshots.yaml'), 'utf8');

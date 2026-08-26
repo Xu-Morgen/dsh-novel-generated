@@ -19,18 +19,46 @@ export interface TextRange {
  * C5 generated text store (design §5.12): Host-owned chapter metadata and scene text.
  *
  * Contract / invariants:
- * - Each chapter is one validated JSON document under the project's `text` directory.
+ * - Each chapter is one validated JSON document under the project's `text` directory
+ *   (machine source of truth: scene indexes, canon refs, localized edit, export).
+ * - A READABLE mirror `docs/<chapterId>.md` is re-rendered on every chapter write so
+ *   the final prose is directly readable as paragraphs (方便阅读；docs 是派生镜像，
+ *   引擎不读它，删除可随时重建).
  * - Scene indexes are contiguous append order and survive reopening.
  * - Range replacement uses JavaScript string offsets `[start, end)` and changes only
  *   the selected scene content; no parser or structured layer is invoked in I6.
  * - Project, chapter, and scene references are validated before filesystem access.
  */
+
+/** 可读章节文档目录名（项目根下，与 text/ 平级）。 */
+export const CHAPTER_DOCS_DIRECTORY = 'docs';
+
+/**
+ * 把一章渲染为带段落的 Markdown 文档：标题 + 每个场景一个「场景 N · 摘要」小节，
+ * 场景正文按行拆成段落（空行分隔），便于直接阅读。
+ */
+export function renderChapterMarkdown(chapter: Chapter): string {
+  const blocks: string[] = [`# ${chapter.title || chapter.id}`];
+  for (const scene of chapter.scenes) {
+    const heading = scene.summary ? `场景 ${scene.index + 1} · ${scene.summary}` : `场景 ${scene.index + 1}`;
+    blocks.push(`\n## ${heading}\n`);
+    const paragraphs = scene.content
+      .split(/\r?\n+/)
+      .map((paragraph) => paragraph.trim())
+      .filter((paragraph) => paragraph.length > 0);
+    blocks.push(paragraphs.length === 0 ? '（本场景暂无正文）' : paragraphs.join('\n\n'));
+  }
+  return blocks.join('\n') + '\n';
+}
+
 export class TextRepository {
   private readonly textDirectory: string;
+  private readonly docsDirectory: string;
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(projectDirectory: string) {
     this.textDirectory = join(projectDirectory, 'text');
+    this.docsDirectory = join(projectDirectory, CHAPTER_DOCS_DIRECTORY);
   }
 
   async open(): Promise<void> {
@@ -129,6 +157,16 @@ export class TextRepository {
     const filePath = this.chapterPath(chapter.id);
     const temporaryPath = `${filePath}.tmp`;
     await writeFile(temporaryPath, `${JSON.stringify(chapter, null, 2)}\n`, 'utf8');
+    await rename(temporaryPath, filePath);
+    // 可读镜像：docs/<chapterId>.md（每次章节写入后同步，含新建空章）。
+    await this.writeChapterMarkdown(chapter);
+  }
+
+  private async writeChapterMarkdown(chapter: Chapter): Promise<void> {
+    await mkdir(this.docsDirectory, { recursive: true });
+    const filePath = join(this.docsDirectory, `${chapter.id}.md`);
+    const temporaryPath = `${filePath}.tmp`;
+    await writeFile(temporaryPath, renderChapterMarkdown(chapter), 'utf8');
     await rename(temporaryPath, filePath);
   }
 
