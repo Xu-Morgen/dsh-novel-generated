@@ -8,7 +8,15 @@ import { createLlmConfigService } from './llm-config-service.js';
 import { A2_SETTINGS_FILE, resolveA2GenerationConfig } from '../core/settings-index/index.js';
 import { NOVEL_LLM_CREDENTIAL_REF, NOVEL_LLM_PROVIDER_ID } from '../core/schema/llm-config.js';
 
-const SAVE_INPUT = { baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', apiKey: 'sk-abcdef1234567890' };
+const SAVE_INPUT = {
+  baseUrl: 'https://api.example.com/v1',
+  model: 'gpt-4o',
+  apiKey: 'sk-abcdef1234567890',
+  maxTokens: 32768,
+  thinking: 'enabled',
+  reasoningEffort: 'high',
+} as const;
+const VIEW_DEFAULTS = { maxTokens: 32768, thinking: 'enabled' as const, reasoningEffort: 'high' as const };
 
 async function makeHome(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'novel-llm-config-'));
@@ -20,7 +28,7 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
     const settingsRoot = await makeHome();
     const service = createLlmConfigService(dshHome, settingsRoot);
 
-    await expect(service.load()).resolves.toEqual({ providerId: NOVEL_LLM_PROVIDER_ID, baseUrl: '', model: '', hasKey: false });
+    await expect(service.load()).resolves.toEqual({ providerId: NOVEL_LLM_PROVIDER_ID, baseUrl: '', model: '', hasKey: false, ...VIEW_DEFAULTS });
 
     const saved = await service.save(SAVE_INPUT);
     expect(saved).toEqual({ ok: true, modelRef: `${NOVEL_LLM_PROVIDER_ID}/gpt-4o` });
@@ -44,8 +52,37 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
 
     // load 回显 URL/模型/hasKey，但绝不含 key。
     const view = await service.load();
-    expect(view).toEqual({ providerId: NOVEL_LLM_PROVIDER_ID, baseUrl: SAVE_INPUT.baseUrl, model: 'gpt-4o', hasKey: true });
+    expect(view).toEqual({ providerId: NOVEL_LLM_PROVIDER_ID, baseUrl: SAVE_INPUT.baseUrl, model: 'gpt-4o', hasKey: true, ...VIEW_DEFAULTS });
     expect(JSON.stringify(view)).not.toContain(SAVE_INPUT.apiKey);
+
+    await rm(dshHome, { recursive: true, force: true });
+    await rm(settingsRoot, { recursive: true, force: true });
+  });
+
+  it('persists maxTokens and thinking controls into A2 sampling and resolves them into generation settings', async () => {
+    const dshHome = await makeHome();
+    const settingsRoot = await makeHome();
+    const service = createLlmConfigService(dshHome, settingsRoot);
+
+    await service.save({ ...SAVE_INPUT, maxTokens: 131072, thinking: 'disabled', reasoningEffort: 'low' });
+
+    const a2 = await new (await import('../core/settings-index/index.js')).SettingsIndex(settingsRoot).load();
+    const backend = a2.backends.find((item) => item.id === NOVEL_LLM_PROVIDER_ID)!;
+    expect(backend.sampling).toEqual({ maxTokens: 131072, reasoning: 'off' });
+
+    const config = resolveA2GenerationConfig(a2);
+    expect(config.settings.maxTokens).toBe(131072);
+    expect(config.settings.reasoning).toBe('off');
+
+    // load 回显：thinking disabled → effort 返回官方默认（low 仅在启用时生效）。
+    const view = await service.load();
+    expect(view).toMatchObject({ maxTokens: 131072, thinking: 'disabled', reasoningEffort: 'high' });
+
+    // 启用思维链 + max effort → sampling.reasoning = 'max'。
+    await service.save({ ...SAVE_INPUT, maxTokens: 65536, thinking: 'enabled', reasoningEffort: 'max' });
+    const a2b = await new (await import('../core/settings-index/index.js')).SettingsIndex(settingsRoot).load();
+    expect(a2b.backends.find((item) => item.id === NOVEL_LLM_PROVIDER_ID)!.sampling).toEqual({ maxTokens: 65536, reasoning: 'max' });
+    expect((await service.load()).reasoningEffort).toBe('max');
 
     await rm(dshHome, { recursive: true, force: true });
     await rm(settingsRoot, { recursive: true, force: true });
@@ -100,11 +137,11 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
     await expect(service.save({ ...SAVE_INPUT, apiKey: '' })).rejects.toThrow(/API Key/);
 
     await service.save(SAVE_INPUT);
-    await service.save({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', apiKey: '' });
+    await service.save({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', apiKey: '', maxTokens: 65536, thinking: 'disabled', reasoningEffort: 'low' });
     const credentials = load(await readFile(join(dshHome, '.credentials.yaml'), 'utf8')) as Record<string, unknown>;
     expect(credentials[NOVEL_LLM_CREDENTIAL_REF]).toBe(SAVE_INPUT.apiKey);
     const view = await service.load();
-    expect(view).toMatchObject({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', hasKey: true });
+    expect(view).toMatchObject({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', hasKey: true, maxTokens: 65536, thinking: 'disabled' });
 
     await rm(dshHome, { recursive: true, force: true });
     await rm(settingsRoot, { recursive: true, force: true });

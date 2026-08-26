@@ -448,7 +448,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
           toggleSettings: (d) => { d.showSettings = !d.showSettings; },
-          settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model }; },
+          settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model, maxTokens: view.maxTokens, thinking: view.thinking, reasoningEffort: view.reasoningEffort }; },
           settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
           settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
         },
@@ -678,7 +678,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               if (baseUrl === '' || model === '') { dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
               if (draft.apiKey === '' && !(s.settingsView?.hasKey ?? false)) { dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
               dispatch((x) => x.settingsSettled({ saving: true, message: '', error: '' }));
-              void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey })).then(
+              void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey, maxTokens: draft.maxTokens, thinking: draft.thinking, reasoningEffort: draft.reasoningEffort })).then(
                 (result) => {
                   dispatch((x) => x.settingsSettled({ saving: false, message: `已保存路由 ${(result as { modelRef: string }).modelRef}（重启 DSH 服务后生效）` }));
                   void unwrap(llmConfig?.load()).then((view) => { if (active && view !== undefined) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);

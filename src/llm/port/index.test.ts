@@ -41,6 +41,26 @@ describe('I17 Host-only LLM port', () => {
     expect(options).not.toHaveProperty('maxTokens');
   });
 
+  it('forwards maxTokens and reasoning effort; omits effort for off/absent thinking', async () => {
+    const captured: unknown[] = [];
+    const backend = asLlmBackend({
+      async *stream(input: unknown) {
+        captured.push(input);
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    // 显式档位 → reasoningEffort 转发；maxTokens 转发。
+    await collectCandidate(backend, { prompt: 'p', settings: { ...settings, maxTokens: 131072, reasoning: 'max' } });
+    expect(captured[0]).toMatchObject({ maxTokens: 131072, reasoningEffort: 'max' });
+    // 禁用（off）与未配置 → 不转发 effort（pi-ai deepseek 分支将发送 thinking disabled）。
+    await collectCandidate(backend, { prompt: 'p', settings: { ...settings, reasoning: 'off' } });
+    expect(captured[1]).not.toHaveProperty('reasoningEffort');
+    await collectCandidate(backend, { prompt: 'p', settings });
+    expect(captured[2]).not.toHaveProperty('reasoningEffort');
+    // 非法 reasoning 值被 schema 拒绝。
+    expect(() => resolveGenerationSettings({ ...settings, reasoning: 'ultra' })).toThrow(/Invalid generation settings/);
+  });
+
   it('fails closed for invalid model routes and DSH error finishes', async () => {
     const backend = asLlmBackend({ async *stream() { yield { type: 'finish', reason: { kind: 'error', failure: { message: 'provider down' } } }; } });
     await expect(collectCandidate(backend, { prompt: 'x', settings: { ...settings, modelRef: 'invalid' } })).rejects.toMatchObject({ code: 'backend' });

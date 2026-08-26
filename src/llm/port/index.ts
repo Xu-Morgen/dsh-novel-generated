@@ -7,6 +7,13 @@ export const GenerationSettingsSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
   stopSequences: z.array(z.string().min(1)).optional(),
+  /**
+   * 思维链控制（DeepSeek Thinking Mode）：`off` = 不发送 reasoningEffort（DSH
+   * pi-ai 对 deepseek 格式的适配会在无 effort 时发送 `thinking:{type:'disabled'}`）；
+   * `low|high|max` = 发送 `reasoningEffort`（pi-ai 对 deepseek 发送
+   * `thinking:{type:'enabled'}`，且当端点支持时附带 `reasoning_effort`）。
+   */
+  reasoning: z.enum(['off', 'low', 'high', 'max']).optional(),
 }).strict();
 
 export type GenerationSettings = z.infer<typeof GenerationSettingsSchema>;
@@ -59,6 +66,8 @@ interface DshGenerateOptions {
   messages: readonly [{ id: string; role: 'user'; content: readonly [{ type: 'text'; text: string }]; source: { kind: 'plugin'; plugin: string } }];
   temperature?: number;
   maxTokens?: number;
+  /** Thinking effort passed through to the DSH pi-ai adapter (deepseek format). */
+  reasoningEffort?: 'low' | 'high' | 'max';
   signal?: AbortSignal;
 }
 
@@ -122,6 +131,10 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
         }],
         ...(request.settings.temperature === undefined ? {} : { temperature: request.settings.temperature }),
         ...(request.settings.maxTokens === undefined ? {} : { maxTokens: request.settings.maxTokens }),
+        // `off`/未配置 → 不发送 effort（pi-ai deepseek 分支会发送 thinking disabled）；
+        // 显式档位 → 发送 effort 启用思维链。DSH `llm.stream` 不支持 `stop`，故
+        // stopSequences 永不转发（见 I52 修复）。
+        ...(request.settings.reasoning === undefined || request.settings.reasoning === 'off' ? {} : { reasoningEffort: request.settings.reasoning }),
         signal: request.signal,
       };
       for await (const chunk of llm.stream(options)) {

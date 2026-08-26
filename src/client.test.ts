@@ -212,7 +212,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const analyzer = mountOptions.onboardingAnalyzer;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
-      load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false })),
+      load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
       save: llmConfig.save ?? (async () => ({ ok: true, modelRef: 'novel-custom/test' })),
     }
     : name === 'remote.novelOnboardingAnalyzer' ? (analyzer ?? { start: async () => { throw new Error('未注入 remote.novelOnboardingAnalyzer'); } })
@@ -234,8 +234,12 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
 }
 
 const flush = async (): Promise<void> => {
-  for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
-  await new Promise((resolve) => { setTimeout(resolve, 0); });
+  // 两轮宏任务窗口：Node `File.arrayBuffer()` 在宏任务边界落地，单轮 setTimeout(0)
+  // 可能在其之前触发导致上传链竞态（全量运行下偶发失败）。
+  for (let round = 0; round < 2; round += 1) {
+    for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+  }
   for (let i = 0; i < 8; i += 1) { await Promise.resolve(); }
 };
 
@@ -586,7 +590,7 @@ describe('LLM 设置页', () => {
       {},
       {
         llmConfig: {
-          load: async () => ({ providerId: 'novel-custom', baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', hasKey: true }),
+          load: async () => ({ providerId: 'novel-custom', baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', hasKey: true, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' }),
           save: async (input) => { saves.push({ input }); return { ok: true, value: { ok: true, modelRef: 'novel-custom/gpt-4o' } }; },
         },
       },
@@ -598,8 +602,41 @@ describe('LLM 设置页', () => {
     (collect(render(), 'input').find((node) => node.props?.['data-novel-llm-url'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'https://new.example.com/v1' } });
     (collect(render(), 'button').find((node) => node.props?.['data-novel-llm-save'] === '')?.props?.onClick as () => void)();
     await flush();
-    expect(saves).toEqual([{ input: { baseUrl: 'https://new.example.com/v1', model: 'gpt-4o', apiKey: '' } }]);
+    expect(saves).toEqual([{ input: { baseUrl: 'https://new.example.com/v1', model: 'gpt-4o', apiKey: '', maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' } }]);
     expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-message'] !== undefined)).toBe(true);
+  });
+
+  it('adjusts maxTokens, thinking and effort controls and submits them on save', async () => {
+    const saves: Array<{ input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        llmConfig: {
+          load: async () => ({ providerId: 'novel-custom', baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', hasKey: true, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' }),
+          save: async (input) => { saves.push({ input }); return { ok: true, value: { ok: true, modelRef: 'novel-custom/gpt-4o' } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-settings-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const tree = render();
+    const maxTokens = collect(tree, 'select').find((node) => node.props?.['data-novel-llm-max-tokens'] === '');
+    const thinking = collect(tree, 'select').find((node) => node.props?.['data-novel-llm-thinking'] === '');
+    const effort = collect(tree, 'select').find((node) => node.props?.['data-novel-llm-effort'] === '');
+    expect(maxTokens).toBeDefined();
+    expect(thinking).toBeDefined();
+    expect(effort).toBeDefined();
+    (maxTokens?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '131072' } });
+    (thinking?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'disabled' } });
+    (effort?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'low' } });
+    const after = render();
+    expect(after && collect(after, 'select').find((node) => node.props?.['data-novel-llm-effort'] === '')?.props?.disabled).toBe(true);
+    (collect(after, 'button').find((node) => node.props?.['data-novel-llm-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(saves).toEqual([{ input: { baseUrl: 'https://api.example.com/v1', model: 'gpt-4o', apiKey: '', maxTokens: 131072, thinking: 'disabled', reasoningEffort: 'low' } }]);
   });
 
   it('blocks save when the key is missing and none is stored', async () => {
@@ -609,7 +646,7 @@ describe('LLM 设置页', () => {
       {},
       {
         llmConfig: {
-          load: async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false }),
+          load: async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' }),
           save: async (input) => { saves.push(input); return { ok: true, value: { ok: true, modelRef: 'x' } }; },
         },
       },

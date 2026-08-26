@@ -19,6 +19,8 @@ const modelRef = z.string().regex(/^[^/\s]+\/[^/\s]+$/, 'modelRef must use provi
 export const SamplingConfigSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().positive().optional(),
+  /** 思维链控制：off = 禁用；low/high/max = 启用并设思考强度（DeepSeek thinking mode）。 */
+  reasoning: z.enum(['off', 'low', 'high', 'max']).optional(),
 }).strict();
 export type SamplingConfig = z.infer<typeof SamplingConfigSchema>;
 

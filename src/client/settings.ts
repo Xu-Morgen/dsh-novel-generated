@@ -3,24 +3,53 @@ import type { El } from './shared.js';
 /**
  * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并保存到本地
  * DSH。Client 只提交 Key 一次，load 视图永不包含 Key（design §0.1.2 凭据 seam）。
+ *
+ * 生成参数（maxTokens / 思维链 / 思考强度）均按 DeepSeek 官方文档提供用户友好
+ * 控件与推荐默认值：maxTokens 固定档位（32768 推荐 / 65536 / 128k），思维链官方
+ * 默认启用，思考强度官方默认 high（见 `src/core/schema/llm-config.ts`）。
  */
 export { llmConfigRemoteContribution } from '../remote.js';
 
-export interface LlmConfigViewShape { readonly providerId: string; readonly baseUrl: string; readonly model: string; readonly hasKey: boolean; }
+export interface LlmConfigViewShape {
+  readonly providerId: string;
+  readonly baseUrl: string;
+  readonly model: string;
+  readonly hasKey: boolean;
+  readonly maxTokens: number;
+  readonly thinking: 'enabled' | 'disabled';
+  readonly reasoningEffort: 'low' | 'high' | 'max';
+}
 
-export interface LlmConfigDraftShape { baseUrl: string; model: string; apiKey: string; saving: boolean; message: string; error: string; }
+export interface LlmConfigDraftShape {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+  maxTokens: number;
+  thinking: 'enabled' | 'disabled';
+  reasoningEffort: 'low' | 'high' | 'max';
+  saving: boolean;
+  message: string;
+  error: string;
+}
 
 /** Mounted `remote.novelLlmConfig` namespace surface. */
 export interface LlmConfigNamespace {
   load(): Promise<unknown>;
-  save(input: { baseUrl: string; model: string; apiKey: string }): Promise<unknown>;
+  save(input: { baseUrl: string; model: string; apiKey: string; maxTokens: number; thinking: 'enabled' | 'disabled'; reasoningEffort: 'low' | 'high' | 'max' }): Promise<unknown>;
 }
+
+/** maxTokens 固定档位（与 `LLM_MAX_TOKENS_OPTIONS` 一致）。 */
+export const LLM_MAX_TOKENS_OPTION_LABELS: ReadonlyArray<{ value: number; label: string }> = [
+  { value: 32768, label: '32768（推荐）' },
+  { value: 65536, label: '65536' },
+  { value: 131072, label: '131072（128k）' },
+];
 
 export function freshLlmConfigDraft(): LlmConfigDraftShape {
-  return { baseUrl: '', model: '', apiKey: '', saving: false, message: '', error: '' };
+  return { baseUrl: '', model: '', apiKey: '', maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high', saving: false, message: '', error: '' };
 }
 
-/** 渲染 LLM 设置表单：URL / 模型 / Key（password）+ 保存 + 状态行。 */
+/** 渲染 LLM 设置表单：URL / 模型 / Key（password）+ 生成参数 + 保存 + 状态行。 */
 export function llmSettingsPanel(
   h: El,
   namespace: LlmConfigNamespace | undefined,
@@ -32,7 +61,7 @@ export function llmSettingsPanel(
   return h('section', { className: 'nv-panel nv-settings', 'data-novel-llm-settings': '', 'data-novel-layer-state': 'ready' },
     h('h3', { className: 'nv-editor__title' }, 'LLM 设置'),
     h('p', { className: 'nv-settings__hint' },
-      '配置自定义 OpenAI 兼容端点。API Key 仅保存在本地 DSH（~/.dsh/.credentials.yaml），不回传浏览器；保存后需重启 DSH 服务使路由生效。'),
+      '配置自定义 OpenAI 兼容端点。API Key 仅保存在本地 DSH（~/.dsh/.credentials.yaml），不回传浏览器；路由保存后需重启 DSH 服务生效，生成参数（maxTokens/思维链）保存后立即生效。'),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, 'API URL'),
@@ -45,6 +74,29 @@ export function llmSettingsPanel(
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, 'API Key'),
         h('input', { type: 'password', className: 'nv-field__input', 'data-novel-llm-key': '', placeholder: view?.hasKey ? '已保存（留空保持不变）' : '请输入 API Key', value: draft.apiKey, onChange: (event: { target: { value: string } }) => mutate({ apiKey: event.target.value }) }),
+      ),
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '最大输出长度（maxTokens）'),
+        h('select', { className: 'nv-field__input', 'data-novel-llm-max-tokens': '', value: draft.maxTokens, onChange: (event: { target: { value: string } }) => mutate({ maxTokens: Number(event.target.value) }) },
+          LLM_MAX_TOKENS_OPTION_LABELS.map((option) => h('option', { key: option.value, value: option.value }, option.label)),
+        ),
+        h('span', { className: 'nv-settings__hint' }, '官方：max_tokens 同时覆盖思维链与正文；六层分析建议 32768，超长文本可上调至 128k。'),
+      ),
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '思维链（Thinking Mode）'),
+        h('select', { className: 'nv-field__input', 'data-novel-llm-thinking': '', value: draft.thinking, onChange: (event: { target: { value: string } }) => mutate({ thinking: event.target.value === 'enabled' ? 'enabled' : 'disabled' }) },
+          h('option', { value: 'enabled' }, '启用（官方默认，更准）'),
+          h('option', { value: 'disabled' }, '禁用（更快）'),
+        ),
+        h('span', { className: 'nv-settings__hint' }, '官方：启用时 temperature/top_p 等采样参数不生效；禁用后输出更快、token 更省。'),
+      ),
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '思考强度（Effort，仅启用思维链时有效）'),
+        h('select', { className: 'nv-field__input', 'data-novel-llm-effort': '', value: draft.reasoningEffort, disabled: draft.thinking === 'disabled', onChange: (event: { target: { value: string } }) => mutate({ reasoningEffort: event.target.value === 'max' ? 'max' : event.target.value === 'low' ? 'low' : 'high' }) },
+          h('option', { value: 'low' }, '低（最快）'),
+          h('option', { value: 'high' }, '高（官方默认）'),
+          h('option', { value: 'max' }, '最高（最准，最慢）'),
+        ),
       ),
     ),
     h('button', { type: 'button', className: 'nv-btn', 'data-novel-llm-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, draft.saving ? '保存中…' : '保存设置'),
