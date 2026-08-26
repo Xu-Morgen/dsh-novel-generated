@@ -711,6 +711,9 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    // 原文入口只在独立「六层初始化审阅」页签渲染，先切到该页签。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
     // The entry's textarea/button share one render closure; use the same tree so
     // the typed source text is visible to the start handler.
     const tree = render();
@@ -744,6 +747,9 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    // 原文入口只在独立「六层初始化审阅」页签渲染，先切到该页签。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
     const tree = render();
     const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
     const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
@@ -753,6 +759,51 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     const value = collect(render(), 'span').find((node) => node.props?.['data-novel-onboarding-value'] === 'characters');
     expect(value).toBeDefined();
     expect(String(value?.children?.[0] ?? '')).toContain('米拉');
+  });
+
+  it('keeps the six-layer review on its own nav tab, never under layer tabs', async () => {
+    const layers = {
+      characters: { candidates: [{ id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '见习测绘师', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }], confidence: 'high', warnings: [], evidenceIds: ['e1'] },
+      worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        onboardingAnalyzer: { start: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', sourceHash: 'a'.repeat(64), evidence: {}, layers }) },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const navClick = (marker: Record<string, unknown>) => {
+      const button = collect(render(), 'button').find((node) => Object.entries(marker).some(([k, v]) => node.props?.[k] === v));
+      (button?.props?.onClick as (() => void) | undefined)?.();
+    };
+    const reviewVisible = () => collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '');
+    // 默认（角色层）不应出现审阅。
+    expect(reviewVisible()).toBe(false);
+    // 切到审阅页签：分析自动开始 → 审阅出现。
+    navClick({ 'data-novel-onboarding-nav': '' });
+    await flush();
+    const tree = render();
+    const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
+    const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
+    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '北港。' } });
+    (start?.props?.onClick as () => void)();
+    await flush();
+    expect(reviewVisible()).toBe(true);
+    // 切到角色层：审阅必须消失。
+    navClick({ 'data-novel-layer': 'characters' });
+    await flush();
+    expect(reviewVisible()).toBe(false);
+    // 切回审阅页签：审阅恢复。
+    navClick({ 'data-novel-onboarding-nav': '' });
+    await flush();
+    expect(reviewVisible()).toBe(true);
   });
 });
 

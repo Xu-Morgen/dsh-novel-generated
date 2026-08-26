@@ -742,6 +742,14 @@ export const WORKBENCH_STYLES = `
   color: var(--nv-ink-faint);
 }
 
+/* 独立「六层初始化审阅」页签：原文入口 + 审阅面板纵向堆叠。 */
+.nv-onboarding-stack {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 2);
+  min-width: 0;
+}
+
 .nv-onboarding__apply {
   margin-top: var(--nv-grid);
   border: 1px solid var(--nv-cinnabar);

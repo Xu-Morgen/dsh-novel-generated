@@ -101,6 +101,7 @@ export type WorkbenchActions = {
   close(): void;
   collapse(): void;
   activate(id: string): void;
+  activateOnboarding(): void;
   ready(model: WorkspaceViewModel): void;
   fail(message: string): void;
   setProjects(list: unknown[]): void;
@@ -147,17 +148,25 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
   );
 }
 
-/** 左侧层级导航：六层一桌 + LLM 设置页，激活项打朱砂。 */
-function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showSettings: boolean, toggleSettings: () => void): unknown {
+/** 左侧层级导航：六层一桌 + 六层初始化审阅 + LLM 设置页，激活项打朱砂。 */
+function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showOnboarding: boolean, activateOnboarding: () => void, showSettings: boolean, toggleSettings: () => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
     LAYERS.map((layer) => h('button', {
       key: layer.id,
       type: 'button',
-      className: 'nv-workbench__nav-item' + (activeLayer === layer.id ? ' is-active' : ''),
+      className: 'nv-workbench__nav-item' + (activeLayer === layer.id && !showOnboarding ? ' is-active' : ''),
       'data-novel-layer': layer.id,
-      'aria-current': activeLayer === layer.id ? 'page' : undefined,
+      'aria-current': activeLayer === layer.id && !showOnboarding ? 'page' : undefined,
       onClick: () => activate(layer.id),
     }, layer.label)),
+    h('button', {
+      key: '__onboarding__',
+      type: 'button',
+      className: 'nv-workbench__nav-item' + (showOnboarding ? ' is-active' : ''),
+      'data-novel-onboarding-nav': '',
+      'aria-current': showOnboarding ? 'page' : undefined,
+      onClick: () => activateOnboarding(),
+    }, '六层初始化审阅'),
     h('button', {
       key: '__settings__',
       type: 'button',
@@ -242,8 +251,8 @@ interface WorkbenchOps {
   readonly canon: CanonEditOps;
 }
 
-/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层或 LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; collapse(): void; close(): void; activate(id: LayerId): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
+/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / LLM 设置页）。 */
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -268,13 +277,14 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      layerNav(h, ui.activeLayer, ui.activate, ui.showSettings, () => ui.toggleSettings()),
+      layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.showSettings, () => ui.toggleSettings()),
       h('div', { className: 'nv-workbench__main' },
+        // 三个互斥页签：LLM 设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
-          : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
-        ui.showSettings ? null : sourceEntry,
-        ui.showSettings ? null : review,
+          : ui.onboardingTab
+            ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
+            : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
       ),
     )
     : effectiveStatus === 'ready'
@@ -353,6 +363,8 @@ interface WorkbenchState {
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
   onboarding: OnboardingState | undefined;
   showSettings: boolean;
+  /** 六层初始化审阅是否为当前激活页签（独立边栏，设计 §14.7.4）。 */
+  showOnboarding: boolean;
   settingsView: LlmConfigViewShape | undefined;
   settingsDraft: LlmConfigDraftShape;
 }
@@ -409,6 +421,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           uploadResult: undefined,
           onboarding: undefined,
           showSettings: false,
+          showOnboarding: false,
           settingsView: undefined,
           settingsDraft: freshLlmConfigDraft(),
         }),
@@ -416,7 +429,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           open: (d) => { d.open = true; d.collapsed = false; },
           close: (d) => { d.open = false; },
           collapse: (d) => { d.collapsed = !d.collapsed; },
-          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; },
+          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; d.showOnboarding = false; },
+          activateOnboarding: (d) => { d.showOnboarding = true; d.showSettings = false; },
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
@@ -447,7 +461,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
-          toggleSettings: (d) => { d.showSettings = !d.showSettings; },
+          toggleSettings: (d) => { d.showSettings = !d.showSettings; d.showOnboarding = false; },
           settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model, maxTokens: view.maxTokens, thinking: view.thinking, reasoningEffort: view.reasoningEffort }; },
           settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
           settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
@@ -508,6 +522,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         dispatch((actions) => actions.onboarding(next));
       };
       const startOnboarding = (projectId: string, sourceHash: string, text: string): void => {
+        // 分析开始即切到独立「六层初始化审阅」页签，让原文入口与审阅面板可见
+        // （设计 §14.7.4：审阅不再叠加在六层编辑页底部）。
+        dispatch((actions) => actions.activateOnboarding());
         const target = analyzer;
         if (!active || target === undefined) { setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: '分析服务不可用' }); return; }
         void unwrap(target.start({ projectId, sourceHash, text }, undefined)).then((result) => {
@@ -659,9 +676,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             get collapsed() { return s.collapsed; },
             get activeLayer() { return s.activeLayer; },
             get showSettings() { return s.showSettings; },
+            get onboardingTab() { return s.showOnboarding; },
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
+            activateOnboarding() { props.actions.activateOnboarding(); },
             toggleSettings() {
               const next = !s.showSettings;
               dispatch((x) => x.toggleSettings());
