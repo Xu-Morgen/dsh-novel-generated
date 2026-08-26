@@ -126,8 +126,105 @@ export const WORKBENCH_STYLES = `
 
 .nv-workbench__body {
   display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+
+/* 作品上下文栏之上的导航/主列横向布局（I55：上下文栏占满整行，其下再左右分栏）。 */
+.nv-workbench__body-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* I55 作品上下文栏（§14.8 / R12-2）：当前作品持续可见 + 返回/切换入口。 */
+.nv-workbench__project-context {
+  display: flex;
+  align-items: center;
+  gap: var(--nv-grid);
+  padding: calc(var(--nv-grid) * 0.75) calc(var(--nv-grid) * 2);
+  border-bottom: 1px solid var(--nv-line);
+  background: var(--nv-paper);
+}
+
+.nv-workbench__project-context-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--nv-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nv-workbench__project-context-back {
+  flex: none;
+  border: 1px solid var(--nv-line);
+  background: transparent;
+  color: var(--nv-ink-dim);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.4) var(--nv-grid);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nv-workbench__project-context-back:hover {
+  background: var(--nv-hover);
+  color: var(--nv-ink);
+}
+
+/* I55 脏表单离开裁决（§14.8 / R12-2）：非模态确认条，离开将丢弃未保存 Client draft。 */
+.nv-workbench__leave-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--nv-grid);
+  padding: var(--nv-grid) calc(var(--nv-grid) * 2);
+  border-bottom: 1px solid var(--nv-warn);
+  background: var(--nv-paper-raised);
+}
+
+.nv-workbench__leave-confirm-hint {
+  flex: 1;
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-warn);
+}
+
+.nv-workbench__leave-confirm-btn {
+  border: 1px solid var(--nv-line);
+  background: transparent;
+  color: var(--nv-ink-dim);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  padding: calc(var(--nv-grid) * 0.35) var(--nv-grid);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nv-workbench__leave-confirm-btn:hover {
+  background: var(--nv-hover);
+  color: var(--nv-ink);
+}
+
+.nv-workbench__leave-confirm-btn--discard {
+  border-color: var(--nv-danger);
+  color: var(--nv-danger);
+}
+
+/* I55 可恢复的 open/切换失败错误（保持当前视图，不 brick 成整屏错误）。 */
+.nv-workbench__project-error {
+  margin: var(--nv-grid) 0 0;
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  border: 1px solid var(--nv-danger);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  color: var(--nv-danger);
+  background: var(--nv-paper-raised);
+  font-family: var(--nv-sans);
+  font-size: 12px;
 }
 
 /* 唯一纵向滚动区：根节点 overflow:hidden + 80vh 上限，导航固定，主列内部滚动

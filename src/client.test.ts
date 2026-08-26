@@ -30,7 +30,7 @@ interface WorkspaceOverrides {
   uploadChunk?: (uploadId: string, index: number, base64: string) => Promise<unknown>;
   uploadFinalize?: (uploadId: string) => Promise<unknown>;
   uploadCancel?: (uploadId: string) => Promise<unknown>;
-  characterList?: () => Promise<unknown[]>;
+  characterList?: (projectId: string) => Promise<unknown[]>;
   characterCreate?: (projectId: string, input: unknown) => Promise<unknown>;
   characterUpdate?: (projectId: string, id: string, patch: unknown) => Promise<unknown>;
   worldviewList?: () => Promise<unknown[]>;
@@ -483,7 +483,7 @@ describe('I50 project-session startup', () => {
     expect(calls).toContainEqual({ method: 'characterCreate', projectId: 'beta' });
   });
 
-  it('fails closed when opening the selected project fails', async () => {
+  it('fails closed when opening the selected project fails (I55: keeps the chooser with a recoverable error)', async () => {
     let characterLoads = 0;
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
@@ -498,7 +498,9 @@ describe('I50 project-session startup', () => {
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     (projectButton(render(), 'broken')?.props?.onClick as () => void)();
     await flush();
-    expect(render().props?.['data-novel-workspace']).toBe('error');
+    // I55：open 失败不再 brick 成整屏错误，而是停在作品列表并展示可恢复错误。
+    expect(render().props?.['data-novel-workspace']).toBe('ready');
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-project-error'] === '')).toBe(true);
     expect(layerButtons(render())).toEqual([]);
     expect(characterLoads).toBe(0);
   });
@@ -525,6 +527,145 @@ describe('I50 project-session startup', () => {
     (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
     await flush();
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'outline' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+  });
+});
+
+describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
+  const projectButton = (tree: FakeNode, id: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-project-open'] === id);
+  const byData = (tree: FakeNode, attr: string, value: string): FakeNode | undefined => {
+    let found: FakeNode | undefined;
+    const visit = (current: unknown): void => {
+      if (found || current == null || typeof current !== 'object') return;
+      if (Array.isArray(current)) { for (const item of current) visit(item); return; }
+      const n = current as FakeNode;
+      if (n.props?.[attr] === value) { found = n; return; }
+      for (const child of n.children ?? []) visit(child);
+    };
+    visit(tree);
+    return found;
+  };
+
+  const ALPHA = { id: 'alpha', name: 'Alpha' };
+  const BETA = { id: 'beta', name: 'Beta' };
+  const READY_LAYERS = { characters: 'empty', worldview: 'empty', outline: 'uninitialized', relationship: 'empty', state: 'ready', canon: 'empty' };
+  const character = (id: string, name: string) => ({ id, name, aliases: [], kind: 'protagonist', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] });
+
+  it('shows the project context bar with the current name and a back-to-projects entry', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [ALPHA],
+        projectOpen: async () => ({ project: ALPHA, layers: READY_LAYERS }),
+      },
+      { openProjectId: 'alpha' },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    expect(byData(render(), 'data-novel-project-context', '')).toBeDefined();
+    expect(collect(render(), 'span').some((node) => node.props?.['data-novel-project-context-name'] === '' && (node.children ?? []).join('') === 'Alpha')).toBe(true);
+    expect(byData(render(), 'data-novel-back-to-projects', '')).toBeDefined();
+  });
+
+  it('round-trips two projects with zero cross-project draft leakage', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [ALPHA, BETA],
+        projectOpen: async (id) => ({ project: id === 'alpha' ? ALPHA : BETA, layers: READY_LAYERS }),
+        characterList: async (id) => (id === 'alpha' ? [character('mara', 'Mara')] : [character('beta-hero', 'Beta Hero')]),
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (projectButton(render(), 'alpha')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-project-open']).toBe('alpha');
+    expect(byData(render(), 'data-novel-character-id', 'mara')).toBeDefined();
+
+    // dirty a character draft in alpha
+    const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara Edited' } });
+
+    // back-to-projects → dirty confirm → confirm leave
+    (byData(render(), 'data-novel-back-to-projects', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-leave-confirm', '')).toBeDefined();
+    (byData(render(), 'data-novel-leave-discard', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-project-browsing', '')).toBeDefined();
+
+    // open beta
+    (projectButton(render(), 'beta')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-project-open']).toBe('beta');
+    // beta's own character, never alpha's (zero cross-project leakage)
+    expect(byData(render(), 'data-novel-character-id', 'beta-hero')).toBeDefined();
+    expect(byData(render(), 'data-novel-character-id', 'mara')).toBeUndefined();
+    // editor draft reset: name input is empty, not the alpha draft
+    const betaName = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    expect(betaName?.props?.value).toBe('');
+  });
+
+  it('adjudicates a dirty form before leaving and cancels without navigating', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [ALPHA],
+        projectOpen: async () => ({ project: ALPHA, layers: READY_LAYERS }),
+      },
+      { openProjectId: 'alpha' },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
+    (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Dirty' } });
+
+    (byData(render(), 'data-novel-back-to-projects', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-leave-confirm', '')).toBeDefined();
+    // cancel keeps the project open and does not navigate
+    (byData(render(), 'data-novel-leave-cancel', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-leave-confirm', '')).toBeUndefined();
+    expect(byData(render(), 'data-novel-project-browsing', '')).toBeUndefined();
+    expect(render().props?.['data-novel-project-open']).toBe('alpha');
+  });
+
+  it('keeps the original project when a switch fails to open', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [ALPHA, BETA],
+        projectOpen: async (id) => {
+          if (id === 'alpha') return { project: ALPHA, layers: READY_LAYERS };
+          throw new Error('cannot open beta');
+        },
+        characterList: async () => [character('mara', 'Mara')],
+      },
+      { openProjectId: 'alpha' },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    expect(render().props?.['data-novel-project-open']).toBe('alpha');
+
+    // browse to switch
+    (byData(render(), 'data-novel-back-to-projects', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-project-browsing', '')).toBeDefined();
+
+    // attempt to open beta → fails with a recoverable error, original kept
+    (projectButton(render(), 'beta')?.props?.onClick as () => void)();
+    await flush();
+    expect(byData(render(), 'data-novel-project-error', '')).toBeDefined();
+    expect(render().props?.['data-novel-project-open']).toBe('alpha');
+
+    // cancel browsing → back to alpha, its data still intact
+    (byData(render(), 'data-novel-browse-cancel', '')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-project-open']).toBe('alpha');
+    expect(byData(render(), 'data-novel-character-id', 'mara')).toBeDefined();
   });
 });
 

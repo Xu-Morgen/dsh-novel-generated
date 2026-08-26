@@ -107,7 +107,12 @@ export type WorkbenchActions = {
   ready(model: WorkspaceViewModel): void;
   fail(message: string): void;
   setProjects(list: unknown[]): void;
-  selectProject(projectId: string): void;
+  selectProject(projectId: string, name?: string): void;
+  resetEditors(): void;
+  browseProjects(): void;
+  cancelBrowse(): void;
+  showLeaveConfirm(show: boolean): void;
+  projectFailed(message: string): void;
   createProject(input: { projectId: string; name: string }): void;
   uploadProgress(progress: UploadProgress): void;
   uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
@@ -191,6 +196,29 @@ function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, 
   );
 }
 
+/** I55 脏表单检测：任一编辑层存在未保存草案即需在切换离开前裁决（§14.8 / R12-2）。 */
+function hasDirtyDrafts(snapshot: { characterEditor: { dirty: boolean }; worldEditor: { dirty: boolean }; outlineEditor: { dirty: boolean }; relationshipEditor: { dirty: boolean }; canonEditor: { dirty: boolean } }): boolean {
+  return snapshot.characterEditor.dirty || snapshot.worldEditor.dirty || snapshot.outlineEditor.dirty || snapshot.relationshipEditor.dirty || snapshot.canonEditor.dirty;
+}
+
+/** I55 作品上下文栏：当前作品名持续可见 + 返回作品列表（切换）入口（§14.8 / R12-2）。 */
+function projectContextBar(h: El, projectName: string, requestBrowse: () => void, leaveConfirm: boolean, confirmLeave: () => void, cancelLeave: () => void): unknown {
+  return h('div', { className: 'nv-workbench__project-context', 'data-novel-project-context': '' },
+    h('span', { className: 'nv-workbench__project-context-name', 'data-novel-project-context-name': '' }, projectName),
+    h('button', { type: 'button', className: 'nv-workbench__project-context-back', 'data-novel-back-to-projects': '', onClick: () => requestBrowse() }, '返回作品列表'),
+    leaveConfirm ? dirtyLeaveDialog(h, confirmLeave, cancelLeave) : null,
+  );
+}
+
+/** I55 脏表单离开裁决：非模态确认条，离开将丢弃未保存 Client draft（§14.8 / R12-2）。 */
+function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => void): unknown {
+  return h('div', { className: 'nv-workbench__leave-confirm', 'data-novel-leave-confirm': '', role: 'alertdialog', 'aria-label': '离开作品确认' },
+    h('p', { className: 'nv-workbench__leave-confirm-hint', 'data-novel-leave-confirm-hint': '' }, '有未保存的修改，离开将丢弃这些修改。'),
+    h('button', { type: 'button', className: 'nv-workbench__leave-confirm-btn nv-workbench__leave-confirm-btn--discard', 'data-novel-leave-discard': '', onClick: () => confirmLeave() }, '离开并放弃修改'),
+    h('button', { type: 'button', className: 'nv-workbench__leave-confirm-btn', 'data-novel-leave-cancel': '', onClick: () => cancelLeave() }, '取消'),
+  );
+}
+
 /** 单层空态占位（仅兜底，I49 起六层均有真实面板）。 */
 function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
   return h('section', {
@@ -265,7 +293,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -288,22 +316,27 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     uploadResult ? h('p', { 'data-novel-upload-result': '' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
   );
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
-  const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
+  const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.creationSettingsTab, ui.activateCreationSettings, ui.showSettings, () => ui.toggleSettings()),
-      h('div', { className: 'nv-workbench__main' },
-        // 四个互斥页签：LLM 设置 / 创作设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
-        ui.showSettings
-          ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
-          : ui.creationSettingsTab
-            ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null)
-            : ui.onboardingTab
-              ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
-              : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
+      projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
+      h('div', { className: 'nv-workbench__body-row' },
+        layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.creationSettingsTab, ui.activateCreationSettings, ui.showSettings, () => ui.toggleSettings()),
+        h('div', { className: 'nv-workbench__main' },
+          // 四个互斥页签：LLM 设置 / 创作设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
+          ui.showSettings
+            ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
+            : ui.creationSettingsTab
+              ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null)
+              : ui.onboardingTab
+                ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
+                : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
+        ),
       ),
     )
-    : effectiveStatus === 'ready'
-      ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '' },
+    : effectiveStatus === 'ready' && (selectedProjectId === undefined || browsing)
+      ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '', ...(browsing ? { 'data-novel-project-browsing': '' } : {}) },
+        browsing ? h('button', { type: 'button', className: 'nv-workbench__nav-item', 'data-novel-browse-cancel': '', onClick: () => ui.cancelBrowse() }, '返回当前作品') : null,
+        projectError !== undefined ? h('p', { className: 'nv-workbench__project-error', 'data-novel-project-error': '', role: 'alert' }, projectError) : null,
         h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.showSettings ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.toggleSettings() }, 'LLM 设置'),
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
@@ -372,6 +405,14 @@ interface WorkbenchState {
   stateEditor: StateEditor;
   canonEditor: CanonEditor;
   selectedProjectId: string | undefined;
+  /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
+  selectedProjectName: string | undefined;
+  /** true 表示作品列表正在显示（无作品或正在切换），当前作品仍被保留。 */
+  browsing: boolean;
+  /** 脏表单离开裁决确认条是否显示（I55 / R12-2）。 */
+  leaveConfirm: boolean;
+  /** 可恢复的 open/切换失败信息（保持当前视图，不 brick 成整屏错误）。 */
+  projectError: string | undefined;
   projects: Array<{ id: string; name: string }>;
   projectLoading: boolean;
   upload: UploadProgress;
@@ -436,6 +477,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           stateEditor: freshStateEditor(),
           canonEditor: freshCanonEditor(),
           selectedProjectId: undefined,
+          selectedProjectName: undefined,
+          browsing: false,
+          leaveConfirm: false,
+          projectError: undefined,
           projects: [],
           projectLoading: false,
           upload: { phase: 'idle' },
@@ -459,7 +504,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
-          selectProject: (d, projectId: string) => { d.selectedProjectId = projectId; d.projectLoading = false; },
+          selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.onboarding = undefined; d.leaveConfirm = false; },
+          browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
+          cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
+          showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
+          projectFailed: (d, message: string) => { d.projectError = message; d.projectLoading = false; },
           createProject: (d) => { d.projectLoading = true; },
           uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
           uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
@@ -523,12 +573,15 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (!active) return;
           currentProjectId = projectId;
           const layers = (result as { layers?: ProjectOpenLayers } | undefined)?.layers;
+          const name = (result as { project?: { name?: string } } | undefined)?.project?.name;
           dispatch((actions) => {
-            actions.selectProject(projectId);
+            actions.selectProject(projectId, name);
+            // I55：打开/切换成功前清空旧作品编辑器草案与初始化状态，杜绝跨项目串写。
+            actions.resetEditors();
             reloadProject(target, projectId, actions, dispatch, () => active, layers);
           });
           if (onOpened) onOpened();
-        }, () => dispatch((actions) => actions.fail('作品打开失败')));
+        }, (cause: Error) => dispatch((actions) => actions.projectFailed(`作品打开失败：${cause?.message ?? '未知错误'}`)));
       };
       const createProject = (input: { projectId: string; name: string }, onOpened?: () => void): void => {
         const target = workspace;
@@ -539,6 +592,21 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           dispatch((actions) => actions.setProjects([project]));
           openProject((project as { id: string }).id, onOpened);
         }, () => dispatch((actions) => actions.fail('作品创建失败')));
+      };
+      // I55：返回作品列表（切换入口）。脏表单裁决由组件层 `requestBrowse` 先行完成，
+      // 这里只切换为列表视图并刷新作品列表，不丢当前作品（browseProjects 保留 selectedProjectId）。
+      const browseToProjects = (): void => {
+        dispatch((actions) => actions.browseProjects());
+        const target = workspace;
+        if (target !== undefined) {
+          void unwrap(target.projectList()).then(
+            (projects) => { if (active) dispatch((actions) => actions.setProjects(projects as unknown[])); },
+            () => undefined, // 列表刷新失败不 brick：保留既有列表，切换本身非破坏性。
+          );
+        }
+      };
+      const cancelBrowse = (): void => {
+        dispatch((actions) => actions.cancelBrowse());
       };
 
       // I53: start six-layer analysis from a source text, then open the review.
@@ -772,6 +840,22 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             },
             selectProject(id: string) { openProject(id); },
             createProject(input: { projectId: string; name: string }) { createProject(input); },
+            // I55：返回作品列表 / 切换入口。脏表单先裁决，确认/干净才进入列表。
+            requestBrowse() {
+              if (hasDirtyDrafts(s)) {
+                dispatch((x) => x.showLeaveConfirm(true));
+              } else {
+                browseToProjects();
+              }
+            },
+            confirmLeave() {
+              dispatch((x) => x.showLeaveConfirm(false));
+              browseToProjects();
+            },
+            cancelLeave() {
+              dispatch((x) => x.showLeaveConfirm(false));
+            },
+            cancelBrowse() { cancelBrowse(); },
             uploadFile(file: File) {
               const target = workspace;
               if (!target || !active) return;
@@ -819,7 +903,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.projects, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, {
+          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
