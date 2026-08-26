@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -210,10 +210,15 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const remote = { $mount: async () => async () => {} };
   const llmConfig = mountOptions.llmConfig ?? {};
   const analyzer = mountOptions.onboardingAnalyzer;
+  const workbenchSettingsStub = mountOptions.workbenchSettings;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
       save: llmConfig.save ?? (async () => ({ ok: true, modelRef: 'novel-custom/test' })),
+    }
+    : name === 'remote.novelWorkbenchSettings' ? {
+      load: workbenchSettingsStub?.load ?? (async () => ({ wordTarget: 500, askWhenThin: true })),
+      save: workbenchSettingsStub?.save ?? (async () => ({ wordTarget: 500, askWhenThin: true })),
     }
     : name === 'remote.novelOnboardingAnalyzer' ? (analyzer ?? { start: async () => { throw new Error('未注入 remote.novelOnboardingAnalyzer'); } })
     : undefined;
@@ -661,6 +666,70 @@ describe('LLM 设置页', () => {
     await flush();
     expect(saves).toEqual([]);
     expect(collect(render(), 'p').some((node) => node.props?.['data-novel-llm-error'] !== undefined)).toBe(true);
+  });
+
+  it('edits and saves creation settings (word target and ask-when-thin)', async () => {
+    const saves: Array<{ input: unknown }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        workbenchSettings: {
+          load: async () => ({ wordTarget: 500, askWhenThin: true }),
+          save: async (input) => { saves.push({ input }); return { ok: true, value: { wordTarget: 1200, askWhenThin: false } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-workbench-settings-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const tree = render();
+    const word = collect(tree, 'input').find((node) => node.props?.['data-novel-workbench-word-target'] === '');
+    const ask = collect(tree, 'input').find((node) => node.props?.['data-novel-workbench-ask-thin'] === '');
+    expect(word).toBeDefined();
+    expect(ask).toBeDefined();
+    (word?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '1200' } });
+    (ask?.props?.onChange as (event: { target: { checked: boolean } }) => void)({ target: { checked: false } });
+    const after = render();
+    (collect(after, 'button').find((node) => node.props?.['data-novel-workbench-save'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(saves).toEqual([{ input: { wordTarget: 1200, askWhenThin: false } }]);
+  });
+
+  it('adds, views and edits a detail beat under a beat', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        outlineRead: async () => ({ id: 'outline', structure: 'three-act', logline: '一句话梗概', themes: [], acts: [{ id: 'act-1', index: 0, title: '第一幕', goal: '开局', beats: [{ id: 'beat-1', title: '第一节', description: '火车上', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] }),
+        outlineSave: async (input) => input,
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-layer'] === 'outline')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-outline-act'] === 'act-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-outline-beat'] === 'beat-1')?.props?.onClick as () => void)();
+    await flush();
+    // 手动新增细纲场景卡。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-outline-add-detail'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const card = collect(render(), 'button').find((node) => node.props?.['data-novel-detail-card'] !== undefined);
+    expect(card).toBeDefined();
+    // 点击卡片 → 查看/编辑面板出现。
+    (card?.props?.onClick as () => void)();
+    await flush();
+    const editor = collect(render(), 'div').find((node) => node.props?.['data-novel-detail-card-editor'] !== undefined);
+    expect(editor).toBeDefined();
+    // 编辑标题 → 列表卡片同步更新。
+    const titleInput = collect(editor as unknown as FakeNode, 'input')[0];
+    (titleInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '火车相遇' } });
+    await flush();
+    const updated = collect(render(), 'button').find((node) => node.props?.['data-novel-detail-card'] !== undefined);
+    const titleText = (updated?.children?.[0] as FakeNode | undefined)?.children?.[0];
+    expect(String(titleText ?? '')).toContain('火车相遇');
   });
 });
 

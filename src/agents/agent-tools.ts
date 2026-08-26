@@ -29,7 +29,6 @@ import type { C3KnowledgeParserOutput } from '../llm/parse/knowledge.js';
 import { materializeC3KnowledgeOperations } from '../llm/parse/knowledge.js';
 import type { C4CanonParserOutput } from '../llm/parse/canon.js';
 import type { B2WorldviewParserOutput } from '../llm/parse/worldview.js';
-import type { WorldEntryInput } from '../core/schema/worldview.js';
 import type { StateDraft } from '../core/state/index.js';
 
 /**
@@ -70,6 +69,16 @@ export interface NovelAgentDeps {
   readonly confirmation: NovelConfirmationService;
   /** 解析当前活动生成设置（modelRef/credentialRef/maxTokens/思维链）。 */
   readonly resolveSettings: () => Promise<GenerationSettings>;
+  /** 创作台通用设置：目标字数 + 内容不足时是否询问。 */
+  readonly workbenchSettings: {
+    load(): Promise<{ readonly wordTarget: number; readonly askWhenThin: boolean }>;
+  };
+}
+
+/** 创作台通用设置的紧凑视图（透出给 Agent 决定是否询问补充）。 */
+export interface NovelCreationSettingsView {
+  readonly wordTarget: number;
+  readonly askWhenThin: boolean;
 }
 
 /** 一个作品的紧凑状态视图（供 Agent 与工具展示）。 */
@@ -82,6 +91,7 @@ export interface NovelProjectStatus {
   readonly canonEvents: number;
   readonly scenes: number;
   readonly outlineReady: boolean;
+  readonly creation: NovelCreationSettingsView;
 }
 
 /** 下一场景的写作上下文（compact JSON 视图 + 内部装配结果）。 */
@@ -93,6 +103,7 @@ export interface NovelAgentContext {
   /** I30 解析器的输入快照（写回前由生命周期使用）。 */
   readonly parserInputs: StoryLifecycleParserInputs;
   readonly recentScenes: number;
+  readonly creation: NovelCreationSettingsView;
 }
 
 export interface NovelAgentService {
@@ -172,7 +183,8 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
       c4: { canon: [...canonViews] },
       b2: { current: worldview },
     };
-    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length };
+    const creation = await deps.workbenchSettings.load();
+    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation };
   }
 
   /** 把解析输出应用到既有 Domain Service 的写回器（顺序 C2→C1→C3→C4→B2，设计 §14.7.4）。 */
@@ -214,7 +226,13 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
         });
         await deps.confirmation.accept(projectId, proposalId);
         for (const operation of parsed.ops) {
-          await deps.worldview.rewrite(projectId, operation.targetId, operation.replacement as WorldEntryInput);
+          // B2 解析器契约（b2ReplacementSchema）约定 version/status/supersededBy 归存储层；
+          // 改写服务要求完整 WorldEntryInput，此处补默认值（语义同 asWorldEntryInput）。
+          await deps.worldview.rewrite(projectId, operation.targetId, {
+            ...operation.replacement,
+            status: 'active',
+            supersededBy: null,
+          });
         }
       },
     };
@@ -244,6 +262,7 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
         canonEvents: canonViews.length,
         scenes: chapters.reduce((total, chapter) => total + chapter.scenes.length, 0),
         outlineReady: outline === 'ready',
+        creation: await deps.workbenchSettings.load(),
       });
     },
     async context(projectId) {
@@ -254,19 +273,21 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
       await openProject(projectId);
       const built = await buildContext(projectId);
       const requestId = `agent-continue-${Date.now()}`;
+      // 通用目标字数优先于细纲卡自带 wordTarget（创作设置）。
+      const card = { ...built.card, wordTarget: built.creation.wordTarget };
       const request = {
         id: requestId,
         projectId,
-        chapter: { id: 'chapter-1', index: 1, title: '正文', pov: built.card.pov, status: 'draft' as const },
+        chapter: { id: 'chapter-1', index: 1, title: '正文', pov: card.pov, status: 'draft' as const },
         scene: {
           id: `agent-scene-${Date.now()}`,
-          summary: built.card.summary,
+          summary: card.summary,
           beats: [built.navigation.beatId],
           canonEvents: [],
           notes: '',
         },
         sources: built.sources,
-        card: built.card,
+        card,
         navigation: built.navigation,
         settings: await deps.resolveSettings(),
         decision,
@@ -390,6 +411,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
           characters: built.sources.context.sources.characters.length,
           worldview: built.sources.context.sources.worldview.length,
           canon: built.sources.canon.length,
+          creation: built.creation,
         };
       },
     },
@@ -405,8 +427,10 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
         const result = await service.continueScene(String(args.projectId), args.decision as 'accept' | 'reject', exec.signal);
         return {
           status: result.execution.result.status,
-          text: result.scene?.content ?? result.execution.candidate.text,
-          sceneId: result.scene?.id,
+          // 失败路径（未落盘）下 scene 与 candidate.text 可能为 undefined，须兜底为
+          // 无损 JSON 允许的值，否则工具输出序列化失败、诊断不可见。
+          text: result.scene?.content ?? result.execution.candidate.text ?? '',
+          sceneId: result.scene?.id ?? null,
           violations: result.execution.result,
         };
       },

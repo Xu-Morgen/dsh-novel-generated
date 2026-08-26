@@ -36,6 +36,8 @@ import { createHostUploadService } from './host/upload-service.js';
 import { createLlmConfigService } from './host/llm-config-service.js';
 import { createOnboardingAnalyzerService } from './host/onboarding-analyzer-service.js';
 import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './host/onboarding-adjudication-service.js';
+import { createWorkbenchSettingsService } from './host/workbench-settings-service.js';
+import { workbenchSettingsRemoteContribution } from './host/remote/workbench-settings.js';
 import { SettingsIndex, A2_SETTINGS_FILE, resolveA2GenerationConfig } from './core/settings-index/index.js';
 import { NOVEL_PROBE_NAMESPACE, probeData, NOVEL_WORKSPACE_NAMESPACE, hostContribution, bindRemote, createWorkspaceEditorService } from './remote.js';
 import { createNovelAgentService, registerNovelAgentTools } from './agents/agent-tools.js';
@@ -184,6 +186,12 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     load: () => llmConfigService.load(),
     save: (input: unknown) => llmConfigService.save(input as Parameters<typeof llmConfigService.save>[0]),
   }, 'novelLlmConfig', 'novelLlmConfig'));
+  // 创作台通用设置：目标字数 + 内容不足时是否询问（Host 侧持久化）。
+  const workbenchSettingsService = createWorkbenchSettingsService(config.settingsRoot);
+  ctx.provide('novelWorkbenchSettings', bindRemote({
+    load: () => workbenchSettingsService.load(),
+    save: (input: unknown) => workbenchSettingsService.save(input as Parameters<typeof workbenchSettingsService.save>[0]),
+  }, 'novelWorkbenchSettings', 'novelWorkbenchSettings'));
   const analyzerService = createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose));
   // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
   // no generation settings of its own — so when the caller omits them, resolve
@@ -263,6 +271,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     inspiration: inspirationService,
     confirmation: confirmationService,
     resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+    workbenchSettings: workbenchSettingsService,
   });
   ctx.provide('novelAgent', agentService);
   if (config.agentTools !== false) {

@@ -23,10 +23,11 @@ import { createNovelAgentService, registerNovelAgentTools, type NovelAgentDeps }
 const settings = { modelRef: 'dsh/default', credentialRef: 'dsh/managed' };
 
 /** Fake DSH `llm.stream` route answering the prose prompt and each parser prompt. */
-function fakeLlm() {
+function fakeLlm(seen: string[] = []) {
   return {
     async *stream(options: { messages: Array<{ content: Array<{ text: string }> }> }) {
       const prompt = options.messages[0].content[0].text;
+      seen.push(prompt);
       let output: unknown;
       if (prompt.includes('你是小说世界状态解析器')) {
         output = { ops: [{ op: 'modify', target: 'state', field: 'storyTime', action: 'set', value: 'dawn', confidence: 'high' }] };
@@ -47,10 +48,12 @@ interface Setup {
   agent: ReturnType<typeof createNovelAgentService>;
   deps: NovelAgentDeps;
   root: string;
+  seen: string[];
 }
 
-async function setup(): Promise<Setup> {
+async function setup(creation?: { wordTarget?: number; askWhenThin?: boolean }): Promise<Setup> {
   const root = await mkdtemp(join(tmpdir(), 'novel-agent-tools-'));
+  const seen: string[] = [];
   const characters = createCharacterService(root);
   const worldview = createWorldviewService(root);
   const outline = createOutlineService(root);
@@ -63,15 +66,16 @@ async function setup(): Promise<Setup> {
   const rules = createRuleService(root);
   const knowledge = createKnowledgeService(root);
   const text = createTextService(root);
-  const continuation = createContinuationService(fakeLlm(), root);
+  const continuation = createContinuationService(fakeLlm(seen), root);
   const inspiration = createInspirationService(fakeLlm());
   const deps: NovelAgentDeps = {
     project, characters, worldview, outline, relationship, state, canon,
     style, rules, knowledge, text, continuation, inspiration, confirmation,
     resolveSettings: async () => settings,
+    workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
   };
   const agent = createNovelAgentService(deps);
-  return { agent, deps, root };
+  return { agent, deps, root, seen };
 }
 
 /** 建一个六层就绪的演示作品：1 个角色 + 1 幕/节/细纲 + C2 基线快照。 */
@@ -135,18 +139,21 @@ describe('novel agent tools（对话创作入口）', () => {
       expect(context.sources.context.sources.characters[0].character.id).toBe('mira');
       expect(context.sources.context.sources.state.storyTime).toBe('');
       expect(context.sources.canon).toHaveLength(0);
+      expect(context.creation).toEqual({ wordTarget: 500, askWhenThin: true });
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
   it('continues with accept: writes C5 text and structured layers through existing owners', async () => {
-    const { agent, deps, root } = await setup();
+    const { agent, deps, root, seen } = await setup({ wordTarget: 800 });
     try {
       await seedProject(deps, 'demo');
       const result = await agent.continueScene('demo', 'accept');
       expect(result.execution.result.status).toBe('written');
       expect(result.scene?.content).toBe('米拉在码头找到铜钥匙。');
+      // 通用目标字数（创作设置 800）覆盖了细纲卡自带的 wordTarget（20）。
+      expect(seen.some((prompt) => prompt.includes('目标字数: 800'))).toBe(true);
       // C2 状态被写回（storyTime → dawn）。
       expect(deps.state.current('demo').storyTime).toBe('dawn');
       // C4 正史追加。

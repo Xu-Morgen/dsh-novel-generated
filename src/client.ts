@@ -61,6 +61,7 @@ import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { onboardingReview, ONBOARDING_LAYERS, adjudicateOne, applyAccepted, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
+import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
@@ -102,6 +103,7 @@ export type WorkbenchActions = {
   collapse(): void;
   activate(id: string): void;
   activateOnboarding(): void;
+  activateCreationSettings(): void;
   ready(model: WorkspaceViewModel): void;
   fail(message: string): void;
   setProjects(list: unknown[]): void;
@@ -113,6 +115,9 @@ export type WorkbenchActions = {
   onboardingDecision(layer: OnboardingLayerId, decision: OnboardingDecision): void;
   onboardingApplyResult(result: OnboardingState['applyResult']): void;
   onboardingError(message: string): void;
+  creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
+  creationSettingsMutate(patch: Partial<WorkbenchSettingsDraftShape>): void;
+  creationSettingsSettled(patch: Partial<WorkbenchSettingsDraftShape>): void;
   setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
   setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
@@ -148,8 +153,8 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
   );
 }
 
-/** 左侧层级导航：六层一桌 + 六层初始化审阅 + LLM 设置页，激活项打朱砂。 */
-function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showOnboarding: boolean, activateOnboarding: () => void, showSettings: boolean, toggleSettings: () => void): unknown {
+/** 左侧层级导航：六层一桌 + 六层初始化审阅 + 创作设置 + LLM 设置页，激活项打朱砂。 */
+function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, showOnboarding: boolean, activateOnboarding: () => void, showCreationSettings: boolean, activateCreationSettings: () => void, showSettings: boolean, toggleSettings: () => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台层级' },
     LAYERS.map((layer) => h('button', {
       key: layer.id,
@@ -167,6 +172,14 @@ function layerNav(h: El, activeLayer: LayerId, activate: (id: LayerId) => void, 
       'aria-current': showOnboarding ? 'page' : undefined,
       onClick: () => activateOnboarding(),
     }, '六层初始化审阅'),
+    h('button', {
+      key: '__creation-settings__',
+      type: 'button',
+      className: 'nv-workbench__nav-item' + (showCreationSettings ? ' is-active' : ''),
+      'data-novel-workbench-settings-nav': '',
+      'aria-current': showCreationSettings ? 'page' : undefined,
+      onClick: () => activateCreationSettings(),
+    }, '创作设置'),
     h('button', {
       key: '__settings__',
       type: 'button',
@@ -251,8 +264,8 @@ interface WorkbenchOps {
   readonly canon: CanonEditOps;
 }
 
-/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }): unknown {
+/** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -277,14 +290,16 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, () => {}, decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.showSettings, () => ui.toggleSettings()),
+      layerNav(h, ui.activeLayer, ui.activate, ui.onboardingTab, ui.activateOnboarding, ui.creationSettingsTab, ui.activateCreationSettings, ui.showSettings, () => ui.toggleSettings()),
       h('div', { className: 'nv-workbench__main' },
-        // 三个互斥页签：LLM 设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
+        // 四个互斥页签：LLM 设置 / 创作设置 / 六层初始化审阅（原文入口+审阅）/ 六层编辑。
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
-          : ui.onboardingTab
-            ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
-            : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
+          : ui.creationSettingsTab
+            ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save) : null)
+            : ui.onboardingTab
+              ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
+              : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
       ),
     )
     : effectiveStatus === 'ready'
@@ -365,8 +380,12 @@ interface WorkbenchState {
   showSettings: boolean;
   /** 六层初始化审阅是否为当前激活页签（独立边栏，设计 §14.7.4）。 */
   showOnboarding: boolean;
+  /** 创作设置（目标字数/询问开关）是否为当前激活页签。 */
+  showCreationSettings: boolean;
   settingsView: LlmConfigViewShape | undefined;
   settingsDraft: LlmConfigDraftShape;
+  creationSettingsView: WorkbenchSettingsViewShape | undefined;
+  creationSettingsDraft: WorkbenchSettingsDraftShape;
 }
 
 /** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
@@ -385,12 +404,14 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let onboarding: OnboardingNamespace | undefined;
       let analyzer: { start(input: unknown, settings: unknown): Promise<unknown> } | undefined;
       let llmConfig: LlmConfigNamespace | undefined;
+      let workbenchSettings: WorkbenchSettingsNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
       let onboardingDisposer: TypertDisposer | undefined;
       let analyzerDisposer: TypertDisposer | undefined;
       let llmConfigDisposer: TypertDisposer | undefined;
+      let workbenchSettingsDisposer: TypertDisposer | undefined;
 
       // The store is the wiring hub: actions write it; the component subscribes
       // via useStore and re-renders. Every load result and every editor draft
@@ -422,15 +443,19 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           onboarding: undefined,
           showSettings: false,
           showOnboarding: false,
+          showCreationSettings: false,
           settingsView: undefined,
           settingsDraft: freshLlmConfigDraft(),
+          creationSettingsView: undefined,
+          creationSettingsDraft: freshWorkbenchSettingsDraft(),
         }),
         actions: {
           open: (d) => { d.open = true; d.collapsed = false; },
           close: (d) => { d.open = false; },
           collapse: (d) => { d.collapsed = !d.collapsed; },
-          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; d.showOnboarding = false; },
-          activateOnboarding: (d) => { d.showOnboarding = true; d.showSettings = false; },
+          activate: (d, id: LayerId) => { d.activeLayer = id; d.showSettings = false; d.showOnboarding = false; d.showCreationSettings = false; },
+          activateOnboarding: (d) => { d.showOnboarding = true; d.showSettings = false; d.showCreationSettings = false; },
+          activateCreationSettings: (d) => { d.showCreationSettings = true; d.showSettings = false; d.showOnboarding = false; },
           ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
@@ -461,10 +486,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; },
           outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; },
           relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; },
-          toggleSettings: (d) => { d.showSettings = !d.showSettings; d.showOnboarding = false; },
+          toggleSettings: (d) => { d.showSettings = !d.showSettings; d.showOnboarding = false; d.showCreationSettings = false; },
           settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model, maxTokens: view.maxTokens, thinking: view.thinking, reasoningEffort: view.reasoningEffort }; },
           settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
           settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
+          creationSettingsLoaded: (d, view: WorkbenchSettingsViewShape) => { d.creationSettingsView = view; d.creationSettingsDraft = { ...d.creationSettingsDraft, wordTarget: view.wordTarget, askWhenThin: view.askWhenThin }; },
+          creationSettingsMutate: (d, patch: Partial<WorkbenchSettingsDraftShape>) => { Object.assign(d.creationSettingsDraft, patch); },
+          creationSettingsSettled: (d, patch: Partial<WorkbenchSettingsDraftShape>) => { Object.assign(d.creationSettingsDraft, patch); },
         },
       });
 
@@ -602,6 +630,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             removeAct: (actId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).filter((act) => act.id !== actId).map((act, index) => ({ ...act, index })); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedActId, selectedBeatId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
             addBeat: (actId) => { const foundAct = (snapshot.outlineEditor.draft.acts ?? []).find((x) => x.id === actId); const count = foundAct?.beats?.length ?? 0; const id = `beat-${count + 1}`; const beat: OutlineBeatShape = { id, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }; const acts = (snapshot.outlineEditor.draft.acts ?? []).map((x) => x.id === actId ? { ...x, beats: (x.beats ?? []).concat(beat) } : x); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: actId, selectedBeatId: id, selectedDetailId: undefined }); },
             removeBeat: (actId, beatId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).filter((b) => b.id !== beatId) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedBeatId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
+            addDetailBeat: (actId, beatId) => { const foundAct = (snapshot.outlineEditor.draft.acts ?? []).find((x) => x.id === actId); const foundBeat = foundAct?.beats?.find((x) => x.id === beatId); const id = `detail-${actId}-${beatId}-${(foundBeat?.detailBeats?.length ?? 0) + 1}`; const card: OutlineDetailBeatShape = { id, title: '', summary: '', pov: '', wordTarget: 500, points: [], status: 'planned' }; const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).map((beat) => beat.id === beatId ? { ...beat, detailBeats: (beat.detailBeats ?? []).concat(card) } : beat) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedDetailId: id }); },
+            removeDetailBeat: (actId, beatId, cardId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).map((beat) => beat.id === beatId ? { ...beat, detailBeats: (beat.detailBeats ?? []).filter((card) => card.id !== cardId) } : beat) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedDetailId: snapshot.outlineEditor.selectedDetailId === cardId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
             save: () => {
               const e = snapshot.outlineEditor;
               if (!workspace || projectId === undefined) { act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
@@ -677,10 +707,18 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             get activeLayer() { return s.activeLayer; },
             get showSettings() { return s.showSettings; },
             get onboardingTab() { return s.showOnboarding; },
+            get creationSettingsTab() { return s.showCreationSettings; },
             collapse() { props.actions.collapse(); },
             close() { props.actions.close(); },
             activate(id: LayerId) { props.actions.activate(id); },
             activateOnboarding() { props.actions.activateOnboarding(); },
+            activateCreationSettings() {
+              const next = !s.showCreationSettings;
+              props.actions.activateCreationSettings();
+              if (next && s.creationSettingsView === undefined && workbenchSettings) {
+                void unwrap(workbenchSettings.load()).then((view) => { if (active) dispatch((x) => x.creationSettingsLoaded(view as WorkbenchSettingsViewShape)); }, () => dispatch((x) => x.creationSettingsSettled({ error: '创作设置读取失败' })));
+              }
+            },
             toggleSettings() {
               const next = !s.showSettings;
               dispatch((x) => x.toggleSettings());
@@ -703,6 +741,20 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                   void unwrap(llmConfig?.load()).then((view) => { if (active && view !== undefined) dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);
                 },
                 (cause: Error) => dispatch((x) => x.settingsSettled({ saving: false, error: (cause as Error).message })),
+              );
+            },
+            saveCreationSettings() {
+              const target = workbenchSettings;
+              const draft = s.creationSettingsDraft;
+              if (!target) { dispatch((x) => x.creationSettingsSettled({ error: '创作设置服务不可用' })); return; }
+              if (!Number.isFinite(draft.wordTarget) || draft.wordTarget < 100) { dispatch((x) => x.creationSettingsSettled({ error: '目标字数至少 100' })); return; }
+              dispatch((x) => x.creationSettingsSettled({ saving: true, message: '', error: '' }));
+              void unwrap(target.save({ wordTarget: draft.wordTarget, askWhenThin: draft.askWhenThin })).then(
+                (view) => {
+                  dispatch((x) => x.creationSettingsSettled({ saving: false, message: '创作设置已保存' }));
+                  if (active && view !== undefined) dispatch((x) => x.creationSettingsLoaded(view as WorkbenchSettingsViewShape));
+                },
+                (cause: Error) => dispatch((x) => x.creationSettingsSettled({ saving: false, error: (cause as Error).message })),
               );
             },
             selectProject(id: string) { openProject(id); },
@@ -760,6 +812,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             namespace: llmConfig,
             mutate: (patch: Partial<LlmConfigDraftShape>) => dispatch((x) => x.settingsMutate(patch)),
             save: () => ui.saveLlmConfig(),
+          }, {
+            view: s.creationSettingsView,
+            draft: s.creationSettingsDraft,
+            namespace: workbenchSettings,
+            mutate: (patch: Partial<WorkbenchSettingsDraftShape>) => dispatch((x) => x.creationSettingsMutate(patch)),
+            save: () => ui.saveCreationSettings(),
           });
         };
 
@@ -806,6 +864,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           llmConfigDisposer = dispose;
           llmConfig = ctx.get('remote.novelLlmConfig', false) as LlmConfigNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: llm config Remote mount failed', cause); });
+        void ctx.remote.$mount(workbenchSettingsRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          workbenchSettingsDisposer = dispose;
+          workbenchSettings = ctx.get('remote.novelWorkbenchSettings', false) as WorkbenchSettingsNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: workbench settings Remote mount failed', cause); });
         return () => {
           active = false;
           capturedActions = undefined;
@@ -814,6 +877,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           onboarding = undefined;
           analyzer = undefined;
           llmConfig = undefined;
+          workbenchSettings = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();

@@ -6,6 +6,7 @@ import { uploadInvocations, uploadRemoteContribution } from './host/remote/uploa
 import { onboardingInvocations, onboardingRemoteContribution } from './host/remote/onboarding.js';
 import { onboardingAnalyzerInvocations, onboardingAnalyzerRemoteContribution } from './host/remote/onboarding-analyzer.js';
 import { llmConfigInvocations, llmConfigRemoteContribution } from './host/remote/llm-config.js';
+import { workbenchSettingsInvocations, workbenchSettingsRemoteContribution } from './host/remote/workbench-settings.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -15,13 +16,14 @@ export * from './host/remote/upload.js';
 export * from './host/remote/onboarding.js';
 export * from './host/remote/onboarding-analyzer.js';
 export * from './host/remote/llm-config.js';
+export * from './host/remote/workbench-settings.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
 /** Compatibility aggregation for the single Typert Host face. */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations],
 };
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution };

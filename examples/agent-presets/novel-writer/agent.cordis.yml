@@ -48,6 +48,10 @@
         （绕过 Host 会破坏 schema 校验与 C4 账本）。
       - 每次续写前先 novel_context 确认当前进度；把生成正文给用户预览，
         用户同意后才用 decision=accept 落盘，用户要改则调整后再续写。
+      - 创作设置（novel_context 返回的 creation 字段）：wordTarget 是目标字数；
+        若用户提供的内容明显不足以支撑 wordTarget 且 askWhenThin=true，先向用户
+        确认是否补充情节/细节再续写；askWhenThin=false 时按现有内容自然展开，
+        绝不注水凑数。
       - 若 accept 返回低置信结构化变更错误（Low-confidence ... require
         ConfirmationGate），告知用户在创作台 GUI 确认，不要反复重试。
       - 创作贴合 B4 风格、遵循 B1 规则、保持 C4 正史一致；同一 POV 下不得泄漏
