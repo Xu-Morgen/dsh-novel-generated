@@ -190,8 +190,10 @@ export function layerHashes(layers: OnboardingLayers): Record<OnboardingLayerKey
  *
  * This is a *prompt artifact*, not a sample/gold: it demonstrates the exact
  * per-layer candidate field names and nesting the model must reproduce. Its
- * content mirrors the frozen canonical corpus case `canonical-harbor-mystery`
- * (samples/i52/cases.json, immutable), so the example is schema-valid by
+ * core content mirrors the frozen canonical corpus case `canonical-harbor-mystery`
+ * (samples/i52/cases.json, immutable); the outline candidate additionally shows
+ * one `foreshadowing` and one `endings` object so the model sees those nested
+ * shapes (the frozen case leaves both empty). The example is schema-valid by
  * construction and is asserted parseable by the deterministic test suite.
  * The empty `candidates` example alone is not enough for weak models — the
  * observed failure mode is a shape collapse into generic
@@ -274,8 +276,21 @@ export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
             }],
           }],
         }],
-        foreshadowing: [],
-        endings: [],
+        // 超出冻结 canonical 样本的演示条目：为让模型看到 foreshadowing/endings
+        // 的「对象」形状而追加（prompt 工件，非样本/gold）。
+        foreshadowing: [{
+          id: 'foreshadow-map',
+          hint: '深夜码头旧灯塔里出现半张烧焦海图。',
+          payoff: '海图指向灯塔守夜人失踪的真相。',
+          status: 'planted',
+          knownBy: ['mira'],
+        }],
+        endings: [{
+          id: 'ending-truth',
+          title: '真相揭晓',
+          conditions: ['追查灯塔守夜人失踪真相'],
+          description: '米拉查明守夜人失踪与海图有关。',
+        }],
       }],
       confidence: 'medium',
       warnings: [],
@@ -328,10 +343,10 @@ export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
  * layer-level field leaked into a candidate is a contract violation.
  */
 const ONBOARDING_LAYER_CONTRACT_SUMMARY =
-  '每层 candidates 的字段契约（candidates 内禁止自造任何其他字段，也禁止把层级的 confidence/warnings/evidenceIds 放进候选）：' +
+  '每层 candidates 的字段契约（candidates 内禁止自造任何其他字段，也禁止把层级的 confidence/warnings/evidenceIds 放进候选；除非字段契约明确为字符串数组，否则数组元素必须是对象；所有枚举值必须逐字取自括号内选项，禁止自造）：' +
   'characters: id,name,aliases,kind(protagonist|antagonist|supporting|extra|pov),personality,background,motivation,goals,flaws,abilities,speechStyle,staticTraits,arc{startingPoint,desiredEnd,keyBeats},relationships,knowledgeIds；' +
   'worldview: id,kind(geography|history|faction|culture|race|concept|artifact),title,content,keywords,triggerMode(keyword|regex|constant),weight,parent,mutable；' +
-  'outline: id,structure(three-act|hero-journey|serial|free),logline,themes,acts,foreshadowing,endings；' +
+  'outline: id,structure(three-act|hero-journey|serial|free),logline,themes,acts[{id,index,title,goal,beats[{id,title,description,charactersInvolved,conflictType(internal|external|relational|world),prerequisites,optional,detailBeats[{id,title,summary,pov,wordTarget,points,status(planned|writing|done)}]}]}],foreshadowing[{id,hint,payoff,status(unplanted|planted|payed),knownBy}],endings[{id,title,conditions,description}]；' +
   'relationship: id,from,to,type(kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate),affinity,trust,status,milestones,knownTo；' +
   'state: id,storyTime,scene{location,timeOfDay,weather,season,atmosphere},characters[{characterId,location,alive,health,mood,inventory,condition,currentGoal,flags}]；' +
   'canon: id,storyTime,kind(event|decision|revelation|statechange|dialogue|correction),summary,detail,participants,location,consequences,affectedLayers。';
