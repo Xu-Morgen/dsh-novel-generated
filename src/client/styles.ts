@@ -54,19 +54,23 @@ export const WORKBENCH_STYLES = `
   --nv-sans: ${SANS_STACK};
   --nv-grid: ${GRID};
 
+  /* I54（D20/§14.8）：居中浮窗退役为 shell.overlay 内贴右、全高、非模态停靠侧板。
+     position:fixed + top/right/bottom:0 贴右全高；width:min(860px,100vw) 让窄屏占满
+     主视区但仍由同一 Slot/Fiber 管理；无遮罩即非模态；不再有窗口圆角与四向投影。 */
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(860px, 100vw);
+  height: 100%;
   display: flex;
   flex-direction: column;
-  min-width: 520px;
-  max-width: 860px;
-  min-height: 360px;
-  max-height: 80vh;
   overflow: hidden;
   color: var(--nv-ink);
   background: var(--nv-paper);
-  border: 1px solid var(--nv-line);
-  border-radius: calc(var(--nv-grid) * 1.5);
+  border-left: 1px solid var(--nv-line);
   font-family: var(--nv-sans);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.12);
   pointer-events: auto;
 }
 
