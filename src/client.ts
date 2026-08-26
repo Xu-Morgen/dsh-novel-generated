@@ -265,7 +265,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 层级导航 + 内容区（六层 / 六层初始化审阅 / 创作设置 / LLM 设置页）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeLayer: LayerId; showSettings: boolean; onboardingTab: boolean; creationSettingsTab: boolean; collapse(): void; close(): void; activate(id: LayerId): void; activateOnboarding(): void; activateCreationSettings(): void; toggleSettings(): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void }, layers: LayerData, ops: WorkbenchOps, selectedProjectId?: string, projects: Array<{ id: string; name: string }> = [], upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision) => void, applyOnboarding?: () => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -296,7 +296,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         ui.showSettings
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
           : ui.creationSettingsTab
-            ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save) : null)
+            ? (creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null)
             : ui.onboardingTab
               ? h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '' }, sourceEntry, review)
               : contentArea(h, selectedProjectId, workspace!, ui.activeLayer, layers, ops),
@@ -757,6 +757,19 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 (cause: Error) => dispatch((x) => x.creationSettingsSettled({ saving: false, error: (cause as Error).message })),
               );
             },
+            openCreationFolder() {
+              const target = workbenchSettings;
+              const projectId = currentProjectId;
+              if (!target || projectId === undefined) { dispatch((x) => x.creationSettingsSettled({ error: '请先选择作品' })); return; }
+              dispatch((x) => x.creationSettingsSettled({ message: '', error: '' }));
+              void unwrap(target.openProjectFolder(projectId)).then(
+                (result) => {
+                  if (!active) return;
+                  dispatch((x) => x.creationSettingsSettled({ message: `已打开作品落地文件夹：${(result as { path: string }).path}` }));
+                },
+                (cause: Error) => dispatch((x) => x.creationSettingsSettled({ error: (cause as Error).message })),
+              );
+            },
             selectProject(id: string) { openProject(id); },
             createProject(input: { projectId: string; name: string }) { createProject(input); },
             uploadFile(file: File) {
@@ -818,6 +831,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             namespace: workbenchSettings,
             mutate: (patch: Partial<WorkbenchSettingsDraftShape>) => dispatch((x) => x.creationSettingsMutate(patch)),
             save: () => ui.saveCreationSettings(),
+            projectId: s.selectedProjectId,
+            openFolder: () => ui.openCreationFolder(),
           });
         };
 

@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -219,6 +219,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
     : name === 'remote.novelWorkbenchSettings' ? {
       load: workbenchSettingsStub?.load ?? (async () => ({ wordTarget: 500, askWhenThin: true })),
       save: workbenchSettingsStub?.save ?? (async () => ({ wordTarget: 500, askWhenThin: true })),
+      openProjectFolder: workbenchSettingsStub?.openProjectFolder ?? (async () => ({ opened: true, path: 'C:\\dummy\\projects\\fixture-project' })),
     }
     : name === 'remote.novelOnboardingAnalyzer' ? (analyzer ?? { start: async () => { throw new Error('未注入 remote.novelOnboardingAnalyzer'); } })
     : undefined;
@@ -730,6 +731,28 @@ describe('LLM 设置页', () => {
     const updated = collect(render(), 'button').find((node) => node.props?.['data-novel-detail-card'] !== undefined);
     const titleText = (updated?.children?.[0] as FakeNode | undefined)?.children?.[0];
     expect(String(titleText ?? '')).toContain('火车相遇');
+  });
+
+  it('opens the selected project landing folder from creation settings', async () => {
+    const opened: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        workbenchSettings: {
+          load: async () => ({ wordTarget: 500, askWhenThin: true }),
+          openProjectFolder: async (projectId) => { opened.push(projectId); return { opened: true, path: `C:\\projects\\${projectId}` }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-workbench-settings-nav'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-open-project-folder'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(opened).toEqual(['fixture-project']);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-workbench-message'] !== undefined)).toBe(true);
   });
 });
 

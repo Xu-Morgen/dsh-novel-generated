@@ -5,7 +5,8 @@ import { workbenchSettingsSaveInputSchema, workbenchSettingsViewSchema } from '.
 
 /**
  * 创作台通用设置 Remote：`load` 回显目标字数与询问开关、`save` 落盘到
- * `novel-settings/workbench-settings.yaml`（Host 侧持久化，跨会话生效）。
+ * `novel-settings/workbench-settings.yaml`（Host 侧持久化，跨会话生效）；
+ * `openProjectFolder` 用平台文件管理器打开作品落地目录（仅返回路径，不读文件内容）。
  */
 const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown())): InvocationParameterDescriptor =>
   ({ name, wire: name, source: 'json', codec });
@@ -14,8 +15,14 @@ function workbenchSettingsInvocation(method: string, parameters: readonly Invoca
   return { id: `novel-creation-tool/novelWorkbenchSettings/${method}`, service: 'novelWorkbenchSettings', namespace: 'novelWorkbenchSettings', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
 }
 
+const openProjectFolderResultSchema = z.object({
+  opened: z.boolean(),
+  path: z.string(),
+}).strict();
+
 export const workbenchSettingsLoadInvocation = workbenchSettingsInvocation('load', [], strictCodec('novel-creation-tool#workbenchSettingsView', workbenchSettingsViewSchema));
 export const workbenchSettingsSaveInvocation = workbenchSettingsInvocation('save', [param('input', strictCodec('novel-creation-tool#workbenchSettingsSaveInput', workbenchSettingsSaveInputSchema))], strictCodec('novel-creation-tool#workbenchSettingsView', workbenchSettingsViewSchema));
-export const workbenchSettingsInvocations = [workbenchSettingsLoadInvocation, workbenchSettingsSaveInvocation] as const;
+export const workbenchSettingsOpenFolderInvocation = workbenchSettingsInvocation('openProjectFolder', [param('projectId', strictCodec('novel-creation-tool#projectId', z.string().min(1).max(64)))], strictCodec('novel-creation-tool#openProjectFolderResult', openProjectFolderResultSchema));
+export const workbenchSettingsInvocations = [workbenchSettingsLoadInvocation, workbenchSettingsSaveInvocation, workbenchSettingsOpenFolderInvocation] as const;
 // Unique `package` per client-mounted contribution (see editor.ts note).
 export const workbenchSettingsRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-workbench-settings', descriptors: [...workbenchSettingsInvocations] };

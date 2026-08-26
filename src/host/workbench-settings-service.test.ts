@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -33,6 +33,24 @@ describe('创作台通用设置（workbench-settings）', () => {
       await expect(service.save({ wordTarget: 2_000_000, askWhenThin: true })).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('opens the project landing folder with the platform opener and returns its path', async () => {
+    const projectsRoot = await makeRoot();
+    await mkdir(join(projectsRoot, 'demo'), { recursive: true });
+    const opened: string[] = [];
+    const service = createWorkbenchSettingsService(join(projectsRoot, 'settings'), projectsRoot, (directory) => { opened.push(directory); });
+    try {
+      const result = await service.openProjectFolder('demo');
+      expect(result.opened).toBe(true);
+      expect(result.path).toBe(join(projectsRoot, 'demo'));
+      expect(opened).toEqual([join(projectsRoot, 'demo')]);
+      // 未知/未创建项目与非法 id 均拒绝打开。
+      await expect(service.openProjectFolder('missing')).rejects.toThrow();
+      await expect(service.openProjectFolder('../escape')).rejects.toThrow();
+    } finally {
+      await rm(projectsRoot, { recursive: true, force: true });
     }
   });
 });

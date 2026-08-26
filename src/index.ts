@@ -186,11 +186,12 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     load: () => llmConfigService.load(),
     save: (input: unknown) => llmConfigService.save(input as Parameters<typeof llmConfigService.save>[0]),
   }, 'novelLlmConfig', 'novelLlmConfig'));
-  // 创作台通用设置：目标字数 + 内容不足时是否询问（Host 侧持久化）。
-  const workbenchSettingsService = createWorkbenchSettingsService(config.settingsRoot);
+  // 创作台通用设置：目标字数 + 内容不足时是否询问 + 打开作品落地文件夹（Host 侧持久化）。
+  const workbenchSettingsService = createWorkbenchSettingsService(config.settingsRoot, projectsRoot);
   ctx.provide('novelWorkbenchSettings', bindRemote({
     load: () => workbenchSettingsService.load(),
     save: (input: unknown) => workbenchSettingsService.save(input as Parameters<typeof workbenchSettingsService.save>[0]),
+    openProjectFolder: (projectId: unknown) => workbenchSettingsService.openProjectFolder(String(projectId)),
   }, 'novelWorkbenchSettings', 'novelWorkbenchSettings'));
   const analyzerService = createOnboardingAnalyzerService(llm, (dispose) => ctx.effect(() => dispose));
   // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
