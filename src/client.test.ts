@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; onboardingAnalyzer?: { start?: (input: unknown, settings: unknown) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -209,11 +209,13 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const workspace = makeWorkspace(viewModel, overrides);
   const remote = { $mount: async () => async () => {} };
   const llmConfig = mountOptions.llmConfig ?? {};
+  const analyzer = mountOptions.onboardingAnalyzer;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false })),
       save: llmConfig.save ?? (async () => ({ ok: true, modelRef: 'novel-custom/test' })),
     }
+    : name === 'remote.novelOnboardingAnalyzer' ? (analyzer ?? { start: async () => { throw new Error('未注入 remote.novelOnboardingAnalyzer'); } })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
@@ -659,6 +661,32 @@ describe('I53 DOCX new-work entry from an empty root', () => {
     expect(render().props?.['data-novel-project-open']).toBe('my-book');
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(true);
     expect(collect(render(), 'p').some((node) => node.props?.['data-novel-upload-result'] !== undefined)).toBe(true);
+  });
+});
+
+describe('I52 analysis failure surfaces a readable error in the review panel', () => {
+  it('shows the Host contract error when the first analysis is rejected', async () => {
+    const contractError = '六层分析结果不符合六层候选契约（layers.characters.candidates.0.aliases: Invalid input: expected array, received undefined）。模型输出已被拒绝且未写入任何层；请重试分析，或在审阅页对不合格层执行整层重生成。';
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { onboardingAnalyzer: { start: async () => { throw new Error(contractError); } } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    // The entry's textarea/button share one render closure; use the same tree so
+    // the typed source text is visible to the start handler.
+    const tree = render();
+    const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
+    const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
+    expect(textarea).toBeDefined();
+    expect(start).toBeDefined();
+    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '北港位于内海西岸。' } });
+    (start?.props?.onClick as () => void)();
+    await flush();
+    const error = collect(render(), 'p').find((node) => node.props?.['data-novel-onboarding-error'] !== undefined);
+    expect(error).toBeDefined();
+    expect(String(error?.children?.[0] ?? '')).toContain('不符合六层候选契约');
   });
 });
 

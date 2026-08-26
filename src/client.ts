@@ -515,7 +515,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           const session = result as { onboardingSessionId?: string };
           if (!session.onboardingSessionId) throw new Error('分析未返回会话 id');
           setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {} });
-        }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : undefined));
+        }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : { projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: (cause as Error).message }));
       };
       const decideLayer = (layer: OnboardingLayerId, decision: OnboardingDecision): void => {
         const target = onboarding;
