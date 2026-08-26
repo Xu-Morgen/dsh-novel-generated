@@ -266,10 +266,11 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   });
   ctx.provide('novelAgent', agentService);
   if (config.agentTools !== false) {
-    const tools = ctx.get('tools', false);
-    if (tools !== undefined) {
-      ctx.effect(() => registerNovelAgentTools(ctx, agentService));
-    }
+    // `tools` 注册表由宿主提供，可能晚于本插件激活：用 inject 懒注册，tools
+    // 可用/卸载时回调自动重跑；每次运行都以 ctx.effect 归属注册生命周期。
+    ctx.inject(['tools'], (toolsCtx) => {
+      toolsCtx.effect(() => registerNovelAgentTools(toolsCtx, agentService));
+    });
   }
   const typert = ctx.get('typert', false);
   if (typert !== undefined) {

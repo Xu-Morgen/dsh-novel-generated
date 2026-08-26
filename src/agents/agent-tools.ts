@@ -341,7 +341,9 @@ const TEXT_OUTPUT = {
 
 /** 注册小说创作工具到 DSH `tools` 注册表；返回卸载器（Fiber 归属）。 */
 export function registerNovelAgentTools(ctx: Context, service: NovelAgentService): () => void {
-  const tools = (ctx as unknown as { tools?: { register(def: unknown): unknown } }).tools;
+  // 经 get('tools', false) 读取可选服务；直接属性访问会被 Cordis 代理以
+  // “cannot get property without inject” 拒绝（tools 未声明进 inject）。
+  const tools = ctx.get('tools', false) as { register(def: unknown): unknown } | undefined;
   if (!tools) return () => {};
   const definitions: AgentToolDefinition[] = [
     {

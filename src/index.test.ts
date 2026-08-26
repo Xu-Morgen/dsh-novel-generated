@@ -42,6 +42,29 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     await fiber.dispose();
   });
 
+  it('registers the novel_* agent tools when the tools service is provided, and boots cleanly without it', async () => {
+    // 有 tools：apply 后经 inject 懒注册进注册表。
+    const registered: string[] = [];
+    const root = new Context();
+    root.provide('tools', {
+      register(def: { name: string }) {
+        registered.push(def.name);
+        return () => {};
+      },
+    });
+    const fiber = await root.plugin(apply);
+    expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_inspire']);
+    await fiber.dispose();
+    // 卸载后清空（下次重挂不再重复注册）。
+    expect(registered).toHaveLength(5);
+
+    // 无 tools：必须照常启动（此前 “cannot get property tools without inject” 崩溃）。
+    const bare = new Context();
+    const bareFiber = await bare.plugin(apply);
+    expect(bare.get('novelCreation')).toEqual({ version: '2.0.0', ready: true });
+    await bareFiber.dispose();
+  });
+
   it('wires I21 detection to the Host ctx.llm service while its Fiber is live', async () => {
     const root = new Context();
     root.provide('llm', {

@@ -190,15 +190,14 @@ describe('novel agent tools（对话创作入口）', () => {
 
   it('registers the five novel tools into the DSH tools registry and disposes cleanly', () => {
     const registered: string[] = [];
-    const disposers: Array<() => void> = [];
-    const ctx = {
-      tools: {
-        register(definition: { name: string }) {
-          registered.push(definition.name);
-          const disposer = () => { disposers.push(() => undefined); };
-          return disposer;
-        },
+    const registry = {
+      register(definition: { name: string }) {
+        registered.push(definition.name);
+        return () => undefined;
       },
+    };
+    const ctx = {
+      get(name: string) { return name === 'tools' ? registry : undefined; },
     } as never;
     const agent = { listProjects: async () => [] } as never;
     const dispose = registerNovelAgentTools(ctx, agent);
