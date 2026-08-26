@@ -46,6 +46,28 @@ export function assertFreeText(text: string): string {
   return normalized.trim();
 }
 
+/** One validation issue extracted from a Zod failure, for the concise error. */
+interface ContractIssue {
+  path?: Array<string | number>;
+  message?: string;
+}
+
+/**
+ * Map a strict-schema validation failure into a concise, actionable error while
+ * preserving the original ZodError as `cause` for server-side diagnostics.
+ *
+ * Rationale (design §14.7.3): illegal model output must fail closed with zero
+ * writes, but the raw multi-hundred-line issue dump is not a user-facing
+ * message. We surface the first few offending paths plus the recovery verb, and
+ * keep the full issues on `error.cause`.
+ */
+export function formatContractViolation(context: string, guidance: string, cause: unknown): Error {
+  const issues = ((cause as { issues?: ContractIssue[] } | null)?.issues ?? []).filter((issue) => issue.message !== undefined);
+  const sample = issues.slice(0, 3).map((issue) => `${(issue.path ?? []).join('.') || '(root)'}: ${issue.message}`).join('；');
+  const detail = sample ? `（前 ${Math.min(issues.length, 3)} 项：${sample}）` : '';
+  return new Error(`${context}不符合六层候选契约${detail}。${guidance}`, { cause });
+}
+
 /** Parse a model response into the strict I52 envelope (JSON only, no markdown). */
 export function parseOnboardingOutput(text: unknown): OnboardingAnalysisOutput {
   const raw = z.string().trim().min(1).parse(text);
@@ -55,7 +77,15 @@ export function parseOnboardingOutput(text: unknown): OnboardingAnalysisOutput {
   } catch (cause) {
     throw new Error('Onboarding output must be valid JSON', { cause });
   }
-  return onboardingAnalysisOutputSchema.parse(json);
+  try {
+    return onboardingAnalysisOutputSchema.parse(json);
+  } catch (cause) {
+    throw formatContractViolation(
+      '六层分析结果',
+      '模型输出已被拒绝且未写入任何层；请重试分析，或在审阅页对不合格层执行整层重生成。',
+      cause,
+    );
+  }
 }
 
 function assertUniqueIds(layers: OnboardingLayers): void {
@@ -155,16 +185,167 @@ export function layerHashes(layers: OnboardingLayers): Record<OnboardingLayerKey
   return result;
 }
 
+/**
+ * I52 few-shot example embedded in the analysis/regenerate prompts.
+ *
+ * This is a *prompt artifact*, not a sample/gold: it demonstrates the exact
+ * per-layer candidate field names and nesting the model must reproduce. Its
+ * content mirrors the frozen canonical corpus case `canonical-harbor-mystery`
+ * (samples/i52/cases.json, immutable), so the example is schema-valid by
+ * construction and is asserted parseable by the deterministic test suite.
+ * The empty `candidates` example alone is not enough for weak models — the
+ * observed failure mode is a shape collapse into generic
+ * `{type,name,summary,confidence,evidenceIds}` candidates (see
+ * formatContractViolation).
+ */
+export const ONBOARDING_PROMPT_EXAMPLE: OnboardingAnalysisOutput = {
+  evidence: {
+    e01: { sourceChunkIndex: 0, quote: '北港位于内海西岸，是北方最大的贸易港。' },
+    e02: { sourceChunkIndex: 1, quote: '米拉是一名见习测绘师，性格谨慎，擅长辨认星图。' },
+    e03: { sourceChunkIndex: 1, quote: '她受雇追查港口失踪的灯塔守夜人。' },
+    e04: { sourceChunkIndex: 2, quote: '米拉在码头的旧灯塔里发现了半张被烧焦的海图。' },
+  },
+  layers: {
+    characters: {
+      candidates: [{
+        id: 'mira',
+        name: '米拉',
+        aliases: [],
+        kind: 'protagonist',
+        personality: '谨慎',
+        background: '见习测绘师，擅长辨认星图',
+        motivation: '追查港口失踪的灯塔守夜人',
+        goals: ['查明灯塔守夜人失踪真相'],
+        flaws: [],
+        abilities: ['辨认星图'],
+        speechStyle: '',
+        staticTraits: [],
+        arc: { startingPoint: '受雇调查失踪案', desiredEnd: '揭开真相', keyBeats: [] },
+        relationships: [],
+        knowledgeIds: [],
+      }],
+      confidence: 'high',
+      warnings: [],
+      evidenceIds: ['e02', 'e03'],
+    },
+    worldview: {
+      candidates: [{
+        id: 'north-harbor',
+        kind: 'geography',
+        title: '北港',
+        content: '北港位于内海西岸，是北方最大的贸易港。',
+        keywords: ['北港'],
+        triggerMode: 'keyword',
+        weight: 1,
+        parent: null,
+        mutable: true,
+      }],
+      confidence: 'high',
+      warnings: [],
+      evidenceIds: ['e01'],
+    },
+    outline: {
+      candidates: [{
+        id: 'outline-harbor-mystery',
+        structure: 'three-act',
+        logline: '一名测绘师追查港口灯塔守夜人失踪之谜。',
+        themes: ['追查'],
+        acts: [{
+          id: 'act-1',
+          index: 0,
+          title: '第一幕',
+          goal: '接受委托',
+          beats: [{
+            id: 'beat-1',
+            title: '午夜旧灯塔',
+            description: '米拉在旧灯塔发现被烧焦的海图。',
+            charactersInvolved: ['mira'],
+            conflictType: 'external',
+            prerequisites: [],
+            optional: false,
+            detailBeats: [{
+              id: 'detail-1',
+              title: '发现海图',
+              summary: '在码头旧灯塔里发现半张烧焦海图',
+              pov: 'mira',
+              wordTarget: 500,
+              points: ['发现海图'],
+              status: 'planned',
+            }],
+          }],
+        }],
+        foreshadowing: [],
+        endings: [],
+      }],
+      confidence: 'medium',
+      warnings: [],
+      evidenceIds: ['e03', 'e04'],
+    },
+    relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+    state: {
+      candidates: [{
+        id: 'initial-state',
+        storyTime: '',
+        scene: { location: '旧灯塔', timeOfDay: '深夜', weather: '', season: '', atmosphere: '' },
+        characters: [{
+          characterId: 'mira',
+          location: '旧灯塔',
+          alive: true,
+          health: '健康',
+          mood: '警觉',
+          inventory: ['半张烧焦的海图'],
+          condition: '',
+          currentGoal: '追查灯塔守夜人失踪',
+          flags: {},
+        }],
+      }],
+      confidence: 'medium',
+      warnings: [],
+      evidenceIds: ['e04'],
+    },
+    canon: {
+      candidates: [{
+        id: 'canon-harbor-map',
+        storyTime: '',
+        kind: 'event',
+        summary: '米拉在旧灯塔发现半张烧焦的海图。',
+        detail: '深夜，米拉在码头的旧灯塔里发现了半张被烧焦的海图。',
+        participants: ['mira'],
+        location: '旧灯塔',
+        consequences: [],
+        affectedLayers: ['C5'],
+      }],
+      confidence: 'high',
+      warnings: [],
+      evidenceIds: ['e04'],
+    },
+  },
+};
+
+/**
+ * Compact per-layer candidate field contracts for the prompts. Each layer is a
+ * closed field list; any extra field (e.g. generic `type/name/summary`) or a
+ * layer-level field leaked into a candidate is a contract violation.
+ */
+const ONBOARDING_LAYER_CONTRACT_SUMMARY =
+  '每层 candidates 的字段契约（candidates 内禁止自造任何其他字段，也禁止把层级的 confidence/warnings/evidenceIds 放进候选）：' +
+  'characters: id,name,aliases,kind(protagonist|antagonist|supporting|extra|pov),personality,background,motivation,goals,flaws,abilities,speechStyle,staticTraits,arc{startingPoint,desiredEnd,keyBeats},relationships,knowledgeIds；' +
+  'worldview: id,kind(geography|history|faction|culture|race|concept|artifact),title,content,keywords,triggerMode(keyword|regex|constant),weight,parent,mutable；' +
+  'outline: id,structure(three-act|hero-journey|serial|free),logline,themes,acts,foreshadowing,endings；' +
+  'relationship: id,from,to,type(kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate),affinity,trust,status,milestones,knownTo；' +
+  'state: id,storyTime,scene{location,timeOfDay,weather,season,atmosphere},characters[{characterId,location,alive,health,mood,inventory,condition,currentGoal,flags}]；' +
+  'canon: id,storyTime,kind(event|decision|revelation|statechange|dialogue|correction),summary,detail,participants,location,consequences,affectedLayers。';
+
 /** Build the deterministic I52 prompt for a full six-layer analysis. */
 export function buildOnboardingPrompt(input: OnboardingAnalysisInput): string {
   return [
     '你是小说六层初始化分析器。根据输入文本生成严格候选包，只输出一个 JSON 对象，不得解释，不得写文件，不得使用 Markdown。',
     '必须输出 evidence（共享证据 map，键为证据 id，值为 sourceChunkIndex 与 quote）与 layers（六层）。',
     '六层为：characters(B3)、worldview(B2)、outline(B5)、relationship(C1)、state(C2)、canon(C4)。每层结构为 {candidates, confidence, warnings, evidenceIds}。',
-    '每条候选必须复用既有 Domain Schema，并携带 id；evidenceIds 引用 evidence map；confidence 取 low|medium|high。',
+    ONBOARDING_LAYER_CONTRACT_SUMMARY,
     '强制约束：B3 的 relationships/knowledgeIds/arc.keyBeats 必须为空数组；C2 只表达输入终点/故事起点，仅含 scene 与 characters 子集；C4 只包含文本明确事件且可为空数组。',
-    '严格禁止：C3 知情层、items、factions、globalFlags、以及任何 C3/知识泄漏推断。',
-    '输出格式：{"evidence":{"e1":{"sourceChunkIndex":0,"quote":"原文证据"}},"layers":{"characters":{"candidates":[],"confidence":"high","warnings":[],"evidenceIds":[]},...}}',
+    '严格禁止：C3 知情层、items、factions、globalFlags、以及任何 C3/知识泄漏推断；candidates 内禁止出现 type/name/summary/confidence/evidenceIds 等通用字段。',
+    `完整输出示例（仅演示字段名与嵌套结构，必须逐字遵循其键名；示例内容为格式演示，不得照抄到你的输出）：${JSON.stringify(ONBOARDING_PROMPT_EXAMPLE)}`,
     `输入文本块：${JSON.stringify(input.chunks)}`,
     `绑定（仅供你输出合法性参考，不得改写）：projectId=${input.projectId} onboardingSessionId=${input.onboardingSessionId} sourceHash=${input.sourceHash}`,
   ].join('\n');
@@ -176,6 +357,8 @@ export function buildRegeneratePrompt(input: OnboardingAnalysisInput, layer: Onb
     '你是小说六层初始化分析器的单层重生成模块。',
     `只重新生成「${LAYER_KEY_TO_NAME[layer]}」这一层，严格保持其候选、confidence、warnings 与 evidenceIds 的结构契约。`,
     '只输出该层的 JSON 对象（{candidates,confidence,warnings,evidenceIds}），不得输出其他五层，不得解释，不得写文件，不得使用 Markdown。',
+    ONBOARDING_LAYER_CONTRACT_SUMMARY,
+    `本层候选字段示例（仅演示字段名与结构，必须逐字遵循其键名；内容不得照抄）：${JSON.stringify(ONBOARDING_PROMPT_EXAMPLE.layers[layer].candidates)}`,
     layer === 'characters' ? 'B3 的 relationships/knowledgeIds/arc.keyBeats 必须为空数组。' : '',
     layer === 'state' ? 'C2 只表达输入终点/故事起点，仅含 scene 与 characters 子集。' : '',
     layer === 'canon' ? 'C4 只包含文本明确事件且可为空数组。' : '',

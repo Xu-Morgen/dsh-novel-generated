@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
   assertFreeText,
   assertOnboardingOutput,
+  buildOnboardingPrompt,
+  buildRegeneratePrompt,
   byteLength,
   layerHash,
   layerHashes,
+  ONBOARDING_PROMPT_EXAMPLE,
   parseOnboardingOutput,
   reduceOnboardingResult,
   FREE_TEXT_MAX_BYTES,
 } from './analyzer.js';
-import { ONBOARDING_LAYER_KEYS, type OnboardingAnalysisOutput, type OnboardingLayers } from '../schema/onboarding.js';
+import { ONBOARDING_LAYER_KEYS, type OnboardingAnalysisInput, type OnboardingAnalysisOutput, type OnboardingLayers } from '../schema/onboarding.js';
 
 function emptyLayers(): OnboardingLayers {
   return {
@@ -31,6 +34,13 @@ function output(overrides: Partial<OnboardingAnalysisOutput> = {}): OnboardingAn
 }
 
 const session = { projectId: 'demo', onboardingSessionId: 'sess-1', sourceHash: 'a'.repeat(64) };
+
+const analysisInput: OnboardingAnalysisInput = {
+  projectId: 'demo',
+  onboardingSessionId: 'sess-1',
+  sourceHash: 'a'.repeat(64),
+  chunks: [{ index: 0, text: '北港位于内海西岸。米拉是一名测绘师。', startOffset: 0, endOffset: 21 }],
+};
 
 describe('I52 onboarding analyzer core', () => {
   it('normalizes free text and rejects empty/NUL/oversized before the LLM', () => {
@@ -87,5 +97,57 @@ describe('I52 onboarding analyzer core', () => {
     for (const key of ONBOARDING_LAYER_KEYS) {
       if (key !== 'worldview') expect(mutatedHashes[key]).toBe(hashes[key]);
     }
+  });
+
+  it('embeds a schema-valid full six-layer example and per-layer contracts in the analysis prompt', () => {
+    const prompt = buildOnboardingPrompt(analysisInput);
+    // Concrete nested keys must be present (previously the example showed only
+    // empty candidates, which let the model invent its own shape).
+    expect(prompt).toContain('"triggerMode"');
+    expect(prompt).toContain('"detailBeats"');
+    expect(prompt).toContain('"arc"');
+    expect(prompt).toContain('"storyTime"');
+    expect(prompt).toMatch(/禁止.*(type|name|summary|confidence|evidenceIds)/);
+    // The embedded example itself must be a valid I52 envelope, so the model
+    // always sees a parseable reference shape.
+    expect(parseOnboardingOutput(JSON.stringify(ONBOARDING_PROMPT_EXAMPLE)).layers.characters.candidates[0].kind).toBe('protagonist');
+  });
+
+  it('embeds the exact target layer candidate example in regenerate prompts', () => {
+    for (const layer of ONBOARDING_LAYER_KEYS) {
+      const prompt = buildRegeneratePrompt(analysisInput, layer);
+      expect(prompt).toContain('candidates');
+      expect(prompt).toContain(JSON.stringify(ONBOARDING_PROMPT_EXAMPLE.layers[layer].candidates).slice(0, 40));
+    }
+  });
+
+  it('reports a concise actionable error for a shape-collapsed generic model output', () => {
+    // Regression fixture: the model ignored every per-layer contract and
+    // produced generic {type,name,summary,confidence,evidenceIds} candidates.
+    const generic = {
+      evidence: {},
+      layers: {
+        characters: { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] },
+        worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+        canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      },
+    };
+    let caught: unknown;
+    try {
+      parseOnboardingOutput(JSON.stringify(generic));
+      throw new Error('unreachable');
+    } catch (error) {
+      caught = error;
+    }
+    const message = (caught as Error).message;
+    expect(message).toMatch(/不符合六层候选契约/);
+    expect(message).toMatch(/请重试分析/);
+    // The raw multi-hundred-line issue dump must not reach the user.
+    expect(message.length).toBeLessThan(600);
+    // Full diagnostics remain available server-side on `cause`.
+    expect((caught as Error & { cause?: unknown }).cause).toBeDefined();
   });
 });

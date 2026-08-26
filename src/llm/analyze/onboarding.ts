@@ -3,6 +3,7 @@ import {
   assertOnboardingOutput,
   buildOnboardingPrompt,
   buildRegeneratePrompt,
+  formatContractViolation,
   parseOnboardingOutput,
   reduceOnboardingResult,
 } from '../../core/onboarding/analyzer.js';
@@ -77,13 +78,21 @@ function toSession(input: OnboardingAnalysisInput): OnboardingSession {
 }
 
 function parseLayer(layer: OnboardingLayerKey, value: unknown): OnboardingLayers[OnboardingLayerKey] {
-  switch (layer) {
-    case 'characters': return onboardingCharacterLayerSchema.parse(value);
-    case 'worldview': return onboardingWorldviewLayerSchema.parse(value);
-    case 'outline': return onboardingOutlineLayerSchema.parse(value);
-    case 'relationship': return onboardingRelationshipLayerSchema.parse(value);
-    case 'state': return onboardingStateLayerSchema.parse(value);
-    case 'canon': return onboardingCanonLayerSchema.parse(value);
+  try {
+    switch (layer) {
+      case 'characters': return onboardingCharacterLayerSchema.parse(value);
+      case 'worldview': return onboardingWorldviewLayerSchema.parse(value);
+      case 'outline': return onboardingOutlineLayerSchema.parse(value);
+      case 'relationship': return onboardingRelationshipLayerSchema.parse(value);
+      case 'state': return onboardingStateLayerSchema.parse(value);
+      case 'canon': return onboardingCanonLayerSchema.parse(value);
+    }
+  } catch (cause) {
+    throw formatContractViolation(
+      `「${layer}」层重生成结果`,
+      '该层候选已被拒绝且未写入任何层；请对不合格层重新发起整层重生成。',
+      cause,
+    );
   }
 }
 

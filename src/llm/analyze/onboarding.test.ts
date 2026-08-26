@@ -67,6 +67,14 @@ describe('I52 onboarding six-layer analyzer', () => {
     expect(() => parseLayerJson('not json')).toThrow(/valid JSON/);
   });
 
+  it('fails a single-layer regeneration with a concise contract error on generic candidates', async () => {
+    const loaded = await corpus();
+    const sample = loaded.cases[0];
+    const prior = await analyzeOnboardingText(backendReturning(sample.expected), inputFor(sample.id, sample.text), settings);
+    const genericCharacters = { candidates: [{ name: '米拉', type: 'character', summary: 'x', confidence: 'high', evidenceIds: [] }], confidence: 'high', warnings: [], evidenceIds: [] };
+    await expect(regenerateOnboardingLayer(backendReturning(genericCharacters), inputFor(sample.id, sample.text), prior, 'characters', settings)).rejects.toThrow(/「characters」层重生成结果不符合六层候选契约/);
+  });
+
   it('regresses the frozen corpus including held-out cases at threshold', async () => {
     const loaded = await corpus();
     expect(loaded.iteration).toBe('I52');
