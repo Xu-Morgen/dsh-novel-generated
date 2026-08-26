@@ -688,6 +688,35 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     expect(error).toBeDefined();
     expect(String(error?.children?.[0] ?? '')).toContain('不符合六层候选契约');
   });
+
+  it('shows the generated candidate content per layer before any verdict', async () => {
+    const layers = {
+      characters: { candidates: [{ id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '见习测绘师', motivation: '追查守夜人', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }], confidence: 'high', warnings: [], evidenceIds: ['e1'] },
+      worldview: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      outline: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      relationship: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      state: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+      canon: { candidates: [], confidence: 'high', warnings: [], evidenceIds: [] },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        onboardingAnalyzer: { start: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', sourceHash: 'a'.repeat(64), evidence: {}, layers }) },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const tree = render();
+    const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
+    const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
+    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '北港位于内海西岸。' } });
+    (start?.props?.onClick as () => void)();
+    await flush();
+    const value = collect(render(), 'span').find((node) => node.props?.['data-novel-onboarding-value'] === 'characters');
+    expect(value).toBeDefined();
+    expect(String(value?.children?.[0] ?? '')).toContain('米拉');
+  });
 });
 
 describe('I46 visual system and Fiber cleanup (R10-2 / R10-3)', () => {

@@ -512,9 +512,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         if (!active || target === undefined) { setOnboarding({ projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: '分析服务不可用' }); return; }
         void unwrap(target.start({ projectId, sourceHash, text }, undefined)).then((result) => {
           if (!active) return;
-          const session = result as { onboardingSessionId?: string };
+          const session = result as { onboardingSessionId?: string; layers?: unknown };
           if (!session.onboardingSessionId) throw new Error('分析未返回会话 id');
-          setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {} });
+          // Keep the six-layer candidate package so the review panel can show
+          // what the model produced before the user decides (design §14.7.4).
+          setOnboarding({ projectId, onboardingSessionId: session.onboardingSessionId, sourceHash, decisions: {}, layers: session.layers });
         }, (cause: Error) => setOnboarding(currentOnboarding ? { ...currentOnboarding, error: (cause as Error).message } : { projectId, onboardingSessionId: '', sourceHash, decisions: {}, error: (cause as Error).message }));
       };
       const decideLayer = (layer: OnboardingLayerId, decision: OnboardingDecision): void => {

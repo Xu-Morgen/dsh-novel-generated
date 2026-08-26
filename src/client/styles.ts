@@ -126,6 +126,19 @@ export const WORKBENCH_STYLES = `
   min-height: 0;
 }
 
+/* 唯一纵向滚动区：根节点 overflow:hidden + 80vh 上限，导航固定，主列内部滚动
+   （此前 main 无滚动规则，审阅面板超高即被裁剪且无滚动条）。 */
+.nv-workbench__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 2);
+  overflow-y: auto;
+  padding: calc(var(--nv-grid) * 2);
+}
+
 .nv-workbench__nav {
   width: 160px;
   flex: none;
@@ -162,10 +175,8 @@ export const WORKBENCH_STYLES = `
 }
 
 .nv-workbench__content {
-  flex: 1;
+  flex: none;
   min-width: 0;
-  overflow: auto;
-  padding: calc(var(--nv-grid) * 2);
 }
 
 .nv-workbench__empty {
@@ -609,6 +620,160 @@ export const WORKBENCH_STYLES = `
   font-family: var(--nv-sans);
   font-size: 13px;
   line-height: 1.6;
+  color: var(--nv-ink-dim);
+}
+
+/* I52/I53 六层初始化审阅：逐层卡片展示候选内容 + 裁决按钮（设计 §14.7.4）。 */
+.nv-onboarding__title {
+  margin: 0;
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  color: var(--nv-ink);
+}
+
+.nv-onboarding__hint {
+  margin: 0 0 var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nv-ink-faint);
+}
+
+.nv-onboarding__layers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+}
+
+.nv-onboarding__layer {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  background: var(--nv-paper);
+}
+
+.nv-onboarding__layer-label {
+  display: block;
+  margin-bottom: calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nv-ink);
+}
+
+.nv-onboarding__verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-onboarding__verdict {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  background: var(--nv-paper-raised);
+  color: var(--nv-ink-dim);
+  padding: calc(var(--nv-grid) * 0.375) calc(var(--nv-grid) * 0.75);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.nv-onboarding__verdict:hover:not(:disabled) {
+  background: var(--nv-hover);
+  color: var(--nv-ink);
+}
+
+.nv-onboarding__verdict.is-active {
+  color: var(--nv-cinnabar);
+  border-color: var(--nv-cinnabar);
+}
+
+.nv-onboarding__verdict:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nv-onboarding__candidates {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.6);
+  margin-top: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-onboarding__candidate {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.375);
+  padding: calc(var(--nv-grid) * 0.6) calc(var(--nv-grid) * 0.75);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  background: var(--nv-paper-raised);
+}
+
+.nv-onboarding__candidate-field {
+  display: flex;
+  gap: var(--nv-grid);
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.nv-onboarding__candidate-key {
+  flex: none;
+  min-width: 4.5em;
+  color: var(--nv-ink-faint);
+}
+
+.nv-onboarding__candidate-value {
+  color: var(--nv-ink);
+}
+
+.nv-onboarding__no-candidates {
+  margin: calc(var(--nv-grid) * 0.75) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-onboarding__apply {
+  margin-top: var(--nv-grid);
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-cinnabar);
+  color: #fff;
+  padding: calc(var(--nv-grid) * 0.625) var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.nv-onboarding__apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nv-onboarding__error {
+  margin: var(--nv-grid) 0 0;
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  border: 1px solid var(--nv-danger);
+  border-radius: calc(var(--nv-grid) * 0.6);
+  color: var(--nv-danger);
+  background: var(--nv-paper-raised);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+}
+
+.nv-onboarding__result {
+  margin: var(--nv-grid) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
   color: var(--nv-ink-dim);
 }
 
