@@ -2,6 +2,9 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { numberCodec, strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：运行态/任务态枚举从 core/queue/schema.ts 派生（I72 统计口径与 I65 队列
+// 同一状态源；纯 zod 模块可入 Client bundle 图 —— 架构审查 §6.3/§9#3）。
+import { queueRunStateSchema, queueTaskStatusSchema } from '../../core/queue/schema.js';
 
 /**
  * I72 写作进度面板 Remote（design §14.10「写作进度」/ R14-7）。
@@ -60,7 +63,7 @@ const taskStatusCountsWireSchema = z.object({
 }).strict();
 
 export const queueSummaryWireSchema = z.object({
-  runState: z.enum(['idle', 'running', 'paused', 'stopped-hard', 'stopped-soft', 'budget-exhausted', 'completed']),
+  runState: queueRunStateSchema,
   consumedUnits: z.number().int().nonnegative(),
   taskCounts: taskStatusCountsWireSchema,
   totalTasks: z.number().int().nonnegative(),
@@ -136,7 +139,7 @@ export const taskHistoryRowWireSchema = z.object({
   chapterId: z.string().min(1),
   cardTitle: z.string(),
   cardPov: z.string().min(1),
-  status: z.enum(['queued', 'running', 'candidate-ready', 'failed', 'cancelled', 'completed']),
+  status: queueTaskStatusSchema,
   attempts: z.number().int().nonnegative(),
   budgetUnits: z.number().int().nonnegative().nullable(),
   error: z.string().nullable(),

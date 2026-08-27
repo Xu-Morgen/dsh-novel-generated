@@ -2,6 +2,13 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：wire schema 从 core schema 派生（架构审查 §6.3/§9#3）：偏差（core/schema/
+// outline-progress）、导航（core/queue/schema 的 queueNavigationSchema ——
+// OutlineNavigation 的持久化 wire 形状）、灵感方向（core/schema/inspiration）。
+// 三个模块都是纯 zod，Client bundle 经 shared.ts 解析本文件完整导入图可安全入图。
+import { outlineDeviationSchema } from '../../core/schema/outline-progress.js';
+import { queueNavigationSchema } from '../../core/queue/schema.js';
+import { directionSchema } from '../../core/schema/inspiration.js';
 
 /**
  * I68 C6 进度与灵感方向落地 Remote（design §14.10「C6 与灵感落地」/ R14-3）。
@@ -53,24 +60,9 @@ export const progressActWireSchema = z.object({
   beats: z.array(progressBeatWireSchema),
 }).strict();
 
-export const progressDeviationWireSchema = z.object({
-  id: z.string().min(1),
-  planned: z.string().min(1),
-  actual: z.string().min(1),
-  reason: z.string().min(1),
-  reconciled: z.boolean(),
-}).strict();
+export const progressDeviationWireSchema = outlineDeviationSchema;
 
-export const progressNavigationWireSchema = z.object({
-  actId: z.string().min(1),
-  beatId: z.string().min(1),
-  title: z.string().min(1),
-  description: z.string().min(1),
-  prerequisites: z.array(z.string()),
-  prerequisitesMet: z.boolean(),
-  instruction: z.string().min(1),
-  deviationIds: z.array(z.string()),
-}).strict();
+export const progressNavigationWireSchema = queueNavigationSchema;
 
 export const progressConsistencyWireSchema = z.object({
   currentBeatCompleted: z.boolean(),
@@ -90,19 +82,8 @@ export const progressProjectionWireSchema = z.object({
   consistency: progressConsistencyWireSchema,
 }).strict();
 
-/** 灵感方向（与 I45 directionSchema 同构；strict 复验由 Host 服务端执行）。 */
-export const progressDirectionWireSchema = z.object({
-  id: z.string().trim().min(1),
-  title: z.string().trim().min(1),
-  premise: z.string().trim().min(1),
-  changes: z.object({
-    logline: z.string().trim().min(1).optional(),
-    themes: z.array(z.string().trim().min(1)).optional(),
-    outlineNote: z.string().trim().min(1),
-    progressNote: z.string().trim().min(1),
-  }).strict(),
-  rationale: z.string().trim().min(1),
-}).strict();
+/** 灵感方向（core/schema/inspiration.directionSchema 单一来源；strict 复验由 Host 服务端执行）。 */
+export const progressDirectionWireSchema = directionSchema;
 
 /** select 入参：作者选定的方向（Host 复验后持久化进 Gate payload）。 */
 export const progressSelectInputWireSchema = z.object({

@@ -2,6 +2,20 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：wire schema 从 core schema 派生（架构审查 §6.3/§9#3，沿用 timeline/editor
+// 直接复用先例）。core/schema/knowledge.ts 与 core/knowledge/actions.ts 都是纯
+// zod/纯函数模块（actions 文档明确「不依赖 node:fs/node:crypto」，Client bundle
+// 经 shared.ts 解析本文件完整导入图可安全入图）。
+import {
+  knowledgeEntrySchema,
+  knowledgeKindSchema,
+  knowledgeStatusSchema,
+  revealPlanSchema,
+} from '../../core/schema/knowledge.js';
+import {
+  knowledgeChangeInputSchema,
+  knowledgeChangeKindSchema,
+} from '../../core/knowledge/actions.js';
 
 /**
  * I66 C3 知情与揭示管理面 Remote（design §14.10「C3 知情与揭示」/ R14-1）。
@@ -14,34 +28,26 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
  *   status / 未知 entry / 已知情 holder / 未知角色零写拒绝），再写入 I11 Gate
  *   成为 pending（未确认零写）；
  * - `accept`：Gate 确认后受控写回（知情只增不退；已生效变更幂等 no-op）；
- * - `reject`：Gate 拒绝（C3 零写）；`pending`：待确认提案只读列表（重载一致）。
+ * - `reject`：Gate 拒绝（C3 零写）；
+ * - `pending`：待确认提案只读列表（服务返回裸数组，wire 契约即裸数组，组合根
+ *   不再整形 —— I77 修复审查 §8#1 的补丁，契约漂移在类型层暴露）。
  *
  * 不变式：所有参数/结果都是最小 owned JSON；Client 不持有任何领域真相与文件
- * 路径。本模块只依赖 zod 与纯 schema（Client bundle 会经 shared.ts 解析本文件
- * 完整导入图；core/knowledge/actions 是 Host-only 校验/写回逻辑，不得入图）。
- * wire 形状与 host/knowledge-manager-service 投影对齐（strict），由 Host 服务端
- * 再经 core 合同严格复验。
+ * 路径。wire 形状以 core schema 为单一来源（strict）：kind/status/revealPlan/
+ * entry（core/schema/knowledge）+ change input/kind（core/knowledge/actions），
+ * 由 Host 服务端再经 core 合同严格复验。
  */
 
-export const knowledgeStatusWireSchema = z.enum(['hidden', 'partially-revealed', 'revealed']);
-export const knowledgeKindWireSchema = z.enum(['secret', 'foreshadow', 'plotpoint', 'backstory']);
-export const knowledgeChangeKindWireSchema = z.enum(['reveal', 'holder-add']);
+export const knowledgeStatusWireSchema = knowledgeStatusSchema;
+export const knowledgeKindWireSchema = knowledgeKindSchema;
+export const knowledgeChangeKindWireSchema = knowledgeChangeKindSchema;
 
-export const knowledgeRevealPlanWireSchema = z.object({
-  revealTo: z.array(z.string().min(1)),
-  revealAt: z.string().min(1),
-}).strict();
+export const knowledgeRevealPlanWireSchema = revealPlanSchema;
 
-export const knowledgeEntryWireSchema = z.object({
-  id: z.string().min(1),
-  fact: z.string().min(1),
-  kind: knowledgeKindWireSchema,
-  status: knowledgeStatusWireSchema,
-  holders: z.array(z.string().min(1)),
-  revealPlan: knowledgeRevealPlanWireSchema,
-  /** POV 边界提示（Host 解析角色名生成；作者视角速览）。 */
+// C3 entry 的 wire 投影 = core entry 去掉持久化 version 字段 + POV 边界提示。
+export const knowledgeEntryWireSchema = knowledgeEntrySchema.omit({ version: true }).extend({
   povHint: z.string().min(1),
-}).strict();
+});
 
 export const knowledgeCharacterWireSchema = z.object({
   characterId: z.string().min(1),
@@ -84,21 +90,8 @@ export const knowledgeEntryDetailWireSchema = z.object({
   pendingProposals: z.array(knowledgeProposalViewWireSchema),
 }).strict();
 
-/** 与 core/knowledge/actions 的 knowledgeChangeInputSchema 同构（wire 形状 strict）。 */
-const knowledgeChangeInputWireSchema = z.discriminatedUnion('kind', [
-  z.object({
-    kind: z.literal('reveal'),
-    entryId: z.string().min(1).max(64),
-    holders: z.array(z.string().min(1).max(64)).min(1),
-    status: z.enum(['partially-revealed', 'revealed']).optional(),
-    revealAt: z.string().trim().min(1).optional(),
-  }).strict(),
-  z.object({
-    kind: z.literal('holder-add'),
-    entryId: z.string().min(1).max(64),
-    holders: z.array(z.string().min(1).max(64)).min(1),
-  }).strict(),
-]);
+/** 与 core/knowledge/actions 的 knowledgeChangeInputSchema 同一来源（wire 形状 strict）。 */
+const knowledgeChangeInputWireSchema = knowledgeChangeInputSchema;
 
 export const knowledgeProposeOutcomeWireSchema = z.object({
   projectId: z.string().min(1),
@@ -122,10 +115,8 @@ export const knowledgeRejectOutcomeWireSchema = z.object({
   status: z.literal('rejected'),
 }).strict();
 
-export const knowledgePendingOutcomeWireSchema = z.object({
-  projectId: z.string().min(1),
-  proposals: z.array(knowledgeProposalViewWireSchema),
-}).strict();
+/** I77：pending 的 wire 契约即领域服务返回的裸数组（见模块注释）。 */
+export const knowledgePendingResultWireSchema = z.array(knowledgeProposalViewWireSchema);
 
 // I75：`param`/`knowledgeInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
 const knowledgeInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
@@ -152,7 +143,7 @@ export const knowledgeRejectInvocation = knowledgeInvocation('reject', [
 ], strictCodec('novel-creation-tool#novelKnowledgeManager:reject', knowledgeRejectOutcomeWireSchema));
 export const knowledgePendingInvocation = knowledgeInvocation('pending', [
   param('projectId', stringCodec),
-], strictCodec('novel-creation-tool#novelKnowledgeManager:pending', knowledgePendingOutcomeWireSchema));
+], strictCodec('novel-creation-tool#novelKnowledgeManager:pending', knowledgePendingResultWireSchema));
 
 export const knowledgeInvocations = [
   knowledgeListInvocation,

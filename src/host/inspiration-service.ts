@@ -1,33 +1,13 @@
-import { z } from 'zod';
 import { outlineSchema, type Outline } from '../core/schema/outline.js';
 import { outlineProgressSchema, type OutlineProgress } from '../core/schema/outline-progress.js';
 import type { ConfirmationRecord } from '../core/schema/confirm.js';
-
-const directionSchema = z.object({
-  id: z.string().trim().min(1),
-  title: z.string().trim().min(1),
-  premise: z.string().trim().min(1),
-  changes: z.object({
-    logline: z.string().trim().min(1).optional(),
-    themes: z.array(z.string().trim().min(1)).optional(),
-    outlineNote: z.string().trim().min(1),
-    progressNote: z.string().trim().min(1),
-  }).strict(),
-  rationale: z.string().trim().min(1),
-}).strict();
-/** I45 灵感方向 schema；I68（进度与灵感落地）复用同一 strict 合同复验 select/apply 载荷。 */
-export { directionSchema };
-export type InspirationDirection = z.infer<typeof directionSchema>;
-
-export const inspirationResultSchema = z.object({
-  directions: z.array(directionSchema).min(2).max(3),
-}).strict().superRefine((value, context) => {
-  const ids = new Set(value.directions.map((direction) => direction.id));
-  const premises = new Set(value.directions.map((direction) => direction.premise));
-  if (ids.size !== value.directions.length) context.addIssue({ code: 'custom', message: 'Inspiration direction IDs must be distinct' });
-  if (premises.size !== value.directions.length) context.addIssue({ code: 'custom', message: 'Inspiration directions must be distinguishable' });
-});
-export type InspirationResult = z.infer<typeof inspirationResultSchema>;
+// I77：灵感方向/结果 schema 收拢到 core/schema/inspiration.ts 单一来源（wire
+// 层派生与 I68 复验共用同一合同；架构审查 §6.3/§9#3），本服务导入 + re-export
+// 保持既有导入面（progress-inspiration-service / 测试）不变。
+import { directionSchema, inspirationResultSchema } from '../core/schema/inspiration.js';
+import type { InspirationDirection, InspirationResult } from '../core/schema/inspiration.js';
+export { directionSchema, inspirationResultSchema } from '../core/schema/inspiration.js';
+export type { InspirationDirection, InspirationResult } from '../core/schema/inspiration.js';
 
 export interface InspirationRequest {
   readonly prompt: string;

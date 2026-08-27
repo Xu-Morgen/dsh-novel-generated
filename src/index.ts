@@ -394,12 +394,11 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelReview', defineRemote('novelReview', 'novelReview', reviewService, [
     { method: 'scan', call: (projectId: string, settings?: unknown) => reviewService.scan(projectId, settings) },
     { method: 'adjudicate', call: (projectId: string, input: ReviewAdjudicateInputShape) => reviewService.adjudicate(projectId, input.decision, input.issueIds) },
-    // 服务层 `records()` 返回裸数组（I64 smoke 的 service 级消费者夹具契约）；
-    // wire 契约（host/remote/review.ts reviewRecordsInvocation）声明 envelope
-    // `{ records: [...] }`，网关按 descriptor.result strict codec 校验业务结果，
-    // 因此适配层必须在此整形，否则 bare array 触发 boundary validation 失败。
-    // （I77 在 wire 派生层修复该组合根补丁。）
-    { method: 'records', call: async (projectId: string) => ({ records: await reviewService.records(projectId) }) },
+    // I77：wire 契约与领域服务返回语义一致 —— records() 返回裸数组，descriptor
+    // result schema 即 z.array(...)（host/remote/review.ts），组合根不再整形
+    // envelope；契约漂移不再被接线层掩盖，网关 strict codec 在边界直接暴露
+    // （架构审查 §8#1）。
+    { method: 'records', call: (projectId: string) => reviewService.records(projectId) },
   ]));
   // I65 可恢复自动生成队列（design §14.9 / R13-6）：Host 持有按场景卡范围执行的
   // 生成队列，支持暂停/继续/取消、重试、预算与停止策略。队列只编排生成——候选经
@@ -442,11 +441,10 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     { method: 'propose', call: (projectId: string, input: KnowledgeChangeInput) => knowledgeManagerService.propose(projectId, input) },
     { method: 'accept', call: (projectId: string, proposalId: string) => knowledgeManagerService.accept(projectId, proposalId) },
     { method: 'reject', call: (projectId: string, proposalId: string) => knowledgeManagerService.reject(projectId, proposalId) },
-    // 服务层 `pending()` 返回裸数组（I66 smoke 的 service 级消费者夹具契约）；wire
-    // 契约（host/remote/knowledge.ts knowledgePendingInvocation）声明 envelope
-    // `{ projectId, proposals: [...] }`，网关按 descriptor.result strict codec 校验，
-    // 适配层必须在此整形（与 novelReview/records 同缺陷类，见 §14.10/R14-1；I77 修复）。
-    { method: 'pending', call: async (projectId: string) => ({ projectId, proposals: await knowledgeManagerService.pending(projectId) }) },
+    // I77：wire 契约与领域服务返回语义一致 —— pending() 返回裸数组，descriptor
+    // result schema 即 z.array(...)（host/remote/knowledge.ts），组合根不再整形
+    // envelope；契约漂移不再被接线层掩盖（架构审查 §8#1）。
+    { method: 'pending', call: (projectId: string) => knowledgeManagerService.pending(projectId) },
   ]));
   // I67 B1 规则与 B4 文风控制面（design §14.10「B1/B4 控制面」/ R14-2）：作者编辑
   // 规则优先级/immutable 与风格人称/时态/POV/禁用表达表单。复用 I7/I10 领域服务

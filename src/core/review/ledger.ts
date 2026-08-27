@@ -2,17 +2,13 @@ import { access, mkdir, rename } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import { readYaml, writeYaml } from '../io/yaml.js';
-
-export const reviewDecisionSchema = z.enum(['continue', 'rewrite-requested']);
-export type ReviewDecision = z.infer<typeof reviewDecisionSchema>;
-
-export const reviewAuditRecordSchema = z.object({
-  projectId: z.string().trim().min(1),
-  issueId: z.string().trim().min(1),
-  decision: reviewDecisionSchema,
-  decidedAt: z.string().datetime(),
-}).strict();
-export type ReviewAuditRecord = z.infer<typeof reviewAuditRecordSchema>;
+// I77：决策/审计记录 zod 合同迁到纯模块 core/review/issue.ts（本模块依赖
+// node:fs 不得入 Client bundle 图）；re-export 保持既有导入面（host/review-service
+// 与 host/remote/review 都以 issue.ts 的单一来源派生，架构审查 §6.3/§9#3）。
+import { reviewAuditRecordSchema, reviewDecisionSchema } from './issue.js';
+import type { ReviewAuditRecord, ReviewDecision } from './issue.js';
+export { reviewAuditRecordSchema, reviewDecisionSchema } from './issue.js';
+export type { ReviewAuditRecord, ReviewDecision } from './issue.js';
 
 const reviewAuditFileSchema = z.object({ records: z.array(reviewAuditRecordSchema) }).strict();
 

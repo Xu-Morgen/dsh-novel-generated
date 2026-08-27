@@ -2,6 +2,10 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { strictCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：导入预览分块 wire schema 从 core/schema/upload.ts 的 docxTextChunkSchema
+// 派生（I37 归一化分块与 I51 DOCX 分块同构；core/schema 纯 zod，可入 Client
+// bundle 图 —— 架构审查 §6.3/§9#3）。
+import { docxTextChunkSchema } from '../../core/schema/upload.js';
 
 /**
  * I69 导入导出与备份 Remote（design §14.10「导入、导出与备份」/ R14-4）。
@@ -60,12 +64,7 @@ export const importPreviewInputWireSchema = z.object({
   text: z.string().min(1).max(10 * 1024 * 1024),
 }).strict();
 
-export const importPreviewChunkWireSchema = z.object({
-  index: z.number().int().nonnegative(),
-  text: z.string().min(1),
-  startOffset: z.number().int().nonnegative(),
-  endOffset: z.number().int().positive(),
-}).strict();
+export const importPreviewChunkWireSchema = docxTextChunkSchema;
 
 export const importPreviewOutcomeWireSchema = z.object({
   projectId: z.string().min(1),

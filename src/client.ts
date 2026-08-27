@@ -1673,10 +1673,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 void Promise.all([
                   unwrap(target.scan(projectId)),
                   unwrap(target.records(projectId)),
-                ]).then(([projection, recordEnvelope]) => {
+                ]).then(([projection, recordList]) => {
                   release();
                   if (!active) return;
-                  const records = (recordEnvelope as { records?: ReviewAuditRecordShape[] } | undefined)?.records ?? [];
+                  // I77：records wire 契约即裸数组（组合根不再包 envelope）。
+                  const records = (recordList as ReviewAuditRecordShape[] | undefined) ?? [];
                   reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined });
                 }, (cause: Error) => { release(); if (!active) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
               },
@@ -1828,10 +1829,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 void Promise.all([
                   unwrap(target.list(projectId)),
                   unwrap(target.pending(projectId)),
-                ]).then(([projection, pendingEnvelope]) => {
+                ]).then(([projection, pendingList]) => {
                   release();
                   if (!active) return;
-                  const pending = (pendingEnvelope as { proposals?: KnowledgeProposalShape[] } | undefined)?.proposals ?? [];
+                  // I77：pending wire 契约即裸数组（组合根不再包 envelope）。
+                  const pending = (pendingList as KnowledgeProposalShape[] | undefined) ?? [];
                   knowledgePatch({ status: 'ready', projection: projection as KnowledgeProjectionShape, pending, message: undefined });
                 }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ status: 'error', message: (cause as Error).message }); });
               },
@@ -1877,9 +1879,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                     message: `提案已提交待确认（${result.proposalId}）：${result.kind === 'reveal' ? '揭示' : 'holder 变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效（知情只增不退）。`,
                   });
                   // 刷新待确认提案列表（Gate pending 持久化）。
-                  void unwrap(target.pending(projectId)).then((pendingEnvelope) => {
+                  void unwrap(target.pending(projectId)).then((pendingList) => {
                     if (!active) return;
-                    knowledgePatch({ pending: (pendingEnvelope as { proposals?: KnowledgeProposalShape[] }).proposals ?? [] });
+                    knowledgePatch({ pending: (pendingList as KnowledgeProposalShape[] | undefined) ?? [] });
                   }, () => undefined);
                 }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
               },

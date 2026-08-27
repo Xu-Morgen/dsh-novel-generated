@@ -2,6 +2,41 @@ import { z } from 'zod';
 import { entityIdSchema } from '../schema/base.js';
 import { detailBeatSchema } from '../schema/outline.js';
 import { writingCandidateSchema } from '../candidate/index.js';
+// I77：队列纯 zod wire 合同（运行态/任务态/配置/设置/导航/任务 id）收拢到
+// core/queue/schema.ts 单一来源，本模块从纯模块导入并 re-export（既有的
+// core/queue/index.js 导出面不变）；task.ts 保留依赖 writingCandidateSchema
+// （node:crypto，只进 Host 图）的 queueTaskSchema/journal 部分（架构审查 §6.3
+// /§9#3：wire schema 从 core schema 派生，host/remote/queue 只入图纯 schema）。
+import {
+  DEFAULT_QUEUE_CONFIG,
+  queueConfigSchema,
+  queueNavigationSchema,
+  queueRunStateSchema,
+  queueSettingsSchema,
+  queueTaskIdSchema,
+  queueTaskStatusSchema,
+  type QueueConfig,
+  type QueueNavigation,
+  type QueueRunState,
+  type QueueSettings,
+  type QueueTaskId,
+  type QueueTaskStatus,
+} from './schema.js';
+export {
+  DEFAULT_QUEUE_CONFIG,
+  queueConfigSchema,
+  queueNavigationSchema,
+  queueRunStateSchema,
+  queueSettingsSchema,
+  queueTaskIdSchema,
+  queueTaskStatusSchema,
+  type QueueConfig,
+  type QueueNavigation,
+  type QueueRunState,
+  type QueueSettings,
+  type QueueTaskId,
+  type QueueTaskStatus,
+} from './schema.js';
 
 /**
  * I65 可恢复自动生成队列 —— 任务/运行/账本 Schema 与纯派生（design §14.9 / R13-6）。
@@ -29,51 +64,6 @@ import { writingCandidateSchema } from '../candidate/index.js';
  * - 本模块保持纯 zod/纯函数 + 复用既有 schema（detailBeatSchema / 候选合同），
  *   不持有任何 live object；candidate 依赖 node:crypto 只进 Host 图（I63 同）。
  */
-
-export const queueTaskIdSchema = z.string().regex(/^qt-[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$/);
-export type QueueTaskId = z.infer<typeof queueTaskIdSchema>;
-
-/** 队列运行态（一次 run 的生命周期；持久化到账本）。 */
-export const queueRunStateSchema = z.enum(['idle', 'running', 'paused', 'stopped-hard', 'stopped-soft', 'budget-exhausted', 'completed']);
-export type QueueRunState = z.infer<typeof queueRunStateSchema>;
-
-/** 单任务状态（状态机见 assertTaskTransition）。 */
-export const queueTaskStatusSchema = z.enum(['queued', 'running', 'candidate-ready', 'failed', 'cancelled', 'completed']);
-export type QueueTaskStatus = z.infer<typeof queueTaskStatusSchema>;
-
-/** 生成设置的最小持久化投影（modelRef/credentialRef 是引用名，非密钥；I65 恢复用）。 */
-export const queueSettingsSchema = z.object({
-  modelRef: z.string().min(1),
-  credentialRef: z.string().min(1),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTokens: z.number().int().positive().optional(),
-  stopSequences: z.array(z.string().min(1)).optional(),
-  reasoning: z.enum(['off', 'low', 'high', 'max']).optional(),
-}).strict();
-export type QueueSettings = z.infer<typeof queueSettingsSchema>;
-
-/** OutlineNavigation 的持久化 wire 形状（队列自有投影，不复制领域 truth）。 */
-export const queueNavigationSchema = z.object({
-  actId: entityIdSchema,
-  beatId: entityIdSchema,
-  title: z.string().trim().min(1),
-  description: z.string().trim().min(1),
-  prerequisites: z.array(z.string().trim().min(1)),
-  prerequisitesMet: z.boolean(),
-  instruction: z.string().trim().min(1),
-  deviationIds: z.array(z.string().trim().min(1)),
-}).strict();
-export type QueueNavigation = z.infer<typeof queueNavigationSchema>;
-
-/** 队列运行配置：wordBudget（null = 不限）/ maxRetries（首次之后的允许重试数）/ 停止策略。 */
-export const queueConfigSchema = z.object({
-  wordBudget: z.number().int().positive().nullable(),
-  maxRetries: z.number().int().nonnegative(),
-  stopOnSoftWarnings: z.boolean(),
-}).strict();
-export type QueueConfig = z.infer<typeof queueConfigSchema>;
-
-export const DEFAULT_QUEUE_CONFIG: QueueConfig = Object.freeze({ wordBudget: null, maxRetries: 0, stopOnSoftWarnings: false });
 
 /** 单任务持久化记录（candidate-ready 时内联候选 + settings，供重启 rehydrate）。 */
 export const queueTaskSchema = z.object({

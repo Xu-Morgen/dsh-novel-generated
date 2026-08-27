@@ -3399,7 +3399,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
       {
         review: {
           scan: async (projectId) => { scans.push(projectId); return { ok: true, value: PROJECTION }; },
-          records: async () => ({ ok: true, value: { records: [] } }),
+          records: async () => ({ ok: true, value: [] }),
           adjudicate: async () => { throw new Error('不应在 ready 前裁决'); },
         },
       },
@@ -3436,7 +3436,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
       {
         review: {
           scan: async () => ({ ok: true, value: PROJECTION }),
-          records: async () => ({ ok: true, value: { records: [] } }),
+          records: async () => ({ ok: true, value: [] }),
         },
       },
     );
@@ -3471,7 +3471,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
       {
         review: {
           scan: async () => ({ ok: true, value: PROJECTION }),
-          records: async () => ({ ok: true, value: { records: [] } }),
+          records: async () => ({ ok: true, value: [] }),
           adjudicate: async (projectId, input) => {
             adjudicated.push({ decision: input.decision, issueIds: [...input.issueIds] });
             const continued = ISSUES_REFERENCE.map((issue) => issue.id === 'iss-rel' ? { ...issue, status: 'continued' } : issue);
@@ -3507,7 +3507,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
       {
         review: {
           scan: async () => ({ ok: true, value: PROJECTION }),
-          records: async () => ({ ok: true, value: { records: [] } }),
+          records: async () => ({ ok: true, value: [] }),
           adjudicate: async (projectId, input) => {
             adjudicated.push(input.decision);
             const requested = ISSUES_REFERENCE.map((issue) => issue.id === 'iss-rule' ? { ...issue, status: 'rewrite-requested' } : issue);
@@ -3542,7 +3542,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
       {
         review: {
           scan: async () => { scans += 1; if (scans === 1) throw new Error('探测器失败：模型输出非法'); return { ok: true, value: PROJECTION }; },
-          records: async () => ({ ok: true, value: { records: [] } }),
+          records: async () => ({ ok: true, value: [] }),
           adjudicate: async () => { throw new Error('硬冲突阻止继续/接受'); },
         },
       },
@@ -3701,7 +3701,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
   };
   const baseStub = (overrides: Partial<{ list: (projectId: string) => Promise<unknown>; pending: () => Promise<unknown>; propose: (projectId: string, input: unknown) => Promise<unknown>; accept: (projectId: string, proposalId: string) => Promise<unknown>; reject: (projectId: string, proposalId: string) => Promise<unknown> }> = {}) => ({
     list: overrides.list ?? (async () => ({ ok: true, value: PROJECTION })),
-    pending: overrides.pending ?? (async () => ({ ok: true, value: { proposals: [] } })),
+    pending: overrides.pending ?? (async () => ({ ok: true, value: [] })),
     propose: overrides.propose ?? (async () => { throw new Error('未注入 propose'); }),
     accept: overrides.accept ?? (async () => { throw new Error('未注入 accept'); }),
     reject: overrides.reject ?? (async () => { throw new Error('未注入 reject'); }),
@@ -3756,7 +3756,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
             proposed.push(value);
             return { ok: true, value: { projectId, proposalId: 'kprop-1', kind: value.kind, status: 'pending', preview: { ...PROJECTION.entries[0], holders: value.holders, status: 'revealed', revealPlan: { revealTo: [], revealAt: '第二幕' }, povHint: 'POV 边界：当前 米拉 知晓；…' } } };
           },
-          pending: async () => ({ ok: true, value: { proposals: [{ proposalId: 'kprop-1', kind: 'reveal', entryId: 'k-1', holders: ['mira'], status: 'revealed', revealAt: '第二幕' }] } }),
+          pending: async () => ({ ok: true, value: [{ proposalId: 'kprop-1', kind: 'reveal', entryId: 'k-1', holders: ['mira'], status: 'revealed', revealAt: '第二幕' }] }),
         }),
       },
     );
@@ -3790,7 +3790,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
       {},
       {
         knowledge: baseStub({
-          pending: async () => ({ ok: true, value: { proposals: [{ proposalId: 'kprop-1', kind: 'reveal', entryId: 'k-1', holders: ['mira'], status: 'revealed' }] } }),
+          pending: async () => ({ ok: true, value: [{ proposalId: 'kprop-1', kind: 'reveal', entryId: 'k-1', holders: ['mira'], status: 'revealed' }] }),
           accept: async (projectId, proposalId) => {
             accepted.push(proposalId);
             const applied = { ...PROJECTION, entries: [{
@@ -3828,7 +3828,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
       {},
       {
         knowledge: baseStub({
-          pending: async () => ({ ok: true, value: { proposals: [{ proposalId: 'kprop-2', kind: 'holder-add', entryId: 'k-2', holders: ['lin'] }] } }),
+          pending: async () => ({ ok: true, value: [{ proposalId: 'kprop-2', kind: 'holder-add', entryId: 'k-2', holders: ['lin'] }] }),
           reject: async (projectId, proposalId) => { rejected.push(proposalId); return { ok: true, value: { projectId, proposalId, status: 'rejected' } }; },
         }),
       },

@@ -150,7 +150,7 @@
     "verify:i14": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i14",
     "verify:stage-14": "pnpm run verify:i73 && pnpm run verify:i74",
     "verify:i15": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i15",
-    "verify:stage-15": "pnpm run verify:i75 && pnpm run verify:i76",
+    "verify:stage-15": "pnpm run verify:i75 && pnpm run verify:i76 && pnpm run verify:i77",
     "verify:i16": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i16",
     "verify:i17": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i17",
     "verify:i18": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i18",
@@ -212,7 +212,9 @@
     "verify:i74": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i74",
     "verify:i75": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i75 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "smoke:i76": "node scripts/smoke-i76.mjs",
-    "verify:i76": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i76 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples"
+    "verify:i76": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i76 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
+    "smoke:i77": "node scripts/smoke-i77.mjs",
+    "verify:i77": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i77 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

@@ -2,6 +2,14 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：运行态/任务态/配置的 wire schema 从 core/queue/schema.ts 派生（纯 zod
+// 模块；task.ts/journal.ts 依赖 node:fs/node:crypto 不得入 Client bundle 图，
+// 故 I77 把纯合同收拢到 schema.ts —— 架构审查 §6.3/§9#3）。
+import {
+  queueConfigSchema,
+  queueRunStateSchema,
+  queueTaskStatusSchema,
+} from '../../core/queue/schema.js';
 
 /**
  * I65 可恢复自动生成队列 Remote（design §14.9「可恢复自动生成队列」/ R13-6）。
@@ -20,14 +28,10 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
  * 投影对齐（strict），由 Host 服务端再经 core 合同严格复验。
  */
 
-export const queueRunStateWireSchema = z.enum(['idle', 'running', 'paused', 'stopped-hard', 'stopped-soft', 'budget-exhausted', 'completed']);
-export const queueTaskStatusWireSchema = z.enum(['queued', 'running', 'candidate-ready', 'failed', 'cancelled', 'completed']);
+export const queueRunStateWireSchema = queueRunStateSchema;
+export const queueTaskStatusWireSchema = queueTaskStatusSchema;
 
-export const queueConfigWireSchema = z.object({
-  wordBudget: z.number().int().positive().nullable(),
-  maxRetries: z.number().int().nonnegative(),
-  stopOnSoftWarnings: z.boolean(),
-}).strict();
+export const queueConfigWireSchema = queueConfigSchema;
 
 export const queueTaskViewWireSchema = z.object({
   id: z.string().min(1),

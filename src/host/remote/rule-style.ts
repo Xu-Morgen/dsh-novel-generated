@@ -2,6 +2,17 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, 
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
+// I77：B1/B4 wire schema 从 core schema 派生（架构审查 §6.3/§9#3；core/schema
+// 是纯 zod 模块，可被 Client bundle 经 shared.ts 完整导入）。唯一 wire 级差异是
+// 管理面 priority 收敛到 1–100（core ruleSchema 保持开放整数，§5.3 —— UI 控制面
+// 约束用 extend 覆盖，形状字段集仍以 core 为单一来源）。
+import { ruleKindSchema, ruleSchema, ruleScopeSchema } from '../../core/schema/rules.js';
+import {
+  narrativePersonSchema,
+  narrativeTenseSchema,
+  povScopeSchema,
+  styleProfileSchema,
+} from '../../core/schema/style.js';
 
 /**
  * I67 B1 规则与 B4 文风控制面 Remote（design §14.10「B1/B4 控制面」/ R14-2）。
@@ -19,39 +30,19 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
  * §5.3），wire 层与 Host 服务双重拒绝越界值。
  */
 
-export const ruleScopeWireSchema = z.enum(['global', 'faction', 'location', 'character', 'item']);
-export const ruleKindWireSchema = z.enum(['physics', 'magic', 'technology', 'genre', 'taboo', 'permission']);
+export const ruleScopeWireSchema = ruleScopeSchema;
+export const ruleKindWireSchema = ruleKindSchema;
 
-/** 管理面 wire 规则：priority 收敛到 1–100（core schema 开放整数；越界在此层拒）。 */
-export const ruleWireSchema = z.object({
-  id: z.string().min(1).max(64),
-  version: z.number().int().positive(),
-  scope: ruleScopeWireSchema,
-  kind: ruleKindWireSchema,
-  statement: z.string().trim().min(1),
+/** 管理面 wire 规则：core ruleSchema 派生，priority 收敛到 1–100（core 开放整数；越界在此层拒）。 */
+export const ruleWireSchema = ruleSchema.extend({
   priority: z.number().int().min(1).max(100),
-  immutable: z.boolean(),
-  examples: z.array(z.string()),
-  active: z.boolean(),
-}).strict();
+});
 
-export const narrativePersonWireSchema = z.enum(['first', 'second', 'third-limited', 'third-omniscient']);
-export const narrativeTenseWireSchema = z.enum(['past', 'present']);
-export const povScopeWireSchema = z.enum(['single', 'multi', 'omniscient']);
+export const narrativePersonWireSchema = narrativePersonSchema;
+export const narrativeTenseWireSchema = narrativeTenseSchema;
+export const povScopeWireSchema = povScopeSchema;
 
-export const styleWireSchema = z.object({
-  id: z.string().min(1).max(64),
-  version: z.number().int().positive(),
-  name: z.string().trim().min(1),
-  person: narrativePersonWireSchema,
-  tense: narrativeTenseWireSchema,
-  povScope: povScopeWireSchema,
-  tone: z.string().trim().min(1),
-  proseStyle: z.string().trim().min(1),
-  chapterFormat: z.string().trim().min(1),
-  dialogueConventions: z.string().trim().min(1),
-  forbidden: z.array(z.string().trim().min(1)),
-}).strict();
+export const styleWireSchema = styleProfileSchema;
 
 /** createRule 入参：RuleInput 形状（id 必填，version 缺省 1）。 */
 const ruleInputWireSchema = ruleWireSchema.omit({ version: true }).extend({ version: z.number().int().positive().optional() });

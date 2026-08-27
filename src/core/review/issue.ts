@@ -34,10 +34,15 @@ export type ReviewIssueStatus = z.infer<typeof reviewIssueStatusSchema>;
 export const reviewIssueLocationSchema = z.object({
   chapterId: z.string().trim().min(1),
   sceneId: z.string().trim().min(1),
-}).strict();
+}).strict().readonly();
 export type ReviewIssueLocation = z.infer<typeof reviewIssueLocationSchema>;
 
-/** 统一投影后的单条问题（五类 × 硬/软 × 定位 × 状态）。 */
+/**
+ * 统一投影后的单条问题（五类 × 硬/软 × 定位 × 状态）。
+ * 本 schema 是 `host/remote/review.ts` reviewIssueWireSchema 的派生单一来源
+ * （I77；架构审查 §6.3/§9#3）；`.readonly()` 只影响推断类型（引用/定位只读，
+ * 投影即只读 owned JSON），解析行为不变。
+ */
 export const reviewIssueSchema = z.object({
   id: z.string().trim().min(1),
   category: reviewIssueCategorySchema,
@@ -45,23 +50,14 @@ export const reviewIssueSchema = z.object({
   /** 探测器 kind（来源），见 categoryOf。 */
   kind: z.string().trim().min(1),
   message: z.string().trim().min(1),
-  references: z.array(z.string().trim().min(1)),
+  references: z.array(z.string().trim().min(1)).readonly(),
   /** 正文定位：章节/场景 id（空场景/全局问题可缺省）。 */
   location: reviewIssueLocationSchema.optional(),
   status: reviewIssueStatusSchema,
-}).strict();
+}).strict().readonly();
 
 /** 投影后的不可变问题（引用/定位只读；投影即只读 owned JSON）。 */
-export type ReviewIssue = {
-  readonly id: string;
-  readonly category: ReviewIssueCategory;
-  readonly severity: ViolationSeverity;
-  readonly kind: string;
-  readonly message: string;
-  readonly references: readonly string[];
-  readonly location?: ReviewIssueLocation;
-  readonly status: ReviewIssueStatus;
-};
+export type ReviewIssue = z.infer<typeof reviewIssueSchema>;
 
 /** I21/I22/I24 + I20 确定性探测器的 kind → 五类问题映射（未知 kind fail-closed）。 */
 export function categoryOf(kind: string): ReviewIssueCategory {
@@ -143,12 +139,19 @@ export function projectSceneIssues(
 }
 
 /** 汇总：总数 / 硬 / 软 / 五类计数（纯派生，不含 live object）。 */
-export interface ReviewSummary {
-  readonly total: number;
-  readonly hard: number;
-  readonly soft: number;
-  readonly byCategory: Readonly<Record<ReviewIssueCategory, number>>;
-}
+export const reviewSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  hard: z.number().int().nonnegative(),
+  soft: z.number().int().nonnegative(),
+  byCategory: z.object({
+    rule: z.number().int().nonnegative(),
+    canon: z.number().int().nonnegative(),
+    knowledge: z.number().int().nonnegative(),
+    relationship: z.number().int().nonnegative(),
+    style: z.number().int().nonnegative(),
+  }).strict(),
+}).strict().readonly();
+export type ReviewSummary = z.infer<typeof reviewSummarySchema>;
 
 export function summarizeReviewIssues(issues: readonly ReviewIssue[]): ReviewSummary {
   const byCategory: Record<ReviewIssueCategory, number> = { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 };
@@ -180,13 +183,33 @@ export function withStatus(
   return Object.freeze({ ...issue, status });
 }
 
-/** 一次全项目审校扫描的投影：问题列表 + 汇总（最小 owned JSON，无 live object）。 */
-export interface ReviewProjection {
-  readonly projectId: string;
-  readonly scannedAt: string;
-  readonly issues: readonly ReviewIssue[];
-  readonly summary: ReviewSummary;
-}
+// I77：软警告裁决决策/审计记录的 zod 合同从 Host-only 的 core/review/ledger.ts
+// 迁到本纯模块（ledger 依赖 node:fs 不得入 Client bundle 图），ledger 与
+// host/review-service 经 re-export 保持既有导入面；host/remote/review.ts 的
+// reviewDecision/reviewAuditRecord wire schema 直接派生（架构审查 §6.3/§9#3）。
+export const reviewDecisionSchema = z.enum(['continue', 'rewrite-requested']);
+export type ReviewDecision = z.infer<typeof reviewDecisionSchema>;
+
+export const reviewAuditRecordSchema = z.object({
+  projectId: z.string().trim().min(1),
+  issueId: z.string().trim().min(1),
+  decision: reviewDecisionSchema,
+  decidedAt: z.string().datetime(),
+}).strict().readonly();
+export type ReviewAuditRecord = z.infer<typeof reviewAuditRecordSchema>;
+
+/**
+ * 一次全项目审校扫描的投影：问题列表 + 汇总（最小 owned JSON，无 live object）。
+ * 本 schema 是 `host/remote/review.ts` reviewProjectionWireSchema 的派生单一来源
+ * （I77；架构审查 §6.3/§9#3 —— wire 不再手写第四份投影声明）。
+ */
+export const reviewProjectionSchema = z.object({
+  projectId: z.string().trim().min(1),
+  scannedAt: z.string().datetime(),
+  issues: z.array(reviewIssueSchema).readonly(),
+  summary: reviewSummarySchema,
+}).strict().readonly();
+export type ReviewProjection = z.infer<typeof reviewProjectionSchema>;
 
 /** 审校中心过滤条件：任一维度为空数组表示不过滤该维度；全空 = 返回全部。 */
 export interface ReviewIssueFilter {

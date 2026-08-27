@@ -269,41 +269,41 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     expect(root.typert.local.get('novelProbe/probe')).toBeUndefined();
   });
 
-  it('I64 novelReview.records returns the wire envelope the gateway boundary requires', async () => {
-    // 网关按 descriptor.result 的 strict codec 校验业务结果；reviewRecordsInvocation
-    // 声明 envelope `{ records: [...] }`，而服务层 records() 返回裸数组。适配层必须
-    // 整形为 envelope，否则 bare array 触发 boundary validation（回归：I64 审校面板）。
+  it('I77 novelReview.records returns the bare array the wire contract declares', async () => {
+    // I77 修复（架构审查 §8#1）：服务层 records() 返回裸数组，wire 契约
+    // （reviewRecordsInvocation）即声明裸数组 —— 组合根不再整形 envelope，
+    // 契约漂移在边界直接暴露；网关按 descriptor.result strict codec 校验裸数组。
     const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-review-records-'));
     const root = new Context();
     const fiber = await root.plugin(apply, { projectsRoot });
     try {
       const review = root.get('novelReview') as { records(projectId: string): Promise<unknown> };
       const result = await review.records('demo');
-      expect(result).toEqual({ records: [] });
+      expect(result).toEqual([]);
       // 与 dsh-api-gateway decode() 相同的边界校验：结果必须通过声明的 result codec。
       const codec = reviewRecordsInvocation.result;
       if (codec.mode !== 'strict') throw new Error('novelReview/records must declare a strict result codec');
-      expect(codec.schema.parse(result)).toEqual({ records: [] });
+      expect(codec.schema.parse(result)).toEqual([]);
     } finally {
       await fiber.dispose();
       await rm(projectsRoot, { recursive: true, force: true });
     }
   });
 
-  it('I66 novelKnowledgeManager.pending returns the wire envelope the gateway boundary requires', async () => {
-    // 与 novelReview/records 同缺陷类：服务层 pending() 返回裸数组，wire 契约声明
-    // envelope `{ projectId, proposals: [...] }`；适配层必须整形（回归：I66 知情面板）。
+  it('I77 novelKnowledgeManager.pending returns the bare array the wire contract declares', async () => {
+    // I77 修复（架构审查 §8#1）：服务层 pending() 返回裸数组，wire 契约
+    // （knowledgePendingInvocation）即声明裸数组 —— 组合根不再整形 envelope。
     const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-knowledge-pending-'));
     const root = new Context();
     const fiber = await root.plugin(apply, { projectsRoot });
     try {
       const manager = root.get('novelKnowledgeManager') as { pending(projectId: string): Promise<unknown> };
       const result = await manager.pending('demo');
-      expect(result).toEqual({ projectId: 'demo', proposals: [] });
+      expect(result).toEqual([]);
       // 与 dsh-api-gateway decode() 相同的边界校验：结果必须通过声明的 result codec。
       const codec = knowledgePendingInvocation.result;
       if (codec.mode !== 'strict') throw new Error('novelKnowledgeManager/pending must declare a strict result codec');
-      expect(codec.schema.parse(result)).toEqual({ projectId: 'demo', proposals: [] });
+      expect(codec.schema.parse(result)).toEqual([]);
     } finally {
       await fiber.dispose();
       await rm(projectsRoot, { recursive: true, force: true });
