@@ -342,6 +342,43 @@ export const WORKBENCH_STYLES = `
   border-right-color: var(--nv-line-strong);
 }
 
+/* UI 打磨：面板过窄（--nv-panel-width < PANEL_NAV_AUTO_COLLAPSE，见 client.ts
+   data-novel-nav-collapsed）时侧边路由栏自动折叠：左右分栏退化为纵向堆叠，导航变为
+   可横向滚动的横条（与窄屏响应式同形态，避免内容被挤压出界）。 */
+.nv-workbench[data-novel-nav-collapsed] .nv-workbench__body-row {
+  flex-direction: column;
+}
+
+.nv-workbench[data-novel-nav-collapsed] .nv-workbench__nav-resizer {
+  display: none;
+}
+
+.nv-workbench[data-novel-nav-collapsed] .nv-workbench__nav {
+  width: auto;
+  max-width: 100%;
+  max-height: 40%;
+  flex: none;
+  border-right: none;
+  border-bottom: 1px solid var(--nv-line);
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: nowrap;
+  padding: var(--nv-grid);
+}
+
+.nv-workbench[data-novel-nav-collapsed] .nv-workbench__nav-group {
+  display: inline-block;
+  vertical-align: top;
+  min-width: max-content;
+  margin: 0 calc(var(--nv-grid) * 2) 0 0;
+}
+
+.nv-workbench[data-novel-nav-collapsed] .nv-workbench__nav-item {
+  display: inline-block;
+  width: auto;
+  white-space: nowrap;
+}
+
 /* UI 打磨：主页面右上角悬浮圆形入口。面板关闭时由 shell.overlay 渲染；点击打开
    创作台并隐藏自己。品牌色为包内常量（暗色随 body[data-ds-dark-theme] 提亮），
    中性色/边框消费宿主 --dsw-alias-* token（D12 契约）。 */

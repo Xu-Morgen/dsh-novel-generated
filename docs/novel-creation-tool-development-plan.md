@@ -535,7 +535,7 @@ TDD Route:
 
 - **目标**：按 D20 重新核验所选 DSH 与当时最新版公开 Slot；在没有 additive 侧区内容 Slot 时，将居中浮窗退役为 `shell.overlay` 右侧全高非模态停靠侧板。
 - **明确不做**：不升级 DSH、不接管 root/sidebar/conversation/details 单槽、不保留居中/停靠双路径、不修其他 UI。
-- **交付物**：版本/Slot manifest 证据；停靠侧板样式与 shell；保留主页面右上角悬浮圆形开关入口（UI 打磨补强）；面板宽度可经左边缘拖柄调整（`--nv-panel-width`）；居中浮窗样式和测试锚点退休清单。若新版已有公共 Slot，本迭代停止并先通知用户升级，不写 fallback。
+- **交付物**：版本/Slot manifest 证据；停靠侧板样式与 shell；保留主页面右上角悬浮圆形开关入口（UI 打磨补强）；面板宽度可经左边缘拖柄调整（`--nv-panel-width`，640–1600px），过窄（<720px）自动折叠侧边路由栏为横向横条；居中浮窗样式和测试锚点退休清单。若新版已有公共 Slot，本迭代停止并先通知用户升级，不写 fallback。
 - **验收**：当前基线和当时最新版均无公共 Slot 时 selected-profile 只注册一个 `shell.overlay` 主体；贴右/全高/非模态；窄屏仍在同一 Slot；卸载后 Slot/样式归零；扫描无单槽替换与双路径。
 - **验证**：`pnpm run verify:i54`。
 

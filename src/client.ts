@@ -71,7 +71,7 @@ import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
 import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
-import { WORKBENCH_STYLES } from './client/styles.js';
+import { RESPONSIVE_BREAKPOINT_NAV, WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 import { scheduleFocus } from './client/focus.js';
 
@@ -81,9 +81,12 @@ export const NAV_WIDTH_MAX = 360;
 export const NAV_WIDTH_DEFAULT = 160;
 
 /** 创作台面板整体宽度边界（UI 打磨补强：拖左边缘调整面板宽度，§14.8 停靠侧板）。 */
-export const PANEL_WIDTH_MIN = 480;
-export const PANEL_WIDTH_MAX = 1200;
+export const PANEL_WIDTH_MIN = 640;
+export const PANEL_WIDTH_MAX = 1600;
 export const PANEL_WIDTH_DEFAULT = 860;
+
+/** 面板过窄阈值：低于该宽度时侧边路由栏自动折叠为横向滚动横条（与响应式断点一致）。 */
+export const PANEL_NAV_AUTO_COLLAPSE = RESPONSIVE_BREAKPOINT_NAV;
 
 /** 侧栏宽度键盘步进（resizer 方向键，I59 键盘可达性延续）。 */
 export const GRID_STEP = 8;
@@ -513,6 +516,9 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     'data-novel-workspace': effectiveStatus,
     'data-novel-project-open': selectedProjectId,
     'data-novel-route': ui.activeView,
+    // UI 打磨：面板过窄（< PANEL_NAV_AUTO_COLLAPSE）时侧边路由栏自动折叠为横向横条
+    // （CSS 侧 .nv-workbench[data-novel-nav-collapsed] 驱动；与窄屏响应式形态一致）。
+    'data-novel-nav-collapsed': ui.panelWidth < PANEL_NAV_AUTO_COLLAPSE ? '' : undefined,
     // I59 键盘/Esc（R12-6）：面板内 Esc 先取消脏表单离开确认，否则关闭面板
     // （关闭时焦点恢复到悬浮圆形入口，见 ui.close）。data-novel-focus-scope 是
     // 打开后的焦点进入范围锚点。

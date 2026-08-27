@@ -542,6 +542,33 @@ describe('I46 创作台 workbench shell', () => {
     expect(panelVar(render())).toBe(`${PANEL_WIDTH_MIN}px`);
     (resizer?.props?.onPointerUp as () => void)?.();
   });
+
+  it('auto-collapses the side nav when the panel is dragged below the narrow threshold', async () => {
+    const { PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_DEFAULT } = await import('./client.js');
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    const collapsed = (tree: FakeNode): boolean => tree.props?.['data-novel-nav-collapsed'] === '';
+    // 默认 860px ≥ 阈值 → 不折叠。
+    expect(PANEL_WIDTH_DEFAULT).toBeGreaterThanOrEqual(PANEL_NAV_AUTO_COLLAPSE);
+    expect(collapsed(render())).toBe(false);
+
+    const resizer = collect(render(), 'div').find((n) => n.props?.['data-novel-panel-resizer'] !== undefined);
+    expect(resizer).toBeDefined();
+    const pointer = (clientX: number) => ({ clientX, pointerId: 1, preventDefault: () => {}, currentTarget: { setPointerCapture: () => {} } });
+    // 面板贴右：clientX > 起点 → 左边缘右移 → 宽度减小；clientX < 起点 → 宽度增加。
+    (resizer?.props?.onPointerDown as (e: { clientX: number }) => void)?.(pointer(1200));
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(1200));
+    expect(collapsed(render())).toBe(false);
+    // 拖到过窄（宽度 < 阈值）→ 自动折叠标记出现。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(1350));
+    expect(collapsed(render())).toBe(true);
+    // 再拖宽 → 恢复。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(1250));
+    expect(collapsed(render())).toBe(false);
+    (resizer?.props?.onPointerUp as () => void)?.();
+  });
 });
 
 describe('I50 project-session startup', () => {
@@ -1638,6 +1665,10 @@ describe('I46 visual system and Fiber cleanup (R10-2 / R10-3)', () => {
     expect(WORKBENCH_STYLES).toContain('.nv-workbench__panel-resizer');
     expect(WORKBENCH_STYLES).toContain('cursor: ew-resize');
     expect(WORKBENCH_STYLES).toContain('width: min(var(--nv-panel-width, 860px), 100vw)');
+    // 面板过窄自动折叠侧边路由栏：data-novel-nav-collapsed 驱动纵向堆叠 + 横向滚动横条。
+    expect(WORKBENCH_STYLES).toContain('.nv-workbench[data-novel-nav-collapsed] .nv-workbench__body-row');
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench\[data-novel-nav-collapsed\] \.nv-workbench__nav \{[^}]*overflow-x: auto/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench\[data-novel-nav-collapsed\] \.nv-workbench__nav-item \{[^}]*display: inline-block/);
     // 按钮与文字间距：品牌头栏 gap、导航项内边距、徽标与文字间距。
     expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__brand \{[^}]*gap: calc\(var\(--nv-grid\) \* 1\.5\)/);
     expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav-item \{[^}]*padding: calc\(var\(--nv-grid\) \* 1\) calc\(var\(--nv-grid\) \* 1\.25\)/);
