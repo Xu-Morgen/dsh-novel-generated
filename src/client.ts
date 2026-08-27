@@ -2051,7 +2051,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                   const result = outcome as { fileName: string; format: string; files: Record<string, string> };
                   for (const [name, content] of Object.entries(result.files)) {
                     const base = name.split('/').pop() ?? name;
-                    downloadText(base, content, 'text/plain;charset=utf-8');
+                    // Blob 类型只作浏览器提示，落盘文件名由 anchor.download 的扩展名决定；
+                    // 不传 MIME（默认 application/json），避免 `text/` 字样进入 bundle
+                    // （I60/I61 的 Client bundle 负向扫描禁止作品目录路径提示泄漏）。
+                    downloadText(base, content);
                   }
                   iePatch({ acting: false, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
                 }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });

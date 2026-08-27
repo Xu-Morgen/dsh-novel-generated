@@ -179,7 +179,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '选择文本文件'),
-        h('input', { type: 'file', accept: '.txt,.md,text/plain,text/markdown', className: 'nv-upload__input', 'data-novel-ie-import-file': '', disabled: busy, onChange: (event: { target: { files: FileList | null } }) => {
+        h('input', { type: 'file', accept: '.txt,.md', className: 'nv-upload__input', 'data-novel-ie-import-file': '', disabled: busy, onChange: (event: { target: { files: FileList | null } }) => {
           const file = event.target.files?.[0];
           if (file) ops.pickImportFile(file);
         } }),
