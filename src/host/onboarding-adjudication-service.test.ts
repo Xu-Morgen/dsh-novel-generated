@@ -11,8 +11,9 @@ import { createCanonService } from './canon-service.js';
 import { createConfirmationService } from './confirmation-service.js';
 import { createOnboardingAnalyzerService } from './onboarding-analyzer-service.js';
 import { createOnboardingAdjudicationService, type OnboardingLayerSource } from './onboarding-adjudication-service.js';
+import { createLayerApplier } from './onboarding-adjudication/apply-layers.js';
 import { INITIAL_STATE } from '../core/schema/project-lifecycle.js';
-import type { OnboardingAnalysisOutput } from '../core/schema/onboarding.js';
+import type { OnboardingAcceptedLayer, OnboardingAnalysisOutput } from '../core/schema/onboarding.js';
 
 const roots: string[] = [];
 async function temporaryRoot(): Promise<string> {
@@ -311,5 +312,47 @@ describe('I56 six-layer adjudication correctness (R12-3)', () => {
     expect(payload.mode).toBe('edited');
     expect(payload.value).toEqual(edited);
     expect(successor.status).toBe('accepted');
+  });
+});
+
+describe('I80 typed input pipeline（apply-layers：无 as-unknown-as 领域输入断言）', () => {
+  it('fails loudly when an accepted record violates the layer contract (typed parse replaces the cast)', async () => {
+    const { characters, worldview, outline, relationship, state, canon, open } = await fixture();
+    await open('demo');
+    const applier = createLayerApplier({ characters, worldview, outline, relationship, state, canon });
+    // candidates 是 z.json() 裸值；缺字段的损坏记录必须被类型化输入管线拒绝，
+    // 而不是被 `raw as unknown as CharacterCoreInput` 静默放行后访问 undefined。
+    const malformed: OnboardingAcceptedLayer = {
+      layer: 'characters', proposalId: 'p-bad', confidence: 'high',
+      candidates: [{ id: 'mira', name: '米拉' }],
+    };
+    await expect(applier.applyLayer('characters', malformed, 'demo', new Set())).rejects.toThrow(/不符合层契约/);
+    expect(await characters.list('demo')).toEqual([]);
+  });
+
+  it('lands a valid accepted layer through the typed path and grows the shared B3 closure', async () => {
+    const { characters, worldview, outline, relationship, state, canon, open } = await fixture();
+    await open('demo');
+    const applier = createLayerApplier({ characters, worldview, outline, relationship, state, canon });
+    const valid: OnboardingAcceptedLayer = {
+      layer: 'characters', proposalId: 'p-ok', confidence: 'high',
+      candidates: output().layers.characters.candidates,
+    };
+    const existing = new Set<string>();
+    await applier.applyLayer('characters', valid, 'demo', existing);
+    expect((await characters.list('demo')).map((c) => c.id)).toEqual(['mira']);
+    // B3 落地后把新 id 追加进共享引用闭包，供后续 B5/C2/C4/C1 校验（I53 语义）。
+    expect(existing.has('mira')).toBe(true);
+  });
+
+  it('rejects a malformed C4 candidate in preflight rather than type-erasing it', async () => {
+    const { characters, worldview, outline, relationship, state, canon, open } = await fixture();
+    await open('demo');
+    const applier = createLayerApplier({ characters, worldview, outline, relationship, state, canon });
+    const malformed: OnboardingAcceptedLayer = {
+      layer: 'canon', proposalId: 'p-bad-c4', confidence: 'high',
+      candidates: [{ id: 'evt-x', kind: 'event', participants: ['mira'] }],
+    };
+    await expect(applier.preflightAccepted('demo', new Map([['canon', malformed]]), new Set())).rejects.toThrow(/不符合层契约/);
   });
 });
