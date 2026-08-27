@@ -230,7 +230,7 @@
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
 | R12-1 | I54 执行前核验所选 DSH 与当时最新版公开 Slot tree；若存在 additive 侧区内容 Slot，停止并通知用户升级、更新兼容基线后再实现；否则将 `shell.overlay` 创作台退役为贴右、全高、非模态停靠侧板。禁止接管 root/sidebar/conversation/details 单槽，禁止双落点 fallback。 | Slot manifest/Inspect 证据；当前 `0.1.0-rc.7` 与已核验 `0.1.1-rc.2` 均走右侧板；selected-profile mount/unmount；扫描无第二路径和居中浮窗样式。 | I54 | `pnpm run verify:i54`; `pnpm run verify:stage-11` |
-| R12-2 | 当前作品持续可见，并可返回作品列表、新建/切换；跨项目切换清空旧 Client draft，由 Host 重新 open/验证，脏表单有明确裁决。 | 两作品往返、脏表单、失败 open、重启恢复与零串写断言。 | I55 | `pnpm run verify:i55`; `pnpm run verify:stage-11` |
+| R12-2 | 当前作品持续可见，并可返回作品列表、新建/切换；跨项目切换清空旧 Client draft，由 Host 重新 open/验证，脏表单有明确裁决。项目目录层始终提供「空白创建 + 文档导入」新增入口（不受已有作品影响）；文档导入新建独立作品后，六层初始化审阅在项目目录层展示，apply 成功才进入创作台。 | 两作品往返、脏表单、失败 open、重启恢复与零串写断言；目录层空白创建/文档导入、审阅上移与 apply 后进入创作台断言。 | I55 | `pnpm run verify:i55`; `pnpm run verify:stage-11` |
 | R12-3 | 六层“修改后接受”必须提交用户编辑后的 `editedValue`；重生成必须提交 feedback；空候选、pending 和错绑定阻止裁决/apply。 | Remote payload 精确断言；Host 不得回退使用旧值；六层终态门与负向夹具。 | I56 | `pnpm run verify:i56`; `pnpm run verify:stage-11` |
 | R12-4 | 初始化分析显示进度并支持取消/失败重试；final apply 成功后刷新六层并进入创作台，partial-retryable 只重试未完成层。 | progress/cancel/retry、apply refresh、失败隔离、Fiber dispose 零任务残留。 | I57 | `pnpm run verify:i57`; `pnpm run verify:stage-11` |
 | R12-5 | 创作台导航改为“写作/策划/连续性/作品设置”任务分组，技术层编号只作辅助标识；现有六层与设置页不丢失。 | IA 渲染与导航可达性断言；旧九项扁平导航退役扫描。 | I58 | `pnpm run verify:i58`; `pnpm run verify:stage-11` |

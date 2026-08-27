@@ -521,6 +521,100 @@ export const WORKBENCH_STYLES = `
   color: var(--nv-danger);
 }
 
+/* 项目目录层（作品选择/浏览）：新建小说作品（空白创建 + 文档导入）+ 既有列表
+   + 六层初始化审阅（审阅部分提到项目目录）。目录层内容纵向滚动，不挤占侧板高度。 */
+.nv-workbench__state--chooser {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.nv-workbench__chooser {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 2);
+  min-width: 0;
+}
+
+.nv-workbench__new-project {
+  padding: calc(var(--nv-grid) * 1.5);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-paper-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+}
+
+.nv-workbench__new-project-title {
+  margin: 0;
+  font-family: var(--nv-serif);
+  font-size: 15px;
+  color: var(--nv-ink);
+}
+
+.nv-workbench__new-project-hint {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-workbench__new-project-blank {
+  display: flex;
+  gap: var(--nv-grid);
+  align-items: center;
+}
+
+.nv-workbench__new-project-blank .nv-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.nv-workbench__new-project-create {
+  flex: none;
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-cinnabar);
+  color: #fff;
+  padding: calc(var(--nv-grid) * 0.625) var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.nv-workbench__new-project-create:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nv-workbench__project-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-workbench__project-open {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-paper-raised);
+  color: var(--nv-ink-dim);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.nv-workbench__project-open:hover {
+  background: var(--nv-hover);
+  color: var(--nv-ink);
+}
+
 /* I47 B3/B2 真表单：列表 + 详情双栏。 */
 .nv-editor {
   display: flex;

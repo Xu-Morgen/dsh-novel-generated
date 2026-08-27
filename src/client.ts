@@ -179,6 +179,8 @@ export type WorkbenchActions = {
   showLeaveConfirm(show: boolean): void;
   projectFailed(message: string): void;
   createProject(input: { projectId: string; name: string }): void;
+  /** 项目目录层「空白创建」作品名称草稿（受控输入，经 store 持久化，重渲染不丢）。 */
+  newProjectName(value: string): void;
   uploadProgress(progress: UploadProgress): void;
   uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
   onboarding(state: OnboardingState | undefined): void;
@@ -497,7 +499,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; newProjectName: string; newProjectNameChange(value: string): void; projectLoading: boolean; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -566,22 +568,36 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       ),
     )
     : effectiveStatus === 'ready' && (selectedProjectId === undefined || browsing)
-      ? h('section', { className: 'nv-workbench__state', 'data-novel-project-chooser': '', ...(browsing ? { 'data-novel-project-browsing': '' } : {}) },
+      ? h('section', { className: 'nv-workbench__state nv-workbench__state--chooser', 'data-novel-project-chooser': '', ...(browsing ? { 'data-novel-project-browsing': '' } : {}) },
         browsing ? h('button', { type: 'button', className: 'nv-workbench__nav-item', 'data-novel-browse-cancel': '', onClick: () => ui.cancelBrowse() }, '返回当前作品') : null,
         projectError !== undefined ? h('p', { className: 'nv-workbench__project-error', 'data-novel-project-error': '', role: 'alert' }, projectError) : null,
         h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.activeView === 'settings' ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.activateView('settings') }, 'LLM 设置'),
         ui.activeView === 'settings'
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
-          : (projects.length === 0 ? h('div', null,
-              h('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。'),
-              h('button', { type: 'button', 'data-novel-project-create': '', onClick: () => ui.createProject({ projectId: 'untitled', name: '未命名作品' }) }, '新建空白作品'),
+          : h('div', { className: 'nv-workbench__chooser' },
+            // 项目目录层「新建小说作品」：空白创建 + 文档导入始终可用（已有作品时也能直接新增）。
+            h('section', { className: 'nv-workbench__new-project', 'data-novel-project-create-section': '' },
+              h('h3', { className: 'nv-workbench__new-project-title' }, '新建小说作品'),
+              projects.length === 0 ? h('p', { className: 'nv-workbench__new-project-hint', 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品或上传 DOCX。') : null,
+              h('div', { className: 'nv-workbench__new-project-blank', 'data-novel-project-create-blank': '' },
+                h('input', { type: 'text', className: 'nv-field__input', 'data-novel-project-name-input': '', placeholder: '作品名称（留空为「未命名作品」）', value: ui.newProjectName, onChange: (event: { target: { value: string } }) => ui.newProjectNameChange(event.target.value) }),
+                h('button', { type: 'button', className: 'nv-workbench__new-project-create', 'data-novel-project-create': '', disabled: ui.projectLoading, onClick: () => ui.createProject({ projectId: slug(ui.newProjectName.trim()) || 'untitled', name: ui.newProjectName.trim() || '未命名作品' }) }, '创建空白作品'),
+              ),
               h('label', { className: 'nv-upload', 'data-novel-upload': '' },
                 h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
                 h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
               ),
               uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
-            )
-              : h('ul', { 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name)))),
+            ),
+            // 既有作品列表（点击打开；返回列表时可切换作品）。
+            projects.length > 0 ? h('ul', { className: 'nv-workbench__project-list', 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', className: 'nv-workbench__project-open', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))) : null,
+            // 审阅部分提到项目目录：文档导入新建作品后，六层分析/审阅在项目目录层展示。
+            // 原文与 sourceHash 保留在 OnboardingState，取消/失败可在此重试；apply 成功后进入创作台。
+            onboardingState === undefined ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },
+              analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
+              review,
+            ),
+          ),
       )
     : h('section', {
       className: 'nv-workbench__state' + (effectiveStatus === 'error' ? ' nv-workbench__state--error' : ''),
@@ -725,6 +741,8 @@ interface WorkbenchState {
   projectError: string | undefined;
   projects: Array<{ id: string; name: string }>;
   projectLoading: boolean;
+  /** 项目目录层「空白创建」作品名称草稿（受控输入，与 selectedProjectId 无关，属目录层 UI 态）。 */
+  newProjectName: string;
   upload: UploadProgress;
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
   onboarding: OnboardingState | undefined;
@@ -832,6 +850,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           projectError: undefined,
           projects: [],
           projectLoading: false,
+          newProjectName: '',
           upload: { phase: 'idle' },
           uploadResult: undefined,
           onboarding: undefined,
@@ -867,7 +886,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
           projectFailed: (d, message: string) => { d.projectError = message; d.projectLoading = false; },
-          createProject: (d) => { d.projectLoading = true; },
+          createProject: (d) => { d.projectLoading = true; d.newProjectName = ''; },
+          newProjectName: (d, value: string) => { d.newProjectName = value; },
           uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
           uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
           onboarding: (d, state: OnboardingState | undefined) => { d.onboarding = state; },
@@ -2505,6 +2525,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               );
             },
             selectProject(id: string) { openProject(id); },
+            get newProjectName() { return s.newProjectName; },
+            newProjectNameChange(value: string) { props.actions.newProjectName(value); },
+            get projectLoading() { return s.projectLoading; },
             createProject(input: { projectId: string; name: string }) { createProject(input); },
             // I55：返回作品列表 / 切换入口。脏表单先裁决，确认/干净才进入列表。
             requestBrowse() {
@@ -2532,16 +2555,25 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                   endOp('upload');
                   dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
                   const projectId = currentProjectId;
-                  if (projectId !== undefined) {
+                  // 创作台内（非浏览）上传 → 对当前作品发起六层分析（既有 I53 自由文本/DOCX 入口）；
+                  // 项目目录层（无作品或浏览中）上传 → 一律新建独立作品，审阅在目录层展示。
+                  if (projectId !== undefined && !s.browsing) {
                     startAnalysis(projectId, result.sourceHash, result.text);
                     return;
                   }
-                  // I53 DOCX new-work entry: with no project open yet, create one
-                  // from the uploaded document, open it, then drive the six-layer
-                  // review (design §14.7.4; I53 goal 三入口).
+                  // I53 DOCX new-work entry: with no project open yet (or browsing
+                  // the project directory), create a NEW project from the uploaded
+                  // document, open it, then drive the six-layer review. The review
+                  // is presented at the project-directory level（审阅部分提到项目目录），
+                  // so stay in the chooser view instead of entering the workbench.
                   const name = result.fileName.replace(/\.docx$/i, '') || '未命名作品';
                   createProject({ projectId: slug(name), name }, () => {
-                    if (currentProjectId !== undefined) startAnalysis(currentProjectId, result.sourceHash, result.text);
+                    if (currentProjectId !== undefined) {
+                      startAnalysis(currentProjectId, result.sourceHash, result.text);
+                      // startAnalysis 已切到「六层初始化审阅」页签；browse 让目录层
+                      // 可见审阅（apply 成功后 openProject 才进入创作台）。
+                      dispatch((actions) => actions.browseProjects());
+                    }
                   });
                 },
                 () => { endOp('upload'); dispatch((x) => x.uploadSettled(undefined)); },

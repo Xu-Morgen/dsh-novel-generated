@@ -940,7 +940,7 @@ project/
 
 #### 14.7.1 作品选择与 operational bootstrap（I50 / D15–D16）
 
-- Client 挂载 Remote 后必须先请求作品列表；无作品时显示新建入口，有作品时由用户选择后调用 Host `projectOpen(projectId)`。Client 可记住上次选择作为 UI 偏好，但每次启动都必须由 Host 重新验证；不得写入 `project.yaml` 或建立进程级全局 current project。
+- Client 挂载 Remote 后必须先请求作品列表；无作品时显示新建入口，有作品时由用户选择后调用 Host `projectOpen(projectId)`。项目目录层（作品选择/返回列表视图）**始终**暴露「空白创建 + 文档导入」两个新增入口，不受已有作品数量影响；文档导入新建作品后，六层初始化审阅直接在项目目录层展示（审阅部分提到项目目录），apply 成功后才进入创作台。Client 可记住上次选择作为 UI 偏好，但每次启动都必须由 Host 重新验证；不得写入 `project.yaml` 或建立进程级全局 current project。
 - Host project lifecycle facade 是 list/create/open/readiness 的唯一编排 owner：先加载并校验 `project.yaml`，再统一打开 B3/B2/B5/C1/C2/C4 与 ConfirmationGate；Remote 只转发最小 JSON，六层面板不得各自创建目录或吞错兜底。
 - `projectOpen` 返回每层 `ready | empty | uninitialized | corrupt`。空列表/空账本是合法 empty；B5 缺失或精确 legacy `{}` 是 uninitialized，Client 显示空表单且首次合法保存后才形成正式大纲；非空非法文件是 corrupt，禁止静默覆盖。
 - 纯空白作品不伪造小说内容：B3/B2/C1/C4 为空，B5 未初始化；C2 仅建立确定性的 seq 0 空快照作为回滚基线：`id: initial-state`、`version: 1`、`storyTime: ''`、scene 五个字符串字段均为空、`characters: []`。模型未配置时仍可进入创作台手工编辑。
@@ -976,7 +976,7 @@ project/
 
 - **Slot 兼容门（I54 / D20）**：执行前重新核验所选 DSH 与最新公开 Slot tree。若新版已提供 additive 侧区内容 Slot，I54 必须停止并先通知用户升级，更新依赖 pin、lockfile 与 selected-profile gate 后再重新定稿落点；若仍无公共 Slot，则只使用 `shell.overlay` list Slot。不得同时实现两种落点，不得接管 `sidebar`、`details`、`conversation` 或 `root` 单槽。
 - **停靠形态（I54，UI 打磨补强）**：退役居中浮窗几何与阴影窗口隐喻，改为贴右、全高、非模态侧板；保留主页面右上角悬浮圆形按钮作为开关入口（点击打开并隐藏自己）；面板整体宽度可经左边缘拖柄拖动调整（`--nv-panel-width`，钳制 640–1600px），导航侧栏宽度同样可拖（`--nv-nav-width`）；面板拖到过窄（< 720px）时侧边路由栏自动折叠为横向滚动横条（`data-novel-nav-collapsed`，与窄屏响应式同形态）。窄屏允许占据主视区但仍由同一 Slot/Fiber 管理，不创建新 window、第二 shell 或独立页面。
-- **作品上下文（I55）**：侧板头部持续显示当前作品，可返回作品列表并新建/切换；切换前处理脏表单，切换后清空旧作品 Client draft 并由 Host `projectOpen` 重新验证，禁止跨作品串写。
+- **作品上下文（I55）**：侧板头部持续显示当前作品，可返回作品列表并新建/切换；切换前处理脏表单，切换后清空旧作品 Client draft 并由 Host `projectOpen` 重新验证，禁止跨作品串写。返回后的项目目录层始终提供「空白创建 + 文档导入」两个新增入口；文档导入一律新建独立作品（不并入当前作品），六层初始化审阅直接在项目目录层展示，apply 成功后才进入创作台。
 - **初始化正确性与恢复（I56–I57）**：修改后接受必须提交真实 `editedValue`，重生成必须提交用户 feedback；pending/空候选阻止 apply。分析提供进度、取消和失败重试；final apply 成功后刷新六层并切入创作台，partial-retryable 只重试未完成层。
 - **任务型 IA 与基础体验（I58–I59）**：导航从九项扁平入口改为「写作 / 策划 / 连续性 / 作品设置」分组；补齐响应式、键盘、焦点恢复、`focus-visible`、`aria-live`、保存中/已保存/失败和防重复提交。技术层编号只作为辅助徽标，不作为作者的首要导航语言。
 
