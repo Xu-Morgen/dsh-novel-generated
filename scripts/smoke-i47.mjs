@@ -35,7 +35,7 @@ for (const required of [
   'worldviewList',
   'worldviewCreate',
   'worldviewRewrite',
-  'sidebar.footer.action',
+  'nv-launch',
   'shell.overlay',
   '--dsw-alias-',
 ]) {

@@ -851,7 +851,7 @@ project/
 | D8 | 不变设定如何存储 | 数据库主存储 / 索引层 | ✅ 已定（v1.2）：文件仍是 source of truth，SQLite 作「不变设定索引层」（§10.4） |
 | D9 | 关系引擎的定位 | 移除 / 主路径 / 可选增强 | ✅ 已定（v1.2）：**后置为可选可解释性增强**，主路径由解析 agent 写入 |
 | D10 | 细纲如何建模 | 新层 / 子结构 | ✅ 已定（v1.2）：大纲 beat 下的「细纲·场景卡」子结构（§5.7），不新增层 |
-| D11 | 创作台 Slot 落点与入口 | `shell.overlay` 单层 / 替换 `sidebar` 或 `details` 单槽 / overlay + 侧栏入口 | ✅ 已定（I46）：保留 `shell.overlay`（运行时唯一可叠加的 list 槽）作创作台主体，重做为「品牌头栏 + 左侧层级导航 + 内容区」浮动面板；另在 `sidebar.footer.action` 注册「创作台」启动入口提升可发现性。不替换 root/sidebar/conversation/details 单槽。 |
+| D11 | 创作台 Slot 落点与入口 | `shell.overlay` 单层 / 替换 `sidebar` 或 `details` 单槽 / overlay + 侧栏入口 | ✅ 已定（I46，UI 打磨补强）：保留 `shell.overlay`（运行时唯一可叠加的 list 槽）作创作台主体，重做为「品牌头栏 + 左侧层级导航 + 内容区」浮动面板；入口为主页面右上角悬浮圆形按钮（同 `shell.overlay` 内自渲染，点击打开创作台并隐藏自己）。不替换 root/sidebar/conversation/details 单槽。 |
 | D12 | 创作台主题与明暗 | novel 自有主题引擎（A-7）/ 借用宿主主题 token | ✅ 已定（I46）：视觉体系消费宿主 `ctx.theme` 的 `--dsw-alias-*` token 自动明暗适配，另加一层包内品牌色（纸/墨/朱砂）；不新建 novel 自有主题引擎或设置页，A-7 仍后置。 |
 | D13 | 创作台渲染与样式 | 引入 JSX runtime / 保持 `React.createElement` + 包内 `<style>` | ✅ 已定（I46）：保持 `React.createElement`（+ 小型 `el()` 助手），不引入 JSX runtime，避免重开 I2 已证明的 `window.__ModuleLoader__` 公开契约；样式为包内 `<style>` 注入、归属 Fiber 生命周期。 |
 | D14 | 创作台迭代切分 | 一次重写 / 分四迭代 | ✅ 已定：I46 地基 + 视觉体系；I47 B3/B2 表单；I48 B5/C1 结构化编辑；I49 C2/C4 面板。一迭代一任务一 commit。 |
@@ -927,7 +927,7 @@ project/
 
 > 历史定位：I46–I49 已完成，在 I33–I36 Slot 工作区之上把「三裸面板 + JSON 文本框」升级为可识别、美观的分层编辑创作台。本节记录已交付合同；其“居中浮动面板”呈现将在 I54 按 D20/§14.8 退役，其他 Host/Client 职责边界继续有效。
 
-- **落点与入口（D11）**：创作台主体注册到 `shell.overlay`，形态为品牌头栏 + 左侧层级导航 + 内容区的浮动面板，带折叠/关闭；另在 `sidebar.footer.action` 注册「创作台」启动按钮作为可发现入口。不替换 root/sidebar/conversation/details 单槽。
+- **落点与入口（D11，UI 打磨补强）**：创作台主体注册到 `shell.overlay`，形态为品牌头栏 + 左侧层级导航 + 内容区的浮动面板，带折叠/关闭；入口为主页面右上角悬浮圆形按钮（同 `shell.overlay` 内自渲染，点击打开创作台并隐藏自己，关闭后重新出现）。不替换 root/sidebar/conversation/details 单槽。
 - **信息架构（六层一桌）**：左侧层级导航对应六层——B3 角色、B2 世界观、B5 大纲（含细纲）、C1 关系、C2 状态、C4 正史；主区为「列表 + 详情」。B5/C1 由裸 JSON 文本框改为结构化编辑器（幕→节→细纲场景卡 / 关系对），Client 侧序列化后仍走既有 `outlineSave`/`relationshipSave` 整文档契约，Host 契约不变。
 - **视觉体系（编辑台/书斋）**：砚台三色——纸（暖白底）、墨（近黑暖灰字）、朱砂（印泥红强调色，用于品牌标记/激活导航/主按钮）；层级标题与品牌用系统衬线栈（`Georgia, 'Songti SC', 'SimSun', serif`，零外部字体与网络资产）建立文学感，表单正文用系统无衬线 UI 栈；8px 网格、宽松留白、1px 细边、分层卡片与软阴影。中性色/边框/hover/状态色消费宿主 `--dsw-alias-*` token，明暗经 `body[data-ds-dark-theme]` 自动适配（D12）。
 - **样式 seam（D13）**：样式写为包内 `<style>`（独立 `src/client/styles.ts` 常量），在 `apply()` 内经 `ctx.effect` 持有 disposer，Fiber 卸载即回收；渲染保持 `React.createElement` + `el()` 助手，不引入 JSX runtime。
@@ -975,7 +975,7 @@ project/
 > 定位：不再把创作台呈现为 DSH 上方的居中独立浮窗，而是在不替换宿主单槽的前提下，将其呈现为 DSH 内贴右、全高、可收起的非模态停靠侧板；随后修复 I50–I53 暴露出的项目切换、裁决、异步恢复和可访问性缺口。Host/Client owner 不变。
 
 - **Slot 兼容门（I54 / D20）**：执行前重新核验所选 DSH 与最新公开 Slot tree。若新版已提供 additive 侧区内容 Slot，I54 必须停止并先通知用户升级，更新依赖 pin、lockfile 与 selected-profile gate 后再重新定稿落点；若仍无公共 Slot，则只使用 `shell.overlay` list Slot。不得同时实现两种落点，不得接管 `sidebar`、`details`、`conversation` 或 `root` 单槽。
-- **停靠形态（I54）**：退役居中浮窗几何与阴影窗口隐喻，改为贴右、全高、非模态侧板；保留 `sidebar.footer.action` 作为开关入口。窄屏允许占据主视区但仍由同一 Slot/Fiber 管理，不创建新 window、第二 shell 或独立页面。
+- **停靠形态（I54，UI 打磨补强）**：退役居中浮窗几何与阴影窗口隐喻，改为贴右、全高、非模态侧板；保留主页面右上角悬浮圆形按钮作为开关入口（点击打开并隐藏自己）。窄屏允许占据主视区但仍由同一 Slot/Fiber 管理，不创建新 window、第二 shell 或独立页面。
 - **作品上下文（I55）**：侧板头部持续显示当前作品，可返回作品列表并新建/切换；切换前处理脏表单，切换后清空旧作品 Client draft 并由 Host `projectOpen` 重新验证，禁止跨作品串写。
 - **初始化正确性与恢复（I56–I57）**：修改后接受必须提交真实 `editedValue`，重生成必须提交用户 feedback；pending/空候选阻止 apply。分析提供进度、取消和失败重试；final apply 成功后刷新六层并切入创作台，partial-retryable 只重试未完成层。
 - **任务型 IA 与基础体验（I58–I59）**：导航从九项扁平入口改为「写作 / 策划 / 连续性 / 作品设置」分组；补齐响应式、键盘、焦点恢复、`focus-visible`、`aria-live`、保存中/已保存/失败和防重复提交。技术层编号只作为辅助徽标，不作为作者的首要导航语言。

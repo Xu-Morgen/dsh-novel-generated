@@ -459,7 +459,7 @@ TDD Route:
 
 - **目标**：在已核验 Slot 上把工作区升级为「创作台」——品牌头栏 + 左侧层级导航 + 内容区浮动面板，建立「编辑台/书斋」视觉体系，并注册可发现入口。
 - **明确不做**：六层真实表单内容（I47–I49）、JSX runtime、novel 自有主题引擎、独立页面/SPA、新增 Host 能力或持久化。
-- **交付物**：`shell.overlay` 创作台面板（折叠/关闭）、`sidebar.footer.action` 启动入口、`src/client/styles.ts` 包内样式（消费 `--dsw-alias-*`）、`el()` 助手与组件基础、六层空态占位、迁移后的测试锚点。
+- **交付物**：`shell.overlay` 创作台面板（折叠/关闭）、主页面右上角悬浮圆形启动入口（UI 打磨补强：点击打开并隐藏自己）、`src/client/styles.ts` 包内样式（消费 `--dsw-alias-*`）、`el()` 助手与组件基础、六层空态占位、迁移后的测试锚点。
 - **验收**：selected-profile boot 渲染创作台；明暗随宿主主题切换；Fiber 卸载后 Slot/样式/监听归零；新锚点 `data-novel-workspace` + `data-novel-layer` 三态与空态断言绿；无 standalone/JSX/新增 Host seam。
 - **验证**：`pnpm run verify:i46`。
 
@@ -535,7 +535,7 @@ TDD Route:
 
 - **目标**：按 D20 重新核验所选 DSH 与当时最新版公开 Slot；在没有 additive 侧区内容 Slot 时，将居中浮窗退役为 `shell.overlay` 右侧全高非模态停靠侧板。
 - **明确不做**：不升级 DSH、不接管 root/sidebar/conversation/details 单槽、不保留居中/停靠双路径、不修其他 UI。
-- **交付物**：版本/Slot manifest 证据；停靠侧板样式与 shell；保留 `sidebar.footer.action` 开关；居中浮窗样式和测试锚点退休清单。若新版已有公共 Slot，本迭代停止并先通知用户升级，不写 fallback。
+- **交付物**：版本/Slot manifest 证据；停靠侧板样式与 shell；保留主页面右上角悬浮圆形开关入口（UI 打磨补强）；居中浮窗样式和测试锚点退休清单。若新版已有公共 Slot，本迭代停止并先通知用户升级，不写 fallback。
 - **验收**：当前基线和当时最新版均无公共 Slot 时 selected-profile 只注册一个 `shell.overlay` 主体；贴右/全高/非模态；窄屏仍在同一 Slot；卸载后 Slot/样式归零；扫描无单槽替换与双路径。
 - **验证**：`pnpm run verify:i54`。
 

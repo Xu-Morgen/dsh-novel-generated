@@ -17,7 +17,7 @@ for (const forbidden of [
   if (bundle.includes(forbidden)) throw new Error(`I46 client bundle contains forbidden symbol: ${forbidden}`);
 }
 
-// 正向：新契约锚点 + 视觉体系 + 六层 IA + 启动入口。
+// 正向：新契约锚点 + 视觉体系 + 六层 IA + 启动入口（UI 打磨：悬浮圆形入口在 shell.overlay 内，点击打开并隐藏自己）。
 for (const required of [
   'novel-creation-tool-workspace',
   'data-novel-workspace',
@@ -25,7 +25,7 @@ for (const required of [
   'data-novel-layer-state',
   'data-novel-brand',
   'data-novel-launch',
-  'sidebar.footer.action',
+  'nv-launch',
   'shell.overlay',
   'novelWorkspace/viewModel',
   '--dsw-alias-',

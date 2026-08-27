@@ -329,17 +329,16 @@ afterEach(() => {
 });
 
 describe('I46 创作台 workbench shell', () => {
-  it('registers the overlay panel and a discoverable sidebar launch entry, never a single slot', async () => {
+  it('registers the overlay panel and a discoverable floating circular launch entry, never a single slot', async () => {
     const { entry, registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     expect(entry.inject).toEqual(['slots', 'remote']);
-    expect(Object.keys(registrations).sort()).toEqual(['shell.overlay', 'sidebar.footer.action']);
+    expect(Object.keys(registrations).sort()).toEqual(['shell.overlay']);
     // 不替换 root/sidebar/conversation/details 单槽（D11）。
     for (const single of ['root', 'sidebar', 'conversation', 'details']) {
       expect(registrations[single]).toBeUndefined();
     }
     expect(registrations['shell.overlay']).toHaveLength(1);
     expect(registrations['shell.overlay'][0].options).toMatchObject({ id: 'novel-creation-tool-workspace', label: '创作台' });
-    expect(registrations['sidebar.footer.action'][0].options).toMatchObject({ id: 'novel-creation-tool-workspace', label: '创作台' });
   });
 
   it('renders the brand header and the four task-group navigation in the ready state', async () => {
@@ -455,7 +454,7 @@ describe('I46 创作台 workbench shell', () => {
     }
   });
 
-  it('collapses and closes the panel, and the launch entry reopens it', async () => {
+  it('collapses and closes the panel, and the floating circular launch entry reopens it', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const renderOverlay = () => registrations['shell.overlay'][0].component() as FakeNode | null;
@@ -471,15 +470,47 @@ describe('I46 创作台 workbench shell', () => {
     const closeButton = collect(renderOverlay() as FakeNode, 'button')
       .find((n) => n.props?.['aria-label'] === '关闭创作台');
     (closeButton?.props?.onClick as () => void)();
-    expect(renderOverlay()).toBeNull();
-
-    // 侧栏启动入口重新打开面板。
-    const launch = registrations['sidebar.footer.action'][0].component() as FakeNode;
+    // 关闭后：overlay 渲染悬浮圆形入口（圆形 class + 打开创作台语义），面板本身消失。
+    const launch = renderOverlay() as FakeNode;
     expect(launch.tag).toBe('button');
     expect(launch.props?.['data-novel-launch']).toBe('');
+    expect(String(launch.props?.['className'] ?? '')).toContain('nv-launch');
+    expect(String(launch.props?.['aria-label'] ?? '')).toBe('打开创作台');
+
+    // 点击悬浮圆形入口重新打开面板。
     (launch.props?.onClick as () => void)();
     expect(renderOverlay()).not.toBeNull();
     expect((renderOverlay() as FakeNode).props?.['data-novel-workspace']).toBe('ready');
+  });
+
+  it('drags the nav resizer to resize the sidebar width within bounds', async () => {
+    const { NAV_WIDTH_MIN, NAV_WIDTH_MAX, NAV_WIDTH_DEFAULT } = await import('./client.js');
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    const navVar = (tree: FakeNode): string | undefined =>
+      (tree.props?.style as Record<string, string> | undefined)?.['--nv-nav-width'];
+    // 默认宽度经根节点 CSS 变量下发。
+    expect(navVar(render())).toBe(`${NAV_WIDTH_DEFAULT}px`);
+
+    const resizer = collect(render(), 'div').find((n) => n.props?.['data-novel-nav-resizer'] !== undefined);
+    expect(resizer).toBeDefined();
+    expect(resizer?.props?.['role']).toBe('separator');
+    expect(resizer?.props?.['aria-orientation']).toBe('vertical');
+
+    // pointerdown 捕获起点 → move 增量更新 → up 结束；宽度钳制在 [MIN, MAX]。
+    const pointer = (clientX: number) => ({ clientX, pointerId: 1, preventDefault: () => {}, currentTarget: { setPointerCapture: () => {} } });
+    (resizer?.props?.onPointerDown as (e: { clientX: number }) => void)?.(pointer(100));
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(140));
+    expect(navVar(render())).toBe(`${NAV_WIDTH_DEFAULT + 40}px`);
+    // 拖出上界 → 钳制到 MAX。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(10000));
+    expect(navVar(render())).toBe(`${NAV_WIDTH_MAX}px`);
+    // 拖出下界 → 钳制到 MIN。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(-10000));
+    expect(navVar(render())).toBe(`${NAV_WIDTH_MIN}px`);
+    (resizer?.props?.onPointerUp as () => void)?.();
   });
 });
 
@@ -1553,13 +1584,30 @@ describe('I46 visual system and Fiber cleanup (R10-2 / R10-3)', () => {
     expect(styleNodes[0].removed).toBe(true);
   });
 
-  it('withdraws both Slot registrations when the Fiber unloads', async () => {
-    const { registrations, overlayCleanups, footerCleanups } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+  it('withdraws the overlay registration when the Fiber unloads', async () => {
+    const { registrations, overlayCleanups } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     overlayCleanups[0]();
-    footerCleanups[0]();
     expect(registrations['shell.overlay']).toHaveLength(0);
-    expect(registrations['sidebar.footer.action']).toHaveLength(0);
+    expect(registrations['sidebar.footer.action']).toBeUndefined();
+  });
+
+  it('styles the floating circular launch entry, the nav resizer and button/text spacing (UI 打磨)', () => {
+    // 悬浮圆形入口：position fixed 右上角 + border-radius 50%（不在 .nv-workbench 内也要有焦点环与暗色适配）。
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-launch \{[^}]*position: fixed/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-launch \{[^}]*top: calc\(var\(--nv-grid\) \* 2\)/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-launch \{[^}]*right: calc\(var\(--nv-grid\) \* 2\)/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-launch \{[^}]*border-radius: 50%/);
+    expect(WORKBENCH_STYLES).toContain('.nv-launch:focus-visible');
+    expect(WORKBENCH_STYLES).toContain('body[data-ds-dark-theme] .nv-launch');
+    // 侧栏可拖动宽度：resizer 存在 + 根节点 CSS 变量驱动 nav 宽度。
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav \{[^}]*width: var\(--nv-nav-width, 160px\)/);
+    expect(WORKBENCH_STYLES).toContain('.nv-workbench__nav-resizer');
+    expect(WORKBENCH_STYLES).toContain('cursor: col-resize');
+    // 按钮与文字间距：品牌头栏 gap、导航项内边距、徽标与文字间距。
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__brand \{[^}]*gap: calc\(var\(--nv-grid\) \* 1\.5\)/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav-item \{[^}]*padding: calc\(var\(--nv-grid\) \* 1\) calc\(var\(--nv-grid\) \* 1\.25\)/);
+    expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav-item-badge \{[^}]*margin-left: calc\(var\(--nv-grid\) \* 0\.75\)/);
   });
 
   it('styles consume host --dsw-alias-* tokens, serif stack, 8px grid and dark/light adaptation', () => {
@@ -2154,10 +2202,10 @@ describe('I54 右侧停靠侧板（D20 / §14.8 / R12-1）', () => {
     expect(WORKBENCH_STYLES).not.toMatch(/0 24px 60px/);
   });
 
-  it('keeps exactly one shell.overlay body plus the sidebar.footer.action toggle, never a single slot', async () => {
+  it('keeps exactly one shell.overlay body plus the floating circular launch entry, never a single slot', async () => {
     const { entry, registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     expect(entry.inject).toEqual(['slots', 'remote']);
-    expect(Object.keys(registrations).sort()).toEqual(['shell.overlay', 'sidebar.footer.action']);
+    expect(Object.keys(registrations).sort()).toEqual(['shell.overlay']);
     expect(registrations['shell.overlay']).toHaveLength(1);
     expect(registrations['shell.overlay'][0].options).toMatchObject({ id: 'novel-creation-tool-workspace', label: '创作台' });
     // 禁止接管 root/sidebar/conversation/details 单槽（D20）。
@@ -2725,9 +2773,12 @@ describe('I59 响应式、可访问性与保存反馈 (R12-6)', () => {
     await flush();
     expect(collect(render(), 'div').some((n) => n.props?.['data-novel-leave-confirm'] !== undefined)).toBe(false);
     expect(render().props?.['data-novel-project-open']).toBe('alpha');
-    // 无离开确认时 Esc 关闭面板（返回 null，关闭入口后续恢复焦点到 data-novel-launch）。
+    // 无离开确认时 Esc 关闭面板：overlay 退回悬浮圆形入口（隐藏自己），焦点恢复锚点 data-novel-launch 保留。
     esc()?.({ key: 'Escape', preventDefault: () => {} });
-    expect(render()).toBeNull();
+    const closed = render();
+    expect(closed.tag).toBe('button');
+    expect(closed.props?.['data-novel-launch']).toBe('');
+    expect(String(closed.props?.['className'] ?? '')).toContain('nv-launch');
   });
 
   // ---- 保存状态 + aria-live + 请求去重（mounted）----

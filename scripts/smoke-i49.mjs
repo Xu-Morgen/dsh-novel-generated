@@ -38,7 +38,7 @@ for (const required of [
   'canonQuery',
   'canonCorrectionPropose',
   'canonCorrectionAccept',
-  'sidebar.footer.action',
+  'nv-launch',
   'shell.overlay',
   '--dsw-alias-',
 ]) {

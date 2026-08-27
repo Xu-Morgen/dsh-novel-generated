@@ -64,7 +64,7 @@ const fail = (msg) => { throw new Error(`I54 smoke: ${msg}`); };
     'position: fixed', 'top: 0', 'right: 0', 'bottom: 0',
     'height: 100%', 'width: min(860px, 100vw)', 'border-left: 1px solid var(--nv-line)',
     'pointer-events: auto',
-    'shell.overlay', 'sidebar.footer.action', 'novel-creation-tool-workspace',
+    'shell.overlay', 'nv-launch', 'novel-creation-tool-workspace',
   ]) {
     if (!bundle.includes(required)) fail(`bundle missing docked-side-panel marker: ${required}`);
   }
@@ -77,7 +77,7 @@ const fail = (msg) => { throw new Error(`I54 smoke: ${msg}`); };
     if (bundle.includes(retired)) fail(`centered floating-window marker not retired: ${retired}`);
   }
 
-  // 禁止接管 root/sidebar/conversation/details 单槽（只注册 shell.overlay + sidebar.footer.action）。
+  // 禁止接管 root/sidebar/conversation/details 单槽（只注册 shell.overlay，悬浮圆形入口同 slot 内自渲染）。
   if (/\.inject\(\s*['"](sidebar|conversation|details|root)['"]\s*,/.test(bundle)) {
     fail('bundle registers into a single slot (sidebar/conversation/details/root)');
   }

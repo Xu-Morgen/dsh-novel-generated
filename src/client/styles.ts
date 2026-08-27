@@ -97,6 +97,12 @@ export const WORKBENCH_STYLES = `
   outline-offset: 2px;
 }
 
+/* UI 打磨：悬浮圆形入口在面板关闭时独立于 .nv-workbench 渲染，需自带焦点环。 */
+.nv-launch:focus-visible {
+  outline: 2px solid var(--nv-cinnabar);
+  outline-offset: 2px;
+}
+
 .nv-workbench :focus:not(:focus-visible) {
   outline: none;
 }
@@ -125,7 +131,7 @@ export const WORKBENCH_STYLES = `
 .nv-workbench__brand {
   display: flex;
   align-items: center;
-  gap: var(--nv-grid);
+  gap: calc(var(--nv-grid) * 1.5);
   padding: calc(var(--nv-grid) * 1.5) calc(var(--nv-grid) * 2);
   border-bottom: 1px solid var(--nv-line);
   background: var(--nv-paper-raised);
@@ -161,7 +167,7 @@ export const WORKBENCH_STYLES = `
   background: transparent;
   color: var(--nv-ink-dim);
   border-radius: calc(var(--nv-grid) * 0.75);
-  padding: calc(var(--nv-grid) * 0.5) var(--nv-grid);
+  padding: calc(var(--nv-grid) * 0.625) calc(var(--nv-grid) * 1.25);
   font-size: 12px;
   cursor: pointer;
 }
@@ -289,7 +295,7 @@ export const WORKBENCH_STYLES = `
 }
 
 .nv-workbench__nav {
-  width: 160px;
+  width: var(--nv-nav-width, 160px);
   flex: none;
   padding: var(--nv-grid);
   border-right: 1px solid var(--nv-line);
@@ -297,12 +303,64 @@ export const WORKBENCH_STYLES = `
   overflow-y: auto;
 }
 
+/* UI 打磨：导航与主列之间的竖向拖柄（pointer 拖动改 --nv-nav-width，见 client.ts resizer）。 */
+.nv-workbench__nav-resizer {
+  flex: none;
+  width: calc(var(--nv-grid) * 0.75);
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+  border-right: 1px solid transparent;
+}
+
+.nv-workbench__nav-resizer:hover,
+.nv-workbench__nav-resizer.is-active {
+  background: var(--nv-hover);
+  border-right-color: var(--nv-line-strong);
+}
+
+/* UI 打磨：主页面右上角悬浮圆形入口。面板关闭时由 shell.overlay 渲染；点击打开
+   创作台并隐藏自己。品牌色为包内常量（暗色随 body[data-ds-dark-theme] 提亮），
+   中性色/边框消费宿主 --dsw-alias-* token（D12 契约）。 */
+.nv-launch {
+  --nv-cinnabar: ${CINNABAR};
+  --nv-serif: ${SERIF_STACK};
+  --nv-grid: ${GRID};
+  --nv-paper-raised: var(--dsw-alias-bg-layer-1);
+  --nv-line-strong: var(--dsw-alias-border-l2);
+  --nv-hover: var(--dsw-alias-interactive-bg-hover);
+  position: fixed;
+  top: calc(var(--nv-grid) * 2);
+  right: calc(var(--nv-grid) * 2);
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--nv-line-strong);
+  background: var(--nv-paper-raised);
+  color: var(--nv-cinnabar);
+  font-family: var(--nv-serif);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.nv-launch:hover {
+  background: var(--nv-hover);
+}
+
 .nv-workbench__nav-item {
   display: block;
   width: 100%;
   text-align: left;
-  padding: calc(var(--nv-grid) * 0.875) var(--nv-grid);
-  margin-bottom: calc(var(--nv-grid) * 0.25);
+  padding: calc(var(--nv-grid) * 1) calc(var(--nv-grid) * 1.25);
+  margin-bottom: calc(var(--nv-grid) * 0.375);
   border: 1px solid transparent;
   border-radius: calc(var(--nv-grid) * 0.75);
   background: transparent;
@@ -344,7 +402,7 @@ export const WORKBENCH_STYLES = `
 /* 技术层编号只作辅助徽标（I58）：小号弱对比，不作为首要导航语言。 */
 .nv-workbench__nav-item-badge {
   display: inline-block;
-  margin-left: calc(var(--nv-grid) * 0.5);
+  margin-left: calc(var(--nv-grid) * 0.75);
   padding: 0 calc(var(--nv-grid) * 0.375);
   border: 1px solid var(--nv-line);
   border-radius: calc(var(--nv-grid) * 0.375);
@@ -1395,6 +1453,11 @@ export const WORKBENCH_STYLES = `
     flex-direction: column;
   }
 
+  /* UI 打磨：窄屏导航退化为横向滚动横条，无可拖动侧栏宽度 → 隐藏拖柄。 */
+  .nv-workbench__nav-resizer {
+    display: none;
+  }
+
   .nv-workbench__nav {
     width: auto;
     max-width: 100%;
@@ -1473,6 +1536,10 @@ export const WORKBENCH_STYLES = `
 /* 明暗适配：暗色下朱砂提亮（D12）；中性色已由宿主 --dsw-alias-* 在
    body[data-ds-dark-theme] 下自动切换，无需 novel 自有主题引擎。 */
 body[data-ds-dark-theme] .nv-workbench {
+  --nv-cinnabar: ${CINNABAR_DARK};
+}
+
+body[data-ds-dark-theme] .nv-launch {
   --nv-cinnabar: ${CINNABAR_DARK};
 }
 `;

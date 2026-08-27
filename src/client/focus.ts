@@ -5,8 +5,8 @@
  * - 所有 DOM 访问都经 safeDocument() 收敛；在无 DOM 表面（单元测试 fake document、
  *   非浏览器宿主）下安全降级为 no-op，绝不抛错（R12-6「Fiber 清理/明暗回归」不受影响）。
  * - 焦点进入目标由 `data-novel-focus-scope`（面板根）+ `data-novel-focus-target`
- *   （品牌头栏，tabIndex=-1，见 client.ts）声明；关闭后焦点恢复到侧栏启动按钮
- *   `data-novel-launch`，保证「焦点进入/恢复」闭环。
+ *   （品牌头栏，tabIndex=-1，见 client.ts）声明；关闭后焦点恢复到悬浮圆形入口
+ *   `data-novel-launch`（UI 打磨后由 shell.overlay 内自渲染），保证「焦点进入/恢复」闭环。
  * - 本模块只做「找节点 + focus()」，不持有状态、不绑定监听器；Esc 键处理在
  *   client.ts 的根节点 onKeyDown（事件处理属性随 Fiber 卸载自动回收）。
  */

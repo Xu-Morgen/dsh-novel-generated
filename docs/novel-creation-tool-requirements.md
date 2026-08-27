@@ -201,7 +201,7 @@
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
-| R10-1 | 创作台为可识别、美观的分层编辑面板：品牌头栏 + 左侧层级导航 + 内容区，六层一桌（B3/B2/B5/C1/C2/C4）；保留 `shell.overlay` 落点并新增 `sidebar.footer.action` 启动入口，不替换 root/sidebar/conversation/details 单槽。 | 渲染断言含品牌头栏与六层导航；启动入口可发现；单槽未被替换。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
+| R10-1 | 创作台为可识别、美观的分层编辑面板：品牌头栏 + 左侧层级导航 + 内容区，六层一桌（B3/B2/B5/C1/C2/C4）；保留 `shell.overlay` 落点，入口为主页面右上角悬浮圆形按钮（点击打开创作台并隐藏自己，UI 打磨补强），不替换 root/sidebar/conversation/details 单槽。 | 渲染断言含品牌头栏与六层导航；悬浮圆形入口可发现且点击自隐；单槽未被替换。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
 | R10-2 | 视觉体系为编辑台/书斋：纸/墨/朱砂三色 + 系统衬线标题层级 + 8px 网格；中性色/边框/hover/状态色消费宿主 `--dsw-alias-*` token，明暗随宿主主题自动适配。 | 样式常量引用 `--dsw-alias-*` 断言；明暗切换夹具；零外部字体/网络资产。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
 | R10-3 | 渲染保持 `React.createElement` + 包内 `<style>`（归属 Fiber），不引入 JSX runtime；样式随卸载回收。 | 构建扫描无 JSX runtime；Fiber 卸载后 Slot/样式/监听归零。 | I46 | `pnpm run verify:i46`; `pnpm run verify:stage-9` |
 | R10-4 | B3/B2 列表/详情编辑：角色真表单与世界观改写（supersede），数据仅经 Host Remote。 | round-trip + 非法写展示 Host 错误；无 fs API。 | I47 | `pnpm run verify:i47`; `pnpm run verify:stage-9` |

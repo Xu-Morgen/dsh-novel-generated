@@ -39,7 +39,7 @@ for (const required of [
   'outlineBeatCards',
   'relationshipRead',
   'relationshipSave',
-  'sidebar.footer.action',
+  'nv-launch',
   'shell.overlay',
   '--dsw-alias-',
 ]) {

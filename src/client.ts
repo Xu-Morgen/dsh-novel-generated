@@ -73,7 +73,15 @@ import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, typ
 import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
-import { focusSelector, scheduleFocus } from './client/focus.js';
+import { scheduleFocus } from './client/focus.js';
+
+/** 导航侧栏可拖动宽度边界（UI 打磨补强，§14.8 停靠侧板）：默认 160px，可拖到 120–360px。 */
+export const NAV_WIDTH_MIN = 120;
+export const NAV_WIDTH_MAX = 360;
+export const NAV_WIDTH_DEFAULT = 160;
+
+/** 侧栏宽度键盘步进（resizer 方向键，I59 键盘可达性延续）。 */
+export const GRID_STEP = 8;
 
 /** Compatibility facade retained for the public client rendering contract. */
 function el(React: ReactFace): El {
@@ -112,6 +120,14 @@ export type WorkbenchActions = {
   open(): void;
   close(): void;
   collapse(): void;
+  /** 导航侧栏宽度（可拖动，UI 打磨）：设置侧栏宽度（钳制在 NAV_WIDTH_MIN/MAX 内）。 */
+  setNavWidth(width: number): void;
+  /** 拖动会话开始：记录指针起点 X 与当前宽度。 */
+  navResizeStart(startX: number): void;
+  /** 拖动会话移动：按指针位移更新侧栏宽度。 */
+  navResizeMove(clientX: number): void;
+  /** 拖动会话结束：释放指针。 */
+  navResizeEnd(): void;
   activate(id: LayerId): void;
   /** I58 稳定视图导航：以 WorkbenchViewId 为唯一 route/state 锚点。 */
   activateView(view: WorkbenchViewId): void;
@@ -382,7 +398,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -419,6 +435,31 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
       h('div', { className: 'nv-workbench__body-row' },
         groupNav(h, ui.activeView, ui.activateView),
+        h('div', {
+          className: 'nv-workbench__nav-resizer',
+          'data-novel-nav-resizer': '',
+          role: 'separator',
+          'aria-orientation': 'vertical',
+          'aria-valuenow': String(ui.navWidth),
+          'aria-valuemin': String(NAV_WIDTH_MIN),
+          'aria-valuemax': String(NAV_WIDTH_MAX),
+          tabIndex: 0,
+          // UI 打磨：pointer 拖动会话（pointerdown 捕获 → move 更新宽度 → up/end 释放）。
+          onPointerDown: (event: { clientX: number; pointerId: number; preventDefault(): void; currentTarget: { setPointerCapture?(id: number): void } }) => {
+            event.preventDefault();
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+            ui.navResizeStart(event.clientX);
+          },
+          onPointerMove: (event: { clientX: number }) => ui.navResizeMove(event.clientX),
+          onPointerUp: () => ui.navResizeEnd(),
+          onPointerCancel: () => ui.navResizeEnd(),
+          // 键盘可访问：左右方向键以 8px 步进调整侧栏宽度（I59 键盘可达性延续）。
+          onKeyDown: (event: { key: string; preventDefault(): void }) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            ui.navResizeStep(event.key === 'ArrowLeft' ? -GRID_STEP : GRID_STEP);
+          },
+        }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
           viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, reviewState, queueState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
@@ -453,6 +494,8 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
   return h('section', {
     className: 'nv-workbench',
+    // UI 打磨：nav 宽度经 CSS 变量下发，resizer 拖拽更新 store → 根节点变量 → 侧栏宽度。
+    style: { '--nv-nav-width': `${ui.navWidth}px` },
     'data-novel-workspace': effectiveStatus,
     'data-novel-project-open': selectedProjectId,
     'data-novel-route': ui.activeView,
@@ -472,15 +515,17 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
   );
 }
 
-/** 侧栏启动入口（D11）：可发现的「创作台」按钮，点击后（重新）打开 overlay 面板。 */
+/** 悬浮圆形启动入口（UI 打磨）：主页面右上角圆形按钮，点击打开创作台并隐藏自己。 */
 function launchButton(React: ReactFace, launch: () => void): unknown {
   const h = el(React);
   return h('button', {
     type: 'button',
     className: 'nv-launch',
     'data-novel-launch': '',
+    'aria-label': '打开创作台',
+    title: '打开创作台',
     onClick: () => launch(),
-  }, '创作台');
+  }, '砚');
 }
 
 /** I51 上传进度文案（纯展示，不经 Host）。 */
@@ -500,6 +545,10 @@ function uploadStatusLabel(upload: UploadProgress | undefined): string {
 interface WorkbenchState {
   open: boolean;
   collapsed: boolean;
+  /** 导航侧栏宽度（px，可拖动，UI 打磨）。 */
+  navWidth: number;
+  /** 侧栏拖动会话：active 期间 pointermove 更新宽度；结束即复位。 */
+  navResize: { active: boolean; startX: number; startWidth: number };
   /** I58 稳定视图状态锚点：唯一 active view（route/state/data 三锚点的 state 位）。 */
   activeView: WorkbenchViewId;
   status: WorkspaceStatus;
@@ -591,6 +640,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         init: (): WorkbenchState => ({
           open: true,
           collapsed: false,
+          navWidth: NAV_WIDTH_DEFAULT,
+          navResize: { active: false, startX: 0, startWidth: 0 },
           activeView: DEFAULT_VIEW,
           status: { status: 'loading' },
           characters: { status: 'loading', list: [] },
@@ -627,6 +678,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           open: (d) => { d.open = true; d.collapsed = false; },
           close: (d) => { d.open = false; },
           collapse: (d) => { d.collapsed = !d.collapsed; },
+          // UI 打磨：侧栏可拖动宽度（pointer 会话经 store 持久化，渲染层只消费快照）。
+          setNavWidth: (d, width: number) => { d.navWidth = Math.round(Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, width))); },
+          navResizeStart: (d, startX: number) => { d.navResize = { active: true, startX, startWidth: d.navWidth }; },
+          navResizeMove: (d, clientX: number) => { if (d.navResize.active) d.navWidth = Math.round(Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, d.navResize.startWidth + (clientX - d.navResize.startX)))); },
+          navResizeEnd: (d) => { d.navResize = { active: false, startX: 0, startWidth: 0 }; },
           activate: (d, id: LayerId) => { d.activeView = resolveWorkbenchView(id); },
           activateView: (d, view: WorkbenchViewId) => { d.activeView = resolveWorkbenchView(view); },
           activateOnboarding: (d) => { d.activeView = 'onboarding'; },
@@ -1451,11 +1507,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       }, 'novel-creation-tool: workbench styles');
 
       ctx.slots.inject('shell.overlay', () => {
-        // I59 焦点恢复（R12-6）：关闭/Esc 时把焦点恢复到侧栏启动按钮
-        // `data-novel-launch`（焦点进入由侧栏打开入口的 scheduleFocus 负责）。
+        // I59 焦点恢复（R12-6）：关闭/Esc 时把焦点恢复到悬浮圆形入口
+        // `data-novel-launch`（焦点进入由打开入口的 scheduleFocus 负责）。
         const closeWorkbench = (): void => {
           dispatch((actions) => actions.close());
-          focusSelector('[data-novel-launch]');
+          // 关闭后面板消失、悬浮圆形入口重新挂载，焦点恢复到 `data-novel-launch`（经宏任务等 React 提交）。
+          scheduleFocus('[data-novel-launch]');
         };
         // The component is a real React function component subscribing to the
         // store; close/collapse/activate and every draft mutation dispatch an
@@ -1466,6 +1523,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             get open() { return s.open; },
             get collapsed() { return s.collapsed; },
             get activeView() { return s.activeView; },
+            get navWidth() { return s.navWidth; },
+            navResizeStart(startX: number) { props.actions.navResizeStart(startX); },
+            navResizeMove(clientX: number) { props.actions.navResizeMove(clientX); },
+            navResizeEnd() { props.actions.navResizeEnd(); },
+            navResizeStep(delta: number) { props.actions.setNavWidth(s.navWidth + delta); },
             collapse() { props.actions.collapse(); },
             close() { closeWorkbench(); },
             activate(id: LayerId) { props.actions.activate(id); },
@@ -1611,6 +1673,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
+          // UI 打磨：面板关闭时渲染悬浮圆形入口（主页面右上角）；点击打开主控界面并隐藏自己。
+          if (!s.open) {
+            return launchButton(React, () => {
+              dispatch((actions) => actions.open());
+              scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
+            });
+          }
           return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
@@ -1718,15 +1787,6 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (queueDisposer) void queueDisposer();
         };
       });
-
-      ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register(
-        { name: 'sidebar.footer.action', id: 'novel-creation-tool-workspace', order: 0, label: '创作台' },
-        // I59：打开入口同时调度焦点进入（R12-6）。
-        () => launchButton(React, () => {
-          dispatch((actions) => actions.open());
-          scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
-        }),
-      ));
     },
   };
 }
