@@ -1,20 +1,13 @@
 import { listField, type El, type WorkspaceNamespace } from '../shared.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
+import { triggerModeSchema, worldKindSchema, type TriggerMode, type WorldKind } from '../../core/schema/worldview.js';
+// I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
+export type { WorldShape } from '../shapes.js';
+import type { WorldShape } from '../shapes.js';
 
-export interface WorldShape {
-  id: string;
-  kind?: string;
-  title?: string;
-  content?: string;
-  keywords?: string[];
-  triggerMode?: string;
-  weight?: number;
-  parent?: string | null;
-  mutable?: boolean;
-  status?: string;
-  supersededBy?: string | null;
-  [key: string]: unknown;
-}
+/** B2 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
+export const WORLD_KINDS: readonly WorldKind[] = worldKindSchema.options;
+export const TRIGGER_MODES: readonly TriggerMode[] = triggerModeSchema.options;
 
 export interface WorldLayerState {
   readonly status: 'loading' | 'ready' | 'error';
@@ -94,8 +87,8 @@ export function worldviewLayer(
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
-        h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value })) },
-          ['geography', 'history', 'faction', 'culture', 'race', 'concept', 'artifact'].map((kind) => h('option', { key: kind, value: kind }, kind)),
+        h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as WorldKind })) },
+          WORLD_KINDS.map((kind) => h('option', { key: kind, value: kind }, kind)),
         ),
       ),
       h('label', { className: 'nv-field' },
@@ -105,8 +98,8 @@ export function worldviewLayer(
       listField(h, '\u89e6\u53d1\u8bcd', d.keywords ?? [], (value) => ops.mutate((draft) => ({ ...draft, keywords: value }))),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u89e6\u53d1\u65b9\u5f0f'),
-        h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, triggerMode: event.target.value })) },
-          ['keyword', 'regex', 'constant'].map((mode) => h('option', { key: mode, value: mode }, mode)),
+        h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, triggerMode: event.target.value as TriggerMode })) },
+          TRIGGER_MODES.map((mode) => h('option', { key: mode, value: mode }, mode)),
         ),
       ),
       h('label', { className: 'nv-field' },

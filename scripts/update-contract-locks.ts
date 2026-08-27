@@ -1,0 +1,107 @@
+/**
+ * I78 `contracts/` 形状本体契约锁再生成工具（design D22；架构审查 §6.3）。
+ *
+ * 用法：`pnpm run update:contracts`（tsx 直读 src 实现 schema）。
+ * 语义：以当前实现 zod schema 经 `z.toJSONSchema` 重新生成形状本体并写回锁文件。
+ * 这是「有意识改契约」的唯一入口 —— 未经本工具再生成、直接改动锁文件或实现，
+ * `pnpm test`（src/contract-lock.test.ts）与 `pnpm run verify:i78`（smoke-i78）
+ * 的一致性断言都会失败（形状漂移即失败）。本工具不是构建步骤，不引入第二构建面。
+ */
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
+
+import { shapeLockBody } from '../src/contract-lock.js';
+import {
+  uploadChunkResultSchema,
+  uploadFinalizeResultSchema,
+  uploadStartInputSchema,
+  uploadStartResultSchema,
+  docxTextChunkSchema,
+} from '../src/core/schema/upload.js';
+import { projectMetaSchema } from '../src/core/schema/base.js';
+import {
+  createProjectInputSchema,
+  projectLayerReadinessSchema,
+  projectOpenResultSchema,
+} from '../src/core/schema/project-lifecycle.js';
+import {
+  characterFormSchema,
+  outlineFormSchema,
+  relationshipFormSchema,
+  worldFormSchema,
+} from '../src/client/shapes.js';
+import { actSchema, beatSchema, detailBeatSchema } from '../src/core/schema/outline.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(here, '..');
+const read = (p) => JSON.parse(readFileSync(resolve(repoRoot, p), 'utf8'));
+const write = (p, value) => {
+  const target = resolve(repoRoot, p);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, `${JSON.stringify(value, null, 2)}\n`);
+};
+
+/** 现有锁：保留原文件其余字段，仅重生成 shapes 本体。 */
+const EXISTING_LOCKS = [
+  {
+    file: 'contracts/stage10/docx-upload.json',
+    shapes: {
+      UploadStartInput: uploadStartInputSchema,
+      UploadStartResult: uploadStartResultSchema,
+      UploadChunkResult: uploadChunkResultSchema,
+      UploadFinalizeResult: uploadFinalizeResultSchema,
+      DocxTextChunk: docxTextChunkSchema,
+    },
+  },
+  {
+    file: 'contracts/stage10/project-lifecycle.json',
+    shapes: {
+      ProjectMeta: projectMetaSchema,
+      CreateProjectInput: createProjectInputSchema,
+      ProjectOpenResult: projectOpenResultSchema,
+      ProjectLayerReadiness: projectLayerReadinessSchema,
+    },
+  },
+] as const;
+
+/** 新增锁：I78 客户投影形状本体（编辑器表单模型，派生自 core schema）。 */
+const CLIENT_PROJECTION_LOCK = {
+  file: 'contracts/stage15/client-projection.json',
+  namespace: 'clientProjection',
+  contractNote: 'I78 Client 投影形状契约锁：CharacterShape/OutlineShape/RelationshipShape/WorldShape 为编辑器表单模型，派生自 canonical core schema（见 src/client/shapes.ts）；OutlineAct/Beat/DetailBeat 直接锁定 canonical 嵌套 schema。',
+  shapes: {
+    CharacterShape: characterFormSchema,
+    OutlineShape: outlineFormSchema,
+    OutlineActShape: actSchema,
+    OutlineBeatShape: beatSchema,
+    OutlineDetailBeatShape: detailBeatSchema,
+    RelationshipShape: relationshipFormSchema,
+    WorldShape: worldFormSchema,
+  },
+} as const;
+
+function shapeBodies(shapes: Record<string, z.ZodType>): Record<string, unknown> {
+  const bodies: Record<string, unknown> = {};
+  for (const [shapeId, schema] of Object.entries(shapes)) bodies[shapeId] = shapeLockBody(schema);
+  return bodies;
+}
+
+for (const lock of EXISTING_LOCKS) {
+  const current = read(lock.file);
+  write(lock.file, { ...current, shapes: shapeBodies(lock.shapes) });
+  console.log(`updated ${lock.file}`);
+}
+
+{
+  const { file, namespace, contractNote, shapes } = CLIENT_PROJECTION_LOCK;
+  write(file, {
+    schemaVersion: 1,
+    namespace,
+    contractNote,
+    shapeIds: Object.keys(shapes),
+    shapes: shapeBodies(shapes),
+  });
+  console.log(`created ${file}`);
+}

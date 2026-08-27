@@ -1,24 +1,12 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
+import { characterKindSchema, type CharacterKind } from '../../core/schema/characters.js';
+// I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
+export type { CharacterShape } from '../shapes.js';
+import type { CharacterShape } from '../shapes.js';
 
-export interface CharacterShape {
-  id: string;
-  name: string;
-  aliases?: string[];
-  kind?: string;
-  personality?: string;
-  background?: string;
-  motivation?: string;
-  goals?: string[];
-  flaws?: string[];
-  abilities?: string[];
-  speechStyle?: string;
-  staticTraits?: string[];
-  arc?: { startingPoint?: string; desiredEnd?: string; keyBeats?: string[] };
-  relationships?: string[];
-  knowledgeIds?: string[];
-  [key: string]: unknown;
-}
+/** B3 kind 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2 #6）。 */
+export const CHARACTER_KINDS: readonly CharacterKind[] = characterKindSchema.options;
 
 export interface CharacterLayerState {
   readonly status: 'loading' | 'ready' | 'error';
@@ -105,8 +93,8 @@ export function characterLayer(
       characterText(h, '\u540d\u79f0', d.name, (value) => ops.mutate((draft) => ({ ...draft, name: value }))),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
-        h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value })) },
-          ['protagonist', 'antagonist', 'supporting', 'extra', 'pov'].map((kind) => h('option', { key: kind, value: kind }, kind)),
+        h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as CharacterKind })) },
+          CHARACTER_KINDS.map((kind) => h('option', { key: kind, value: kind }, kind)),
         ),
       ),
       listField(h, '\u522b\u540d', d.aliases ?? [], (value) => ops.mutate((draft) => ({ ...draft, aliases: value }))),
@@ -119,9 +107,9 @@ export function characterLayer(
       characterText(h, '\u53e3\u543b', d.speechStyle ?? '', (value) => ops.mutate((draft) => ({ ...draft, speechStyle: value })), true),
       h('fieldset', { className: 'nv-fieldset' },
         h('legend', { className: 'nv-fieldset__legend' }, '\u5f27\u5149'),
-        characterText(h, '\u8d77\u70b9', d.arc?.startingPoint ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, startingPoint: value } }))),
-        characterText(h, '\u5f52\u5bbf', d.arc?.desiredEnd ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, desiredEnd: value } }))),
-        listField(h, '\u5173\u952e\u8282\u62cd', d.arc?.keyBeats ?? [], (value) => ops.mutate((draft) => ({ ...draft, arc: { ...draft.arc, keyBeats: value } }))),
+        characterText(h, '\u8d77\u70b9', d.arc?.startingPoint ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: value, desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: draft.arc?.keyBeats ?? [] } }))),
+        characterText(h, '\u5f52\u5bbf', d.arc?.desiredEnd ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: value, keyBeats: draft.arc?.keyBeats ?? [] } }))),
+        listField(h, '\u5173\u952e\u8282\u62cd', d.arc?.keyBeats ?? [], (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: value } }))),
       ),
     ),
     h('div', { className: 'nv-editor__actions' },

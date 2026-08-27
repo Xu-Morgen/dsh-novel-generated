@@ -2,9 +2,197 @@
   "schemaVersion": 1,
   "namespace": "novelWorkspace",
   "methods": [
-    { "id": "novel-creation-tool/novelWorkspace/projectList", "input": [], "result": "ProjectMeta[]" },
-    { "id": "novel-creation-tool/novelWorkspace/projectCreate", "input": ["CreateProjectInput"], "result": "ProjectMeta" },
-    { "id": "novel-creation-tool/novelWorkspace/projectOpen", "input": ["projectId"], "result": "ProjectOpenResult" }
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectList",
+      "input": [],
+      "result": "ProjectMeta[]"
+    },
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectCreate",
+      "input": [
+        "CreateProjectInput"
+      ],
+      "result": "ProjectMeta"
+    },
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectOpen",
+      "input": [
+        "projectId"
+      ],
+      "result": "ProjectOpenResult"
+    }
   ],
-  "shapeIds": ["ProjectMeta", "CreateProjectInput", "ProjectOpenResult", "ProjectLayerReadiness"]
+  "shapeIds": [
+    "ProjectMeta",
+    "CreateProjectInput",
+    "ProjectOpenResult",
+    "ProjectLayerReadiness"
+  ],
+  "shapes": {
+    "ProjectMeta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "CreateProjectInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "projectId",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectOpenResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "project": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "version": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "layers": {
+          "type": "object",
+          "properties": {
+            "characters": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            },
+            "worldview": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            },
+            "outline": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            },
+            "relationship": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            },
+            "canon": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "empty",
+                "uninitialized",
+                "corrupt"
+              ]
+            }
+          },
+          "required": [
+            "characters",
+            "worldview",
+            "outline",
+            "relationship",
+            "state",
+            "canon"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "project",
+        "layers"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectLayerReadiness": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "string",
+      "enum": [
+        "ready",
+        "empty",
+        "uninitialized",
+        "corrupt"
+      ]
+    }
+  }
 }

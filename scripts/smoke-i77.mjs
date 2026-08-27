@@ -281,12 +281,17 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
       if (match) errorFiles.add(match[1]);
     }
     const production = [...errorFiles].filter((p) => !p.endsWith('.test.ts') && !p.startsWith('scripts/'));
-    const wireLayerHits = production.filter((p) => p.startsWith('src/host/remote/') || p === 'src/index.ts' || p === 'src/remote.ts' || p.startsWith('src/client/'));
+    const wireLayerHits = production.filter((p) => p.startsWith('src/host/remote/') || p === 'src/index.ts' || p === 'src/remote.ts');
     if (wireLayerHits.length !== 0) {
-      fail(`characterCoreSchema 改名后 wire/组合根/client 层必须零改动（派生），实际受影响：${wireLayerHits.join(', ')}`);
+      fail(`characterCoreSchema 改名后 wire/组合根层必须零改动（派生），实际受影响：${wireLayerHits.join(', ')}`);
     }
-    if (production.length > 3) {
-      fail(`characterCoreSchema 改名影响面（生产文件）应 ≤ 3，实际 ${production.length}：${production.join(', ')}`);
+    // I78 起 client 投影 shape 由 core 派生（src/client/shapes.ts），字段改名必须在
+    // client 层报编译错（单一来源证据）；I77 时 client 仍是手写副本，故不要求零命中。
+    if (!production.some((p) => p.startsWith('src/client/') || p === 'src/client.ts')) {
+      fail('I78 后 client 投影派生自 characterCoreSchema：字段改名必须在 client 层报编译错');
+    }
+    if (production.length > 5) {
+      fail(`characterCoreSchema 改名影响面（生产文件）应 ≤ 5（含 I78 派生命中的 client 层），实际 ${production.length}：${production.join(', ')}`);
     }
     const remoteDir = resolve(repoRoot, 'src/host/remote');
     const remoteFiles = readdirSync(remoteDir).filter((f) => f.endsWith('.ts'));
@@ -295,7 +300,7 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
         fail(`src/host/remote/${f} references the renamed character field — wire layer must not hand-copy core shapes`);
       }
     }
-    console.log(`I77 demo: characterCoreSchema 字段改名影响面 = ${production.length} 个生产文件（${production.join(', ') || '仅 schema 自身'}），wire/组合根/client 层零改动 OK`);
+    console.log(`I77 demo: characterCoreSchema 字段改名影响面 = ${production.length} 个生产文件（${production.join(', ') || '仅 schema 自身'}），wire/组合根零改动；client 层命中为 I78 派生命中的预期证据 OK`);
   } finally {
     writeFileSync(schemaFile, original);
   }

@@ -1,20 +1,14 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
+import { relationshipTypeSchema, type RelationshipType } from '../../core/schema/relationship.js';
 import type { CharacterShape } from './characters.js';
+// I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
+export type { RelationshipShape } from '../shapes.js';
+import type { RelationshipShape } from '../shapes.js';
 
-export interface RelationshipShape {
-  id: string;
-  from: string;
-  to: string;
-  type: string;
-  affinity: number;
-  trust: number;
-  status: string;
-  milestones: string[];
-  knownTo: string[];
-  version?: number;
-  [key: string]: unknown;
-}
+/** C1 关系类型下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
+export const RELATIONSHIP_TYPES: readonly RelationshipType[] = relationshipTypeSchema.options;
+
 export interface RelationshipLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly list: RelationshipShape[]; readonly message?: string; }
 export interface RelationshipEditor { selectedId: string | undefined; draft: RelationshipShape; dirty: boolean; error: string; saving: boolean; saveMessage: string; }
 export interface RelationshipEditOps { select(entry: RelationshipShape): void; newDraft(): void; mutate(update: (draft: RelationshipShape) => RelationshipShape): void; save(): void; }
@@ -42,7 +36,7 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
     h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '\u65b0\u5efa\u5173\u7cfb' : `\u7f16\u8f91\u5173\u7cfb\uff1a${labelOf(d.from)} \u2192 ${labelOf(d.to)}`),
     h('div', { className: 'nv-form' },
       h('div', { className: 'nv-form__row' }, characterText(h, '\u4ece\uff08\u89d2\u8272 id\uff09', d.from, (value) => ops.mutate((draft) => ({ ...draft, from: value }))), characterText(h, '\u5230\uff08\u89d2\u8272 id\uff09', d.to, (value) => ops.mutate((draft) => ({ ...draft, to: value })))),
-      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '\u5173\u7cfb\u7c7b\u578b'), h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, type: event.target.value })) }, ['kin', 'romantic', 'friendship', 'rivalry', 'enmity', 'allegiance', 'mentor', 'subordinate'].map((type) => h('option', { key: type, value: type }, type)))),
+      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '\u5173\u7cfb\u7c7b\u578b'), h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, type: event.target.value as RelationshipType })) }, RELATIONSHIP_TYPES.map((type) => h('option', { key: type, value: type }, type)))),
       h('div', { className: 'nv-form__row' },
         h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, `\u4eb2\u5bc6\u5ea6\uff08-100..100\uff09\uff1a${d.affinity}`), h('input', { type: 'range', min: '-100', max: '100', step: '1', className: 'nv-field__range', value: String(d.affinity ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, affinity: Number.parseInt(event.target.value, 10) || 0 })) })),
         h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, `\u4fe1\u4efb\uff080..100\uff09\uff1a${d.trust}`), h('input', { type: 'range', min: '0', max: '100', step: '1', className: 'nv-field__range', value: String(d.trust ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, trust: Number.parseInt(event.target.value, 10) || 0 })) })),

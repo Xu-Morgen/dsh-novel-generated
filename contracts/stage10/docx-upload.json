@@ -3,12 +3,44 @@
   "namespace": "novelWorkspace",
   "docxUpload": {
     "methods": [
-      { "id": "novel-creation-tool/novelWorkspace/uploadStart", "input": ["UploadStartInput"], "result": "UploadStartResult" },
-      { "id": "novel-creation-tool/novelWorkspace/uploadChunk", "input": ["uploadId", "index", "base64"], "result": "UploadChunkResult" },
-      { "id": "novel-creation-tool/novelWorkspace/uploadFinalize", "input": ["uploadId"], "result": "UploadFinalizeResult" },
-      { "id": "novel-creation-tool/novelWorkspace/uploadCancel", "input": ["uploadId"], "result": "{ ok: true }" }
+      {
+        "id": "novel-creation-tool/novelWorkspace/uploadStart",
+        "input": [
+          "UploadStartInput"
+        ],
+        "result": "UploadStartResult"
+      },
+      {
+        "id": "novel-creation-tool/novelWorkspace/uploadChunk",
+        "input": [
+          "uploadId",
+          "index",
+          "base64"
+        ],
+        "result": "UploadChunkResult"
+      },
+      {
+        "id": "novel-creation-tool/novelWorkspace/uploadFinalize",
+        "input": [
+          "uploadId"
+        ],
+        "result": "UploadFinalizeResult"
+      },
+      {
+        "id": "novel-creation-tool/novelWorkspace/uploadCancel",
+        "input": [
+          "uploadId"
+        ],
+        "result": "{ ok: true }"
+      }
     ],
-    "shapeIds": ["UploadStartInput", "UploadStartResult", "UploadChunkResult", "UploadFinalizeResult", "DocxTextChunk"]
+    "shapeIds": [
+      "UploadStartInput",
+      "UploadStartResult",
+      "UploadChunkResult",
+      "UploadFinalizeResult",
+      "DocxTextChunk"
+    ]
   },
   "limits": {
     "maxCompressedBytes": 10485760,
@@ -20,5 +52,173 @@
   "retired": {
     "handWrittenDocxParser": "removed-in-I51",
     "referenceCheck": "no lingering references to readDocx/inflateRawSync/xmlText in src"
+  },
+  "shapes": {
+    "UploadStartInput": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000]+$"
+        },
+        "size": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 10485760
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "fileName",
+        "size",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "UploadStartResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "uploadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chunkSize": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nextIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "uploadId",
+        "chunkSize",
+        "nextIndex"
+      ],
+      "additionalProperties": false
+    },
+    "UploadChunkResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "nextIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "received": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "nextIndex",
+        "received"
+      ],
+      "additionalProperties": false
+    },
+    "UploadFinalizeResult": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000]+$"
+        },
+        "text": {
+          "type": "string"
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "startOffset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endOffset": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "index",
+              "text",
+              "startOffset",
+              "endOffset"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "sourceHash",
+        "fileName",
+        "text",
+        "chunks"
+      ],
+      "additionalProperties": false
+    },
+    "DocxTextChunk": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "startOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endOffset": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "index",
+        "text",
+        "startOffset",
+        "endOffset"
+      ],
+      "additionalProperties": false
+    }
   }
 }
