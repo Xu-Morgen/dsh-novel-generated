@@ -48,6 +48,37 @@ const adjudicationSchema = z.object({
   violations: consistencyViolationsSchema,
 }).strict();
 
+/** I71 生成注入解释 wire（design §14.10「搜索与上下文追踪」/ R14-6）：只含层/触发/预算摘要，无 secret 内容。 */
+export const contextTraceSectionWireSchema = z.object({
+  id: z.string().min(1),
+  characterCount: z.number().int().nonnegative(),
+  budget: z.number().int().nonnegative(),
+  truncated: z.boolean(),
+}).strict();
+
+export const worldviewTriggerWireSchema = z.object({
+  entryId: z.string().min(1),
+  title: z.string(),
+  matchedKeywords: z.array(z.string()),
+}).strict();
+
+export const contextTraceWireSchema = z.object({
+  intent: z.enum(['generate', 'continue', 'scene-card', 'rewrite']),
+  pov: z.string(),
+  navigation: z.object({ actId: z.string().min(1), beatId: z.string().min(1), title: z.string() }).strict().optional(),
+  sections: z.array(contextTraceSectionWireSchema),
+  triggers: z.array(worldviewTriggerWireSchema),
+  totals: z.object({
+    characterCount: z.number().int().nonnegative(),
+    budget: z.number().int().nonnegative(),
+    truncatedSectionCount: z.number().int().nonnegative(),
+  }).strict(),
+  rewritePromptCharacters: z.number().int().nonnegative(),
+  knowledgeVisibleCount: z.number().int().nonnegative(),
+  sceneCard: z.object({ title: z.string().min(1), pov: z.string().min(1), wordTarget: z.number().int().positive() }).strict().optional(),
+}).strict();
+export type ContextTraceShape = z.infer<typeof contextTraceWireSchema>;
+
 const candidateReviewSchema = z.object({
   candidateId: z.string().min(1),
   intent: z.enum(['generate', 'continue', 'scene-card', 'rewrite']),
@@ -58,6 +89,7 @@ const candidateReviewSchema = z.object({
     z.object({ kind: z.literal('replace'), before: z.string(), after: z.string() }).strict(),
   ]),
   validation: adjudicationSchema,
+  trace: contextTraceWireSchema,
 }).strict();
 export type CandidateReviewShape = z.infer<typeof candidateReviewSchema>;
 

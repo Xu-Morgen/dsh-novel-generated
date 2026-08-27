@@ -92,6 +92,12 @@ function makeDeps(services: StubServices, projectsRoot: string): QueueServiceDep
               ? []
               : [{ kind: 'queue-stub', severity: status === 'reject' ? 'hard' : 'soft', message: 'x', references: ['r'] }],
           },
+          // I71：preview 携带注入解释（scene-card 无结构层注入，sections 为空）。
+          trace: {
+            intent: 'scene-card', pov: 'mira', sections: [], triggers: [],
+            totals: { characterCount: 0, budget: 0, truncatedSectionCount: 0 },
+            rewritePromptCharacters: 0, knowledgeVisibleCount: 0,
+          },
         };
       },
       adjudicate: async () => { throw new Error('unused'); },

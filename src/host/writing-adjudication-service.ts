@@ -28,6 +28,7 @@ import { materializeC3KnowledgeOperations } from '../llm/parse/knowledge.js';
 import type { StateDraft } from '../core/state/index.js';
 import { createWritingCandidateService, type WritingCandidateRequest } from './candidate-service.js';
 import type { NextSceneContextProvider, NovelAgentContext } from './writing-context.js';
+import { buildContextTrace, type ContextTrace } from '../core/trace/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { NovelStateService } from './state-service.js';
@@ -81,7 +82,7 @@ export type CandidateReviewDiff =
   | { readonly kind: 'new-scene' }
   | { readonly kind: 'replace'; readonly before: string; readonly after: string };
 
-/** 作者审阅候选所需的最小 owned JSON：正文 + diff + 校验结果（R13-4 可见后再裁决）。 */
+/** 作者审阅候选所需的最小 owned JSON：正文 + diff + 校验结果 + 注入解释（R13-4 可见后再裁决）。 */
 export interface CandidateReview {
   readonly candidateId: string;
   readonly intent: WritingIntent;
@@ -89,6 +90,8 @@ export interface CandidateReview {
   readonly text: string;
   readonly diff: CandidateReviewDiff;
   readonly validation: ConsistencyAdjudication;
+  /** I71 生成注入解释（层/触发原因/裁剪预算；不泄露 secret/完整对象）。 */
+  readonly trace: ContextTrace;
 }
 
 export type WritingAdjudicationOutcome =
@@ -148,6 +151,8 @@ interface CandidateEntry {
   readonly context?: NovelAgentContext;
   /** I65 队列恢复上下文：card/navigation 供 pov/summary/beats 重建（正常路径为 undefined）。 */
   readonly recovery?: { card: DetailBeat; navigation: OutlineNavigation };
+  /** I71 生成注入解释（continue/scene-card/rewrite 各自构建；preview 返回）。 */
+  readonly trace: ContextTrace;
   /** preview 计算并缓存的校验结果（与 accept 同源，I20 复判）。 */
   violations?: readonly ConsistencyViolationView[];
   /** accept 落地结果缓存（重复 accept 幂等返回）。 */
@@ -367,7 +372,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       signal,
     };
     const { candidate } = await candidates.propose(next);
-    entries.set(candidate.id, { candidate, request: next, context: entry.context, attempts: entry.attempts + 1 });
+    entries.set(candidate.id, { candidate, request: next, context: entry.context, trace: entry.trace, attempts: entry.attempts + 1 });
     return Object.freeze({ candidate });
   };
 
@@ -474,6 +479,8 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         candidate: parsed,
         request,
         recovery: { card: recovery.card, navigation: recovery.navigation },
+        // I71：队列恢复的场景卡候选不经 ContextAssembler —— 如实报告无结构层注入。
+        trace: buildContextTrace({ intent: 'scene-card', pov: recovery.card.pov, navigation: recovery.navigation, card: recovery.card }),
         attempts: 0,
       });
     },
@@ -498,7 +505,13 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
           signal,
         };
         const { candidate } = await candidates.propose(request);
-        entries.set(candidate.id, { candidate, request, attempts: 0 });
+        entries.set(candidate.id, {
+          candidate,
+          request,
+          // I71：rewrite 不注入结构层，只注入调用方重写指令（长度摘要）。
+          trace: buildContextTrace({ intent: 'rewrite', rewritePrompt: prompt }),
+          attempts: 0,
+        });
         return Object.freeze({ candidate });
       }
       // continue / scene-card：经共享上下文装配（I44/I43 prompt 复用）。
@@ -516,7 +529,12 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       };
       validateCandidateTarget(request.intent, request.target);
       const { candidate } = await candidates.propose(request);
-      entries.set(candidate.id, { candidate, request, context: built, attempts: 0 });
+      // I71：continue 注入故事上下文（复用上下文装配的 trace，与 ContextAssembler
+      // 实际选择一致）；scene-card 只注入场景卡/导航 —— 单独构建如实报告零结构层。
+      const trace = input.intent === 'continue'
+        ? built.trace
+        : buildContextTrace({ intent: 'scene-card', pov: card.pov, navigation: built.navigation, card });
+      entries.set(candidate.id, { candidate, request, context: built, trace, attempts: 0 });
       return Object.freeze({ candidate });
     },
     async preview(candidateId: string, signal?: AbortSignal) {
@@ -530,6 +548,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         text: candidate.text,
         diff: await computeDiff(candidate),
         validation: adjudicateViolations(violations),
+        trace: entry.trace,
       });
     },
     async adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal) {

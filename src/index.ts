@@ -40,6 +40,7 @@ import { createRuleStyleManagerService } from './host/rule-style-manager-service
 import { createProgressInspirationService } from './host/progress-inspiration-service.js';
 import { createImportExportService } from './host/import-export-service.js';
 import { createBranchService } from './host/branch-service.js';
+import { createSearchService } from './host/search-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -457,6 +458,27 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     choose: (projectId: unknown, chapterId: unknown, sceneId: unknown, branchId: unknown) => branchService.chooseBranch(String(projectId), String(chapterId), String(sceneId), String(branchId)),
     diff: (projectId: unknown, chapterId: unknown, sceneId: unknown, fromBranchId: unknown, toBranchId?: unknown) => branchService.diffBranches(String(projectId), String(chapterId), String(sceneId), String(fromBranchId), toBranchId === undefined ? undefined : String(toBranchId)),
   }, 'novelBranches', 'novelBranches'));
+  // I71 全局搜索与上下文追踪（design §14.10「搜索与上下文追踪」/ R14-6）：可重建
+  // 搜索投影 + 实体交叉引用 + 结果跳转 + 生成注入解释（trace）。搜索索引是派生视图
+  // （core/search，可 drop/rebuild，不成为第二真相）；POV 边界在查询时用 live C3
+  // knows 过滤；trace 由 writing 路径（novelWriting.preview）返回，本服务只负责
+  // 检索/引用/索引生命周期，不持有生成路径。
+  const searchService = createSearchService({
+    projectsRoot,
+    text: textService,
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    canon: canonService,
+    knowledge: knowledgeService,
+  });
+  ctx.provide('novelSearch', bindRemote({
+    build: (projectId: unknown) => searchService.build(String(projectId)),
+    drop: (projectId: unknown) => searchService.drop(String(projectId)),
+    stats: (projectId: unknown) => searchService.stats(String(projectId)),
+    search: (projectId: unknown, query: unknown, pov?: unknown) => searchService.search(String(projectId), String(query), pov === undefined || pov === null ? undefined : String(pov)),
+    references: (projectId: unknown, key: unknown, pov?: unknown) => searchService.references(String(projectId), String(key), pov === undefined || pov === null ? undefined : String(pov)),
+  }, 'novelSearch', 'novelSearch'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

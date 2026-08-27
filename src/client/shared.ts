@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -127,6 +127,15 @@ export interface BranchNamespace {
   diff(projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string): Promise<unknown>;
 }
 
+/** I71 全局搜索与上下文追踪 Remote（design §14.10「搜索与上下文追踪」/ R14-6）：只提交受控命令，不持有索引/路径真相。 */
+export interface SearchNamespace {
+  build(projectId: string): Promise<unknown>;
+  drop(projectId: string): Promise<unknown>;
+  stats(projectId: string): Promise<unknown>;
+  search(projectId: string, query: string, pov?: string): Promise<unknown>;
+  references(projectId: string, key: string, pov?: string): Promise<unknown>;
+}
+
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
   register(options: unknown, component: () => unknown): () => void;
@@ -215,4 +224,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution };

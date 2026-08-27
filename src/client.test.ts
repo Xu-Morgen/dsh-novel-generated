@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; search?: { build?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; search?: (projectId: string, query: string, pov?: string) => Promise<unknown>; references?: (projectId: string, key: string, pov?: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -248,6 +248,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const ruleStyleStub = mountOptions.ruleStyle;
   const progressStub = mountOptions.progress;
   const importExportStub = mountOptions.importExport;
+  const searchStub = mountOptions.search;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -323,6 +324,13 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       restore: async () => { throw new Error('未注入 remote.novelImportExport.restore'); },
       importPreview: async () => { throw new Error('未注入 remote.novelImportExport.importPreview'); },
     })
+    : name === 'remote.novelSearch' ? (searchStub ?? {
+      build: async () => { throw new Error('未注入 remote.novelSearch.build'); },
+      drop: async () => { throw new Error('未注入 remote.novelSearch.drop'); },
+      stats: async () => { throw new Error('未注入 remote.novelSearch.stats'); },
+      search: async () => { throw new Error('未注入 remote.novelSearch.search'); },
+      references: async () => { throw new Error('未注入 remote.novelSearch.references'); },
+    })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
@@ -396,10 +404,10 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：十六个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份）。
+    // 稳定 data 锚点：十七个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
+      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
@@ -2337,9 +2345,9 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
+    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列,搜索与追踪} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
-    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue', 'search']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'ruleStyle']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon', 'knowledge']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'importExport', 'settings']);
@@ -2349,7 +2357,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2411,7 +2419,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(16);
+    expect(grouped).toHaveLength(17);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2428,7 +2436,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(16);
+    expect(NAV_ITEMS).toHaveLength(17);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2445,11 +2453,12 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
     expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'queue', 'onboarding', 'creationSettings', 'importExport', 'settings']);
-    // I60/I64/I65/I66/I67/I68/I69：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感与导入导出视图是稳定视图（重复点击保持），设置类视图回退默认。
+    expect(noBadge).toEqual(['review', 'queue', 'search', 'onboarding', 'creationSettings', 'importExport', 'settings']);
+    // I60/I64/I65/I66/I67/I68/I69/I71：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出与搜索视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
     expect(isStableView('queue')).toBe(true);
+    expect(isStableView('search')).toBe(true);
     expect(isStableView('knowledge')).toBe(true);
     expect(isStableView('ruleStyle')).toBe(true);
     expect(isStableView('progress')).toBe(true);
@@ -3048,6 +3057,18 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
       text: '米拉在码头找到铜钥匙。',
       diff: { kind: 'new-scene' },
       validation: { status: 'pass', violations: [] },
+      // I71：preview 携带注入解释（层/触发/预算摘要；不泄露 secret 内容）。
+      trace: {
+        intent: 'continue', pov: 'mira',
+        navigation: { actId: 'act-1', beatId: 'beat-1', title: '午夜灯塔' },
+        sections: [
+          { id: 'rules', characterCount: 60, budget: 4000, truncated: false },
+          { id: 'worldview', characterCount: 40, budget: 3000, truncated: false },
+        ],
+        triggers: [{ entryId: 'north-harbor', title: '北港', matchedKeywords: ['北港'] }],
+        totals: { characterCount: 100, budget: 24000, truncatedSectionCount: 0 },
+        rewritePromptCharacters: 0, knowledgeVisibleCount: 1,
+      },
     },
   };
 
@@ -4173,5 +4194,163 @@ describe('I69 导入导出与备份 UI (R14-4)', () => {
     expect(previewInput).toMatchObject({ format: 'txt', text: '第一段\n\n第二段' });
     expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-ie-preview-text'] !== undefined)?.children?.[0] ?? '')).toContain('1 块');
     expect(messageOf(render)).toContain('零写');
+  });
+});
+
+describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const searchPanelOf = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-search-panel'] !== undefined);
+  const searchMessage = (render: () => FakeNode): string =>
+    String((collect(render(), 'p').find((n) => n.props?.['data-novel-search-message'] !== undefined)?.children?.[0] ?? ''));
+
+  const STATS = {
+    indexExists: true, builtAt: '2026-01-01T00:00:00.000Z',
+    counts: { text: 2, characters: 1, worldview: 1, outline: 1, canon: 1, knowledge: 2 },
+    totalEntries: 8,
+  };
+  const TEXT_HIT = {
+    layer: 'text', id: 'scene-1', title: '旧灯塔 · 场景 1', preview: '米拉推开旧灯塔的门。',
+    nav: { kind: 'text', chapterId: 'chapter-1', sceneId: 'scene-1' }, score: 3, matched: 'title',
+  };
+
+  it('关键词搜索：输入 → Remote 提交（含可选 POV）→ 有界命中列表渲染', async () => {
+    const calls: Array<{ query: string; pov?: string }> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        search: {
+          search: async (_projectId, query, pov) => {
+            calls.push({ query, pov });
+            return { ok: true, value: { query, ...(pov !== undefined && pov !== '' ? { pov } : {}), total: 1, hits: [TEXT_HIT] } };
+          },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'search')?.props?.onClick as () => void)();
+    await flush();
+    expect(searchPanelOf(render())?.props?.['data-novel-search-state']).toBe('idle');
+    const queryInput = () => collect(render(), 'input').find((n) => n.props?.['data-novel-search-input'] !== undefined);
+    (queryInput()?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: '海图' } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-submit'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual([{ query: '海图', pov: undefined }]);
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-result-count'] !== undefined)?.children?.[0] ?? '')).toContain('命中 1 条');
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-search-hit'] === 'text:scene-1')).toBe(true);
+    // POV 过滤透传（Host 在查询时用 live C3 knows 过滤，Client 零领域过滤）。
+    (collect(render(), 'input').find((n) => n.props?.['data-novel-search-pov'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'mira' } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-submit'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls[1]).toEqual({ query: '海图', pov: 'mira' });
+  });
+
+  it('索引生命周期：重建 → 统计可见；删除 → 未构建提示（派生视图可删除重建，非第二真相）', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        search: {
+          build: async () => ({ ok: true, value: STATS }),
+          drop: async () => ({ ok: true, value: { indexExists: false, counts: { text: 0, characters: 0, worldview: 0, outline: 0, canon: 0, knowledge: 0 }, totalEntries: 0 } }),
+          stats: async () => ({ ok: true, value: STATS }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'search')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-rebuild'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-stats'] !== undefined)?.children?.[0] ?? '')).toContain('共 8 条');
+    expect(searchMessage(render)).toContain('重建派生索引');
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-drop'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(searchMessage(render)).toContain('已删除派生索引');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
+  });
+
+  it('结果跳转：正文命中 → 正文视图并打开对应场景（脏文本保护复用）', async () => {
+    let chapterReads = 0;
+    let sceneReads = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        chapterList: async () => [{ id: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', sceneCount: 1 }],
+        chapterRead: async () => { chapterReads += 1; return { ok: true, value: { id: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '进入灯塔' }] } }; },
+        sceneRead: async () => { sceneReads += 1; return { ok: true, value: { chapter: { id: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira' }, scene: { id: 'scene-1', index: 0, summary: '进入灯塔', content: '米拉推开旧灯塔的门。', beats: [], canonEvents: [], notes: '' } } }; },
+      },
+      {
+        search: { search: async () => ({ ok: true, value: { query: '米拉', total: 1, hits: [TEXT_HIT] } }) },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'search')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'input').find((n) => n.props?.['data-novel-search-input'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: '米拉' } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-submit'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-search-jump'] === 'text')?.props?.onClick as () => void)();
+    await flush();
+    expect(render().props?.['data-novel-route']).toBe('chapters');
+    expect(chapterReads).toBeGreaterThanOrEqual(1);
+    expect(sceneReads).toBeGreaterThanOrEqual(1);
+    expect(collect(render(), 'p').some((n) => String(n.children?.[0] ?? '').includes('米拉推开旧灯塔的门。'))).toBe(true);
+  });
+
+  it('候选审阅展示生成注入解释（trace 层/触发/预算摘要，不泄露 secret 内容）', async () => {
+    const traceReview = {
+      ok: true,
+      value: {
+        candidateId: 'cand-1', intent: 'continue',
+        target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' },
+        text: '米拉在码头找到铜钥匙。', diff: { kind: 'new-scene' },
+        validation: { status: 'pass', violations: [] },
+        trace: {
+          intent: 'continue', pov: 'mira',
+          navigation: { actId: 'act-1', beatId: 'beat-1', title: '午夜灯塔' },
+          sections: [
+            { id: 'rules', characterCount: 60, budget: 4000, truncated: false },
+            { id: 'worldview', characterCount: 40, budget: 3000, truncated: false },
+          ],
+          triggers: [{ entryId: 'north-harbor', title: '北港', matchedKeywords: ['北港'] }],
+          totals: { characterCount: 100, budget: 24000, truncatedSectionCount: 0 },
+          rewritePromptCharacters: 0, knowledgeVisibleCount: 1,
+        },
+      },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        writing: {
+          propose: async () => ({ ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
+          preview: async () => traceReview,
+          adjudicate: async () => { throw new Error('unused'); },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const trace = collect(render(), 'details').find((n) => n.props?.['data-novel-candidate-trace'] !== undefined);
+    expect(trace).toBeDefined();
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-candidate-trace-intent'] !== undefined)?.children?.[0] ?? '')).toContain('POV mira');
+    const sections = collect(render(), 'li').filter((n) => n.props?.['data-novel-candidate-trace-section'] !== undefined);
+    expect(sections.map((n) => n.props?.['data-novel-candidate-trace-section'])).toEqual(['rules', 'worldview']);
+    expect(String(collect(render(), 'li').find((n) => n.props?.['data-novel-candidate-trace-trigger'] === 'north-harbor')?.children?.[0] ?? '')).toContain('北港');
+    // 负测：trace 渲染不含知识事实/重写指令等 secret 内容。
+    expect(JSON.stringify(collect(render(), 'details').map((n) => n.props))).not.toContain('北港海底沉睡着');
   });
 });

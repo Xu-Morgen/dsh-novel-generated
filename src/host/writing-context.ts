@@ -12,6 +12,7 @@ import type { StoryGenerationSources } from '../core/pipeline/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { StoryLifecycleParserInputs } from './story-lifecycle-service.js';
+import { buildContextTrace, type ContextTrace } from '../core/trace/index.js';
 
 /**
  * I63 下一场景上下文装配（design §14.9 / R13-4）。
@@ -27,6 +28,9 @@ import type { StoryLifecycleParserInputs } from './story-lifecycle-service.js';
  * - B2 触发注入只取 active 命中（design §5.4 / R1-B2）：rewritten/obsolete 旧条目与
  *   尚未在正文揭示的条目不得进入生成上下文；全量 worldview 只进 parserInputs.b2
  *   以支持改写提案。
+ * - I71 trace：`trace` 是本装配的注入解释（层/触发原因/预算裁剪摘要），由
+ *   `core/trace.buildContextTrace` 用与生成路径相同的注册器/组装器确定性重组装
+ *   （ContextAssembler 确定性 ⇒ trace 与生成实际注入一致），不泄露 secret/完整对象。
  */
 export interface NextSceneContextDeps {
   readonly outline: NovelOutlineService;
@@ -61,6 +65,8 @@ export interface NovelAgentContext {
   readonly parserInputs: StoryLifecycleParserInputs;
   readonly recentScenes: number;
   readonly creation: NovelCreationSettingsView;
+  /** I71 注入解释（层/触发原因/预算裁剪摘要；与 ContextAssembler 实际选择一致）。 */
+  readonly trace: ContextTrace;
 }
 
 export interface NextSceneContextProvider {
@@ -145,7 +151,17 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       b2: { current: worldview },
     };
     const creation = await deps.workbenchSettings.load();
-    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation };
+    // I71 trace：与生成路径同注册器/组装器确定性重组装，逐层记录注入与预算裁剪；
+    // 触发原因由触发文本复现命中关键词（零查询零写，只摘要已注入的 hits）。
+    const trace = buildContextTrace({
+      intent: 'continue',
+      pov: card.pov,
+      sources,
+      triggerText,
+      navigation,
+      card,
+    });
+    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation, trace };
   }
 
   return Object.freeze({ context });

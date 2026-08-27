@@ -66,12 +66,31 @@ export interface CandidateValidationShape {
   readonly status: 'pass' | 'warn' | 'reject';
   readonly violations: readonly { readonly severity: 'hard' | 'soft'; readonly message: string; readonly references: readonly string[] }[];
 }
+/** I71 生成注入解释投影（design §14.10 / R14-6）：只含层/触发/预算摘要，无 secret 内容。 */
+export interface CandidateTraceSectionShape {
+  readonly id: string;
+  readonly characterCount: number;
+  readonly budget: number;
+  readonly truncated: boolean;
+}
+export interface CandidateTraceShape {
+  readonly intent: 'generate' | 'continue' | 'scene-card' | 'rewrite';
+  readonly pov: string;
+  readonly navigation?: { readonly actId: string; readonly beatId: string; readonly title: string };
+  readonly sections: readonly CandidateTraceSectionShape[];
+  readonly triggers: readonly { readonly entryId: string; readonly title: string; readonly matchedKeywords: readonly string[] }[];
+  readonly totals: { readonly characterCount: number; readonly budget: number; readonly truncatedSectionCount: number };
+  readonly rewritePromptCharacters: number;
+  readonly knowledgeVisibleCount: number;
+  readonly sceneCard?: { readonly title: string; readonly pov: string; readonly wordTarget: number };
+}
 export interface CandidateReviewShape {
   readonly candidateId: string;
   readonly intent: string;
   readonly text: string;
   readonly diff: { readonly kind: 'new-scene' } | { readonly kind: 'replace'; readonly before: string; readonly after: string };
   readonly validation: CandidateValidationShape;
+  readonly trace?: CandidateTraceShape;
 }
 
 /** I63 审阅面板 UI 状态机：只有正文/diff/校验结果可见（ready）后才允许裁决。 */
@@ -145,6 +164,8 @@ export interface ChaptersLayerState {
 export interface ChaptersEditOps {
   selectChapter(chapterId: string): void;
   selectScene(sceneId: string): void;
+  /** I71：搜索结果跳转 —— 打开指定章节/场景（脏文本保护复用离开确认流程）。 */
+  openScene(chapterId: string, sceneId: string): void;
   retryChapter(): void;
   retryScene(): void;
   /** I61：进入/退出编辑模式。 */
@@ -376,6 +397,29 @@ function candidatePanel(h: El, projectId: string, writing: WritingNamespace | un
       validation.violations.length === 0 ? null
         : h('ul', { className: 'nv-candidate__violations' }, validation.violations.map((violation, index) => h('li', { key: index, 'data-novel-candidate-violation': violation.severity }, `${violation.severity === 'hard' ? '硬' : '软'}冲突：${violation.message}`))),
     );
+    const trace = review.trace;
+    const traceBlock = trace === undefined
+      ? null
+      : h('details', { className: 'nv-candidate__trace', 'data-novel-candidate-trace': '' },
+        h('summary', { 'data-novel-candidate-trace-summary': '' }, `本次生成注入解释（${trace.sections.length} 层 / ${trace.totals.characterCount} 字 / 预算 ${trace.totals.budget}）`),
+        h('p', { className: 'nv-candidate__trace-intent', 'data-novel-candidate-trace-intent': '' },
+          trace.intent === 'rewrite'
+            ? '局部重写：未注入结构层，只注入作者重写指令。'
+            : trace.intent === 'scene-card'
+              ? `按场景卡写作：未注入结构层，只注入场景卡「${trace.sceneCard?.title ?? ''}」（POV ${trace.pov}，目标 ${trace.sceneCard?.wordTarget ?? 0} 字）。`
+              : `上下文组装：POV ${trace.pov}，注入 ${trace.sections.length} 个层（含 ${trace.knowledgeVisibleCount} 条该 POV 可见的知情）。`),
+        trace.sections.length === 0 ? null
+          : h('ul', { className: 'nv-candidate__trace-sections', 'data-novel-candidate-trace-sections': '' },
+            trace.sections.map((section) => h('li', { key: section.id, 'data-novel-candidate-trace-section': section.id },
+              `${section.id}：${section.characterCount}/${section.budget} 字${section.truncated ? '（已裁剪）' : ''}`))),
+        trace.triggers.length === 0 ? null
+          : h('ul', { className: 'nv-candidate__trace-triggers', 'data-novel-candidate-trace-triggers': '' },
+            trace.triggers.map((trigger) => h('li', { key: trigger.entryId, 'data-novel-candidate-trace-trigger': trigger.entryId },
+              `世界观触发：${trigger.title}（关键词：${trigger.matchedKeywords.join('、') || '—'}）`))),
+        trace.totals.truncatedSectionCount > 0
+          ? h('p', { className: 'nv-candidate__trace-truncated', 'data-novel-candidate-trace-truncated': String(trace.totals.truncatedSectionCount) }, `其中 ${trace.totals.truncatedSectionCount} 层因预算被确定性裁剪。`)
+          : null,
+      );
     body = h('div', { className: 'nv-candidate__review', 'data-novel-candidate-review': '' },
       h('div', { className: 'nv-candidate__meta' },
         h('span', { className: 'nv-candidate__intent', 'data-novel-candidate-intent': '' }, { continue: '续写', 'scene-card': '场景卡写作', rewrite: '局部重写', generate: '生成' }[review.intent] ?? review.intent),
@@ -384,6 +428,7 @@ function candidatePanel(h: El, projectId: string, writing: WritingNamespace | un
       proseParagraphs(h, review.text),
       diffBlock,
       validationBlock,
+      traceBlock,
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-accept': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('accept') }, acting === 'accept' ? '正在接受…' : '接受'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-reject': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('reject') }, acting === 'reject' ? '正在拒绝…' : '拒绝'),
