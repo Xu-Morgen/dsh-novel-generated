@@ -1505,6 +1505,222 @@ export const WORKBENCH_STYLES = `
   color: var(--nv-ink-faint);
 }
 
+/* I66 知情与揭示管理面（design §14.10 / R14-1）：事实/角色双视图 + 揭示/holder 提案。 */
+.nv-knowledge__summary {
+  margin: 0 0 var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__view-tabs {
+  display: flex;
+  gap: calc(var(--nv-grid) * 0.5);
+  margin: 0 0 var(--nv-grid);
+}
+
+.nv-knowledge__view-tabs .nv-btn.is-active {
+  border-color: var(--nv-cinnabar);
+  color: var(--nv-cinnabar);
+}
+
+.nv-knowledge__facts,
+.nv-knowledge__characters {
+  list-style: none;
+  margin: 0 0 var(--nv-grid);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-knowledge__fact,
+.nv-knowledge__character {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  background: var(--nv-paper);
+}
+
+.nv-knowledge__fact.is-selected {
+  border-color: var(--nv-cinnabar);
+}
+
+.nv-knowledge__fact-main,
+.nv-knowledge__character-main {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.75);
+  flex-wrap: wrap;
+}
+
+.nv-knowledge__fact-text {
+  margin: 0;
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nv-ink);
+  flex: 1 1 100%;
+}
+
+.nv-knowledge__character-name {
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nv-ink);
+}
+
+.nv-knowledge__badge {
+  border-radius: calc(var(--nv-grid) * 0.5);
+  padding: 0 calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  font-size: 11px;
+  line-height: 1.6;
+  border: 1px solid var(--nv-line);
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__badge--hidden {
+  border-color: var(--nv-line);
+  color: var(--nv-ink-faint);
+}
+
+.nv-knowledge__badge--partially-revealed {
+  border-color: var(--nv-cinnabar);
+  color: var(--nv-cinnabar);
+}
+
+.nv-knowledge__badge--revealed {
+  border-color: var(--nv-cinnabar);
+  color: var(--nv-cinnabar);
+}
+
+.nv-knowledge__fact-meta {
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-knowledge__pov-hint {
+  margin: calc(var(--nv-grid) * 0.5) 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__character-empty {
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-knowledge__character-knows {
+  list-style: none;
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.25);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__action {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: var(--nv-grid);
+  margin: 0 0 var(--nv-grid);
+  background: var(--nv-paper);
+}
+
+.nv-knowledge__action-title {
+  margin: 0 0 calc(var(--nv-grid) * 0.75);
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--nv-ink);
+}
+
+.nv-knowledge__holders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--nv-grid) * 0.75);
+  margin: 0 0 var(--nv-grid);
+}
+
+.nv-knowledge__holder {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.25);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink);
+}
+
+.nv-knowledge__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nv-grid);
+  align-items: flex-end;
+}
+
+.nv-knowledge__pending {
+  margin: var(--nv-grid) 0 0;
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+}
+
+.nv-knowledge__pending summary {
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--nv-ink);
+  cursor: pointer;
+}
+
+.nv-knowledge__pending ul {
+  list-style: none;
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-knowledge__pending-text {
+  margin: 0 0 calc(var(--nv-grid) * 0.25);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__message {
+  margin: var(--nv-grid) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-knowledge__hint {
+  margin: 0 0 var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nv-ink-faint);
+}
+
+.nv-knowledge__empty {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink-faint);
+}
+
 /* I59 响应式断点（design §14.8 / R12-6）：窄屏把左右分栏改为纵向堆叠，导航退化
    为可横向滚动的横条；仍由同一 shell.overlay Slot/Fiber 管理，不创建新容器，
    窄屏无不可达内容（主列纵向滚动 + 导航横向滚动双轴可达）。 */

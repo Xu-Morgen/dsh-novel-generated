@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -75,6 +75,16 @@ export interface QueueNamespace {
   retry(projectId: string, taskId: string): Promise<unknown>;
   cancelTask(projectId: string, taskId: string): Promise<unknown>;
   recover(projectId: string): Promise<unknown>;
+}
+
+/** I66 C3 知情与揭示管理面 Remote（design §14.10 / R14-1）：只提交受控命令。 */
+export interface KnowledgeNamespace {
+  list(projectId: string): Promise<unknown>;
+  read(projectId: string, entryId: string): Promise<unknown>;
+  propose(projectId: string, input: unknown): Promise<unknown>;
+  accept(projectId: string, proposalId: string): Promise<unknown>;
+  reject(projectId: string, proposalId: string): Promise<unknown>;
+  pending(projectId: string): Promise<unknown>;
 }
 
 export interface WorkspaceSlots {
@@ -165,4 +175,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution };

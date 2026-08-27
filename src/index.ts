@@ -35,6 +35,7 @@ import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createWritingAdjudicationService } from './host/writing-adjudication-service.js';
 import { createReviewService } from './host/review-service.js';
 import { createQueueService } from './host/queue-service.js';
+import { createKnowledgeManagerService } from './host/knowledge-manager-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -367,6 +368,25 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     cancelTask: (projectId: unknown, taskId: unknown) => queueService.cancelTask(String(projectId), String(taskId)),
     recover: (projectId: unknown) => queueService.recover(String(projectId)),
   }, 'novelQueue', 'novelQueue'));
+  // I66 C3 知情与揭示管理面（design §14.10 / R14-1）：作者按事实与角色查看
+  // holders/revealPlan/status 并受控执行揭示或 holder 变更。复用 I18 领域服务
+  // （KnowledgeRepository 唯一 C3 写 owner）+ I11 ConfirmationGate（propose→accept/
+  // reject，未确认零写）+ 既有知情不倒退约束（assertKnowledgeOnlyAdvances）。
+  // 管理投影只读全量 C3 文档（作者全知面），绝不调用单角色 POV 过滤入口。
+  const knowledgeManagerService = createKnowledgeManagerService({
+    knowledge: knowledgeService,
+    characters: characterService,
+    confirmation: confirmationService,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelKnowledgeManager', bindRemote({
+    list: (projectId: unknown) => knowledgeManagerService.list(String(projectId)),
+    read: (projectId: unknown, entryId: unknown) => knowledgeManagerService.read(String(projectId), String(entryId)),
+    propose: (projectId: unknown, input: unknown) => knowledgeManagerService.propose(String(projectId), input as Parameters<typeof knowledgeManagerService.propose>[1]),
+    accept: (projectId: unknown, proposalId: unknown) => knowledgeManagerService.accept(String(projectId), String(proposalId)),
+    reject: (projectId: unknown, proposalId: unknown) => knowledgeManagerService.reject(String(projectId), String(proposalId)),
+    pending: (projectId: unknown) => knowledgeManagerService.pending(String(projectId)),
+  }, 'novelKnowledgeManager', 'novelKnowledgeManager'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

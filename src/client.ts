@@ -13,6 +13,7 @@ import {
   type WritingNamespace,
   type ReviewNamespace,
   type QueueNamespace,
+  type KnowledgeNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -23,6 +24,7 @@ import {
   writingRemoteContribution,
   reviewRemoteContribution,
   queueRemoteContribution,
+  knowledgeRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -65,6 +67,7 @@ import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelati
 import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
 import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
 import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
+import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -192,6 +195,8 @@ export type WorkbenchActions = {
   reviewPatch(patch: Partial<ReviewLayerState>): void;
   /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
   queuePatch(patch: Partial<QueueLayerState>): void;
+  /** I66 知情与揭示管理面（R14-1）：面板状态（投影/视图/选中/提案草稿/pending）。 */
+  knowledgePatch(patch: Partial<KnowledgeLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -348,8 +353,10 @@ function viewPanel(
   writing: WritingNamespace | undefined,
   reviewNamespace: ReviewNamespace | undefined,
   queueNamespace: QueueNamespace | undefined,
+  knowledgeNamespace: KnowledgeNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
+  knowledgeState: KnowledgeLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -378,6 +385,10 @@ function viewPanel(
   // I65：生成队列（写作组）—— 场景卡范围/配置 + 暂停/继续/取消 + 任务列表（R13-6）。
   if (activeView === 'queue') {
     return h('div', { 'data-novel-view-panel': 'queue' }, queuePanel(h, projectId, queueNamespace, workspace, queueState, ops.queue));
+  }
+  // I66：知情与揭示（连续性组）—— 事实/角色双视图 + 揭示/holder Gate 提案（R14-1）。
+  if (activeView === 'knowledge') {
+    return h('div', { 'data-novel-view-panel': 'knowledge' }, knowledgePanel(h, projectId, knowledgeNamespace, knowledgeState, ops.knowledge));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -411,10 +422,12 @@ interface WorkbenchOps {
   readonly review: ReviewEditOps;
   /** I65：生成队列（范围/配置 + 暂停/继续/取消 + 重试，R13-6）。 */
   readonly queue: QueueEditOps;
+  /** I66：知情与揭示（刷新/双视图/选中/提案草稿 + Gate 确认，R14-1）。 */
+  readonly knowledge: KnowledgeEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -478,7 +491,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, reviewState, queueState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, reviewState, queueState, knowledgeState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -619,6 +632,8 @@ interface WorkbenchState {
   review: ReviewLayerState;
   /** I65：生成队列面板状态（投影/范围勾选/配置草稿，R13-6）。 */
   queue: QueueLayerState;
+  /** I66：知情与揭示面板状态（投影/视图/选中/提案草稿/pending，R14-1）。 */
+  knowledge: KnowledgeLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -659,6 +674,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let writing: WritingNamespace | undefined;
       let reviewNamespace: ReviewNamespace | undefined;
       let queueNamespace: QueueNamespace | undefined;
+      let knowledgeNamespace: KnowledgeNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -669,6 +685,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let writingDisposer: TypertDisposer | undefined;
       let reviewDisposer: TypertDisposer | undefined;
       let queueDisposer: TypertDisposer | undefined;
+      let knowledgeDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -710,6 +727,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           chapters: freshChapters(),
           review: freshReview(),
           queue: freshQueue(),
+          knowledge: freshKnowledge(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -747,7 +765,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -780,6 +798,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
           reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
           queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
+          knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1550,6 +1569,115 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); clearQueuePoll(); },
             };
           })(),
+          // ---- I66 知情与揭示管理面（R14-1）：双视图 + 揭示/holder Gate 提案 ----
+          knowledge: (() => {
+            const knowledgePatch = (patch: Partial<KnowledgeLayerState>): void => act.knowledgePatch(patch);
+            return {
+              refresh(): void {
+                const target = knowledgeNamespace;
+                if (!target || projectId === undefined) { knowledgePatch({ status: 'error', message: '知情与揭示服务不可用' }); return; }
+                if (!beginOp('knowledge:refresh')) return;
+                const release = (): void => endOp('knowledge:refresh');
+                knowledgePatch({ status: 'loading', message: undefined });
+                // 投影 + 待确认提案并行读取（都为只读 Remote）。
+                void Promise.all([
+                  unwrap(target.list(projectId)),
+                  unwrap(target.pending(projectId)),
+                ]).then(([projection, pendingEnvelope]) => {
+                  release();
+                  if (!active) return;
+                  const pending = (pendingEnvelope as { proposals?: KnowledgeProposalShape[] } | undefined)?.proposals ?? [];
+                  knowledgePatch({ status: 'ready', projection: projection as KnowledgeProjectionShape, pending, message: undefined });
+                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ status: 'error', message: (cause as Error).message }); });
+              },
+              setView(view: KnowledgeViewId) { knowledgePatch({ view, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' } }); },
+              selectFact(entryId: string) {
+                const selected = snapshot.knowledge.selectedEntryId === entryId ? undefined : entryId;
+                knowledgePatch({ selectedEntryId: selected, draft: { holders: [], status: '', revealAt: '' }, message: undefined });
+              },
+              toggleDraftHolder(characterId: string) {
+                const holders = snapshot.knowledge.draft.holders;
+                knowledgePatch({ draft: { ...snapshot.knowledge.draft, holders: holders.includes(characterId) ? holders.filter((id) => id !== characterId) : [...holders, characterId] } });
+              },
+              setDraftStatus(value: '' | 'partially-revealed' | 'revealed') { knowledgePatch({ draft: { ...snapshot.knowledge.draft, status: value } }); },
+              setDraftRevealAt(value: string) { knowledgePatch({ draft: { ...snapshot.knowledge.draft, revealAt: value } }); },
+              propose(kind: 'reveal' | 'holder-add'): void {
+                const target = knowledgeNamespace;
+                const state = snapshot.knowledge;
+                if (!target || projectId === undefined || state.status !== 'ready') return;
+                if (state.selectedEntryId === undefined || state.draft.holders.length === 0 || state.acting) return;
+                if (!beginOp(`knowledge:propose:${kind}`)) return;
+                const release = (): void => endOp(`knowledge:propose:${kind}`);
+                const revealAt = state.draft.revealAt.trim();
+                const input = kind === 'reveal'
+                  ? {
+                    kind,
+                    entryId: state.selectedEntryId,
+                    holders: [...state.draft.holders],
+                    ...(state.draft.status === '' ? {} : { status: state.draft.status }),
+                    ...(revealAt === '' ? {} : { revealAt }),
+                  }
+                  : { kind, entryId: state.selectedEntryId, holders: [...state.draft.holders] };
+                knowledgePatch({ acting: true, message: undefined });
+                void unwrap(target.propose(projectId, input)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as KnowledgeProposeOutcomeShape;
+                  const names = new Map((state.projection?.characters ?? []).map((character) => [character.characterId, character.name]));
+                  const addedNames = state.draft.holders.map((id) => names.get(id) ?? id).join('、');
+                  knowledgePatch({
+                    acting: false,
+                    selectedEntryId: undefined,
+                    draft: { holders: [], status: '', revealAt: '' },
+                    message: `提案已提交待确认（${result.proposalId}）：${result.kind === 'reveal' ? '揭示' : 'holder 变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效（知情只增不退）。`,
+                  });
+                  // 刷新待确认提案列表（Gate pending 持久化）。
+                  void unwrap(target.pending(projectId)).then((pendingEnvelope) => {
+                    if (!active) return;
+                    knowledgePatch({ pending: (pendingEnvelope as { proposals?: KnowledgeProposalShape[] }).proposals ?? [] });
+                  }, () => undefined);
+                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              accept(proposalId: string): void {
+                const target = knowledgeNamespace;
+                if (!target || projectId === undefined || snapshot.knowledge.acting) return;
+                if (!beginOp(`knowledge:accept:${proposalId}`)) return;
+                const release = (): void => endOp(`knowledge:accept:${proposalId}`);
+                knowledgePatch({ acting: true, message: undefined });
+                void unwrap(target.accept(projectId, proposalId)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as KnowledgeApplyOutcomeShape;
+                  const pending = snapshot.knowledge.pending.filter((proposal) => proposal.proposalId !== proposalId);
+                  knowledgePatch({
+                    acting: false,
+                    projection: result.projection,
+                    pending,
+                    message: result.applied
+                      ? `已确认并应用揭示 / holder 变更（知情只增不退，已同步 holders 与角色知情状态）。`
+                      : '该变更此前已生效（幂等确认，未重复写 C3）。',
+                  });
+                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              reject(proposalId: string): void {
+                const target = knowledgeNamespace;
+                if (!target || projectId === undefined || snapshot.knowledge.acting) return;
+                if (!beginOp(`knowledge:reject:${proposalId}`)) return;
+                const release = (): void => endOp(`knowledge:reject:${proposalId}`);
+                knowledgePatch({ acting: true, message: undefined });
+                void unwrap(target.reject(projectId, proposalId)).then(() => {
+                  release();
+                  if (!active) return;
+                  knowledgePatch({
+                    acting: false,
+                    pending: snapshot.knowledge.pending.filter((proposal) => proposal.proposalId !== proposalId),
+                    message: `已拒绝提案 ${proposalId}（C3 零写）。`,
+                  });
+                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              dismiss() { knowledgePatch({ status: 'idle', projection: undefined, message: undefined, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' }, pending: [], acting: false }); },
+            };
+          })(),
         };
       };
 
@@ -1741,7 +1869,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -1824,6 +1952,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           queueDisposer = dispose;
           queueNamespace = ctx.get('remote.novelQueue', false) as QueueNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: queue Remote mount failed', cause); });
+        // I66：知情与揭示管理面 Remote（R14-1）。挂载失败静默降级：知情面板显示不可用。
+        void ctx.remote.$mount(knowledgeRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          knowledgeDisposer = dispose;
+          knowledgeNamespace = ctx.get('remote.novelKnowledgeManager', false) as KnowledgeNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: knowledge Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -1837,6 +1971,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           writing = undefined;
           reviewNamespace = undefined;
           queueNamespace = undefined;
+          knowledgeNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -1846,6 +1981,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (writingDisposer) void writingDisposer();
           if (reviewDisposer) void reviewDisposer();
           if (queueDisposer) void queueDisposer();
+          if (knowledgeDisposer) void knowledgeDisposer();
         };
       });
     },

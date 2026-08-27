@@ -38,7 +38,8 @@ export interface KnowledgeDocument {
   readonly states: readonly KnowledgeState[];
 }
 
-const statusRank: Record<KnowledgeStatus, number> = {
+/** Monotonic revelation rank (§5.10)：status 只增不退，由 assertKnowledgeOnlyAdvances 与 I66 手动揭示共用。 */
+export const knowledgeStatusRank: Record<KnowledgeStatus, number> = {
   hidden: 0,
   'partially-revealed': 1,
   revealed: 2,
@@ -96,7 +97,7 @@ export function assertKnowledgeOnlyAdvances(
     for (const holder of oldEntry.holders) {
       if (!updated.holders.includes(holder)) throw new Error(`Knowledge holder cannot be removed: ${oldEntry.id}/${holder}`);
     }
-    if (statusRank[updated.status] < statusRank[oldEntry.status]) {
+    if (knowledgeStatusRank[updated.status] < knowledgeStatusRank[oldEntry.status]) {
       throw new Error(`Knowledge status cannot regress: ${oldEntry.id}`);
     }
   }

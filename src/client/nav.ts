@@ -15,6 +15,9 @@
  * I65（design §14.9 / R13-6）：写作组新增「生成队列」视图（可恢复自动生成队列，
  * 与正文/审校同组），同样为稳定视图；技术层编号只作辅助徽标。
  *
+ * I66（design §14.10 / R14-1）：连续性组新增「知情」视图（C3 知情与揭示管理面，
+ * 与关系/状态/正史同组），同样为稳定视图；技术层编号只作辅助徽标。
+ *
  * 契约与不变式：
  * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
  *   内容区携带 `data-novel-view-panel`，创作台根节点携带 `data-novel-route`；
@@ -35,8 +38,8 @@
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列视图 + 三个非层视图（I58/I60/I64/I65 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情视图 + 三个非层视图（I58/I60/I64/I65/I66 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -79,6 +82,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'relationship', label: '关系', badge: 'C1', layer: 'relationship' },
       { view: 'state', label: '状态', badge: 'C2', layer: 'state' },
       { view: 'canon', label: '正史', badge: 'C4', layer: 'canon' },
+      { view: 'knowledge', label: '知情', badge: 'C3' },
     ],
   },
   {
@@ -120,7 +124,7 @@ export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
 }
 
-/** 稳定视图判定（I60/I64/I65）：层视图、正文视图、审校中心与生成队列视图重复点击保持原位；设置类视图才回退默认。 */
+/** 稳定视图判定（I60/I64/I65/I66）：层视图、正文视图、审校中心、生成队列与知情视图重复点击保持原位；设置类视图才回退默认。 */
 export function isStableView(view: WorkbenchViewId): boolean {
-  return view === 'chapters' || view === 'review' || view === 'queue' || isLayerView(view);
+  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || isLayerView(view);
 }
