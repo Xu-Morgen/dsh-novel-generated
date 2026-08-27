@@ -33,6 +33,7 @@ import { createTextEditService } from './host/text-edit-service.js';
 import { createWritingCandidateService } from './host/candidate-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createWritingAdjudicationService } from './host/writing-adjudication-service.js';
+import { createReviewService } from './host/review-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -313,6 +314,34 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     preview: (candidateId: unknown) => writingAdjudicationService.preview(String(candidateId)),
     adjudicate: (candidateId: unknown, decision: unknown, settings?: unknown) => writingAdjudicationService.adjudicate(String(candidateId), decision as 'accept' | 'reject' | 'rewrite', settings),
   }, 'novelWritingAdjudication', 'novelWriting'));
+  // I64 一致性审校中心（design §14.9 / R13-5）：统一投影规则/正史/知情/关系/风格
+  // 五类问题及正文定位；复用 I21/I22/I24 探测器与 I20 判定（不新增第二裁决器）；
+  // 软警告必须显式 continue / rewrite-requested 并记录到持久审计账本，硬冲突
+  // 阻止 continue/accept。settings 惰性解析与 analyzer/writing 共用同一 owner。
+  const reviewService = createReviewService({
+    llm,
+    projectsRoot,
+    text: textService,
+    rules: ruleService,
+    canon: canonService,
+    knowledge: knowledgeService,
+    relationship: relationshipService,
+    style: styleService,
+    consistency: ctx.get('novelConsistencyDetection') as never,
+    knowledgeLeak: ctx.get('novelKnowledgeLeakDetection') as never,
+    relationshipStyle: ctx.get('novelRelationshipStyleDetection') as never,
+    resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelReview', bindRemote({
+    scan: (projectId: unknown, settings?: unknown) => reviewService.scan(String(projectId), settings),
+    adjudicate: (projectId: unknown, input: unknown) => reviewService.adjudicate(
+      String(projectId),
+      (input as { decision: 'continue' | 'rewrite-requested' }).decision,
+      (input as { issueIds: string[] }).issueIds,
+    ),
+    records: (projectId: unknown) => reviewService.records(String(projectId)),
+  }, 'novelReview', 'novelReview'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

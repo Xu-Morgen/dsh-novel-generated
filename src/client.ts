@@ -11,6 +11,7 @@ import {
   type WorkspaceViewModel,
   type TypertDisposer,
   type WritingNamespace,
+  type ReviewNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -19,6 +20,7 @@ import {
   unwrap,
   workspaceRemoteContribution,
   writingRemoteContribution,
+  reviewRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -59,6 +61,7 @@ import {
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
 import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
+import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -150,6 +153,8 @@ export type WorkbenchActions = {
   sceneEditorReset(): void;
   /** I63 候选审阅面板（R13-4）：面板状态机 + 局部重写指令草稿。 */
   chaptersCandidate(patch: Partial<CandidatePanelState>): void;
+  /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
+  reviewPatch(patch: Partial<ReviewLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -304,6 +309,8 @@ function viewPanel(
   projectId: string,
   workspace: WorkspaceNamespace | undefined,
   writing: WritingNamespace | undefined,
+  reviewNamespace: ReviewNamespace | undefined,
+  reviewState: ReviewLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -324,6 +331,10 @@ function viewPanel(
   // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）+ I63 候选审阅。
   if (activeView === 'chapters') {
     return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, chapters, ops.chapters));
+  }
+  // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
+  if (activeView === 'review') {
+    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -353,10 +364,12 @@ interface WorkbenchOps {
   readonly canon: CanonEditOps;
   /** I60：C5 只读导航（章节/场景选择与重试，经 Host Remote 读取）。 */
   readonly chapters: ChaptersEditOps;
+  /** I64：一致性审校中心（刷新/过滤/选中/显式裁决，R13-5）。 */
+  readonly review: ReviewEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -394,8 +407,8 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       h('div', { className: 'nv-workbench__body-row' },
         groupNav(h, ui.activeView, ui.activateView),
         h('div', { className: 'nv-workbench__main' },
-          // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 初始化审阅 / 创作设置 / LLM 设置）。
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, reviewState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -491,6 +504,8 @@ interface WorkbenchState {
   canonEditor: CanonEditor;
   /** I60：C5 章节树 + 章节/场景只读读取状态（R13-1）。 */
   chapters: ChaptersLayerState;
+  /** I64：一致性审校中心面板状态（投影/过滤/选中/审计记录，R13-5）。 */
+  review: ReviewLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -529,6 +544,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let llmConfig: LlmConfigNamespace | undefined;
       let workbenchSettings: WorkbenchSettingsNamespace | undefined;
       let writing: WritingNamespace | undefined;
+      let reviewNamespace: ReviewNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -537,6 +553,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let llmConfigDisposer: TypertDisposer | undefined;
       let workbenchSettingsDisposer: TypertDisposer | undefined;
       let writingDisposer: TypertDisposer | undefined;
+      let reviewDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -572,6 +589,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           stateEditor: freshStateEditor(),
           canonEditor: freshCanonEditor(),
           chapters: freshChapters(),
+          review: freshReview(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -599,7 +617,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -630,6 +648,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
           sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
           chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
+          reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1238,6 +1257,64 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); },
             };
           })(),
+          // ---- I64 一致性审校中心（R13-5）：刷新/过滤/选中/显式裁决 ----
+          review: (() => {
+            const reviewPatch = (patch: Partial<ReviewLayerState>): void => act.reviewPatch(patch);
+            const toggleFilter = (kind: 'categories' | 'severities' | 'statuses', value: string): void => {
+              const filter = snapshot.review.filter;
+              const next = (filter[kind] as readonly string[]).includes(value)
+                ? (filter[kind] as readonly string[]).filter((item) => item !== value)
+                : [...(filter[kind] as readonly string[]), value];
+              reviewPatch({ filter: { ...filter, [kind]: next } });
+            };
+            return {
+              scan(): void {
+                const target = reviewNamespace;
+                if (!target || projectId === undefined) { reviewPatch({ status: 'error', message: '审校服务不可用' }); return; }
+                if (!beginOp('review:scan')) return;
+                const release = (): void => endOp('review:scan');
+                reviewPatch({ status: 'scanning', message: undefined });
+                // 投影 + 审计记录并行读取（都为只读 Remote）。
+                void Promise.all([
+                  unwrap(target.scan(projectId)),
+                  unwrap(target.records(projectId)),
+                ]).then(([projection, recordEnvelope]) => {
+                  release();
+                  if (!active) return;
+                  const records = (recordEnvelope as { records?: ReviewAuditRecordShape[] } | undefined)?.records ?? [];
+                  reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined });
+                }, (cause: Error) => { release(); if (!active) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
+              },
+              toggleFilter,
+              clearFilters() { reviewPatch({ filter: { categories: [], severities: [], statuses: [] } }); },
+              selectIssue(issueId: string) {
+                const selected = snapshot.review.selected;
+                reviewPatch({ selected: selected.includes(issueId) ? selected.filter((item) => item !== issueId) : [...selected, issueId] });
+              },
+              adjudicate(decision: 'continue' | 'rewrite-requested'): void {
+                const target = reviewNamespace;
+                const state = snapshot.review;
+                if (!target || projectId === undefined || state.status !== 'ready') return;
+                if (state.selected.length === 0 || state.acting) return;
+                if (!beginOp(`review:adjudicate:${decision}`)) return;
+                const release = (): void => endOp(`review:adjudicate:${decision}`);
+                reviewPatch({ acting: true, message: undefined });
+                void unwrap(target.adjudicate(projectId, { decision, issueIds: [...state.selected] })).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as ReviewAdjudicationOutcomeShape;
+                  reviewPatch({
+                    acting: false,
+                    projection: result.projection,
+                    records: result.records,
+                    selected: [],
+                    message: `已记录 ${result.applied.length} 项${decision === 'continue' ? '「显式继续」' : '「请求重写」'}（重复 ${result.duplicate.length} 项）。`,
+                  });
+                }, (cause: Error) => { release(); if (!active) return; reviewPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [] }); },
+            };
+          })(),
         };
       };
 
@@ -1411,7 +1488,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, writing, ui, layers, makeOps(s), s.chapters, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -1482,6 +1559,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           writingDisposer = dispose;
           writing = ctx.get('remote.novelWriting', false) as WritingNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: writing Remote mount failed', cause); });
+        // I64：一致性审校中心 Remote（R13-5）。挂载失败静默降级：审校面板显示不可用。
+        void ctx.remote.$mount(reviewRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          reviewDisposer = dispose;
+          reviewNamespace = ctx.get('remote.novelReview', false) as ReviewNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: review Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -1493,6 +1576,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           llmConfig = undefined;
           workbenchSettings = undefined;
           writing = undefined;
+          reviewNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -1500,6 +1584,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (llmConfigDisposer) void llmConfigDisposer();
           if (workbenchSettingsDisposer) void workbenchSettingsDisposer();
           if (writingDisposer) void writingDisposer();
+          if (reviewDisposer) void reviewDisposer();
         };
       });
 
