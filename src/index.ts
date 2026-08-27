@@ -41,6 +41,7 @@ import { createProgressInspirationService } from './host/progress-inspiration-se
 import { createImportExportService } from './host/import-export-service.js';
 import { createBranchService } from './host/branch-service.js';
 import { createSearchService } from './host/search-service.js';
+import { createStatisticsService } from './host/statistics-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -479,6 +480,35 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     search: (projectId: unknown, query: unknown, pov?: unknown) => searchService.search(String(projectId), String(query), pov === undefined || pov === null ? undefined : String(pov)),
     references: (projectId: unknown, key: unknown, pov?: unknown) => searchService.references(String(projectId), String(key), pov === undefined || pov === null ? undefined : String(pov)),
   }, 'novelSearch', 'novelSearch'));
+  // I72 写作进度面板（design §14.10「写作进度」/ R14-7）：以可重建派生统计展示
+  // 章节字数、目标完成度、场景卡状态、POV 分布和任务历史。统计是派生视图
+  // （core/statistics，可 drop/rebuild，不成为第二份作品进度真相）；口径复用
+  // 既有 owner —— 字数 = countProseUnits（I65 队列同一写作单位）、场景卡联动 =
+  // stableSceneId（I65 同一确定性派生）、任务记录只经 I65 队列 status() 读取
+  // （零写账本）；概览/筛选/详情全部有界，空作品 empty 标记（无假进度）。
+  const statisticsService = createStatisticsService({
+    projectsRoot,
+    text: textService,
+    outline: outlineService,
+    queue: queueService,
+  });
+  ctx.provide('novelStatistics', bindRemote({
+    rebuild: (projectId: unknown) => statisticsService.build(String(projectId)),
+    drop: (projectId: unknown) => statisticsService.drop(String(projectId)),
+    stats: (projectId: unknown) => statisticsService.stats(String(projectId)),
+    overview: (projectId: unknown) => statisticsService.overview(String(projectId)),
+    chapterDetail: (projectId: unknown, chapterId: unknown) => statisticsService.chapterDetail(String(projectId), String(chapterId)),
+    sceneCards: (projectId: unknown, actId?: unknown, beatId?: unknown, status?: unknown, limit?: unknown) => statisticsService.sceneCards(String(projectId), {
+      ...(actId !== undefined && actId !== null ? { actId: String(actId) } : {}),
+      ...(beatId !== undefined && beatId !== null ? { beatId: String(beatId) } : {}),
+      ...(status !== undefined && status !== null ? { status: String(status) as 'planned' | 'writing' | 'done' } : {}),
+      ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
+    }),
+    tasks: (projectId: unknown, status?: unknown, limit?: unknown) => statisticsService.tasks(String(projectId), {
+      ...(status !== undefined && status !== null ? { status: String(status) as 'queued' | 'running' | 'candidate-ready' | 'failed' | 'cancelled' | 'completed' } : {}),
+      ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
+    }),
+  }, 'novelStatistics', 'novelStatistics'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

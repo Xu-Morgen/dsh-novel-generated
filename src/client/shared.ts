@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -136,6 +136,17 @@ export interface SearchNamespace {
   references(projectId: string, key: string, pov?: string): Promise<unknown>;
 }
 
+/** I72 写作进度 Remote（design §14.10「写作进度」/ R14-7）：只提交受控命令，不持有统计真相/文件路径。 */
+export interface StatisticsNamespace {
+  rebuild(projectId: string): Promise<unknown>;
+  drop(projectId: string): Promise<unknown>;
+  stats(projectId: string): Promise<unknown>;
+  overview(projectId: string): Promise<unknown>;
+  chapterDetail(projectId: string, chapterId: string): Promise<unknown>;
+  sceneCards(projectId: string, filter?: { actId?: string; beatId?: string; status?: string; limit?: number }): Promise<unknown>;
+  tasks(projectId: string, filter?: { status?: string; limit?: number }): Promise<unknown>;
+}
+
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
   register(options: unknown, component: () => unknown): () => void;
@@ -224,4 +235,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution };

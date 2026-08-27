@@ -45,13 +45,21 @@
  *   视图（characters），保证刷新/折叠/重开作品后 active view 始终合法。
  * - isStableView：层视图与正文视图重复点击保持原位；设置类视图（onboarding/
  *   creationSettings/settings）重复点击回退默认层视图（I58 保留的 toggle 语义）。
+ * - I71（design §14.10 / R14-6）：写作组新增「搜索与追踪」视图（跨六层全局搜索 +
+ * 实体交叉引用 + 结果跳转 + 生成注入解释），同样为稳定视图。
+ * - I72（design §14.10 / R14-7）：写作组新增「写作进度」视图（可重建派生统计：
+ * 章节字数/目标完成度/场景卡状态/POV 分布/任务历史），同样为稳定视图。
+ *
+ * 契约与不变式：
+ * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
+ *   内容区携带 `data-novel-view-panel`，创作台根节点携带 `data-novel-route`；
  * - 本模块只描述导航分组与视图身份，不持有任何领域数据。
  */
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风/进度与灵感/导入导出/搜索与追踪视图 + 三个非层视图（I58/I60/I64/I65/I66/I67/I68/I69/I71 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'importExport' | 'search' | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风/进度与灵感/导入导出/搜索与追踪/写作进度视图 + 三个非层视图（I58/I60/I64/I65/I66/I67/I68/I69/I71/I72 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'importExport' | 'search' | 'statistics' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -79,6 +87,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'review', label: '审校中心' },
       { view: 'queue', label: '生成队列' },
       { view: 'search', label: '搜索与追踪' },
+      { view: 'statistics', label: '写作进度' },
     ],
   },
   {
@@ -140,7 +149,7 @@ export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
 }
 
-/** 稳定视图判定（I60/I64/I65/I66/I67/I68/I69/I71）：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出与搜索视图重复点击保持原位；设置类视图才回退默认。 */
+/** 稳定视图判定（I60/I64/I65/I66/I67/I68/I69/I71/I72）：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索与写作进度视图重复点击保持原位；设置类视图才回退默认。 */
 export function isStableView(view: WorkbenchViewId): boolean {
-  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || view === 'progress' || view === 'importExport' || view === 'search' || isLayerView(view);
+  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || view === 'progress' || view === 'importExport' || view === 'search' || view === 'statistics' || isLayerView(view);
 }

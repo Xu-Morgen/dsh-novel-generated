@@ -19,6 +19,7 @@ import {
   type ImportExportNamespace,
   type BranchNamespace,
   type SearchNamespace,
+  type StatisticsNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -35,6 +36,7 @@ import {
   importExportRemoteContribution,
   branchRemoteContribution,
   searchRemoteContribution,
+  statisticsRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -82,6 +84,7 @@ import { freshRuleDraft, freshRuleStyle, freshStyleDraft, ruleStylePanel, type R
 import { freshProgress, progressPanel, type ProgressApplyOutcomeShape, type ProgressAuditRecordShape, type ProgressDirectionShape, type ProgressEditOps, type ProgressLayerState, type ProgressPendingProposalShape, type ProgressProjectionShape, type ProgressSelectOutcomeShape } from './client/layers/progress.js';
 import { freshImportExport, importExportPanel, downloadText, MAX_RESTORE_FILE_BYTES, type ImportExportEditOps, type ImportExportLayerState, type ImportExportPreviewShape, type ImportExportRestoreResultShape } from './client/layers/import-export.js';
 import { freshSearch, searchPanel, type SearchEditOps, type SearchHitShape, type SearchLayerState, type SearchResultShape, type SearchStatsShape } from './client/layers/search.js';
+import { freshStatistics, statisticsPanel, type ChapterDetailShape, type SceneCardsResultShape, type StatisticsEditOps, type StatisticsLayerState, type StatisticsOverviewShape, type StatisticsStatsShape, type TasksResultShape } from './client/layers/statistics.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -221,6 +224,8 @@ export type WorkbenchActions = {
   importExportPatch(patch: Partial<ImportExportLayerState>): void;
   /** I71：全局搜索与追踪面板状态合并（R14-6）。 */
   searchPatch(patch: Partial<SearchLayerState>): void;
+  /** I72：写作进度面板状态合并（R14-7）。 */
+  statisticsPatch(patch: Partial<StatisticsLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -383,6 +388,7 @@ function viewPanel(
   importExportNamespace: ImportExportNamespace | undefined,
   branchNamespace: BranchNamespace | undefined,
   searchNamespace: SearchNamespace | undefined,
+  statisticsNamespace: StatisticsNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
@@ -390,6 +396,7 @@ function viewPanel(
   progressState: ProgressLayerState,
   importExportState: ImportExportLayerState,
   searchState: SearchLayerState,
+  statisticsState: StatisticsLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -439,6 +446,10 @@ function viewPanel(
   if (activeView === 'search') {
     return h('div', { 'data-novel-view-panel': 'search' }, searchPanel(h, projectId, searchNamespace, searchState, ops.search));
   }
+  // I72：写作进度面板（写作组）—— 可重建派生统计：章节字数/目标完成度/场景卡状态/POV 分布/任务历史（R14-7）。
+  if (activeView === 'statistics') {
+    return h('div', { 'data-novel-view-panel': 'statistics' }, statisticsPanel(h, projectId, statisticsNamespace, statisticsState, ops.statistics));
+  }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
 
@@ -481,10 +492,12 @@ interface WorkbenchOps {
   readonly importExport: ImportExportEditOps;
   /** I71：全局搜索与上下文追踪（搜索/引用/跳转/重建/删除派生索引，R14-6）。 */
   readonly search: SearchEditOps;
+  /** I72：写作进度面板（概览/筛选/章节详情/重建/删除派生统计，R14-7）。 */
+  readonly statistics: StatisticsEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -548,7 +561,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, searchState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, searchState, statisticsState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -699,6 +712,8 @@ interface WorkbenchState {
   importExport: ImportExportLayerState;
   /** I71：全局搜索与追踪面板状态（查询/引用/索引状态/结果，R14-6）。 */
   search: SearchLayerState;
+  /** I72：写作进度面板状态（统计/概览/筛选/章节详情/任务历史，R14-7）。 */
+  statistics: StatisticsLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -745,6 +760,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let importExportNamespace: ImportExportNamespace | undefined;
       let branchNamespace: BranchNamespace | undefined;
       let searchNamespace: SearchNamespace | undefined;
+      let statisticsNamespace: StatisticsNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -761,6 +777,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let importExportDisposer: TypertDisposer | undefined;
       let branchDisposer: TypertDisposer | undefined;
       let searchDisposer: TypertDisposer | undefined;
+      let statisticsDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -807,6 +824,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           progress: freshProgress(),
           importExport: freshImportExport(),
           search: freshSearch(),
+          statistics: freshStatistics(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -844,7 +862,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -883,6 +901,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           progressPatch: (d, patch: Partial<ProgressLayerState>) => { d.progress = { ...d.progress, ...patch }; },
           importExportPatch: (d, patch: Partial<ImportExportLayerState>) => { d.importExport = { ...d.importExport, ...patch }; },
           searchPatch: (d, patch: Partial<SearchLayerState>) => { d.search = { ...d.search, ...patch }; },
+          statisticsPatch: (d, patch: Partial<StatisticsLayerState>) => { d.statistics = { ...d.statistics, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -2311,6 +2330,66 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { searchPatch({ status: 'idle', message: undefined, results: undefined, references: undefined, query: '', pov: '', referenceKey: '', acting: false }); },
             };
           })(),
+          // ---- I72 写作进度面板（R14-7）：概览/筛选/章节详情/重建/删除派生统计 ----
+          statistics: (() => {
+            const statisticsPatch = (patch: Partial<StatisticsLayerState>): void => act.statisticsPatch(patch);
+            const run = <T>(key: string, call: (target: StatisticsNamespace, projectId: string) => Promise<unknown>, onResult: (result: T) => void): void => {
+              const target = statisticsNamespace;
+              if (!target || projectId === undefined) { statisticsPatch({ status: 'error', message: '统计服务不可用' }); return; }
+              if (!beginOp(key)) return;
+              const release = (): void => endOp(key);
+              statisticsPatch({ acting: true, message: undefined });
+              void unwrap(call(target, projectId)).then((result) => {
+                release();
+                if (!active) return;
+                onResult(result as T);
+                statisticsPatch({ acting: false, status: 'ready' });
+              }, (cause: Error) => { release(); if (!active) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+            };
+            const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
+              run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, (ns, pid) => ns.sceneCards(pid, {
+                ...(filters.actId !== '' ? { actId: filters.actId } : {}),
+                ...(filters.beatId !== '' ? { beatId: filters.beatId } : {}),
+                ...(filters.status !== '' ? { status: filters.status } : {}),
+              }), (result) => statisticsPatch({ sceneCards: result }));
+            };
+            const loadTasks = (status: string): void => {
+              run<TasksResultShape>(`statistics:tasks:${status}`, (ns, pid) => ns.tasks(pid, status === '' ? undefined : { status }), (result) => statisticsPatch({ tasks: result }));
+            };
+            const loadOverview = (): void => {
+              run<StatisticsOverviewShape>('statistics:overview', (ns, pid) => ns.overview(pid), (result) => statisticsPatch({ overview: result }));
+            };
+            return {
+              setCardAct(value: string) { statisticsPatch({ cardActId: value, cardBeatId: '' }); loadCards({ actId: value, beatId: '', status: snapshot.statistics.cardStatus }); },
+              setCardBeat(value: string) { statisticsPatch({ cardBeatId: value }); loadCards({ actId: snapshot.statistics.cardActId, beatId: value, status: snapshot.statistics.cardStatus }); },
+              setCardStatus(value: string) { statisticsPatch({ cardStatus: value }); loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: value }); },
+              setTaskStatus(value: string) { statisticsPatch({ taskStatus: value }); loadTasks(value); },
+              selectChapter(value: string) {
+                statisticsPatch({ chapterId: value });
+                if (value === '') { statisticsPatch({ chapterDetail: undefined }); return; }
+                run<ChapterDetailShape>(`statistics:chapterDetail:${value}`, (ns, pid) => ns.chapterDetail(pid, value), (result) => statisticsPatch({ chapterDetail: result }));
+              },
+              refreshOverview() { loadOverview(); },
+              refreshStats() {
+                run<StatisticsStatsShape>('statistics:stats', (ns, pid) => ns.stats(pid), (result) => statisticsPatch({ stats: result }));
+              },
+              rebuild(): void {
+                run<StatisticsStatsShape>('statistics:rebuild', (ns, pid) => ns.rebuild(pid), (stats) => {
+                  statisticsPatch({ stats });
+                  loadOverview();
+                  loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: snapshot.statistics.cardStatus });
+                  loadTasks(snapshot.statistics.taskStatus);
+                  statisticsPatch({ message: `已从 C5/B5/C6/任务记录重建派生统计（章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}，零写结构层）。` });
+                });
+              },
+              drop(): void {
+                run<StatisticsStatsShape>('statistics:drop', (ns, pid) => ns.drop(pid), (stats) => {
+                  statisticsPatch({ stats, overview: undefined, sceneCards: undefined, tasks: undefined, chapterDetail: undefined, message: '已删除派生统计（可随时重建，不写任何结构层）。' });
+                });
+              },
+              dismiss() { statisticsPatch({ status: 'idle', message: undefined, stats: undefined, overview: undefined, chapterId: '', chapterDetail: undefined, cardActId: '', cardBeatId: '', cardStatus: '', sceneCards: undefined, taskStatus: '', tasks: undefined, acting: false }); },
+            };
+          })(),
         };
       };
 
@@ -2502,7 +2581,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.search, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.search, s.statistics, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -2621,6 +2700,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           searchDisposer = dispose;
           searchNamespace = ctx.get('remote.novelSearch', false) as SearchNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: search Remote mount failed', cause); });
+        // I72：写作进度面板 Remote（R14-7）。挂载失败静默降级：进度面板显示不可用。
+        void ctx.remote.$mount(statisticsRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          statisticsDisposer = dispose;
+          statisticsNamespace = ctx.get('remote.novelStatistics', false) as StatisticsNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: statistics Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -2640,6 +2725,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           importExportNamespace = undefined;
           branchNamespace = undefined;
           searchNamespace = undefined;
+          statisticsNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -2655,6 +2741,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (importExportDisposer) void importExportDisposer();
           if (branchDisposer) void branchDisposer();
           if (searchDisposer) void searchDisposer();
+          if (statisticsDisposer) void statisticsDisposer();
         };
       });
     },

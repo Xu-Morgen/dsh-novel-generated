@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; search?: { build?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; search?: (projectId: string, query: string, pov?: string) => Promise<unknown>; references?: (projectId: string, key: string, pov?: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; search?: { build?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; search?: (projectId: string, query: string, pov?: string) => Promise<unknown>; references?: (projectId: string, key: string, pov?: string) => Promise<unknown> }; statistics?: { rebuild?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; overview?: (projectId: string) => Promise<unknown>; chapterDetail?: (projectId: string, chapterId: string) => Promise<unknown>; sceneCards?: (projectId: string, filter?: { actId?: string; beatId?: string; status?: string; limit?: number }) => Promise<unknown>; tasks?: (projectId: string, filter?: { status?: string; limit?: number }) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -249,6 +249,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const progressStub = mountOptions.progress;
   const importExportStub = mountOptions.importExport;
   const searchStub = mountOptions.search;
+  const statisticsStub = mountOptions.statistics;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -331,6 +332,15 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       search: async () => { throw new Error('未注入 remote.novelSearch.search'); },
       references: async () => { throw new Error('未注入 remote.novelSearch.references'); },
     })
+    : name === 'remote.novelStatistics' ? (statisticsStub ?? {
+      rebuild: async () => { throw new Error('未注入 remote.novelStatistics.rebuild'); },
+      drop: async () => { throw new Error('未注入 remote.novelStatistics.drop'); },
+      stats: async () => { throw new Error('未注入 remote.novelStatistics.stats'); },
+      overview: async () => { throw new Error('未注入 remote.novelStatistics.overview'); },
+      chapterDetail: async () => { throw new Error('未注入 remote.novelStatistics.chapterDetail'); },
+      sceneCards: async () => { throw new Error('未注入 remote.novelStatistics.sceneCards'); },
+      tasks: async () => { throw new Error('未注入 remote.novelStatistics.tasks'); },
+    })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
@@ -404,10 +414,10 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：十七个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪）。
+    // 稳定 data 锚点：十八个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪，I72 新增写作进度）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
+      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
@@ -2345,9 +2355,9 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列,搜索与追踪} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
+    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列,搜索与追踪,写作进度} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
-    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue', 'search']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'ruleStyle']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon', 'knowledge']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'importExport', 'settings']);
@@ -2357,7 +2367,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2419,7 +2429,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(17);
+    expect(grouped).toHaveLength(18);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2436,7 +2446,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(17);
+    expect(NAV_ITEMS).toHaveLength(18);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2453,12 +2463,13 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
     expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'queue', 'search', 'onboarding', 'creationSettings', 'importExport', 'settings']);
-    // I60/I64/I65/I66/I67/I68/I69/I71：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出与搜索视图是稳定视图（重复点击保持），设置类视图回退默认。
+    expect(noBadge).toEqual(['review', 'queue', 'search', 'statistics', 'onboarding', 'creationSettings', 'importExport', 'settings']);
+    // I60/I64/I65/I66/I67/I68/I69/I71/I72：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索与写作进度视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
     expect(isStableView('queue')).toBe(true);
     expect(isStableView('search')).toBe(true);
+    expect(isStableView('statistics')).toBe(true);
     expect(isStableView('knowledge')).toBe(true);
     expect(isStableView('ruleStyle')).toBe(true);
     expect(isStableView('progress')).toBe(true);
@@ -4352,5 +4363,209 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     expect(String(collect(render(), 'li').find((n) => n.props?.['data-novel-candidate-trace-trigger'] === 'north-harbor')?.children?.[0] ?? '')).toContain('北港');
     // 负测：trace 渲染不含知识事实/重写指令等 secret 内容。
     expect(JSON.stringify(collect(render(), 'details').map((n) => n.props))).not.toContain('北港海底沉睡着');
+  });
+});
+
+describe('I72 写作进度面板 UI (R14-7)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const statisticsPanelOf = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-statistics-panel'] !== undefined);
+  const statisticsMessage = (render: () => FakeNode): string =>
+    String((collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-message'] !== undefined)?.children?.[0] ?? ''));
+
+  const STATS = {
+    indexExists: true, builtAt: '2026-01-01T00:00:00.000Z',
+    counts: { chapters: 1, scenes: 2, cards: 3, tasks: 2 },
+  };
+  const OVERVIEW = {
+    empty: false, chapterCount: 1, sceneCount: 2, totalUnits: 22, totalChars: 49,
+    cardCount: 3, totalWordTarget: 1200, cardWrittenUnits: 18, completionRatio: 18 / 1200,
+    beatCount: 2, completedBeatCount: 1, beatCompletionRatio: 0.5, currentBeat: 'beat-1',
+    cardStatusCounts: { planned: 1, writing: 1, done: 1 },
+    povStats: [{ pov: 'mira', chapters: 1, scenes: 2, units: 22, chars: 49 }],
+    cardPovStats: [{ pov: 'mira', cards: 2, wordTarget: 800 }, { pov: 'kai', cards: 1, wordTarget: 400 }],
+    queue: { runState: 'paused', consumedUnits: 200, taskCounts: { queued: 0, running: 0, 'candidate-ready': 1, failed: 0, cancelled: 0, completed: 1 }, totalTasks: 2 },
+    chapters: [{ chapterId: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', sceneCount: 2, units: 22, chars: 49 }],
+    acts: [{ id: 'act-1', index: 0, title: '开端', beats: [{ id: 'beat-1', title: '午夜灯塔' }, { id: 'beat-2', title: '码头' }] }],
+  };
+  const CARD = {
+    actId: 'act-1', actIndex: 0, actTitle: '开端', beatId: 'beat-1', beatTitle: '午夜灯塔',
+    cardId: 'detail-1', title: '发现海图', pov: 'mira', wordTarget: 500, status: 'done',
+    sceneId: 'scene-abc', writtenUnits: 18, completionRatio: 18 / 500,
+  };
+  const TASK = {
+    id: 'qt-detail-1', sceneId: 'scene-abc', chapterId: 'chapter-1', cardTitle: '发现海图', cardPov: 'mira',
+    status: 'completed', attempts: 1, budgetUnits: 60, error: null,
+    createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z',
+  };
+
+  it('概览：重建 → 统计计数/章节字数/目标完成度/场景卡状态/POV 分布/队列摘要渲染', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          rebuild: async () => ({ ok: true, value: STATS }),
+          overview: async () => ({ ok: true, value: OVERVIEW }),
+          sceneCards: async () => ({ ok: true, value: { total: 3, cards: [] } }),
+          tasks: async () => ({ ok: true, value: { total: 2, tasks: [] } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    expect(statisticsPanelOf(render())?.props?.['data-novel-statistics-state']).toBe('idle');
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-rebuild'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('章节 1 · 场景 2 · 场景卡 3 · 任务 2');
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-totals'] !== undefined)?.children?.[0] ?? '')).toContain('共 22 字');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-completion-text'] !== undefined)?.children?.[0] ?? '')).toContain('18 / 1200 字');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-beat-completion-text'] !== undefined)?.children?.[0] ?? '')).toContain('1 / 2 节');
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-cards'] !== undefined)?.children?.[0] ?? '')).toContain('计划 1 · 写作中 1 · 已完成 1');
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-queue'] !== undefined)?.children?.[0] ?? '')).toContain('paused');
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-queue'] !== undefined)?.children?.[0] ?? '')).toContain('任务 2 个');
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-pov-row'] === 'mira')).toBe(true);
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-chapter'] === 'chapter-1')).toBe(true);
+    expect(statisticsMessage(render)).toContain('重建派生统计');
+  });
+
+  it('空作品视图：empty 标记时明确提示统计为零，不显示假进度', async () => {
+    const EMPTY = {
+      empty: true, chapterCount: 0, sceneCount: 0, totalUnits: 0, totalChars: 0,
+      cardCount: 0, totalWordTarget: 0, cardWrittenUnits: 0, completionRatio: 0,
+      beatCount: 0, completedBeatCount: 0, beatCompletionRatio: 0, currentBeat: null,
+      cardStatusCounts: { planned: 0, writing: 0, done: 0 },
+      povStats: [], cardPovStats: [],
+      queue: { runState: 'idle', consumedUnits: 0, taskCounts: { queued: 0, running: 0, 'candidate-ready': 0, failed: 0, cancelled: 0, completed: 0 }, totalTasks: 0 },
+      chapters: [], acts: [],
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          rebuild: async () => ({ ok: true, value: { ...STATS, counts: { chapters: 0, scenes: 0, cards: 0, tasks: 0 } } }),
+          overview: async () => ({ ok: true, value: EMPTY }),
+          sceneCards: async () => ({ ok: true, value: { total: 0, cards: [] } }),
+          tasks: async () => ({ ok: true, value: { total: 0, tasks: [] } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-rebuild'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-empty'] !== undefined)?.children?.[0] ?? '')).toContain('空作品视图');
+    expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-empty'] !== undefined)?.children?.[0] ?? '')).toContain('统计为零');
+    expect(statisticsPanelOf(render())?.props?.['data-novel-statistics-state']).toBe('ready');
+  });
+
+  it('场景卡筛选：幕/节/状态变化 → Remote 提交筛选并渲染有界结果', async () => {
+    const calls: Array<Record<string, unknown>> = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          rebuild: async () => ({ ok: true, value: STATS }),
+          overview: async () => ({ ok: true, value: OVERVIEW }),
+          sceneCards: async (_projectId, filter) => {
+            calls.push({ ...(filter ?? {}) });
+            return { ok: true, value: { total: 1, cards: [CARD] } };
+          },
+          tasks: async () => ({ ok: true, value: { total: 2, tasks: [] } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-rebuild'] === '')?.props?.onClick as () => void)();
+    await flush();
+    // 选幕 → 重置节并加载（只带 actId）。
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-statistics-card-act'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'act-1' } });
+    await flush();
+    expect(calls[calls.length - 1]).toEqual({ actId: 'act-1' });
+    // 选节 → 叠加 beatId。
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-statistics-card-beat'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'beat-1' } });
+    await flush();
+    expect(calls[calls.length - 1]).toEqual({ actId: 'act-1', beatId: 'beat-1' });
+    // 选状态 → 叠加 status。
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-statistics-card-status'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'done' } });
+    await flush();
+    expect(calls[calls.length - 1]).toEqual({ actId: 'act-1', beatId: 'beat-1', status: 'done' });
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-card-total'] !== undefined)?.children?.[0] ?? '')).toContain('场景卡 1 张');
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-card'] === 'detail-1')).toBe(true);
+  });
+
+  it('任务历史：状态筛选 → Remote 提交并渲染；章节详情 → 场景字数明细', async () => {
+    let taskCalls = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          rebuild: async () => ({ ok: true, value: STATS }),
+          overview: async () => ({ ok: true, value: OVERVIEW }),
+          sceneCards: async () => ({ ok: true, value: { total: 3, cards: [] } }),
+          tasks: async (_projectId, filter) => {
+            taskCalls += 1;
+            return { ok: true, value: { total: 1, tasks: [TASK] } };
+          },
+          chapterDetail: async (_projectId, chapterId) => ({
+            ok: true,
+            value: { chapter: { chapterId, index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', sceneCount: 2, units: 22, chars: 49, scenes: [{ sceneId: 'scene-1', index: 0, summary: '进入灯塔', units: 18, chars: 20 }] } },
+          }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-rebuild'] === '')?.props?.onClick as () => void)();
+    await flush();
+    // 任务历史：选状态 → 提交 status 筛选。
+    const before = taskCalls;
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-statistics-task-status'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'completed' } });
+    await flush();
+    expect(taskCalls).toBe(before + 1);
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-task-total'] !== undefined)?.children?.[0] ?? '')).toContain('任务 1 个');
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-task'] === 'qt-detail-1')).toBe(true);
+    // 章节详情：点章节 → Remote 提交 chapterId → 场景字数明细渲染。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-chapter-select'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-scene'] === 'scene-1')).toBe(true);
+    expect(String(collect(render(), 'li').find((n) => n.props?.['data-novel-statistics-scene'] === 'scene-1')?.children?.[0] ?? '')).toContain('18 字');
+  });
+
+  it('派生统计生命周期：删除 → 未构建提示；刷新状态可见（可删除重建，非第二真相）', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          stats: async () => ({ ok: true, value: STATS }),
+          drop: async () => ({ ok: true, value: { indexExists: false, counts: { chapters: 0, scenes: 0, cards: 0, tasks: 0 } } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-stats'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('章节 1 · 场景 2');
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-drop'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(statisticsMessage(render)).toContain('已删除派生统计');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
   });
 });
