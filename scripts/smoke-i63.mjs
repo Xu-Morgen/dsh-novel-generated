@@ -36,25 +36,37 @@ const fail = (msg) => { throw new Error(`I63 smoke: ${msg}`); };
   for (const symbol of ['CandidateAdjudicationLedger', 'accept', 'reject', 'supersede', 'requirePending']) {
     if (!ledger.includes(symbol)) fail(`lib adjudication ledger missing ${symbol}`);
   }
+  // I79 拆分后：组合根只持 API 编排面；落地 saga 段（landing-saga.js）持解析 fan-out
+  // 与 I30 executeLifecycle 复用符号。
   const service = read('lib/host/writing-adjudication-service.js');
-  for (const symbol of ['createWritingAdjudicationService', 'propose', 'preview', 'adjudicate', 'executeLifecycle', 'parseC2StateFromNarrative', 'parseC1RelationshipsFromNarrative', 'parseC3KnowledgeFromNarrative', 'parseC4CanonFromNarrative', 'parseB2WorldviewFromNarrative']) {
+  for (const symbol of ['createWritingAdjudicationService', 'propose', 'preview', 'adjudicate']) {
     if (!service.includes(symbol)) fail(`lib writing service missing ${symbol}`);
+  }
+  const saga = read('lib/host/writing-adjudication/landing-saga.js');
+  for (const symbol of ['executeLifecycle', 'parseC2StateFromNarrative', 'parseC1RelationshipsFromNarrative', 'parseC3KnowledgeFromNarrative', 'parseC4CanonFromNarrative', 'parseB2WorldviewFromNarrative']) {
+    if (!saga.includes(symbol)) fail(`lib landing-saga missing ${symbol}`);
   }
 }
 
-// Part 2 — 源码：复用而非复制 + 旧预先接受入口退役 + 装配。
+// Part 2 — 源码：复用而非复制 + 旧预先接受入口退役 + 装配（I79 拆分后按段校验）。
 {
   const service = read('src/host/writing-adjudication-service.ts');
+  const production = read('src/host/writing-adjudication/candidate-production.ts');
+  const saga = read('src/host/writing-adjudication/landing-saga.ts');
   const ledger = read('src/core/candidate/adjudication.ts');
   const agent = read('src/agents/agent-tools.ts');
   const index = read('src/index.ts');
   const writingContext = read('src/host/writing-context.ts');
-  // 复用 I30/I25–I29/I17，不复制既有 prompt 文案与解析实现。
-  for (const reuse of ['executeLifecycle', 'parseC2StateFromNarrative', 'parseC4CanonFromNarrative', 'createWritingCandidateService']) {
-    if (!service.includes(reuse)) fail(`writing service must reuse ${reuse}`);
+  // 复用 I30/I25–I29/I17，不复制既有 prompt 文案与解析实现（I79 拆段后符号落在
+  // 对应段模块；组合根只做编排）。
+  for (const reuse of ['executeLifecycle', 'parseC2StateFromNarrative', 'parseC4CanonFromNarrative']) {
+    if (!saga.includes(reuse)) fail(`landing-saga must reuse ${reuse}`);
   }
-  for (const copied of ['你是长篇小说续写 agent', '你是小说世界状态解析器']) {
-    if (service.includes(copied)) fail(`writing service copies an existing prompt body: ${copied}`);
+  if (!production.includes('createWritingCandidateService')) fail('candidate-production must reuse createWritingCandidateService (I17)');
+  for (const file of [service, saga, production, read('src/host/writing-adjudication/validation-projection.ts')]) {
+    for (const copied of ['你是长篇小说续写 agent', '你是小说世界状态解析器']) {
+      if (file.includes(copied)) fail(`writing service copies an existing prompt body: ${copied}`);
+    }
   }
   // 幂等裁决状态机冻结。
   for (const symbol of ['superseded', 'supersede', 'requirePending', 'duplicate']) {

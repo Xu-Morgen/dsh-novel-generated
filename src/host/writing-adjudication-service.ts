@@ -1,36 +1,16 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import {
-  assertCandidateFresh,
-  hashText,
-  parseWritingCandidate,
-  validateCandidateTarget,
-  type CandidateTarget,
-  type WritingCandidate,
-  type WritingIntent,
-} from '../core/candidate/index.js';
 import { CandidateAdjudicationLedger } from '../core/candidate/adjudication.js';
-import { lifecycleStageSchema, executeLifecycle, LifecycleJournal, type LifecycleStage, type LifecycleWriters } from '../core/lifecycle/index.js';
-import { adjudicateViolations, type ConsistencyAdjudication, type ConsistencyViolationView } from '../core/validate/index.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { TextRepository } from '../core/text/index.js';
-import type { Chapter } from '../core/schema/text.js';
-import type { StoryLifecycleParserInputs } from './story-lifecycle-service.js';
-import { asLlmBackend, type GenerationSettings } from '../llm/port/index.js';
-import { parseC2StateFromNarrative, type C2StateParserOutput } from '../llm/parse/state.js';
-import { parseC1RelationshipsFromNarrative, type C1RelationshipParserOutput } from '../llm/parse/relationship.js';
-import { parseC3KnowledgeFromNarrative, type C3KnowledgeParserOutput } from '../llm/parse/knowledge.js';
-import { parseC4CanonFromNarrative, type C4CanonParserOutput } from '../llm/parse/canon.js';
-import { parseB2WorldviewFromNarrative, type B2WorldviewParserOutput } from '../llm/parse/worldview.js';
-import { applyC2StateOperationsToDraft } from '../llm/parse/state.js';
-import { materializeC1RelationshipOperations } from '../llm/parse/relationship.js';
-import { materializeC3KnowledgeOperations } from '../llm/parse/knowledge.js';
-import type { StateDraft } from '../core/state/index.js';
-import { createWritingCandidateService, type WritingCandidateRequest } from './candidate-service.js';
-import type { NextSceneContextProvider, NovelAgentContext } from './writing-context.js';
-import { buildContextTrace, type ContextTrace } from '../core/trace/index.js';
+import type { CandidateTarget, WritingCandidate, WritingIntent } from '../core/candidate/index.js';
+import type { ConsistencyAdjudication } from '../core/validate/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
+import type { LifecycleStage } from '../core/lifecycle/index.js';
+import type { ContextTrace } from '../core/trace/index.js';
+import type { GenerationSettings } from '../llm/port/index.js';
+import type { NextSceneContextProvider } from './writing-context.js';
 import type { NovelStateService } from './state-service.js';
 import type { NovelRelationshipService } from './relationship-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
@@ -42,27 +22,29 @@ import type { NovelStyleService } from './style-service.js';
 import type { NovelConsistencyDetectionService } from './consistency-detection-service.js';
 import type { NovelKnowledgeLeakDetectionService } from './knowledge-leak-detection-service.js';
 import type { NovelRelationshipStyleDetectionService } from './relationship-style-detection-service.js';
+import { createCandidateProduction } from './writing-adjudication/candidate-production.js';
+import { createValidationProjection } from './writing-adjudication/validation-projection.js';
+import { createLandingSaga } from './writing-adjudication/landing-saga.js';
 
 /**
  * I63 候选审阅与生成后裁决 Host owner（design §14.9「候选优先」/ R13-4）。
  *
+ * 本文件是组合根（架构审查 §4.1 拆分后）：候选生产 / 校验投影 / 落地 saga 三段
+ * 分别落在 `writing-adjudication/{candidate-production,validation-projection,
+ * landing-saga}.ts`，五层写回器为共享 `five-layer-writeback.ts`（与 I61 text-edit
+ * 同一份实现）；本根只做编排：共享 C5 仓库池、候选账本（`CandidateAdjudicationLedger`）
+ * 与裁决分发（reject/rewrite/accept 三态），不直接持有解析器/写回器/探测器。
+ *
  * 产品语义（退役生成前预先 accept 的 novel_continue 路径）：
  * - 四种写作意图先产生绑定 project/chapter/scene/sourceHash 的候选（I62 合同），
  *   作者在「正文 + diff + 校验结果」可见后才能接受、拒绝或要求重写。
- * - `propose` 只产候选（复用 I62 `createWritingCandidateService`，零写）；
- *   continue/scene-card 的上下文经共享 `NextSceneContextProvider` 装配（复用 I44/I43
- *   prompt builder 与 I19 组装器，不复制）；rewrite 绑定当前场景正文哈希。
- * - `preview` 返回 diff（rewrite=替换 before/after；新场景=new-scene）与校验结果
- *   （I21 规则/正史硬约束 + I22 POV 知情硬约束 + I24 关系/风格软约束，I20 裁决）。
- * - `adjudicate` 是唯一裁决入口：
- *   - accept：先核对绑定新鲜度（sourceHash/目标场景未占用，零写拒绝），再经 I30
- *     标准生命周期（校验门 → 五层解析 fan-out → journal 受控写回 C2→C1→C3→C4→B2），
- *     `written` 后才把 C5 文本落地（rewrite 替换既有场景全文；新场景追加）；
- *     硬违规 / 解析失败 / 写回失败一律零写或补偿，绝不部分成功伪装为完成。
- *   - reject：零写；重复 reject 幂等。
- *   - rewrite：产生后继候选并把旧候选置为 superseded（旧候选不可静默接受）。
- * - 幂等裁决：账本（`CandidateAdjudicationLedger`）按 candidateId 记录状态；重复
- *   accept 返回首次落地结果（不重复写）；重复 reject 返回 rejected。
+ * - `adjudicate` 是唯一裁决入口：accept 先核对绑定新鲜度（sourceHash/目标场景未
+ *   占用，零写拒绝），再经 I30 标准生命周期（校验门 → 五层解析 fan-out → journal
+ *   受控写回 C2→C1→C3→C4→B2），`written` 后才把 C5 文本落地；硬违规 / 解析失败 /
+ *   写回失败一律零写或补偿，绝不部分成功伪装为完成。reject 零写且幂等；rewrite
+ *   产生后继候选并把旧候选置为 superseded（旧候选不可静默接受）。
+ * - 幂等裁决：账本按 candidateId 记录状态；重复 accept 返回首次落地结果
+ *   （entry.outcome 缓存，不重复写）；重复 reject 返回 rejected。
  * - 候选与裁决状态只存在于进程内（候选不持久化，I62 合同）；I65 队列 owner 负责
  *   持久化与批量恢复。本服务所有副作用（LLM 调用、Gate 提案）归属当前 Fiber。
  */
@@ -145,35 +127,11 @@ export interface WritingAdjudicationServiceDeps {
   readonly resolveSettings: () => Promise<GenerationSettings>;
 }
 
-interface CandidateEntry {
-  readonly candidate: WritingCandidate;
-  readonly request: WritingCandidateRequest;
-  readonly context?: NovelAgentContext;
-  /** I65 队列恢复上下文：card/navigation 供 pov/summary/beats 重建（正常路径为 undefined）。 */
-  readonly recovery?: { card: DetailBeat; navigation: OutlineNavigation };
-  /** I71 生成注入解释（continue/scene-card/rewrite 各自构建；preview 返回）。 */
-  readonly trace: ContextTrace;
-  /** preview 计算并缓存的校验结果（与 accept 同源，I20 复判）。 */
-  violations?: readonly ConsistencyViolationView[];
-  /** accept 落地结果缓存（重复 accept 幂等返回）。 */
-  outcome?: WritingAdjudicationOutcome;
-  /** 生命周期尝试次数（journal id 唯一：`w-<candidateId>-<attempt>`）。 */
-  attempts: number;
-}
-
-function hasLowConfidence(ops: readonly { confidence?: unknown }[]): boolean {
-  return ops.some((operation) => operation.confidence === 'low');
-}
-
 export function createWritingAdjudicationService(deps: WritingAdjudicationServiceDeps): NovelWritingAdjudicationService {
   const projectsRoot = deps.projectsRoot ?? join(homedir(), '.dsh', 'novel-projects');
-  const candidates = createWritingCandidateService({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose });
-  const ledger = new CandidateAdjudicationLedger();
-  const entries = new Map<string, CandidateEntry>();
+  // 共享 C5 仓库池：候选生产（rewrite 绑定）、校验投影（diff/章节 POV）、落地 saga
+  // （新鲜度核对与场景落地）复用同一池，避免每段各自持有仓库实例。
   const repositories = new Map<string, TextRepository>();
-  let sequence = 0;
-  const nextId = (intent: WritingProposeIntent): string => `cand-${intent}-${Date.now()}-${++sequence}`;
-
   const ensureOpen = async (projectId: string): Promise<TextRepository> => {
     validateProjectId(projectId);
     let repository = repositories.get(projectId);
@@ -185,374 +143,37 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     return repository;
   };
 
-  const requireEntry = (candidateId: string): CandidateEntry => {
-    const entry = entries.get(candidateId);
-    if (entry === undefined) throw new Error(`Unknown candidate: ${candidateId}`);
-    return entry;
-  };
-
-  /** rewrite 候选的 POV：从目标章节元数据解析（无细纲卡上下文时兜底）。 */
-  const resolvePovFromChapter = async (candidate: WritingCandidate): Promise<string> => {
-    const chapterId = candidate.target.chapterId;
-    if (chapterId === undefined) return 'unknown';
-    try {
-      const repository = await ensureOpen(candidate.target.projectId);
-      const chapter = await repository.readChapter(chapterId);
-      return chapter.pov || 'unknown';
-    } catch {
-      return 'unknown';
-    }
-  };
-
-  /** 校验结果：preview 计算并缓存，accept 复用（同源 violations 经 I20 复判，接受才进入）。 */
-  const ensureViolations = async (entry: CandidateEntry, signal?: AbortSignal): Promise<readonly ConsistencyViolationView[]> => {
-    if (entry.violations !== undefined) return entry.violations;
-    const candidate = entry.candidate;
-    const projectId = candidate.target.projectId;
-    const settings = entry.request.settings;
-    const [rules, canonViews, relationships, styleSegment, knowledge] = await Promise.all([
-      deps.rules.listActive(projectId),
-      Promise.resolve(deps.canon.query(projectId)),
-      deps.relationship.read(projectId),
-      deps.style.constantSegment(projectId),
-      deps.knowledge.read(projectId),
-    ]);
-    // POV：continue/scene-card 取细纲卡 pov；rewrite 取目标章节 pov（I22 探测器输入）。
-    const requestPov = (entry.request as { card?: { pov?: string } }).card?.pov;
-    const pov = entry.context?.card.pov ?? entry.recovery?.card.pov ?? requestPov ?? await resolvePovFromChapter(candidate);
-    const [hard, leak, soft] = await Promise.all([
-      deps.consistency.detectRuleAndCanon({
-        prose: candidate.text,
-        rules: rules.map((view) => ({ id: view.rule.id, statement: view.rule.statement, immutable: view.rule.immutable, active: view.rule.active })),
-        canon: canonViews.map((event) => ({ id: event.id, summary: event.summary, detail: event.detail ?? '' })),
-      }, settings, signal),
-      deps.knowledgeLeak.detectKnowledgeLeak({
-        prose: candidate.text,
-        pov,
-        entries: knowledge.entries,
-        states: knowledge.states,
-      }, settings, signal),
-      deps.relationshipStyle.detectRelationshipAndStyle({
-        prose: candidate.text,
-        relationships,
-        style: styleSegment.profile,
-      }, settings, signal),
-    ]);
-    const violations = [...hard.violations, ...leak.violations, ...soft.violations];
-    entry.violations = Object.freeze(violations);
-    return entry.violations;
-  };
-
-  const computeDiff = async (candidate: WritingCandidate): Promise<CandidateReviewDiff> => {
-    const target = candidate.target;
-    if (target.sourceHash !== undefined) {
-      const repository = await ensureOpen(target.projectId);
-      const chapter = await repository.readChapter(target.chapterId as string);
-      const scene = chapter.scenes.find((item) => item.id === target.sceneId);
-      if (scene === undefined) throw new Error(`Unknown scene: ${target.sceneId}`);
-      return Object.freeze({ kind: 'replace', before: scene.content, after: candidate.text });
-    }
-    return Object.freeze({ kind: 'new-scene' });
-  };
-
-  /** 解析输入快照：accept 时取当前各层真相（与 I30 生命周期消费同一 parserInputs 合同）。 */
-  const buildParserInputs = async (projectId: string): Promise<StoryLifecycleParserInputs> => {
-    const [state, relationships, knowledge, canonViews, worldview] = await Promise.all([
-      Promise.resolve(deps.state.current(projectId)),
-      deps.relationship.read(projectId),
-      deps.knowledge.read(projectId),
-      Promise.resolve(deps.canon.query(projectId)),
-      deps.worldview.list(projectId),
-    ]);
-    return {
-      c2: { state },
-      c1: { current: relationships },
-      c3: { entries: [...knowledge.entries], states: [...knowledge.states] },
-      c4: { canon: [...canonViews] },
-      b2: { current: worldview },
-    };
-  };
-
-  /** 结构化层写回器（顺序 C2→C1→C3→C4→B2，I30 saga；低置信/非 append 一律 Gate）。 */
-  const buildWriters = (projectId: string, requestId: string): LifecycleWriters<unknown> => ({
-    c2: async (output) => {
-      const parsed = output as C2StateParserOutput;
-      if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C2 operations require ConfirmationGate');
-      await deps.state.transaction(projectId, (draft) => applyC2StateOperationsToDraft(draft as StateDraft, parsed.ops));
-    },
-    c1: async (output) => {
-      const parsed = output as C1RelationshipParserOutput;
-      if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C1 operations require ConfirmationGate');
-      const next = materializeC1RelationshipOperations(await deps.relationship.read(projectId), parsed.ops);
-      await deps.relationship.saveAll(projectId, next);
-    },
-    c3: async (output) => {
-      const parsed = output as C3KnowledgeParserOutput;
-      if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C3 operations require ConfirmationGate');
-      const next = materializeC3KnowledgeOperations(await deps.knowledge.read(projectId), parsed.ops);
-      await deps.knowledge.saveAll(projectId, next.entries, next.states);
-    },
-    c4: async (output) => {
-      const parsed = output as C4CanonParserOutput;
-      if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
-      for (const operation of parsed.ops) {
-        if (operation.op !== 'append') throw new Error('C4 supersede operations require ConfirmationGate');
-        await deps.canon.append(projectId, operation.event);
-      }
-    },
-    b2: async (output) => {
-      const parsed = output as B2WorldviewParserOutput;
-      // B2 改写 confirmation-first：先经 I11 Gate 提出并接受，再经既有改写服务落盘。
-      const proposalId = `${requestId}-b2`;
-      await deps.confirmation.propose(projectId, {
-        id: proposalId,
-        kind: 'b2-worldview-parser-supersedes',
-        payload: { ops: parsed.ops },
-      });
-      await deps.confirmation.accept(projectId, proposalId);
-      for (const operation of parsed.ops) {
-        // B2 解析器契约（b2ReplacementSchema）约定 version/status/supersededBy 归存储层。
-        await deps.worldview.rewrite(projectId, operation.targetId, {
-          ...operation.replacement,
-          status: 'active',
-          supersededBy: null,
-        });
-      }
-    },
+  const production = createCandidateProduction({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose, context: deps.context, resolveSettings: deps.resolveSettings, ensureOpen });
+  const projection = createValidationProjection({
+    rules: deps.rules, canon: deps.canon, relationship: deps.relationship, style: deps.style, knowledge: deps.knowledge,
+    consistency: deps.consistency, knowledgeLeak: deps.knowledgeLeak, relationshipStyle: deps.relationshipStyle,
+    entries: production.entries, ensureOpen,
   });
-
-  /**
-   * accept 落地 C5：rewrite 替换既有场景全文（半开区间语义由 commitSceneVersion
-   * 承担 —— I70/R14-5：替换前把旧正文保留为非 chosen 分支，新正文成为唯一 chosen，
-   * 候选可保留为分支、比较并回切）；新场景追加（无分支，隐含单版本）。
-   */
-  const landScene = async (candidate: WritingCandidate): Promise<{ chapterId: string; sceneId: string; index: number; content: string }> => {
-    const projectId = candidate.target.projectId;
-    const repository = await ensureOpen(projectId);
-    const target = candidate.target;
-    if (target.sourceHash !== undefined) {
-      const chapterId = target.chapterId as string;
-      const sceneId = target.sceneId as string;
-      const chapter = await repository.readChapter(chapterId);
-      const existing = chapter.scenes.find((item) => item.id === sceneId);
-      if (existing === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-      const scene = await repository.commitSceneVersion(chapterId, sceneId, candidate.text, '重写候选');
-      return { chapterId, sceneId, index: scene.index, content: scene.content };
-    }
-    const chapterId = target.chapterId as string;
-    const sceneId = target.sceneId as string;
-    const entry = entries.get(candidate.id);
-    const card = entry?.context?.card ?? entry?.recovery?.card;
-    const navigation = entry?.context?.navigation ?? entry?.recovery?.navigation;
-    let chapter: Chapter;
-    try {
-      chapter = await repository.readChapter(chapterId);
-    } catch (error) {
-      if (!(error instanceof Error) || !error.message.startsWith('Unknown chapter:')) throw error;
-      chapter = await repository.createChapter({ id: chapterId, index: 1, title: '正文', pov: card?.pov ?? 'unknown', status: 'draft' });
-    }
-    const scene = await repository.appendScene(chapterId, {
-      id: sceneId,
-      content: candidate.text,
-      summary: card?.summary ?? '',
-      beats: navigation ? [navigation.beatId] : [],
-      canonEvents: [],
-      notes: '',
-    });
-    return { chapterId, sceneId, index: scene.index, content: scene.content };
-  };
-
-  /** rewrite 后继候选：继承原请求语义（sources/card/navigation/prompt），换新 id 重新生成。 */
-  const repropose = async (entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }> => {
-    const request = entry.request;
-    const next: WritingCandidateRequest = {
-      ...request,
-      id: `${request.id}-r${entry.attempts + 1}`,
-      settings: (settings as GenerationSettings | undefined) ?? request.settings,
-      signal,
-    };
-    const { candidate } = await candidates.propose(next);
-    entries.set(candidate.id, { candidate, request: next, context: entry.context, trace: entry.trace, attempts: entry.attempts + 1 });
-    return Object.freeze({ candidate });
-  };
-
-  /** accept 主体：绑定/新鲜度零写拒绝 → 校验门 → 五层解析 → I30 journal 写回 → C5 落地。 */
-  const accept = async (entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome> => {
-    const candidate = entry.candidate;
-    const projectId = candidate.target.projectId;
-    const resolved = (settings as GenerationSettings | undefined) ?? entry.request.settings;
-    const repository = await ensureOpen(projectId);
-    // 1. 绑定与新鲜度（零写拒绝）：rewrite 命中既有场景且哈希一致；新场景目标未占用。
-    if (candidate.target.sourceHash !== undefined) {
-      const chapter = await repository.readChapter(candidate.target.chapterId as string);
-      const scene = chapter.scenes.find((item) => item.id === candidate.target.sceneId);
-      if (scene === undefined) throw new Error(`Unknown scene: ${candidate.target.sceneId}`);
-      assertCandidateFresh(candidate, scene.content);
-    } else {
-      let chapter: Chapter | undefined;
-      try {
-        chapter = await repository.readChapter(candidate.target.chapterId as string);
-      } catch (error) {
-        if (!(error instanceof Error) || !error.message.startsWith('Unknown chapter:')) throw error;
-      }
-      if (chapter?.scenes.some((item) => item.id === candidate.target.sceneId)) {
-        throw new Error(`Target scene already exists: ${candidate.target.sceneId}`);
-      }
-    }
-    // 2. 标准校验门（接受才进入；preview 同源 violations 经 I20 复判）→ 硬违规零写。
-    const violations = await ensureViolations(entry, signal);
-    const afterGeneration = adjudicateViolations(violations);
-    if (afterGeneration.status === 'reject') {
-      return Object.freeze({ status: 'generation-rejected', candidateId: candidate.id, adjudication: afterGeneration });
-    }
-    // 3. 解析 fan-out（I25–I29 真实解析器；prose = 候选正文）。
-    const backend = asLlmBackend(deps.llm);
-    const inputs = await buildParserInputs(projectId);
-    const prose = candidate.text;
-    const [c2, c1, c3, c4, b2] = await Promise.all([
-      parseC2StateFromNarrative(backend, { prose, ...inputs.c2 }, resolved, signal),
-      parseC1RelationshipsFromNarrative(backend, { prose, ...inputs.c1 }, resolved, signal),
-      parseC3KnowledgeFromNarrative(backend, { prose, ...inputs.c3 }, resolved, signal),
-      parseC4CanonFromNarrative(backend, { prose, ...inputs.c4 }, resolved, signal),
-      parseB2WorldviewFromNarrative(backend, { prose, ...inputs.b2 }, resolved, signal),
-    ]);
-    // 4. I30 受控写回：journal 记录 C2→C1→C3→C4→B2 进度，部分失败显式 pending-compensation。
-    const journal = await LifecycleJournal.open(projectDirectory(projectsRoot, projectId));
-    entry.attempts += 1;
-    const result = await executeLifecycle<unknown>({
-      id: `w-${candidate.id}-${entry.attempts}`,
-      decision: 'accept',
-      afterGenerationViolations: violations,
-      beforeWritebackViolations: [],
-      journal,
-      parsers: { c2: async () => c2, c1: async () => c1, c3: async () => c3, c4: async () => c4, b2: async () => b2 },
-      writers: buildWriters(projectId, candidate.id),
-    });
-    if (result.status === 'generation-rejected' || result.status === 'prewrite-rejected') {
-      return Object.freeze({
-        status: result.status,
-        candidateId: candidate.id,
-        adjudication: result.status === 'generation-rejected' ? result.afterGeneration : result.beforeWriteback,
-      });
-    }
-    if (result.status === 'pending-compensation') {
-      return Object.freeze({ status: 'pending-compensation', candidateId: candidate.id, failedStage: result.failedStage, afterGeneration: result.afterGeneration });
-    }
-    if (result.status !== 'written') {
-      // decision-rejected 理论不可达（decision 恒为 accept）；fail-closed。
-      throw new Error(`Unexpected lifecycle outcome: ${result.status}`);
-    }
-    // 5. C5 落地（仅 written 后）。
-    const scene = await landScene(candidate);
-    return Object.freeze({
-      status: 'written',
-      candidateId: candidate.id,
-      scene,
-      layers: Object.freeze([...lifecycleStageSchema.options]),
-    });
-  };
+  const saga = createLandingSaga({
+    llm: deps.llm, projectsRoot,
+    state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon,
+    worldview: deps.worldview, confirmation: deps.confirmation,
+    ensureViolations: projection.ensureViolations, entries: production.entries, ensureOpen,
+  });
+  const ledger = new CandidateAdjudicationLedger();
 
   return Object.freeze({
     async open(projectId: string) {
       validateProjectId(projectId);
-      await candidates.open(projectId);
+      await production.candidates.open(projectId);
       await ensureOpen(projectId);
     },
     registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void {
-      // 严格复验（消费方不得绕过合同）；同 id 重复注册幂等（I65 恢复可重入）。
-      const parsed = parseWritingCandidate(candidate);
-      if (entries.has(parsed.id)) return;
-      // I65 队列只编排 scene-card 意图；其余意图 fail-closed（避免伪造候选入账）。
-      if (parsed.intent !== 'scene-card') {
-        throw new Error(`Queue recovery supports scene-card candidates only: ${parsed.intent}`);
-      }
-      validateCandidateTarget(parsed.intent, parsed.target);
-      const request: WritingCandidateRequest = {
-        id: parsed.id,
-        intent: parsed.intent,
-        target: parsed.target,
-        card: recovery.card,
-        navigation: recovery.navigation,
-        settings: recovery.settings,
-      };
-      entries.set(parsed.id, {
-        candidate: parsed,
-        request,
-        recovery: { card: recovery.card, navigation: recovery.navigation },
-        // I71：队列恢复的场景卡候选不经 ContextAssembler —— 如实报告无结构层注入。
-        trace: buildContextTrace({ intent: 'scene-card', pov: recovery.card.pov, navigation: recovery.navigation, card: recovery.card }),
-        attempts: 0,
-      });
+      production.registerRecoveredCandidate(candidate, recovery);
     },
     async propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal) {
-      validateProjectId(projectId);
-      const resolved = (settings as GenerationSettings | undefined) ?? await deps.resolveSettings();
-      if (input.intent === 'rewrite') {
-        const chapterId = input.chapterId as string;
-        const sceneId = input.sceneId as string;
-        const prompt = input.prompt ?? '';
-        if (!prompt.trim()) throw new Error('Rewrite candidate requires a non-empty prompt');
-        const repository = await ensureOpen(projectId);
-        const chapter = await repository.readChapter(chapterId);
-        const scene = chapter.scenes.find((item) => item.id === sceneId);
-        if (scene === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-        const request: WritingCandidateRequest = {
-          id: nextId('rewrite'),
-          intent: 'rewrite',
-          target: { projectId, chapterId, sceneId, sourceHash: hashText(scene.content) },
-          prompt,
-          settings: resolved,
-          signal,
-        };
-        const { candidate } = await candidates.propose(request);
-        entries.set(candidate.id, {
-          candidate,
-          request,
-          // I71：rewrite 不注入结构层，只注入调用方重写指令（长度摘要）。
-          trace: buildContextTrace({ intent: 'rewrite', rewritePrompt: prompt }),
-          attempts: 0,
-        });
-        return Object.freeze({ candidate });
-      }
-      // continue / scene-card：经共享上下文装配（I44/I43 prompt 复用）。
-      const built = await deps.context.context(projectId);
-      const card = { ...built.card, wordTarget: built.creation.wordTarget };
-      const request: WritingCandidateRequest = {
-        id: nextId(input.intent),
-        intent: input.intent,
-        target: { projectId, chapterId: 'chapter-1', sceneId: `scene-${Date.now()}-${++sequence}` },
-        sources: built.sources,
-        card,
-        navigation: built.navigation,
-        settings: resolved,
-        signal,
-      };
-      validateCandidateTarget(request.intent, request.target);
-      const { candidate } = await candidates.propose(request);
-      // I71：continue 注入故事上下文（复用上下文装配的 trace，与 ContextAssembler
-      // 实际选择一致）；scene-card 只注入场景卡/导航 —— 单独构建如实报告零结构层。
-      const trace = input.intent === 'continue'
-        ? built.trace
-        : buildContextTrace({ intent: 'scene-card', pov: card.pov, navigation: built.navigation, card });
-      entries.set(candidate.id, { candidate, request, context: built, trace, attempts: 0 });
-      return Object.freeze({ candidate });
+      return production.propose(projectId, input, settings, signal);
     },
     async preview(candidateId: string, signal?: AbortSignal) {
-      const entry = requireEntry(candidateId);
-      const violations = await ensureViolations(entry, signal);
-      const candidate = entry.candidate;
-      return Object.freeze({
-        candidateId,
-        intent: candidate.intent,
-        target: candidate.target,
-        text: candidate.text,
-        diff: await computeDiff(candidate),
-        validation: adjudicateViolations(violations),
-        trace: entry.trace,
-      });
+      return projection.preview(candidateId, signal);
     },
     async adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal) {
-      const entry = requireEntry(candidateId);
+      const entry = production.requireEntry(candidateId);
       const candidate = entry.candidate;
       const projectId = candidate.target.projectId;
       const status = ledger.statusOf(candidateId);
@@ -566,7 +187,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       if (decision === 'rewrite') {
         if (status === 'superseded') throw new Error(`Candidate already superseded: ${candidateId}`);
         if (status === 'accepted') throw new Error(`Accepted candidate cannot be rewritten: ${candidateId}`);
-        const successor = await repropose(entry, settings, signal);
+        const successor = await production.repropose(entry, settings, signal);
         ledger.supersede(candidateId, successor.candidate.id, projectId);
         return Object.freeze({ status: 'rewritten', candidateId, superseded: candidateId, candidate: successor.candidate });
       }
@@ -577,7 +198,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       }
       if (status === 'superseded') throw new Error(`Candidate superseded: 旧候选不可静默接受，请裁决后继候选（${candidateId}）`);
       if (status === 'rejected') throw new Error(`Candidate already rejected: ${candidateId}`);
-      const outcome = await accept(entry, settings, signal);
+      const outcome = await saga.accept(entry, settings, signal);
       if (outcome.status === 'written') {
         ledger.accept(candidateId, projectId);
         entry.outcome = outcome;

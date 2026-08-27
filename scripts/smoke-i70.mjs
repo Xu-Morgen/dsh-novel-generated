@@ -89,7 +89,9 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
     fail('chapters.ts missing branch panel UI');
   }
   // I63 接缝：候选落地保留旧正文为分支（最小 owner 级修改，见 I70 卡片目标）。
-  if (!adjudication.includes('commitSceneVersion')) {
+  // I79 拆段后 landScene 落在落地 saga 段（landing-saga.ts）。
+  const landingSaga = read('src/host/writing-adjudication/landing-saga.ts');
+  if (!landingSaga.includes('commitSceneVersion')) {
     fail('writing-adjudication must retain the old scene as a branch via commitSceneVersion');
   }
 }

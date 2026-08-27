@@ -77,9 +77,14 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
   if (!task.includes("from '../schema/outline.js'") || !task.includes("from '../candidate/index.js'")) {
     fail('queue task must reuse detailBeatSchema and the candidate contract');
   }
-  // I63 提供恢复注册钩子（幂等；消费方不得绕过合同）。
-  if (!writing.includes('registerRecoveredCandidate') || !writing.includes('scene-card candidates only')) {
+  // I63 提供恢复注册钩子（幂等；消费方不得绕过合同）。I79 拆段后注册实现在
+  // 候选生产段（candidate-production.ts），组合根仍暴露公开钩子。
+  if (!writing.includes('registerRecoveredCandidate')) {
     fail('writing-adjudication-service missing the I65 recovery registration hook');
+  }
+  const production = read('src/host/writing-adjudication/candidate-production.ts');
+  if (!production.includes('registerRecoveredCandidate') || !production.includes('scene-card candidates only')) {
+    fail('candidate-production missing the I65 recovery registration hook');
   }
   // 装配：index.ts 提供 novelQueue；remote.ts 注册 queueInvocations；nav/client 挂队列视图。
   if (!index.includes("ctx.provide('novelQueue'") || !index.includes('createQueueService')) fail('index.ts missing novelQueue wiring');

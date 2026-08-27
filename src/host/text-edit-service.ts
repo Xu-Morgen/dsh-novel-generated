@@ -10,15 +10,15 @@ import type { NovelWorldviewService } from './worldview-service.js';
 import type { NovelConfirmationService } from './confirmation-service.js';
 import type { GenerationSettings } from '../llm/port/index.js';
 import { asLlmBackend } from '../llm/port/index.js';
-import { parseC2StateFromNarrative, applyC2StateOperationsToDraft, type C2StateParserOutput } from '../llm/parse/state.js';
-import { parseC1RelationshipsFromNarrative, materializeC1RelationshipOperations, type C1RelationshipParserOutput } from '../llm/parse/relationship.js';
-import { parseC3KnowledgeFromNarrative, materializeC3KnowledgeOperations, type C3KnowledgeParserOutput } from '../llm/parse/knowledge.js';
-import { parseC4CanonFromNarrative, type C4CanonParserOutput } from '../llm/parse/canon.js';
-import { parseB2WorldviewFromNarrative, type B2WorldviewParserOutput } from '../llm/parse/worldview.js';
+import { parseC2StateFromNarrative } from '../llm/parse/state.js';
+import { parseC1RelationshipsFromNarrative } from '../llm/parse/relationship.js';
+import { parseC3KnowledgeFromNarrative } from '../llm/parse/knowledge.js';
+import { parseC4CanonFromNarrative } from '../llm/parse/canon.js';
+import { parseB2WorldviewFromNarrative } from '../llm/parse/worldview.js';
+import { buildFiveLayerWriters } from './five-layer-writeback.js';
 import type { Scene } from '../core/schema/text.js';
 import type { ConfirmationRecord } from '../core/schema/confirm.js';
 import type { EditRange } from '../core/edit/index.js';
-import type { StateDraft } from '../core/state/index.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { TextRepository } from '../core/text/index.js';
 
@@ -149,56 +149,14 @@ export function createTextEditService(deps: TextEditDeps): NovelTextEditService 
     b2: async () => parseB2WorldviewFromNarrative(backend, { prose, current: await deps.worldview.list(projectId) }, settings),
   });
 
-  /** 既有 Domain Service 写回器（与 I30 / agent-tools 同一批函数，C2→C1→C3→C4→B2）。 */
-  const buildWriters = (projectId: string, reparseProposalId: string): ReparseRequest['writers'] => ({
-    c2: async (output) => {
-      const parsed = output as C2StateParserOutput;
-      if (parsed.ops.some((operation) => operation.confidence === 'low')) throw new Error('Low-confidence C2 operations require ConfirmationGate');
-      await deps.state.transaction(projectId, (draft) => applyC2StateOperationsToDraft(draft as StateDraft, parsed.ops));
-    },
-    c1: async (output) => {
-      const parsed = output as C1RelationshipParserOutput;
-      if (parsed.ops.some((operation) => operation.confidence === 'low')) throw new Error('Low-confidence C1 operations require ConfirmationGate');
-      const next = materializeC1RelationshipOperations(await deps.relationship.read(projectId), parsed.ops);
-      await deps.relationship.saveAll(projectId, next);
-    },
-    c3: async (output) => {
-      const parsed = output as C3KnowledgeParserOutput;
-      if (parsed.ops.some((operation) => operation.confidence === 'low')) throw new Error('Low-confidence C3 operations require ConfirmationGate');
-      const next = materializeC3KnowledgeOperations(await deps.knowledge.read(projectId), parsed.ops);
-      await deps.knowledge.saveAll(projectId, next.entries, next.states);
-    },
-    c4: async (output) => {
-      const parsed = output as C4CanonParserOutput;
-      if (parsed.ops.some((operation) => operation.confidence === 'low' || operation.op === 'supersede')) {
-        throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
-      }
-      for (const operation of parsed.ops) {
-        if (operation.op !== 'append') throw new Error('C4 supersede operations require ConfirmationGate');
-        await deps.canon.append(projectId, operation.event);
-      }
-    },
-    b2: async (output) => {
-      const parsed = output as B2WorldviewParserOutput;
-      if (parsed.ops.length === 0) return;
-      // B2 改写 confirmation-first：先经 I11 Gate 提出并接受，再经既有改写服务落盘。
-      const b2ProposalId = `${reparseProposalId}-b2`;
-      await deps.confirmation.propose(projectId, {
-        id: b2ProposalId,
-        kind: 'b2-worldview-parser-supersedes',
-        payload: { ops: parsed.ops },
-      });
-      await deps.confirmation.accept(projectId, b2ProposalId);
-      for (const operation of parsed.ops) {
-        // B2 解析器契约（b2ReplacementSchema）约定 version/status/supersededBy 归存储层。
-        await deps.worldview.rewrite(projectId, operation.targetId, {
-          ...operation.replacement,
-          status: 'active',
-          supersededBy: null,
-        });
-      }
-    },
-  });
+  /** 既有 Domain Service 写回器（与 I30 / agent-tools 同一批函数，C2→C1→C3→C4→B2；共享实现见 five-layer-writeback，I79 复制源归零）。 */
+  const buildWriters = (projectId: string, reparseProposalId: string): ReparseRequest['writers'] => buildFiveLayerWriters(
+    { state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon, worldview: deps.worldview, confirmation: deps.confirmation },
+    projectId,
+    reparseProposalId,
+    // I61 语义：B2 ops 为空时跳过 Gate 提案（空改写不产生空提案审计噪音）。
+    { skipEmptyB2Proposal: true },
+  );
 
   const service: NovelTextEditService = {
     async open(projectId) {
