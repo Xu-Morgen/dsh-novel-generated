@@ -2227,6 +2227,11 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       {
+        // B3 角色列表：关系列表/标题显示角色名（join），而非角色 id。
+        characterList: async () => [
+          { id: 'hero', name: '英雄', kind: 'protagonist' },
+          { id: 'mentor', name: '导师', kind: 'extra' },
+        ],
         relationshipRead: async () => [existing],
         relationshipSave: async (projectId, input) => { saveCalls.push({ projectId, input }); return input; },
       },
@@ -2238,9 +2243,13 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const tree = render();
     expect(byData(tree, 'data-novel-layer-panel', 'relationship')).toBeDefined();
 
-    // 点选列表项载入详情，全字段表单渲染（from/to/type/affinity/trust/milestones/knownTo）。
+    // 列表项显示角色名（id join B3）：`英雄 → 导师`，不直接展示 id。
     const item = byData(tree, 'data-novel-relationship-id', 'hero+mentor') as FakeNode;
+    expect((item.children ?? []).join('')).toBe('英雄 → 导师');
     (item.props?.onClick as () => void)();
+
+    // 点选后标题同样显示角色名。
+    expect(String((collect(render(), 'h3').find((n) => n.children?.join('')?.startsWith('编辑关系'))?.children?.[0] ?? ''))).toContain('英雄 → 导师');
 
     // 修改状态后保存。
     const statusInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text' && (n.props?.value as string) === 'active');

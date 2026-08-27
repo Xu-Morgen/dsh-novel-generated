@@ -358,7 +358,9 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
   }
   if (layer.id === 'relationship') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderRelationshipLayer(h, projectId, workspace, layers.relationship, layers.relationshipEditor, ops.relationship));
+      // 关系 from/to 以 B3 角色 id 持久化；显示时 join 角色名（改名不换 id，见
+      // CharacterRepository.update），未知 id 回退显示 id 本身。
+      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship));
   }
   if (layer.id === 'state') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
