@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; search?: { build?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; search?: (projectId: string, query: string, pov?: string) => Promise<unknown>; references?: (projectId: string, key: string, pov?: string) => Promise<unknown> }; statistics?: { rebuild?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; overview?: (projectId: string) => Promise<unknown>; chapterDetail?: (projectId: string, chapterId: string) => Promise<unknown>; sceneCards?: (projectId: string, filter?: { actId?: string; beatId?: string; status?: string; limit?: number }) => Promise<unknown>; tasks?: (projectId: string, filter?: { status?: string; limit?: number }) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; search?: { build?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; search?: (projectId: string, query: string, pov?: string) => Promise<unknown>; references?: (projectId: string, key: string, pov?: string) => Promise<unknown> }; statistics?: { rebuild?: (projectId: string) => Promise<unknown>; drop?: (projectId: string) => Promise<unknown>; stats?: (projectId: string) => Promise<unknown>; overview?: (projectId: string) => Promise<unknown>; chapterDetail?: (projectId: string, chapterId: string) => Promise<unknown>; sceneCards?: (projectId: string, filter?: { actId?: string; beatId?: string; status?: string; limit?: number }) => Promise<unknown>; tasks?: (projectId: string, filter?: { status?: string; limit?: number }) => Promise<unknown> }; timeline?: { read?: (projectId: string) => Promise<unknown>; ensureFromOutline?: (projectId: string) => Promise<unknown>; setCurrentNode?: (projectId: string, nodeId: string | null) => Promise<unknown>; save?: (projectId: string, input: unknown) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -250,6 +250,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const importExportStub = mountOptions.importExport;
   const searchStub = mountOptions.search;
   const statisticsStub = mountOptions.statistics;
+  const timelineStub = mountOptions.timeline;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -341,6 +342,12 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       sceneCards: async () => { throw new Error('未注入 remote.novelStatistics.sceneCards'); },
       tasks: async () => { throw new Error('未注入 remote.novelStatistics.tasks'); },
     })
+    : name === 'remote.novelTimeline' ? (timelineStub ?? {
+      read: async () => { throw new Error('未注入 remote.novelTimeline.read'); },
+      ensureFromOutline: async () => { throw new Error('未注入 remote.novelTimeline.ensureFromOutline'); },
+      setCurrentNode: async () => { throw new Error('未注入 remote.novelTimeline.setCurrentNode'); },
+      save: async () => { throw new Error('未注入 remote.novelTimeline.save'); },
+    })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
   entry.apply({ slots, remote, get, effect } as never);
@@ -417,7 +424,7 @@ describe('I46 创作台 workbench shell', () => {
     // 稳定 data 锚点：十八个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪，I72 新增写作进度）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
+      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'timeline', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
@@ -2532,7 +2539,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列,搜索与追踪,写作进度} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
     expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics']);
-    expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'ruleStyle']);
+    expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'timeline', 'ruleStyle']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon', 'knowledge']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'importExport', 'settings']);
   });
@@ -2541,7 +2548,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'timeline', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2603,7 +2610,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(18);
+    expect(grouped).toHaveLength(19);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2620,7 +2627,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(18);
+    expect(NAV_ITEMS).toHaveLength(19);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2637,13 +2644,14 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
     expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'queue', 'search', 'statistics', 'onboarding', 'creationSettings', 'importExport', 'settings']);
+    expect(noBadge).toEqual(['review', 'queue', 'search', 'statistics', 'timeline', 'onboarding', 'creationSettings', 'importExport', 'settings']);
     // I60/I64/I65/I66/I67/I68/I69/I71/I72：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索与写作进度视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
     expect(isStableView('queue')).toBe(true);
     expect(isStableView('search')).toBe(true);
     expect(isStableView('statistics')).toBe(true);
+    expect(isStableView('timeline')).toBe(true);
     expect(isStableView('knowledge')).toBe(true);
     expect(isStableView('ruleStyle')).toBe(true);
     expect(isStableView('progress')).toBe(true);
@@ -4741,5 +4749,90 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
     await flush();
     expect(statisticsMessage(render)).toContain('已删除派生统计');
     expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
+  });
+});
+
+describe('方案 A 剧情时间线面板 UI（design §8 相关角色对）', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+
+  it('未自建时展示空态并可从大纲生成骨架，随后列出有序节点并保存作者安排', async () => {
+    const saveCalls: Array<{ projectId: string; input: unknown }> = [];
+    const TIMELINE = {
+      id: 'fixture-project', version: 1, currentNodeId: null,
+      nodes: [
+        { id: 'node-0', order: 0, label: '第一幕 · 午夜旧灯塔 · 发现海图', reveals: [], relationships: [] },
+        { id: 'node-1', order: 1, label: '第一幕 · 钟楼对峙', reveals: [], relationships: [] },
+      ],
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        timeline: {
+          read: async () => null,
+          ensureFromOutline: async () => TIMELINE,
+          setCurrentNode: async () => TIMELINE,
+          save: async (projectId, input) => { saveCalls.push({ projectId, input }); return input; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'timeline')?.props?.onClick as () => void)();
+    await flush();
+
+    // 空态：未自建 → 提示 + 一键自建按钮。
+    expect(collect(render(), 'p').some((n) => n.props?.['data-novel-timeline-empty'] !== undefined)).toBe(true);
+    ((collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-ensure'] === '')?.props?.onClick as () => void))();
+    await flush();
+
+    // 自建后列出有序节点（order 顺序），选中第一个节点。
+    expect(collect(render(), 'button').filter((n) => n.props?.['data-novel-timeline-node'] !== undefined).map((n) => n.props?.['data-novel-timeline-node'])).toEqual(['node-0', 'node-1']);
+    const first = collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-node'] === 'node-0') as FakeNode;
+    (first.props?.onClick as () => void)();
+    await flush();
+
+    // 保存作者安排 → 只经 novelTimeline.save，且输入是完整时间线文档。
+    const saveButton = collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-save'] === '') as FakeNode;
+    expect(saveButton).toBeDefined();
+    (saveButton.props?.onClick as () => void)();
+    await flush();
+    expect(saveCalls).toHaveLength(1);
+    expect(saveCalls[0].projectId).toBe('fixture-project');
+    expect((saveCalls[0].input as { nodes: unknown[] }).nodes).toHaveLength(2);
+  });
+
+  it('时间线已自建时直接列出节点；手动设当前节点经 setCurrentNode', async () => {
+    const currentCalls: Array<{ projectId: string; nodeId: string | null }> = [];
+    const TIMELINE = {
+      id: 'fixture-project', version: 1, currentNodeId: null,
+      nodes: [{ id: 'node-0', order: 0, label: '第一幕 · 初见', reveals: [], relationships: [] }],
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        timeline: {
+          read: async () => TIMELINE,
+          ensureFromOutline: async () => { throw new Error('不应自建：已存在'); },
+          setCurrentNode: async (projectId, nodeId) => { currentCalls.push({ projectId, nodeId }); return { ...TIMELINE, currentNodeId: nodeId }; },
+          save: async () => { throw new Error('不应保存'); },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'timeline')?.props?.onClick as () => void)();
+    await flush();
+
+    // 初始 idle：点击「刷新」装载已自建的时间线。
+    ((collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-refresh'] === '')?.props?.onClick as () => void))();
+    await flush();
+
+    expect(collect(render(), 'button').filter((n) => n.props?.['data-novel-timeline-node'] !== undefined)).toHaveLength(1);
+    ((collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-set-current'] === 'node-0')?.props?.onClick as () => void))();
+    await flush();
+    expect(currentCalls).toEqual([{ projectId: 'fixture-project', nodeId: 'node-0' }]);
   });
 });

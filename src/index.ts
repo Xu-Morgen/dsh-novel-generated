@@ -42,6 +42,7 @@ import { createImportExportService } from './host/import-export-service.js';
 import { createBranchService } from './host/branch-service.js';
 import { createSearchService } from './host/search-service.js';
 import { createStatisticsService } from './host/statistics-service.js';
+import { createTimelineService, type NovelTimelineService } from './host/timeline-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -251,11 +252,30 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     canon: canonService,
     confirmation: confirmationService,
   }, layerSource);
+  // 剧情时间线（方案 A 时间线层）：从 B5 大纲自建有序骨架，支撑关系注入按
+  // 「当前时间线节点」过滤（design §8 相关角色对）。onboarding finalApply 成功
+  // 落地 B5 后自建；写作上下文/面板可继续手动编辑保存。
+  const timelineService = createTimelineService(outlineService, projectsRoot);
+  ctx.provide('novelTimeline', bindRemote({
+    read: (projectId: unknown) => timelineService.read(String(projectId)),
+    ensureFromOutline: (projectId: unknown) => timelineService.ensureFromOutline(String(projectId)),
+    setCurrentNode: (projectId: unknown, nodeId: unknown) => timelineService.setCurrentNode(String(projectId), nodeId === undefined || nodeId === null ? null : String(nodeId)),
+    save: (projectId: unknown, input: unknown) => timelineService.save(String(projectId), input as Parameters<NovelTimelineService['save']>[1]),
+  }, 'novelTimeline', 'novelTimeline'));
   // The service is immutable; expose the same owner through a mutable Remote carrier.
   ctx.provide('novelOnboarding', bindRemote({
     adjudicate: (input: unknown, settings: unknown) => adjudicationService.adjudicate(input as Parameters<typeof adjudicationService.adjudicate>[0], settings),
     acceptedLayers: (onboardingSessionId: string) => adjudicationService.acceptedLayers(onboardingSessionId),
-    finalApply: (input: unknown) => adjudicationService.finalApply(input as Parameters<typeof adjudicationService.finalApply>[0]),
+    // B5 落地成功（无 blocked/retryable 且已应用 outline）后自建时间线骨架；
+    // 自建失败不阻断 onboarding 结果（时间线是可重建的派生视图）。
+    finalApply: async (input: unknown) => {
+      const result = await adjudicationService.finalApply(input as Parameters<typeof adjudicationService.finalApply>[0]);
+      if (result.blockedLayers.length === 0 && result.retryable === false && result.appliedLayers.includes('outline')) {
+        const projectId = result.projectId;
+        await timelineService.ensureFromOutline(projectId).catch(() => undefined);
+      }
+      return result;
+    },
   }, 'novelOnboarding', 'novelOnboarding'));
 
   // I2 public Remote probe: provide the service, then register its Typert
@@ -297,6 +317,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     rules: ruleService,
     knowledge: knowledgeService,
     text: textService,
+    timeline: timelineService,
     workbenchSettings: workbenchSettingsService,
   });
   const writingAdjudicationService = createWritingAdjudicationService({

@@ -17,6 +17,7 @@ import { importExportInvocations, importExportRemoteContribution } from './host/
 import { branchInvocations, branchRemoteContribution } from './host/remote/branch.js';
 import { searchInvocations, searchRemoteContribution } from './host/remote/search.js';
 import { statisticsInvocations, statisticsRemoteContribution } from './host/remote/statistics.js';
+import { timelineInvocations, timelineRemoteContribution } from './host/remote/timeline.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -38,13 +39,14 @@ export * from './host/remote/import-export.js';
 export * from './host/remote/branch.js';
 export * from './host/remote/search.js';
 export * from './host/remote/statistics.js';
+export * from './host/remote/timeline.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
 /** Compatibility aggregation for the single Typert Host face. */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations, ...timelineInvocations],
 };
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution };

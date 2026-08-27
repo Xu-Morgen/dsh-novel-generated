@@ -20,6 +20,7 @@ import {
   type BranchNamespace,
   type SearchNamespace,
   type StatisticsNamespace,
+  type TimelineNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -37,6 +38,7 @@ import {
   branchRemoteContribution,
   searchRemoteContribution,
   statisticsRemoteContribution,
+  timelineRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -85,6 +87,7 @@ import { freshProgress, progressPanel, type ProgressApplyOutcomeShape, type Prog
 import { freshImportExport, importExportPanel, downloadText, MAX_RESTORE_FILE_BYTES, type ImportExportEditOps, type ImportExportLayerState, type ImportExportPreviewShape, type ImportExportRestoreResultShape } from './client/layers/import-export.js';
 import { freshSearch, searchPanel, type SearchEditOps, type SearchHitShape, type SearchLayerState, type SearchResultShape, type SearchStatsShape } from './client/layers/search.js';
 import { freshStatistics, statisticsPanel, type ChapterDetailShape, type SceneCardsResultShape, type StatisticsEditOps, type StatisticsLayerState, type StatisticsOverviewShape, type StatisticsStatsShape, type TasksResultShape } from './client/layers/statistics.js';
+import { freshTimeline, timelinePanel, type TimelineEditOps, type TimelineLayerState, type TimelineShape } from './client/layers/timeline.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -228,6 +231,8 @@ export type WorkbenchActions = {
   searchPatch(patch: Partial<SearchLayerState>): void;
   /** I72：写作进度面板状态合并（R14-7）。 */
   statisticsPatch(patch: Partial<StatisticsLayerState>): void;
+  /** 方案 A：剧情时间线面板状态合并（design §8 相关角色对）。 */
+  timelinePatch(patch: Partial<TimelineLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -393,6 +398,7 @@ function viewPanel(
   branchNamespace: BranchNamespace | undefined,
   searchNamespace: SearchNamespace | undefined,
   statisticsNamespace: StatisticsNamespace | undefined,
+  timelineNamespace: TimelineNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
@@ -401,6 +407,7 @@ function viewPanel(
   importExportState: ImportExportLayerState,
   searchState: SearchLayerState,
   statisticsState: StatisticsLayerState,
+  timelineState: TimelineLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -454,6 +461,11 @@ function viewPanel(
   if (activeView === 'statistics') {
     return h('div', { 'data-novel-view-panel': 'statistics' }, statisticsPanel(h, projectId, statisticsNamespace, statisticsState, ops.statistics));
   }
+  // 方案 A：剧情时间线（策划组）—— 从 B5 自建有序剧情时间轴；节点可安排揭示
+  // 信息与关系建立时机，手动选择当前节点并编辑保存（design §8 相关角色对）。
+  if (activeView === 'timeline') {
+    return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline));
+  }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
 
@@ -498,10 +510,12 @@ interface WorkbenchOps {
   readonly search: SearchEditOps;
   /** I72：写作进度面板（概览/筛选/章节详情/重建/删除派生统计，R14-7）。 */
   readonly statistics: StatisticsEditOps;
+  /** 方案 A：剧情时间线面板（刷新/自建/节点选择/编辑/手动设当前/保存）。 */
+  readonly timeline: TimelineEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; newProjectName: string; newProjectNameChange(value: string): void; projectLoading: boolean; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, timelineNamespace: TimelineNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; newProjectName: string; newProjectNameChange(value: string): void; projectLoading: boolean; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, timelineState: TimelineLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -565,7 +579,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, searchState, statisticsState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, searchState, statisticsState, timelineState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -732,6 +746,8 @@ interface WorkbenchState {
   search: SearchLayerState;
   /** I72：写作进度面板状态（统计/概览/筛选/章节详情/任务历史，R14-7）。 */
   statistics: StatisticsLayerState;
+  /** 方案 A：剧情时间线面板状态（timeline 文档/选中节点/编辑脏标记，design §8 相关角色对）。 */
+  timeline: TimelineLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -781,6 +797,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let branchNamespace: BranchNamespace | undefined;
       let searchNamespace: SearchNamespace | undefined;
       let statisticsNamespace: StatisticsNamespace | undefined;
+      let timelineNamespace: TimelineNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -798,6 +815,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let branchDisposer: TypertDisposer | undefined;
       let searchDisposer: TypertDisposer | undefined;
       let statisticsDisposer: TypertDisposer | undefined;
+      let timelineDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -845,6 +863,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           importExport: freshImportExport(),
           search: freshSearch(),
           statistics: freshStatistics(),
+          timeline: freshTimeline(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -883,7 +902,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -924,6 +943,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           importExportPatch: (d, patch: Partial<ImportExportLayerState>) => { d.importExport = { ...d.importExport, ...patch }; },
           searchPatch: (d, patch: Partial<SearchLayerState>) => { d.search = { ...d.search, ...patch }; },
           statisticsPatch: (d, patch: Partial<StatisticsLayerState>) => { d.statistics = { ...d.statistics, ...patch }; },
+          timelinePatch: (d, patch: Partial<TimelineLayerState>) => { d.timeline = { ...d.timeline, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -2412,6 +2432,71 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { statisticsPatch({ status: 'idle', message: undefined, stats: undefined, overview: undefined, chapterId: '', chapterDetail: undefined, cardActId: '', cardBeatId: '', cardStatus: '', sceneCards: undefined, taskStatus: '', tasks: undefined, acting: false }); },
             };
           })(),
+          // 方案 A：剧情时间线面板（design §8 相关角色对）。只提交受控命令；
+          // 时间线文档与当前节点选择都由 Host（novelTimeline）持有。
+          timeline: (() => {
+            const timelinePatch = (patch: Partial<TimelineLayerState>): void => act.timelinePatch(patch);
+            const load = (): void => {
+              const target = timelineNamespace;
+              if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
+              if (!beginOp('timeline:read')) return;
+              const release = (): void => endOp('timeline:read');
+              timelinePatch({ status: 'loading', message: undefined });
+              void unwrap(target.read(projectId)).then((timeline) => {
+                release();
+                if (!active) return;
+                timelinePatch({ status: 'ready', timeline: (timeline ?? undefined) as TimelineShape | undefined, selectedId: undefined, dirty: false, saving: false, saveMessage: '', error: '', message: undefined });
+              }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', message: (cause as Error).message }); });
+            };
+            return {
+              refresh: load,
+              ensure(): void {
+                const target = timelineNamespace;
+                if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
+                if (!beginOp('timeline:ensure')) return;
+                const release = (): void => endOp('timeline:ensure');
+                timelinePatch({ status: 'loading', error: '', message: undefined });
+                void unwrap(target.ensureFromOutline(projectId)).then((timeline) => {
+                  release();
+                  if (!active) return;
+                  timelinePatch({ status: 'ready', timeline: timeline as TimelineShape, selectedId: undefined, dirty: false, saving: false, saveMessage: '已从大纲生成时间线骨架', error: '', message: undefined });
+                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', error: (cause as Error).message, message: undefined }); });
+              },
+              select(nodeId: string) {
+                timelinePatch({ selectedId: nodeId, dirty: false, error: '', saveMessage: '' });
+              },
+              mutate(update: (draft: TimelineShape) => TimelineShape) {
+                const current = snapshot.timeline.timeline;
+                if (current === undefined) return;
+                timelinePatch({ timeline: update(current), dirty: true, error: '', saveMessage: '' });
+              },
+              setCurrent(nodeId: string | null): void {
+                const target = timelineNamespace;
+                const current = snapshot.timeline.timeline;
+                if (!target || projectId === undefined || current === undefined) return;
+                if (!beginOp('timeline:setCurrent')) return;
+                const release = (): void => endOp('timeline:setCurrent');
+                void unwrap(target.setCurrentNode(projectId, nodeId)).then((timeline) => {
+                  release();
+                  if (!active) return;
+                  timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saveMessage: nodeId === null ? '已恢复自动锚定' : '已设为当前时间点', error: '' });
+                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ error: (cause as Error).message }); });
+              },
+              save(): void {
+                const target = timelineNamespace;
+                const current = snapshot.timeline.timeline;
+                if (!target || projectId === undefined || current === undefined || snapshot.timeline.saving) return;
+                if (!beginOp('timeline:save')) return;
+                const release = (): void => endOp('timeline:save');
+                timelinePatch({ saving: true, error: '', saveMessage: '' });
+                void unwrap(target.save(projectId, current)).then((timeline) => {
+                  release();
+                  if (!active) return;
+                  timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saving: false, saveMessage: '已保存', error: '' });
+                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ saving: false, error: (cause as Error).message, saveMessage: '' }); });
+              },
+            };
+          })(),
         };
       };
 
@@ -2615,7 +2700,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.search, s.statistics, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.search, s.statistics, s.timeline, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -2740,6 +2825,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           statisticsDisposer = dispose;
           statisticsNamespace = ctx.get('remote.novelStatistics', false) as StatisticsNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: statistics Remote mount failed', cause); });
+        // 方案 A：剧情时间线 Remote（design §8 相关角色对）。挂载失败静默降级：时间线面板显示不可用。
+        void ctx.remote.$mount(timelineRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          timelineDisposer = dispose;
+          timelineNamespace = ctx.get('remote.novelTimeline', false) as TimelineNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: timeline Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -2760,6 +2851,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           branchNamespace = undefined;
           searchNamespace = undefined;
           statisticsNamespace = undefined;
+          timelineNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -2776,6 +2868,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (branchDisposer) void branchDisposer();
           if (searchDisposer) void searchDisposer();
           if (statisticsDisposer) void statisticsDisposer();
+          if (timelineDisposer) void timelineDisposer();
         };
       });
     },

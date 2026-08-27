@@ -8,11 +8,14 @@ import type { NovelStyleService } from './style-service.js';
 import type { NovelRuleService } from './rule-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
 import type { NovelTextService } from './text-service.js';
+import type { NovelTimelineService } from './timeline-service.js';
+import type { Relationship } from '../core/schema/relationship.js';
 import type { StoryGenerationSources } from '../core/pipeline/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { StoryLifecycleParserInputs } from './story-lifecycle-service.js';
 import { buildContextTrace, type ContextTrace } from '../core/trace/index.js';
+import { anchorNodeId, filterRelationshipsByTimeline } from '../core/timeline/index.js';
 
 /**
  * I63 下一场景上下文装配（design §14.9 / R13-4）。
@@ -43,6 +46,8 @@ export interface NextSceneContextDeps {
   readonly rules: NovelRuleService;
   readonly knowledge: NovelKnowledgeService;
   readonly text: NovelTextService;
+  /** 方案 A 时间线层：提供后按「当前时间线节点」过滤关系注入；缺席时全量注入（兼容旧数据）。 */
+  readonly timeline?: NovelTimelineService;
   /** 创作台通用设置：目标字数 + 内容不足时是否询问。 */
   readonly workbenchSettings: {
     load(): Promise<{ readonly wordTarget: number; readonly askWhenThin: boolean }>;
@@ -116,6 +121,18 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
     const characterIds = characters.map((character) => character.id);
     const sceneCharacters = await deps.characters.listForScene(projectId, characterIds);
     const recentScenes = chapters.flatMap((chapter) => chapter.scenes).slice(-3);
+    // 方案 A 时间线层：关系注入只保留「当前时间线节点之前已建立」的关系
+    // （design §8 相关角色对 / 排除尚未发生的关系）。锚定 = 手动选择优先，
+    // 否则按当前写作位置（细纲卡 → beat）自动匹配；时间线缺失/未锚定 → 全量
+    // 注入（兼容旧数据，时间线未配置时行为不变）。
+    let injectedRelationships: readonly Relationship[] = relationships;
+    if (deps.timeline !== undefined) {
+      const timeline = await deps.timeline.read(projectId);
+      if (timeline !== null) {
+        const currentNodeId = anchorNodeId(timeline, { beatId: navigation.beatId, detailBeatId: card.id });
+        injectedRelationships = filterRelationshipsByTimeline(timeline, relationships, currentNodeId);
+      }
+    }
     // B2 触发注入只取 active 命中（design §5.4 / R1-B2）：rewritten/obsolete 旧条目与
     // 尚未在正文揭示的条目不得进入生成上下文——组装器对非 active 命中 fail-closed，
     // 且全量注入会把未来才应知道的条目泄漏进生成提示（C3 知情边界）。
@@ -134,7 +151,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
           style: styleSegment,
           characters: sceneCharacters,
           worldview: worldviewHits,
-          relationships: { relationships, characterIds },
+          relationships: { relationships: injectedRelationships, characterIds },
           state,
         },
       },

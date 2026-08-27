@@ -49,6 +49,9 @@
  * 实体交叉引用 + 结果跳转 + 生成注入解释），同样为稳定视图。
  * - I72（design §14.10 / R14-7）：写作组新增「写作进度」视图（可重建派生统计：
  * 章节字数/目标完成度/场景卡状态/POV 分布/任务历史），同样为稳定视图。
+ * - 方案 A（design §8「相关角色对」/ 剧情时间线）：策划组新增「时间线」视图
+ * （从 B5 大纲自建的有序剧情时间轴；节点可安排揭示信息与关系建立时机，支撑
+ * 关系注入与知情层按「当前时间」过滤，可手动选择当前节点并编辑保存）。
  *
  * 契约与不变式：
  * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
@@ -58,8 +61,8 @@
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风/进度与灵感/导入导出/搜索与追踪/写作进度视图 + 三个非层视图（I58/I60/I64/I65/I66/I67/I68/I69/I71/I72 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'importExport' | 'search' | 'statistics' | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风/进度与灵感/导入导出/搜索与追踪/写作进度/时间线视图 + 三个非层视图（I58/I60/I64/I65/I66/I67/I68/I69/I71/I72 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'importExport' | 'search' | 'statistics' | 'timeline' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -96,6 +99,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
     items: [
       { view: 'characters', label: '角色', badge: 'B3', layer: 'characters' },
       { view: 'worldview', label: '世界观', badge: 'B2', layer: 'worldview' },
+      { view: 'timeline', label: '时间线' },
       { view: 'ruleStyle', label: '规则与文风', badge: 'B1/B4' },
     ],
   },
@@ -149,7 +153,7 @@ export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
 }
 
-/** 稳定视图判定（I60/I64/I65/I66/I67/I68/I69/I71/I72）：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索与写作进度视图重复点击保持原位；设置类视图才回退默认。 */
+/** 稳定视图判定（I60/I64/I65/I66/I67/I68/I69/I71/I72/方案 A）：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索、写作进度与时间线视图重复点击保持原位；设置类视图才回退默认。 */
 export function isStableView(view: WorkbenchViewId): boolean {
-  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || view === 'progress' || view === 'importExport' || view === 'search' || view === 'statistics' || isLayerView(view);
+  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || view === 'progress' || view === 'importExport' || view === 'search' || view === 'statistics' || view === 'timeline' || isLayerView(view);
 }
