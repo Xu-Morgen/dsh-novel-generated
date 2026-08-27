@@ -2,7 +2,7 @@
 
 > 版本：v2.2
 > 日期：2026-08-26
-> 状态：当前执行权威（I1–I53 已完成；I54–I72 已批准、待逐迭代执行）
+> 状态：当前执行权威（I1–I53 已完成；I54–I74 已批准、待逐迭代执行）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v2.2（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.2（需求 ID、验收、迭代覆盖）
 
@@ -15,7 +15,7 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I53 已完成：包括插件核心、创作台、多作品启动、受控 DOCX 上传、六层初始化分析与逐层确认落地；不得再将 Stage 10 标为待执行。
-- 当前排期扩展为 **14 个阶段、72 个迭代（I1–I72）**：v2.2 新增 Stage 11（I54–I59）侧板化与 UI 修复、Stage 12（I60–I65）P0 正文写作闭环、Stage 13（I66–I72）P1 能力可达性。I54–I72 仍须遵守一次只执行一个 Ixx。
+- 当前排期扩展为 **14 个阶段、74 个迭代（I1–I74）**：v2.2 新增 Stage 11（I54–I59）侧板化与 UI 修复、Stage 12（I60–I65）P0 正文写作闭环、Stage 13（I66–I72）P1 能力可达性；Stage 14（I73–I74）剧情时间线（方案 A）把 B5 结构展开为有序剧情时间轴，支撑关系注入按当前时间过滤。I54–I74 仍须遵守一次只执行一个 Ixx。
 
 ### 0.2 Goal
 
@@ -66,7 +66,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I72）
+### 0.7 全局执行纪律（贯穿 I1–I74）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -697,26 +697,49 @@ TDD Route:
 
 ---
 
-## 15. 完成线
+## 15. 阶段 14：剧情时间线（方案 A，R15）
 
-I45 通过时 v2.0 核心闭环完成，I49 通过时首轮创作台 UI 完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成；这些 I1–I53 状态均已完成。v2.2 的新增完成线为：I59 通过时停靠侧板与现有 UI 修复完成，I65 通过时 P0 正文写作闭环完成，I72 通过时 P1 能力可达性完成。
+> 定位：现有 C2/C4 `storyTime` 与 C3 `revealAt` 均为自由文本、无统一排序轴；C1 关系全量注入不符合设计 §8「相关角色对」。时间线把 B5 结构展开为有序剧情时间轴（timeline.yaml），节点可安排揭示信息与关系建立时机；C1 关系注入按「当前时间线节点之前已建立」过滤，C3 revealAt 可对齐节点 label。设计 §5.13 / §14.11，需求 R15。
 
-I72 完成时还必须证明：
+### I73：剧情时间线数据层、服务与上下文过滤
+
+- **目标**：新增时间线数据层与 Host 服务，并把关系注入改为按当前时间线节点过滤。
+- **明确不做**：不改 C1/C3 wire 契约与既有层 owner（knownTo 仍只表公开性，C3 revealAt 仍自由文本）；时间线不成为 C1/C3 的第二写 owner。
+- **交付物**：`core/timeline`（schema + timeline.yaml 仓库 + `buildTimelineFromOutline` 骨架生成 + `effectiveRelationshipIds`/`anchorNodeId`/`filterRelationshipsByTimeline` 纯函数，schema 与 node:fs 分离保证 Client bundle 可入图）；`host/timeline-service`（read/ensureFromOutline/setCurrentNode/save）+ `novelTimeline` Remote；onboarding `finalApply` 落地 B5 后自建骨架（已存在不覆盖）；`writing-context` 关系注入按当前节点过滤（未安排关系始终保留，时间线缺失回退全量）。
+- **验收**：骨架顺序/绑定/空大纲负测；repository round-trip 与损坏 fail loudly；服务层 ensure 大纲未就绪 fail-closed、setCurrentNode 校验未知节点；writing-context 消费者夹具（时间线缺席全量/当前节点过滤/手动锚定覆盖）。
+- **验证**：`pnpm run verify:i73`。
+
+### I74：剧情时间线面板
+
+- **目标**：策划组新增「时间线」视图，作者可查看、安排并保存时间线。
+- **明确不做**：不做 revealAt 直接引用节点 id 的联动（后置）；Client 不持有时间线真相、不复制领域校验。
+- **交付物**：`novelTimeline` Remote 挂载；nav 新增「时间线」稳定视图；面板：节点列表（含当前节点标记）、每节点 storyTime/关系/揭示安排编辑、手动设当前节点（null 恢复自动）、一键自建、保存；回归测试。
+- **验收**：面板渲染/自建/节点列表/保存/手动设当前断言；Remote 挂载失败降级；Client bundle 无 node:fs。
+- **验证**：`pnpm run verify:i74`。
+
+---
+
+## 16. 完成线
+
+I45 通过时 v2.0 核心闭环完成，I49 通过时首轮创作台 UI 完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成；这些 I1–I53 状态均已完成。v2.2 的新增完成线为：I59 通过时停靠侧板与现有 UI 修复完成，I65 通过时 P0 正文写作闭环完成，I72 通过时 P1 能力可达性完成，I74 通过时剧情时间线（方案 A）完成。
+
+I74 完成时还必须证明：
 
 - ordinary persistent DSH/Cordis Host+Client 插件仍可安装、装载、升级、卸载，且 Host/Client owner 与 §0.1 不变；
 - 创作台不再呈现为居中独立浮窗，不替换 DSH 单槽；没有公共侧区 Slot 时只存在 `shell.overlay` 右侧停靠侧板主路径；
 - 多作品可切换且草稿隔离，六层初始化的编辑/重生成/进度/取消/重试与 apply 刷新行为正确；
 - C5 章节/场景可在创作台阅读和编辑，生成统一先形成候选，作者在生成后裁决，拒绝零写；
 - 一致性问题可定位，自动生成队列可恢复且不绕过 ConfirmationGate；
-- C3、B1、B4、C6、导入导出、正文分支、搜索/上下文追踪和进度统计均有 UI 消费者；
+- C3、B1、B4、C6、导入导出、正文分支、搜索/上下文追踪、进度统计与剧情时间线均有 UI 消费者；
+- 剧情时间线：B5 落地后自建骨架，作者可编辑保存；C1 关系注入只含「当前时间线节点之前已建立」的关系，时间线缺失/未锚定回退全量（兼容旧数据）；
 - 所有用户确认统一经 I11 Gate，C4 保持 append-only，派生索引/统计可删除重建；
 - 卸载不删除作品 source of truth，Fiber dispose 后 Service/Tool/Remote/Slot/样式/任务监听零残留。
 
-语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入与 novel 自有主题引擎继续后置为 backlog。
+语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎与 C3 revealAt 直接引用时间线节点 id 的联动继续后置为 backlog。
 
 ---
 
-## 16. Risks 与 Retirement
+## 17. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移与侧区 Slot 门**：I54 执行前核验所选版本和当时最新版。若出现 additive 侧区内容 Slot，停止并通知用户升级，更新项目 pin/lockfile 后重跑 selected-profile boot 与完整 Client gate；若没有则只实现 `shell.overlay` 右侧停靠侧板。禁止运行时双路 fallback。
@@ -729,4 +752,5 @@ I72 完成时还必须证明：
 - **候选与自动化风险**：I62–I65 必须保持“先候选、后裁决”；队列只编排生成，不自动接受、不静默改 B5/C6。任务恢复依赖稳定 ID 与幂等状态，不以重复追加正文作为重试。
 - **正文分支迁移风险**：I70 是 C5 source-of-truth 迁移迭代；必须先锁旧单版本项目 fixture，失败时 fail closed，禁止为了兼容保留两个可写 owner。
 - **派生视图风险**：I71 搜索索引与 I72 统计均可删除重建，不得成为正文/设定/进度的第二真相，也不得越过 C3/POV 知识边界。
+- **时间线语义风险**：I73–I74 的时间线是作者可编辑的规划文档，不是 C1/C3 的第二写 owner；`knownTo` 仍只表关系公开性，C3 revealAt 仍自由文本。关系过滤必须「未安排关系始终保留」，否则时间线出现即丢关系；时间线缺失/未锚定必须回退全量，避免行为突变。schema 与 node:fs 分离，Client bundle 不得入图 repository。
 - **Historical record**：Git 历史保留旧提交；v2.2 文档记录旧路线与被退役内部路径，不把死代码留在主分支。

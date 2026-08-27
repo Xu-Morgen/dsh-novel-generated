@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v2.2：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
 2. 本文件 v2.2：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.2：I1–I72 的执行卡片、交付物与命令细节。
+3. `docs/novel-creation-tool-development-plan.md` v2.2：I1–I74 的执行卡片、交付物与命令细节。
 4. `AGENTS.md` v2.2：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 
@@ -21,7 +21,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I72**：I1–I53 已完成，I54–I72 已批准待逐迭代执行。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- 当前迭代身份只有本文件定义的 **I1–I74**：I1–I53 已完成，I54–I72 已批准，I73–I74 剧情时间线（R15）已批准。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R14 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -53,6 +53,7 @@
 | Stage 11 侧板化与现有 UI 修复 | I54–I59 | `pnpm run verify:stage-11` |
 | Stage 12 P0 正文写作闭环 | I60–I65 | `pnpm run verify:stage-12` |
 | Stage 13 P1 能力可达性 | I66–I72 | `pnpm run verify:stage-13` |
+| Stage 14 剧情时间线 | I73–I74 | `pnpm run verify:stage-14` |
 
 ---
 
@@ -267,6 +268,18 @@
 | R14-6 | 支持跨正文与结构层全局搜索、实体交叉引用和生成上下文追踪；追踪解释注入层、触发原因与裁剪，不泄露 secret 或未授权 POV 知识。 | 搜索索引可重建；引用跳转；注入解释与知识边界/secret 负测。 | I71 | `pnpm run verify:i71`; `pnpm run verify:stage-13` |
 | R14-7 | 展示章节字数、目标完成度、场景卡状态、POV 分布和任务历史；统计可重建且不成为 source of truth。 | 重建一致性、空作品、大规模作品和删除派生数据后恢复断言。 | I72 | `pnpm run verify:i72`; `pnpm run verify:stage-13` |
 
+## R15. 剧情时间线（方案 A）
+
+> 定位：现有 C2/C4 `storyTime` 与 C3 `revealAt` 均为自由文本、无统一排序轴，无法回答「当前时间点」；C1 关系全量注入不符合设计 §8「相关角色对」。时间线把 B5 结构展开为有序剧情时间轴，支撑关系注入与知情层按「当前时间」过滤，作者可手动编辑保存。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R15-1 | 时间线文档（timeline.yaml）：从 B5 大纲确定性生成有序骨架（acts→beats→detailBeats 展开），节点含 label/storyTime/beatId/detailBeatId/reveals/relationships/currentNodeId；大纲就绪前 fail-closed 不自建空时间线。 | 骨架节点顺序/绑定/空大纲负测；repository save→read round-trip；损坏文档 fail loudly。 | I73 | `pnpm run verify:i73`; `pnpm run verify:stage-14` |
+| R15-2 | 关系注入按当前时间线节点过滤：只注入「≤ 当前节点 order 已建立」的关系；未被时间线安排的关系始终保留（兼容旧数据）；时间线缺失/未锚定回退全量。 | `effectiveRelationshipIds`/`filterRelationshipsByTimeline` 正向/负向夹具；writing-context 消费者夹具（时间线缺席全量、当前节点过滤、手动锚定覆盖）。 | I73 | `pnpm run verify:i73`; `pnpm run verify:stage-14` |
+| R15-3 | 当前时间线节点双锚定：手动选择（currentNodeId）优先，否则按当前写作位置（细纲卡 detailBeatId → beatId）自动匹配；未命中不过滤。 | `anchorNodeId` 手动/自动/未知负测；服务层 setCurrentNode 校验未知节点。 | I73 | `pnpm run verify:i73`; `pnpm run verify:stage-14` |
+| R15-4 | onboarding finalApply 落地 B5 后自建时间线骨架（不覆盖已存在的手动编辑）；时间线可手动编辑保存（reveals/relationships/storyTime/currentNodeId）。 | finalApply 成功自建、已存在不覆盖、面板编辑→save 只经 novelTimeline Remote。 | I73, I74 | `pnpm run verify:i73`; `pnpm run verify:i74`; `pnpm run verify:stage-14` |
+| R15-5 | Client 提供时间线面板：有序节点列表（当前节点标记）、每节点编辑、手动设当前节点（null 恢复自动）、一键自建、保存；Client 不持有时间线真相。 | 面板渲染/自建/节点列表/保存断言；Remote 挂载失败降级；Client bundle 无 node:fs。 | I74 | `pnpm run verify:i74`; `pnpm run verify:stage-14` |
+
 ---
 
 ## 覆盖矩阵
@@ -317,7 +330,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I72 全覆盖矩阵
+### M-P. 产品能力与 I1–I74 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -393,6 +406,8 @@
 | C5 正文版本/分支 | I70 | R14 |
 | 全局搜索与上下文追踪 | I71 | R14 |
 | 写作进度面板 | I72 | R14 |
+| 剧情时间线数据层与服务 | I73 | R15 |
+| 剧情时间线面板 | I74 | R15 |
 
 ---
 
@@ -413,6 +428,6 @@
 
 ## 结论
 
-**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并为每个迭代和 Stage 11–13 定义可机器执行的验证门。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展改变 Host source-of-truth。**
+**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并为每个迭代和 Stage 11–13 定义可机器执行的验证门。新增 Stage 14（I73–I74）剧情时间线（方案 A），为关系注入与知情层提供确定性时间轴（R15）。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展改变 Host source-of-truth。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 还必须执行 D20 Slot 兼容门：若新版出现 additive 侧区公共 Slot，先通知升级并更新兼容基线；否则使用单一 `shell.overlay` 右侧停靠侧板路径。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

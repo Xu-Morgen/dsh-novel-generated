@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v2.2
-> 状态：v2.2 当前设计权威；I1–I53 已完成，I54–I72 为已批准待执行计划；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v2.2 当前设计权威；I1–I53 已完成，I54–I74 为已批准待执行计划；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -16,8 +16,9 @@
 | **v2.0（增补 2026-08-24）** | 新增 §14.6「创作台」UI 重设计：在 I33–I36 已交付的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），记录决策 D11–D14 与迭代 I46–I49；§0.1 宿主基线不变，A-7 novel 自有主题系统仍后置。 |
 | **v2.1（2026-08-24）** | 新增 §14.7「作品启动与六层初始化」及 Stage 10（I50–I53）：修复缺失的 Host-owned 作品启动编排，增加多作品选择、空白作品、受控 DOCX 上传、自由文本六层分析、逐层裁决与幂等落地；记录 D15–D19。§0.1 宿主基线不变。 |
 | **v2.2（2026-08-26）** | 将 I1–I53 同步为已完成；新增 Stage 11–13（I54–I72），先把居中浮窗退役为 DSH 内右侧停靠侧板并修复现有 UI，再交付 P0 正文写作闭环与 P1 能力可达性；记录 D20。§0.1 宿主基线不变。 |
+| **v2.2（增补：剧情时间线）** | 新增剧情时间线层（§5.13）：把 B5 大纲结构展开为有序剧情时间轴（timeline.yaml），节点可安排揭示信息与关系建立时机；C1 关系注入改为按「当前时间线节点之前已建立」过滤（§8），C3 revealAt 可对齐时间线节点；onboarding 落地 B5 后自建骨架，作者可手动编辑保存。记录 R15/I73–I74。§0.1 宿主基线不变。 |
 
-> **v2.2 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.2 当前执行材料；当前迭代身份为 I1–I72，其中 I1–I53 已完成，I54–I72 已批准但须按单迭代纪律逐项执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
+> **v2.2 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.2 当前执行材料；当前迭代身份为 I1–I74，其中 I1–I53 已完成，I54–I72 已批准，I73–I74 剧情时间线（R15）已批准，均须按单迭代纪律逐项执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -564,9 +565,39 @@ Chapter:
 
 ---
 
-## 6. 运行时引擎设计
+### 5.13 剧情时间线层（方案 A，R15 / I73–I74）
 
-引擎由核心协作模块组成（v1.2 新增四类辅助 agent，见 §6.7）：
+**职责**：把 B5 大纲结构展开为一条有序剧情时间轴（`timeline.yaml`），为「哪些关系在什么时候建立、哪些信息在什么时候被谁知晓」提供确定性锚点——C1 关系注入按「当前时间线节点之前已建立」过滤（§8），C3 的 `revealAt` 可对齐时间线节点 label；解决 C2/C4 `storyTime` 与 C3 `revealAt` 均为自由文本、无统一排序轴的问题。
+
+```yaml
+Timeline:
+  id: string
+  version: number
+  currentNodeId: string | null   # 手动选择的当前节点；null = 按写作位置自动锚定
+  nodes:                         # 有序节点（order 全局严格递增，0 起）
+    - id: string
+      order: number
+      label: string              # 生成时 = 幕 · 节 · 细纲卡；可编辑
+      storyTime?: string         # 故事内时间标注（自由文本，作者可填）
+      beatId?: string            # 绑定 B5 beat（可选）
+      detailBeatId?: string      # 绑定 B5 细纲卡（可选）
+      reveals:                   # 该节点揭示的信息（作者安排）
+        - entryId: string
+          revealTo: string[]
+      relationships: string[]    # 该节点建立/公开的关系（C1 id，作者安排）
+```
+
+契约与不变式：
+
+- 骨架由 `buildTimelineFromOutline` 确定性生成：按 acts → beats → detailBeats 展开，细纲卡逐卡成节点，无卡的 beat 自成一节点；`reveals`/`relationships` 初始为空，等待作者在面板安排。
+- 「当前时间线节点」锚定双模式：手动选择（`currentNodeId` 优先，作者在面板设置）或自动按当前写作位置（当前细纲卡 detailBeatId → beatId）匹配；均未命中则不过滤（兼容时间线未配置的数据）。
+- 关系过滤语义：只保留「≤ 当前节点 order 已建立」的关系（`effectiveRelationshipIds`）；已被时间线安排的关系按时间过滤，**未被安排的关系始终保留**（旧数据不因时间线出现而消失）。
+- 时间线是可编辑的规划文档，不成为 C1/C3 的写 owner：作者安排的 `reveals`/`relationships`/`storyTime`/`currentNodeId` 保存后，写作上下文按同一文档过滤；C1/C3 本体仍由既有 Domain Service 与 ConfirmationGate 控制。
+- onboarding `finalApply` 落地 B5 后自建骨架（大纲就绪前 fail-closed，不生成空时间线）。
+
+---
+
+## 6. 运行时引擎设计
 
 | 模块 | 职责 |
 |---|---|
@@ -716,11 +747,16 @@ output:                 # 仅允许以下字段
 | B3 角色核心 | 恒定（可压缩） | ~15% | 当前场景相关角色 |
 | B2 世界观 | 触发 + 检索 | ~10% | 关键词/正则/向量命中 |
 | B5 大纲 | 导航指令 | ~5% | 当前 beat 摘要 |
-| C1 关系 | 摘要 | ~5% | 相关角色对 |
+| C1 关系 | 摘要 | ~5% | 相关角色对，且 ≤ 当前时间线节点已建立（R15，见 §5.13） |
 | C2 状态 | 结构化快照 | ~15% | 始终 |
 | C3 知情 | POV 过滤后事实 | ~5% | POV 已知 |
 | C4 正史 | 检索 + 摘要 | ~20% | 相关性检索 |
 | C5 生成文本 | 原文/摘要 | 剩余 ~15% | 近期原文 + 远期摘要 |
+
+> **剧情时间线（方案 A，R15）**：C1 关系注入由时间线文档（§5.13）控制「何时建立」——
+> 写作上下文只注入「当前时间线节点之前已建立」的关系（未安排关系始终保留，
+> 兼容旧数据）。当前节点锚定 = 手动选择优先，否则按当前细纲卡/beat 自动匹配；
+> 时间线缺失/未锚定时回退为全量注入（行为不变）。
 
 ### 8.1 注入策略要点
 
@@ -998,6 +1034,14 @@ project/
 - **正文版本与分支（I70）**：补齐 C5 分支/版本的 canonical Schema 与 Host owner，候选可保留为分支并做版本比较；chosen 分支唯一，切换不隐式改写 C1–C4/B2，结构化同步仍需显式 reparse/Gate。
 - **搜索与上下文追踪（I71）**：提供跨正文、角色、世界观、正史、知情和大纲的全局搜索与实体交叉引用；同时解释本次生成注入了哪些层、触发原因与裁剪结果，但不得泄露密钥、完整内部对象或未授权 POV 知识。
 - **写作进度（I72）**：以 Host 可重建统计展示章节字数、目标完成度、场景卡状态、POV 分布和任务历史；统计是派生视图，不成为第二份作品真相。
+
+### 14.11 剧情时间线（Stage 14，I73–I74，方案 A）
+
+> 定位：为「关系何时建立、信息何时被谁知晓」提供确定性时间轴，修正 C1 全量注入与自由文本时间字段无法排序的问题；时间线是作者可编辑的规划文档，不改变 C1/C3 的写 owner。
+
+- **时间线数据层与服务（I73）**：新增 `core/timeline`（schema + `timeline.yaml` 仓库 + 从 B5 确定性生成骨架 + 当前节点锚定/关系过滤纯函数）；`host/timeline-service` + `novelTimeline` Remote（read/ensureFromOutline/setCurrentNode/save）；onboarding `finalApply` 落地 B5 后自建；`writing-context` 关系注入按当前时间线节点过滤（未安排关系始终保留）。
+- **时间线面板（I74）**：策划组新增「时间线」视图——有序节点列表（含当前节点标记）、每节点的 storyTime/关系/揭示安排编辑、手动设当前节点（null 恢复自动锚定）、一键自建与保存；Client 只提交受控命令，时间线文档由 Host 持有。
+- **知情联动（后置）**：C3 `revealAt` 仍为自由文本，作者可手动对齐时间线节点 label；后续迭代可让 revealAt 直接引用节点 id 并联动展示。
 
 ---
 
