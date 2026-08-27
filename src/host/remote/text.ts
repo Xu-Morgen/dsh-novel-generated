@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteInvocation } from './shared.js';
 import { chapterStatusSchema } from '../../core/schema/text.js';
 import type { EditRange } from '../../core/edit/index.js';
 
@@ -113,8 +114,8 @@ export const sceneReparseRejectResultSchema = z.object({
   status: z.literal('rejected'),
 }).strict();
 
-const param = (name: string, codec: InvocationParameterDescriptor['codec'] = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
+// I75：`param` 统一到 shared 接线层；`c5Invocation` 只保留 strictCodec 包装
+// （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
 const projectParameter = param('projectId', stringCodec);
 const chapterParameter = param('chapterId', stringCodec);
 const sceneParameter = param('sceneId', stringCodec);
@@ -123,9 +124,8 @@ const baseHashParameter = param('baseHash', stringCodec, true);
 const proposalIdParameter = param('proposalId', stringCodec);
 const rangeParameter = param('range', strictCodec('novel-creation-tool#editRange', editRangeSchema));
 
-function c5Invocation(service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor {
-  return { id: `novel-creation-tool/${service}/${method}`, service, namespace: service, method, invocation: { kind: 'direct' }, parameters, result: strictCodec(`novel-creation-tool#${method}:result`, resultSchema) };
-}
+const c5Invocation = (service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor =>
+  remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
 
 export const chapterListInvocation = c5Invocation('novelWorkspace', 'chapterList', [projectParameter], z.array(chapterListItemSchema));
 export const chapterReadInvocation = c5Invocation('novelWorkspace', 'chapterRead', [projectParameter, chapterParameter], chapterReadResultSchema);

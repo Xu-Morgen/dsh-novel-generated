@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 
 /**
  * I64 一致性审校中心 Remote（design §14.9 / R13-5）。
@@ -76,12 +77,9 @@ const reviewAdjudicateOutcomeSchema = z.object({
   projection: reviewProjectionWireSchema,
 }).strict();
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function reviewInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelReview/${method}`, service: 'novelReview', namespace: 'novelReview', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`reviewInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const reviewInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelReview', method, parameters, resultSchema);
 
 export const reviewScanInvocation = reviewInvocation('scan', [
   param('projectId', stringCodec),
@@ -97,4 +95,4 @@ export const reviewRecordsInvocation = reviewInvocation('records', [
 
 export const reviewInvocations = [reviewScanInvocation, reviewAdjudicateInvocation, reviewRecordsInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const reviewRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-review', descriptors: [...reviewInvocations] };
+export const reviewRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-review', reviewInvocations);

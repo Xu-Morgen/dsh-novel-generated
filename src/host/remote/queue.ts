@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 
 /**
  * I65 可恢复自动生成队列 Remote（design §14.9「可恢复自动生成队列」/ R13-6）。
@@ -60,12 +61,9 @@ const queueStartInputSchema = z.object({
   stopOnSoftWarnings: z.boolean().optional(),
 }).strict();
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function queueInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelQueue/${method}`, service: 'novelQueue', namespace: 'novelQueue', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`queueInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const queueInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelQueue', method, parameters, resultSchema);
 
 export const queueStatusInvocation = queueInvocation('status', [
   param('projectId', stringCodec),
@@ -106,4 +104,4 @@ export const queueInvocations = [
   queueRecoverInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const queueRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-queue', descriptors: [...queueInvocations] };
+export const queueRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-queue', queueInvocations);

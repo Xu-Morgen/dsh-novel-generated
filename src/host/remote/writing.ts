@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 import { consistencyStatusSchema, consistencyViolationsSchema } from '../../core/validate/index.js';
 
 /**
@@ -108,12 +109,9 @@ const adjudicationOutcomeSchema = z.discriminatedUnion('status', [
 ]);
 export type WritingAdjudicationOutcomeShape = z.infer<typeof adjudicationOutcomeSchema>;
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function writingInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelWriting/${method}`, service: 'novelWriting', namespace: 'novelWriting', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`writingInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const writingInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelWriting', method, parameters, resultSchema);
 
 export const writingProposeInvocation = writingInvocation('propose', [
   param('projectId', stringCodec),
@@ -131,4 +129,4 @@ export const writingAdjudicateInvocation = writingInvocation('adjudicate', [
 
 export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const writingRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-writing', descriptors: [...writingInvocations] };
+export const writingRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

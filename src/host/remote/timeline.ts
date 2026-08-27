@@ -1,6 +1,6 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
-import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 // Client bundle 会经 shared.ts 解析本文件完整导入图；core/timeline/index.ts
 // 依赖 node:fs 不得入图（与 core/review/ledger 同模式），因此只入图纯 schema。
 import { timelineSchema } from '../../core/timeline/schema.js';
@@ -20,12 +20,9 @@ import { timelineSchema } from '../../core/timeline/schema.js';
  */
 export const timelineWireSchema = timelineSchema;
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function timelineInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelTimeline/${method}`, service: 'novelTimeline', namespace: 'novelTimeline', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`timelineInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const timelineInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelTimeline', method, parameters, resultSchema);
 
 const timelineReadResult = strictCodec('novel-creation-tool#novelTimeline:read', timelineWireSchema.nullable());
 
@@ -51,4 +48,4 @@ export const timelineInvocations = [
   timelineSaveInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const timelineRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-timeline', descriptors: [...timelineInvocations] };
+export const timelineRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-timeline', timelineInvocations);

@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 
 /**
  * I68 C6 进度与灵感方向落地 Remote（design §14.10「C6 与灵感落地」/ R14-3）。
@@ -166,12 +167,9 @@ export const progressAuditOutcomeWireSchema = z.object({
   records: z.array(progressAuditRecordWireSchema),
 }).strict();
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function progressInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelOutlineProgress/${method}`, service: 'novelOutlineProgress', namespace: 'novelOutlineProgress', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`progressInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const progressInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelOutlineProgress', method, parameters, resultSchema);
 
 const projectionResult = strictCodec('novel-creation-tool#novelOutlineProgress:projection', progressProjectionWireSchema);
 
@@ -221,4 +219,4 @@ export const progressInvocations = [
   progressAuditInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const progressRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-progress', descriptors: [...progressInvocations] };
+export const progressRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-progress', progressInvocations);

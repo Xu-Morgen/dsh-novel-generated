@@ -69,8 +69,9 @@ const fail = (msg) => { throw new Error(`I71 smoke: ${msg}`); };
   const searchLayer = read('src/client/layers/search.ts');
   const coreSearch = read('src/core/search/index.ts');
   const exportSource = read('src/core/export/index.ts');
-  if (!index.includes("ctx.provide('novelSearch'") || !index.includes('createSearchService') || !index.includes("bindRemote({") ) {
-    fail('index.ts missing novelSearch wiring');
+  // I75 后接线层改用 defineRemote 参数化工厂（原 bindRemote 适配块在组合根归零）。
+  if (!index.includes("ctx.provide('novelSearch'") || !index.includes('createSearchService') || !index.includes("defineRemote('novelSearch'") || index.includes("bindRemote(")) {
+    fail('index.ts missing novelSearch wiring (I75 defineRemote shape)');
   }
   if (!remoteTs.includes('...searchInvocations') || !remoteTs.includes('searchRemoteContribution')) {
     fail('remote.ts missing searchInvocations registration');

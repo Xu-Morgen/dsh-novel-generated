@@ -75,18 +75,20 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 // Part 3 — 模型行为：迁移映射 / 徽标仅辅助 / resolve 回退默认视图。
 {
   const { NAV_GROUPS, NAV_ITEMS, DEFAULT_VIEW, isWorkbenchViewId, isLayerView, resolveWorkbenchView } = await import('../lib/client/nav.js');
-  // I60 在写作组新增「正文 C5」，导航项从 9 增至 10（I58 的稳定入口预留兑现）。
-  assert.equal(NAV_ITEMS.length, 10, 'ten views after I60 adds the C5 正文 entry');
+  // I60 起各迭代陆续新增视图（C5 正文 / C6 进度 / 审校 / 队列 / 搜索 / 统计 /
+  // 时间线 / 规则文风 / 知情 / 导入导出），导航项从 I58 的 9 项演进到当前 19 项；
+  // 本断言随 stage 回归维护，只锁定「四组模型 + 项数与徽标」的当前真实形状。
+  assert.equal(NAV_ITEMS.length, 19, 'nineteen views in the current four-group nav model');
   assert.deepEqual(NAV_GROUPS.map((g) => g.id), ['writing', 'planning', 'continuity', 'settings']);
-  // 迁移映射（旧九项 → 新四组；写作组 = 大纲 + 正文）。
+  // 迁移映射（旧九项 → 新四组；写作组 = 大纲 + 正文 + 后置写作能力）。
   const itemsOf = (id) => NAV_GROUPS.find((g) => g.id === id).items.map((item) => item.view);
-  assert.deepEqual(itemsOf('writing'), ['outline', 'chapters']);
-  assert.deepEqual(itemsOf('planning'), ['characters', 'worldview']);
-  assert.deepEqual(itemsOf('continuity'), ['relationship', 'state', 'canon']);
-  assert.deepEqual(itemsOf('settings'), ['onboarding', 'creationSettings', 'settings']);
-  // 技术层编号只作辅助徽标：七个带徽标项（含 C5），三个设置项无 badge。
-  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge), ['B5', 'C5', 'B3', 'B2', 'C1', 'C2', 'C4']);
-  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view), ['onboarding', 'creationSettings', 'settings']);
+  assert.deepEqual(itemsOf('writing'), ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics']);
+  assert.deepEqual(itemsOf('planning'), ['characters', 'worldview', 'timeline', 'ruleStyle']);
+  assert.deepEqual(itemsOf('continuity'), ['relationship', 'state', 'canon', 'knowledge']);
+  assert.deepEqual(itemsOf('settings'), ['onboarding', 'creationSettings', 'importExport', 'settings']);
+  // 技术层编号只作辅助徽标：十个带徽标项（含 C5/C6/C3 与 B1/B4），九个无 badge 项。
+  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge), ['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
+  assert.deepEqual(NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view), ['review', 'queue', 'search', 'statistics', 'timeline', 'onboarding', 'creationSettings', 'importExport', 'settings']);
   // 刷新/重开保持合法 active view：非法/陈旧/空值回退默认，合法值原样保留。
   assert.equal(resolveWorkbenchView('bogus-view'), DEFAULT_VIEW);
   assert.equal(resolveWorkbenchView(undefined), DEFAULT_VIEW);

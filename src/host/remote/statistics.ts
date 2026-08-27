@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { numberCodec, strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 
 /**
  * I72 写作进度面板 Remote（design §14.10「写作进度」/ R14-7）。
@@ -173,12 +174,9 @@ export const chapterDetailWireSchema = z.object({
 }).strict();
 export type ChapterDetailShape = z.infer<typeof chapterDetailWireSchema>;
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function statisticsInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelStatistics/${method}`, service: 'novelStatistics', namespace: 'novelStatistics', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`statisticsInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const statisticsInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelStatistics', method, parameters, resultSchema);
 
 const projectParameter = param('projectId', stringCodec);
 const chapterIdParameter = param('chapterId', stringCodec);
@@ -206,4 +204,4 @@ export const statisticsInvocations = [
   statisticsTasksInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const statisticsRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-statistics', descriptors: [...statisticsInvocations] };
+export const statisticsRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-statistics', statisticsInvocations);

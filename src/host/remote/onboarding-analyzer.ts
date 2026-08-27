@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 import {
   onboardingAnalysisBeginResultSchema,
   onboardingAnalysisResultSchema,
@@ -21,12 +22,9 @@ import {
  * once the status reports `succeeded`. The legacy blocking `start` stays for
  * backward compatibility (adjudication tests / direct consumers).
  */
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function analyzerInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelOnboardingAnalyzer/${method}`, service: 'novelOnboardingAnalyzer', namespace: 'novelOnboardingAnalyzer', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`analyzerInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const analyzerInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelOnboardingAnalyzer', method, parameters, resultSchema);
 
 export const onboardingAnalysisBeginInvocation = analyzerInvocation('begin', [param('input', strictCodec('novel-creation-tool#onboardingAnalysisStartInput', onboardingAnalysisStartInputSchema)), param('settings', undefined, true)], strictCodec('novel-creation-tool#onboardingAnalysisBegin:result', onboardingAnalysisBeginResultSchema));
 export const onboardingAnalysisStartInvocation = analyzerInvocation('start', [param('input', strictCodec('novel-creation-tool#onboardingAnalysisStartInput', onboardingAnalysisStartInputSchema)), param('settings', undefined, true)], strictCodec('novel-creation-tool#onboardingAnalysis:result', onboardingAnalysisResultSchema));
@@ -35,4 +33,4 @@ export const onboardingAnalysisCancelInvocation = analyzerInvocation('cancel', [
 export const onboardingAnalysisResultInvocation = analyzerInvocation('result', [param('onboardingSessionId', stringCodec)], strictCodec('novel-creation-tool#onboardingAnalysis:result', onboardingAnalysisResultSchema));
 export const onboardingAnalyzerInvocations = [onboardingAnalysisBeginInvocation, onboardingAnalysisStartInvocation, onboardingAnalysisStatusInvocation, onboardingAnalysisCancelInvocation, onboardingAnalysisResultInvocation] as const;
 // Unique `package` per client-mounted contribution (see editor.ts note).
-export const onboardingAnalyzerRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-analyzer', descriptors: [...onboardingAnalyzerInvocations] };
+export const onboardingAnalyzerRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-analyzer', onboardingAnalyzerInvocations);

@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 
 /**
  * I70 C5 正文版本与分支 Remote（design §14.10「正文版本与分支」/ R14-5）。
@@ -55,12 +56,9 @@ export const branchDiffResultWireSchema = z.object({
   lines: z.array(branchDiffLineWireSchema),
 }).strict();
 
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function branchInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor {
-  return { id: `novel-creation-tool/novelBranches/${method}`, service: 'novelBranches', namespace: 'novelBranches', method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`branchInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const branchInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
+  remoteInvocation('novelBranches', method, parameters, resultSchema);
 
 const projectParameter = param('projectId', stringCodec);
 const chapterParameter = param('chapterId', stringCodec);
@@ -83,4 +81,4 @@ export const branchInvocations = [
   branchDiffInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const branchRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-branches', descriptors: [...branchInvocations] };
+export const branchRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-branches', branchInvocations);

@@ -2,6 +2,7 @@ import type { InvocationDescriptor, InvocationParameterDescriptor, TypertRemoteC
 import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry';
 import { z } from 'zod';
 import { strictCodec, stringCodec, numberCodec, jsonCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 import type { CharacterCore, CharacterCoreInput, CharacterCorePatch } from '../../core/schema/characters.js';
 import type { WorldEntry, WorldEntryInput } from '../../core/schema/worldview.js';
 import type { Outline, OutlineBeatCard, OutlineInput } from '../../core/schema/outline.js';
@@ -27,8 +28,10 @@ const outlineBeatCardSchema = z.object({ actId: z.string(), beatId: z.string(), 
 const stateDiffSchema = z.object({ fromSeq: z.number(), toSeq: z.number(), changes: z.array(z.object({ path: z.string(), before: z.unknown(), after: z.unknown() })) });
 const worldviewRewriteResultSchema = z.object({ superseded: worldEntrySchema, replacement: worldEntrySchema });
 const canonCorrectionAcceptResultSchema = z.object({ confirmation: confirmationRecordSchema, event: z.unknown() });
-const param = (name: string, codec = jsonCodec, optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
+// I75：`param` 统一到 shared 接线层；`editorInvocation` 只保留 strictCodec 包装
+// （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
+const editorInvocation = (service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor =>
+  remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
 const projectParameter = param('projectId', stringCodec);
 const entityParameter = param('entityId', stringCodec);
 const inputParameter = param('input');
@@ -42,9 +45,6 @@ const toSeqParameter = param('toSeq', numberCodec);
 const filterParameter = param('filter', undefined, true);
 const targetIdParameter = param('targetId', stringCodec);
 const proposalIdParameter = param('proposalId', stringCodec);
-function editorInvocation(service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor {
-  return { id: `novel-creation-tool/${service}/${method}`, service, namespace: service, method, invocation: { kind: 'direct' }, parameters, result: strictCodec(`novel-creation-tool#${method}:result`, resultSchema) };
-}
 export interface WorkspaceViewModel { readonly product: 'novel-creation-tool'; readonly version: '2.0.0'; readonly ready: true; readonly capabilities: readonly ['generate', 'rewrite', 'continue', 'inspire']; }
 export const NOVEL_WORKSPACE_NAMESPACE = 'novelWorkspace';
 export function workspaceViewModel(): WorkspaceViewModel { return { product: 'novel-creation-tool', version: '2.0.0', ready: true, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] }; }
@@ -76,5 +76,5 @@ export const workspaceContribution: TypertContribution = { package: 'novel-creat
 // (`RemoteStore.register` → "Remote package ... is already registered").
 // I60 C5 只读方法（chapterList/chapterRead/sceneRead）经 editorInvocations 并入
 // 同一 workspace 挂载面（editorInvocations 已含 c5Invocations，不再重复展开）。
-export const workspaceRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-workspace', descriptors: [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations] };
+export const workspaceRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-workspace', [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations]);
 export type { CharacterCore, CharacterCoreInput, CharacterCorePatch, WorldEntry, WorldEntryInput, Outline, OutlineBeatCard, OutlineInput, Relationship, RelationshipInput, WorldState, CanonEventView, CanonQuery, StateDiff, CanonCorrectionInput, ConfirmationRecord };

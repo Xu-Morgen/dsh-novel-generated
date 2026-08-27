@@ -1,6 +1,7 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
+import { param, remoteContribution, remoteInvocation } from './shared.js';
 import {
   onboardingAdjudicateInputSchema,
   onboardingApplyResultSchema,
@@ -14,12 +15,9 @@ import { confirmationRecordSchema } from '../../core/schema/confirm.js';
  * record (accepted, or a new pending successor); `finalApply` returns the
  * minimal structured `partial-retryable` result.
  */
-const param = (name: string, codec: TypertCodec = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
-
-function onboardingInvocation(method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec, service = 'novelOnboarding'): InvocationDescriptor {
-  return { id: `novel-creation-tool/${service}/${method}`, service, namespace: service, method, invocation: { kind: 'direct' }, parameters, result: resultSchema };
-}
+// I75：`param`/`onboardingInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
+const onboardingInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec, service = 'novelOnboarding'): InvocationDescriptor =>
+  remoteInvocation(service, method, parameters, resultSchema);
 
 export const onboardingAdjudicateInvocation = onboardingInvocation('adjudicate', [
   param('input', strictCodec('novel-creation-tool#onboardingAdjudicateInput', onboardingAdjudicateInputSchema)),
@@ -29,4 +27,4 @@ export const onboardingAcceptedLayersInvocation = onboardingInvocation('accepted
 export const onboardingFinalApplyInvocation = onboardingInvocation('finalApply', [param('input', strictCodec('novel-creation-tool#onboardingFinalApplyInput', onboardingFinalApplyInputSchema))], strictCodec('novel-creation-tool#onboardingFinalApply:result', onboardingApplyResultSchema));
 export const onboardingInvocations = [onboardingAdjudicateInvocation, onboardingAcceptedLayersInvocation, onboardingFinalApplyInvocation] as const;
 // Unique `package` per client-mounted contribution (see editor.ts note).
-export const onboardingRemoteContribution: TypertRemoteContribution = { package: 'novel-creation-tool-onboarding', descriptors: [...onboardingInvocations] };
+export const onboardingRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-onboarding', onboardingInvocations);
