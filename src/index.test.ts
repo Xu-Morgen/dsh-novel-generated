@@ -7,6 +7,7 @@ import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 
 import { apply } from './index.js';
+import { knowledgePendingInvocation } from './host/remote/knowledge.js';
 import { reviewRecordsInvocation } from './host/remote/review.js';
 
 /** Minimal valid A2 config (I31 schema) pointing at the test LLM route. */
@@ -283,6 +284,26 @@ describe('novel-creation-tool Host plugin (I1)', () => {
       const codec = reviewRecordsInvocation.result;
       if (codec.mode !== 'strict') throw new Error('novelReview/records must declare a strict result codec');
       expect(codec.schema.parse(result)).toEqual({ records: [] });
+    } finally {
+      await fiber.dispose();
+      await rm(projectsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('I66 novelKnowledgeManager.pending returns the wire envelope the gateway boundary requires', async () => {
+    // 与 novelReview/records 同缺陷类：服务层 pending() 返回裸数组，wire 契约声明
+    // envelope `{ projectId, proposals: [...] }`；适配层必须整形（回归：I66 知情面板）。
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-knowledge-pending-'));
+    const root = new Context();
+    const fiber = await root.plugin(apply, { projectsRoot });
+    try {
+      const manager = root.get('novelKnowledgeManager') as { pending(projectId: string): Promise<unknown> };
+      const result = await manager.pending('demo');
+      expect(result).toEqual({ projectId: 'demo', proposals: [] });
+      // 与 dsh-api-gateway decode() 相同的边界校验：结果必须通过声明的 result codec。
+      const codec = knowledgePendingInvocation.result;
+      if (codec.mode !== 'strict') throw new Error('novelKnowledgeManager/pending must declare a strict result codec');
+      expect(codec.schema.parse(result)).toEqual({ projectId: 'demo', proposals: [] });
     } finally {
       await fiber.dispose();
       await rm(projectsRoot, { recursive: true, force: true });

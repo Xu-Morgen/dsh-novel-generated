@@ -395,7 +395,11 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     propose: (projectId: unknown, input: unknown) => knowledgeManagerService.propose(String(projectId), input as Parameters<typeof knowledgeManagerService.propose>[1]),
     accept: (projectId: unknown, proposalId: unknown) => knowledgeManagerService.accept(String(projectId), String(proposalId)),
     reject: (projectId: unknown, proposalId: unknown) => knowledgeManagerService.reject(String(projectId), String(proposalId)),
-    pending: (projectId: unknown) => knowledgeManagerService.pending(String(projectId)),
+    // 服务层 `pending()` 返回裸数组（I66 smoke 的 service 级消费者夹具契约）；wire
+    // 契约（host/remote/knowledge.ts knowledgePendingInvocation）声明 envelope
+    // `{ projectId, proposals: [...] }`，网关按 descriptor.result strict codec 校验，
+    // 适配层必须在此整形（与 novelReview/records 同缺陷类，见 §14.10/R14-1）。
+    pending: async (projectId: unknown) => ({ projectId: String(projectId), proposals: await knowledgeManagerService.pending(String(projectId)) }),
   }, 'novelKnowledgeManager', 'novelKnowledgeManager'));
   // I67 B1 规则与 B4 文风控制面（design §14.10「B1/B4 控制面」/ R14-2）：作者编辑
   // 规则优先级/immutable 与风格人称/时态/POV/禁用表达表单。复用 I7/I10 领域服务
