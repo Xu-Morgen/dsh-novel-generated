@@ -1,0 +1,101 @@
+// 本文件由 makeOps 按层拆分生成（I82，架构审查 §5.1 / §9 #5）：
+// search 层编辑动作 = I71 全局搜索与上下文追踪 ops（R14-6）：搜索/引用/跳转/重建/删除派生索引，经 searchNamespace；正文命中经共享 chapters ops ref 跳转。
+
+import { unwrap } from '../shared.js';
+import type { SearchEditOps, SearchHitShape, SearchLayerState, SearchResultShape, SearchStatsShape } from '../layers/search.js';
+import type { WorkbenchViewId } from '../nav.js';
+import type { OpsContext } from './context.js';
+import type { ChaptersEditOps } from '../layers/chapters.js';
+
+export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOps }): SearchEditOps {
+  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const projectId = ctx.projectId;
+  const searchNamespace = ctx.searchNamespace;
+      const searchPatch = (patch: Partial<SearchLayerState>): void => act.searchPatch(patch);
+      const run = <T>(method: 'search' | 'references', key: string, onResult: (result: T) => void): void => {
+        const target = searchNamespace;
+        if (!target || projectId === undefined) { searchPatch({ status: 'error', message: '搜索服务不可用' }); return; }
+        if (!beginOp(`search:${method}:${key}`)) return;
+        const release = (): void => endOp(`search:${method}:${key}`);
+        searchPatch({ acting: true, message: undefined });
+        const pov = snapshot.search.pov.trim();
+        const call = method === 'search'
+          ? target.search(projectId, key, pov === '' ? undefined : pov)
+          : target.references(projectId, key, pov === '' ? undefined : pov);
+        void unwrap(call).then((result) => {
+          release();
+          if (!active) return;
+          onResult(result as T);
+          searchPatch({ acting: false, status: 'ready' });
+        }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+      };
+      const runStats = (): void => {
+        const target = searchNamespace;
+        if (!target || projectId === undefined) return;
+        if (!beginOp('search:stats')) return;
+        const release = (): void => endOp('search:stats');
+        searchPatch({ acting: true, message: undefined });
+        void unwrap(target.stats(projectId)).then((stats) => {
+          release();
+          if (!active) return;
+          searchPatch({ acting: false, stats: stats as SearchStatsShape, message: undefined });
+        }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+      };
+      return {
+        setQuery(value: string) { searchPatch({ query: value, message: undefined }); },
+        setPov(value: string) { searchPatch({ pov: value, message: undefined }); },
+        search() {
+          const q = snapshot.search.query.trim();
+          if (q === '') return;
+          searchPatch({ results: undefined, references: undefined, message: undefined });
+          run<SearchResultShape>('search', q, (result) => searchPatch({ results: result }));
+        },
+        setReferenceKey(value: string) { searchPatch({ referenceKey: value, message: undefined }); },
+        references() {
+          const key = snapshot.search.referenceKey.trim();
+          if (key === '') return;
+          searchPatch({ references: undefined, message: undefined });
+          run<{ key: string; total: number; hits: readonly SearchHitShape[] }>('references', key, (result) => searchPatch({ references: result }));
+        },
+        refreshStats() { runStats(); },
+        rebuild(): void {
+          const target = searchNamespace;
+          if (!target || projectId === undefined) { searchPatch({ message: '搜索服务不可用' }); return; }
+          if (!beginOp('search:rebuild')) return;
+          const release = (): void => endOp('search:rebuild');
+          searchPatch({ acting: true, message: undefined });
+          void unwrap(target.build(projectId)).then((stats) => {
+            release();
+            if (!active) return;
+            searchPatch({ acting: false, stats: stats as SearchStatsShape, message: `已从六层 live source-of-truth 重建派生索引（${(stats as SearchStatsShape).totalEntries} 条，零写结构层）。` });
+          }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+        },
+        drop(): void {
+          const target = searchNamespace;
+          if (!target || projectId === undefined) { searchPatch({ message: '搜索服务不可用' }); return; }
+          if (!beginOp('search:drop')) return;
+          const release = (): void => endOp('search:drop');
+          searchPatch({ acting: true, message: undefined });
+          void unwrap(target.drop(projectId)).then((stats) => {
+            release();
+            if (!active) return;
+            searchPatch({ acting: false, stats: stats as SearchStatsShape, results: undefined, references: undefined, message: '已删除派生索引（可随时重建，不写任何结构层）。' });
+          }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+        },
+        // 结果跳转：正文命中 → 正文视图对应场景；其余层 → 对应层面板（R14-6 结果跳转）。
+        jumpTo(hit: SearchHitShape): void {
+          if (hit.layer === 'text' && hit.nav.chapterId !== undefined && hit.nav.sceneId !== undefined) {
+            act.activateView('chapters');
+            ref.current?.openScene(hit.nav.chapterId, hit.nav.sceneId);
+            return;
+          }
+          const layerView: Record<string, WorkbenchViewId> = {
+            characters: 'characters', worldview: 'worldview', outline: 'outline',
+            canon: 'canon', knowledge: 'knowledge', text: 'chapters',
+          };
+          const view = layerView[hit.layer];
+          if (view !== undefined) act.activateView(view);
+        },
+        dismiss() { searchPatch({ status: 'idle', message: undefined, results: undefined, references: undefined, query: '', pov: '', referenceKey: '', acting: false }); },
+      };
+}

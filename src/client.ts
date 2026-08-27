@@ -1,12 +1,10 @@
 import {
   type BundleRequire,
   type ClientPluginEntry,
-  type EditorRemote,
   type El,
   type LayerId,
   type ReactFace,
   type WorkspaceNamespace,
-  type WorkspaceSlots,
   type WorkspaceStatus,
   type WorkspaceViewModel,
   type TypertDisposer,
@@ -22,9 +20,7 @@ import {
   type StatisticsNamespace,
   type TimelineNamespace,
   LAYERS,
-  characterText,
   el as createElement,
-  listField,
   slug,
   unwrap,
   workspaceRemoteContribution,
@@ -40,79 +36,48 @@ import {
   statisticsRemoteContribution,
   timelineRemoteContribution,
 } from './client/shared.js';
-import {
-  characterCreateInput as buildCharacterCreateInput,
-  characterLayer as renderCharacterLayer,
-  type CharacterEditOps,
-  type CharacterEditor,
-  type CharacterLayerState,
-  type CharacterShape,
-} from './client/layers/characters.js';
-import {
-  type WorldLayerState,
-  type WorldShape,
-  type WorldEditOps,
-  type WorldEditor,
-  worldviewInput as buildWorldviewInput,
-  worldviewLayer as renderWorldviewLayer,
-} from './client/layers/worldview.js';
-import {
-  type RelationshipEditOps,
-  type RelationshipEditor,
-  type RelationshipLayerState,
-  type RelationshipShape,
-  relationshipInput as buildRelationshipInput,
-  relationshipLayer as renderRelationshipLayer,
-} from './client/layers/relationship.js';
-import { stateLayer as renderStateLayer, type StateDiffShape, type StateEditOps, type StateEditor, type StateLayerState, type StateSnapshotShape } from './client/layers/state.js';
-import { canonCorrectionInput as buildCanonCorrectionInput, canonLayer as renderCanonLayer, type CanonEditOps, type CanonEditor, type CanonEventShape, type CanonLayerState } from './client/layers/canon.js';
-import {
-  outlineInput as buildOutlineInput,
-  outlineLayer as renderOutlineLayer,
-  type OutlineActShape,
-  type OutlineBeatShape,
-  type OutlineDetailBeatShape,
-  type OutlineEditOps,
-  type OutlineEditor,
-  type OutlineLayerState,
-  type OutlineShape,
-} from './client/layers/outline.js';
-import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
-import { chaptersPanel, computeEditRange, freshSceneEditor, type BranchDiffLineShape, type BranchPanelState, type BranchSummaryShape, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
-import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
-import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
-import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
-import { freshRuleDraft, freshRuleStyle, freshStyleDraft, ruleStylePanel, type RuleDraftShape, type RuleShape, type RuleStyleEditOps, type RuleStyleLayerState, type RuleStyleProjectionShape, type StyleDraftShape, type StyleShape } from './client/layers/rule-style.js';
-import { freshProgress, progressPanel, type ProgressApplyOutcomeShape, type ProgressAuditRecordShape, type ProgressDirectionShape, type ProgressEditOps, type ProgressLayerState, type ProgressPendingProposalShape, type ProgressProjectionShape, type ProgressSelectOutcomeShape } from './client/layers/progress.js';
-import { freshImportExport, importExportPanel, downloadText, MAX_RESTORE_FILE_BYTES, type ImportExportEditOps, type ImportExportLayerState, type ImportExportPreviewShape, type ImportExportRestoreResultShape } from './client/layers/import-export.js';
-import { freshSearch, searchPanel, type SearchEditOps, type SearchHitShape, type SearchLayerState, type SearchResultShape, type SearchStatsShape } from './client/layers/search.js';
-import { freshStatistics, statisticsPanel, type ChapterDetailShape, type SceneCardsResultShape, type StatisticsEditOps, type StatisticsLayerState, type StatisticsOverviewShape, type StatisticsStatsShape, type TasksResultShape } from './client/layers/statistics.js';
-import { freshTimeline, timelinePanel, type TimelineEditOps, type TimelineLayerState, type TimelineShape } from './client/layers/timeline.js';
+import { characterLayer as renderCharacterLayer } from './client/layers/characters.js';
+import { worldviewLayer as renderWorldviewLayer } from './client/layers/worldview.js';
+import { relationshipLayer as renderRelationshipLayer } from './client/layers/relationship.js';
+import { stateLayer as renderStateLayer } from './client/layers/state.js';
+import { canonLayer as renderCanonLayer } from './client/layers/canon.js';
+import { outlineLayer as renderOutlineLayer } from './client/layers/outline.js';
+import { chaptersPanel } from './client/layers/chapters.js';
+import { reviewPanel } from './client/layers/review.js';
+import { queuePanel } from './client/layers/queue.js';
+import { knowledgePanel } from './client/layers/knowledge.js';
+import { ruleStylePanel } from './client/layers/rule-style.js';
+import { progressPanel } from './client/layers/progress.js';
+import { importExportPanel } from './client/layers/import-export.js';
+import { searchPanel } from './client/layers/search.js';
+import { statisticsPanel } from './client/layers/statistics.js';
+import { timelinePanel } from './client/layers/timeline.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
-import { freshLlmConfigDraft, llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
-import { freshWorkbenchSettingsDraft, workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
-import { RESPONSIVE_BREAKPOINT_NAV, WORKBENCH_STYLES } from './client/styles.js';
+import { llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
+import { workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
+import { WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 import { scheduleFocus } from './client/focus.js';
+import {
+  createWorkbenchStore,
+  type DefineStore,
+  type LayerData,
+  type WorkbenchActions,
+  type WorkbenchNamespaces,
+  type WorkbenchOps,
+  type WorkbenchState,
+  type WorkbenchViewStates,
+} from './client/store/index.js';
+import { GRID_STEP, NAV_WIDTH_DEFAULT, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_DEFAULT, PANEL_WIDTH_MAX, PANEL_WIDTH_MIN } from './client/store/types.js';
+import { createWorkbenchOps } from './client/ops/index.js';
+import type { OpsContext } from './client/ops/context.js';
 
-/** 导航侧栏可拖动宽度边界（UI 打磨补强，§14.8 停靠侧板）：默认 160px，可拖到 120–360px。 */
-export const NAV_WIDTH_MIN = 120;
-export const NAV_WIDTH_MAX = 360;
-export const NAV_WIDTH_DEFAULT = 160;
-
-/** 创作台面板整体宽度边界（UI 打磨补强：拖左边缘调整面板宽度，§14.8 停靠侧板）。 */
-export const PANEL_WIDTH_MIN = 640;
-export const PANEL_WIDTH_MAX = 1600;
-export const PANEL_WIDTH_DEFAULT = 860;
-
-/** 面板过窄阈值：低于该宽度时侧边路由栏自动折叠为横向滚动横条（与响应式断点一致）。 */
-export const PANEL_NAV_AUTO_COLLAPSE = RESPONSIVE_BREAKPOINT_NAV;
-
-/** 侧栏宽度键盘步进（resizer 方向键，I59 键盘可达性延续）。 */
-export const GRID_STEP = 8;
+/** 侧栏/面板宽度与步进常量已迁至 store 契约层（I82，src/client/store/types.ts）；
+ *  此处 re-export 保持既有导入面（client.test.ts 的 NAV/PANEL 锚点不变）。 */
+export { NAV_WIDTH_MIN, NAV_WIDTH_MAX, NAV_WIDTH_DEFAULT, PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, PANEL_WIDTH_DEFAULT, PANEL_NAV_AUTO_COLLAPSE, GRID_STEP } from './client/store/types.js';
 
 /** Compatibility facade retained for the public client rendering contract. */
 function el(React: ReactFace): El {
@@ -120,142 +85,6 @@ function el(React: ReactFace): El {
   void React.createElement;
   return createElement(React);
 }
-
-/**
- * `defineStore` contract supplied by the DSH client runtime (the same React-free
- * engine the official UI plugins use). `spec` carries `init` (fresh state per
- * instance) and an `actions` table of immer-draft transforms; `create(scopeKey)`
- * returns a bare `{ getSnapshot, subscribe, actions }` instance. The renderer
- * binds `useStore` from this instance and hands baked `actions` to the component.
- */
-export type BakedStoreActions<T, A> = {
-  [K in keyof A]: A[K] extends (draft: T, ...params: infer P) => void ? (...params: P) => void : never;
-};
-export interface StoreInstance<T, A> {
-  readonly actions: BakedStoreActions<T, A>;
-  getSnapshot(): T;
-  subscribe(listener: () => void): () => void;
-}
-export interface StoreHandle<T, A> {
-  create(scopeKey?: string): StoreInstance<T, A>;
-}
-export interface DefineStore {
-  <T, A extends Record<string, (draft: T, ...params: never[]) => void>>(spec: {
-    init: () => T;
-    persist?: string;
-    actions: A;
-  }): StoreHandle<T, A>;
-}
-/** Baked action callback set the store hands to the component (draft stripped). */
-export type WorkbenchActions = {
-  open(): void;
-  close(): void;
-  collapse(): void;
-  /** 导航侧栏宽度（可拖动，UI 打磨）：设置侧栏宽度（钳制在 NAV_WIDTH_MIN/MAX 内）。 */
-  setNavWidth(width: number): void;
-  /** 拖动会话开始：记录指针起点 X 与当前宽度。 */
-  navResizeStart(startX: number): void;
-  /** 拖动会话移动：按指针位移更新侧栏宽度。 */
-  navResizeMove(clientX: number): void;
-  /** 拖动会话结束：释放指针。 */
-  navResizeEnd(): void;
-  /** 创作台面板整体宽度（可拖动，UI 打磨）：设置面板宽度（钳制在 PANEL_WIDTH_MIN/MAX 内）。 */
-  setPanelWidth(width: number): void;
-  /** 面板宽度拖动会话开始：记录指针起点 X 与当前宽度。 */
-  panelResizeStart(startX: number): void;
-  /** 面板宽度拖动会话移动：按指针位移更新面板宽度。 */
-  panelResizeMove(clientX: number): void;
-  /** 面板宽度拖动会话结束：释放指针。 */
-  panelResizeEnd(): void;
-  activate(id: LayerId): void;
-  /** I58 稳定视图导航：以 WorkbenchViewId 为唯一 route/state 锚点。 */
-  activateView(view: WorkbenchViewId): void;
-  activateOnboarding(): void;
-  activateCreationSettings(): void;
-  ready(model: WorkspaceViewModel): void;
-  fail(message: string): void;
-  setProjects(list: unknown[]): void;
-  selectProject(projectId: string, name?: string): void;
-  resetEditors(): void;
-  browseProjects(): void;
-  cancelBrowse(): void;
-  showLeaveConfirm(show: boolean): void;
-  projectFailed(message: string): void;
-  createProject(input: { projectId: string; name: string }): void;
-  /** 项目目录层「空白创建」作品名称草稿（受控输入，经 store 持久化，重渲染不丢）。 */
-  newProjectName(value: string): void;
-  uploadProgress(progress: UploadProgress): void;
-  uploadSettled(result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined): void;
-  onboarding(state: OnboardingState | undefined): void;
-  onboardingDecision(layer: OnboardingLayerId, decision: OnboardingDecision): void;
-  onboardingPatch(patch: Partial<OnboardingState>): void;
-  onboardingApplyResult(result: OnboardingState['applyResult']): void;
-  onboardingError(message: string): void;
-  /** I57 分析生命周期状态（busy/progress/cancel/retry）。 */
-  onboardingAnalysis(analysis: OnboardingAnalysisState | undefined): void;
-  creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
-  creationSettingsMutate(patch: Partial<WorkbenchSettingsDraftShape>): void;
-  creationSettingsSettled(patch: Partial<WorkbenchSettingsDraftShape>): void;
-  setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
-  setRelationship(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setState(status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string): void;
-  setCanon(status: 'loading' | 'ready' | 'error', events: unknown[], message?: string): void;
-  /** I60 C5 章节树装载与章节/场景读取（R13-1）。 */
-  setChapters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  chaptersSelectChapter(chapterId: string): void;
-  chaptersSelectScene(sceneId: string): void;
-  chaptersRead(status: 'loading' | 'ready' | 'error', read: unknown, message?: string): void;
-  chaptersScene(status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string): void;
-  /** I61 正文编辑器（R13-2）：保存/重解析/脏文本保护全部经 store 持久化。 */
-  sceneEditor(patch: Partial<SceneEditorState>): void;
-  sceneEditorReset(): void;
-  /** I63 候选审阅面板（R13-4）：面板状态机 + 局部重写指令草稿。 */
-  chaptersCandidate(patch: Partial<CandidatePanelState>): void;
-  /** I70 版本/分支面板（R14-5）：版本列表/存档草稿/对比视图状态合并。 */
-  chaptersBranches(patch: Partial<BranchPanelState>): void;
-  /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
-  reviewPatch(patch: Partial<ReviewLayerState>): void;
-  /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
-  queuePatch(patch: Partial<QueueLayerState>): void;
-  /** I66 知情与揭示管理面（R14-1）：面板状态（投影/视图/选中/提案草稿/pending）。 */
-  knowledgePatch(patch: Partial<KnowledgeLayerState>): void;
-  /** I67：规则与文风面板状态合并（R14-2）。 */
-  ruleStylePatch(patch: Partial<RuleStyleLayerState>): void;
-  /** I68：进度与灵感面板状态合并（R14-3）。 */
-  progressPatch(patch: Partial<ProgressLayerState>): void;
-  /** I69：导入导出与备份面板状态合并（R14-4）。 */
-  importExportPatch(patch: Partial<ImportExportLayerState>): void;
-  /** I71：全局搜索与追踪面板状态合并（R14-6）。 */
-  searchPatch(patch: Partial<SearchLayerState>): void;
-  /** I72：写作进度面板状态合并（R14-7）。 */
-  statisticsPatch(patch: Partial<StatisticsLayerState>): void;
-  /** 方案 A：剧情时间线面板状态合并（design §8 相关角色对）。 */
-  timelinePatch(patch: Partial<TimelineLayerState>): void;
-  characterDraft(patch: Partial<CharacterEditor>): void;
-  worldDraft(patch: Partial<WorldEditor>): void;
-  outlineDraft(patch: Partial<OutlineEditor>): void;
-  relationshipDraft(patch: Partial<RelationshipEditor>): void;
-  stateDraft(patch: Partial<StateEditor>): void;
-  canonDraft(patch: Partial<CanonEditor>): void;
-  characterMutate(update: (draft: CharacterShape) => CharacterShape): void;
-  worldMutate(update: (draft: WorldShape) => WorldShape): void;
-  outlineMutate(update: (draft: OutlineShape) => OutlineShape): void;
-  relationshipMutate(update: (draft: RelationshipShape) => RelationshipShape): void;
-  toggleSettings(): void;
-  settingsLoaded(view: LlmConfigViewShape): void;
-  settingsMutate(patch: Partial<LlmConfigDraftShape>): void;
-  settingsSettled(patch: Partial<LlmConfigDraftShape>): void;
-};
-
-/** I63 裁决结果的 Client 投影（最小 owned JSON；与 Host `novelWriting.adjudicate` 对齐）。 */
-type WritingAdjudicationOutcome =
-  | { readonly status: 'written'; readonly candidateId: string; readonly scene: { readonly chapterId: string; readonly sceneId: string }; readonly layers: readonly string[] }
-  | { readonly status: 'rejected'; readonly candidateId: string }
-  | { readonly status: 'rewritten'; readonly candidateId: string; readonly superseded: string; readonly candidate: { readonly id: string } }
-  | { readonly status: 'generation-rejected' | 'prewrite-rejected'; readonly candidateId: string; readonly adjudication: { readonly status: string } }
-  | { readonly status: 'pending-compensation'; readonly candidateId: string; readonly failedStage: string };
 
 /** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。tabIndex=-1 + data-novel-focus-target
  *  作为 I59 打开面板后的焦点进入落点（R12-6 焦点进入）。 */
@@ -383,39 +212,24 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
  * 每个内容区携带 `data-novel-view-panel` data 锚点。非层视图（LLM 设置 /
  * 创作设置 / 六层初始化审阅 / I60 正文）与层视图互斥，由单一视图状态决定。
  */
+/**
+ * I82 形参收敛（架构审查 §5.1）：13 个 Remote namespace 打包为 `ns`、10 个面板
+ * state + 层数据打包为 `states`，签名由 33 形参收敛到 10。
+ */
 function viewPanel(
   h: El,
   activeView: WorkbenchViewId,
   projectId: string,
-  workspace: WorkspaceNamespace | undefined,
-  writing: WritingNamespace | undefined,
-  reviewNamespace: ReviewNamespace | undefined,
-  queueNamespace: QueueNamespace | undefined,
-  knowledgeNamespace: KnowledgeNamespace | undefined,
-  ruleStyleNamespace: RuleStyleNamespace | undefined,
-  progressNamespace: ProgressNamespace | undefined,
-  importExportNamespace: ImportExportNamespace | undefined,
-  branchNamespace: BranchNamespace | undefined,
-  searchNamespace: SearchNamespace | undefined,
-  statisticsNamespace: StatisticsNamespace | undefined,
-  timelineNamespace: TimelineNamespace | undefined,
-  reviewState: ReviewLayerState,
-  queueState: QueueLayerState,
-  knowledgeState: KnowledgeLayerState,
-  ruleStyleState: RuleStyleLayerState,
-  progressState: ProgressLayerState,
-  importExportState: ImportExportLayerState,
-  searchState: SearchLayerState,
-  statisticsState: StatisticsLayerState,
-  timelineState: TimelineLayerState,
-  layers: LayerData,
+  ns: WorkbenchNamespaces,
+  states: WorkbenchViewStates,
   ops: WorkbenchOps,
-  chapters: ChaptersLayerState,
   sourceEntry: unknown,
   review: unknown,
   settings: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void } | undefined,
   creationSettings: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void } | undefined,
 ): unknown {
+  const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace } = ns;
+  const { layers, chapters, review: reviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
   if (activeView === 'settings') {
     return h('div', { 'data-novel-view-panel': 'settings' }, settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null);
   }
@@ -469,53 +283,34 @@ function viewPanel(
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
 
-/** I47/I48/I49 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
-interface LayerData {
-  readonly characters: CharacterLayerState;
-  readonly worldview: WorldLayerState;
-  readonly outline: OutlineLayerState;
-  readonly relationship: RelationshipLayerState;
-  readonly state: StateLayerState;
-  readonly canon: CanonLayerState;
-  readonly characterEditor: CharacterEditor;
-  readonly worldEditor: WorldEditor;
-  readonly outlineEditor: OutlineEditor;
-  readonly relationshipEditor: RelationshipEditor;
-  readonly stateEditor: StateEditor;
-  readonly canonEditor: CanonEditor;
-}
-/** 每层编辑动作集合（render 助手经此写入 store，而非就地改对象）。 */
-interface WorkbenchOps {
-  readonly characters: CharacterEditOps;
-  readonly worldview: WorldEditOps;
-  readonly outline: OutlineEditOps;
-  readonly relationship: RelationshipEditOps;
-  readonly state: StateEditOps;
-  readonly canon: CanonEditOps;
-  /** I60：C5 只读导航（章节/场景选择与重试，经 Host Remote 读取）。 */
-  readonly chapters: ChaptersEditOps;
-  /** I64：一致性审校中心（刷新/过滤/选中/显式裁决，R13-5）。 */
-  readonly review: ReviewEditOps;
-  /** I65：生成队列（范围/配置 + 暂停/继续/取消 + 重试，R13-6）。 */
-  readonly queue: QueueEditOps;
-  /** I66：知情与揭示（刷新/双视图/选中/提案草稿 + Gate 确认，R14-1）。 */
-  readonly knowledge: KnowledgeEditOps;
-  /** I67：规则与文风（刷新/规则选中与新建/表单草稿/保存，R14-2）。 */
-  readonly ruleStyle: RuleStyleEditOps;
-  /** I68：进度与灵感（刷新/偏差记录与调和/灵感时刻/选定→Gate 提案→确认/拒绝，R14-3）。 */
-  readonly progress: ProgressEditOps;
-  /** I69：导入导出与备份（导出下载/恢复/N-7 说明/导入预览，R14-4）。 */
-  readonly importExport: ImportExportEditOps;
-  /** I71：全局搜索与上下文追踪（搜索/引用/跳转/重建/删除派生索引，R14-6）。 */
-  readonly search: SearchEditOps;
-  /** I72：写作进度面板（概览/筛选/章节详情/重建/删除派生统计，R14-7）。 */
-  readonly statistics: StatisticsEditOps;
-  /** 方案 A：剧情时间线面板（刷新/自建/节点选择/编辑/手动设当前/保存）。 */
-  readonly timeline: TimelineEditOps;
-}
-
-/** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, searchNamespace: SearchNamespace | undefined, statisticsNamespace: StatisticsNamespace | undefined, timelineNamespace: TimelineNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; newProjectName: string; newProjectNameChange(value: string): void; projectLoading: boolean; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, searchState: SearchLayerState, statisticsState: StatisticsLayerState, timelineState: TimelineLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+/** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。
+ *  I82 形参收敛（架构审查 §5.1）：13 个 Remote namespace 打包为 `ns`、10 个面板
+ *  state + 层数据打包为 `states`，签名由 42 形参收敛到 21；LayerData/WorkbenchOps
+ *  契约已迁至 src/client/store/types.ts。 */
+function workbenchView(
+  React: ReactFace,
+  status: WorkspaceStatus,
+  ns: WorkbenchNamespaces,
+  ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; newProjectName: string; newProjectNameChange(value: string): void; projectLoading: boolean; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void },
+  states: WorkbenchViewStates,
+  ops: WorkbenchOps,
+  selectedProjectId?: string,
+  selectedProjectName?: string,
+  projects: Array<{ id: string; name: string }> = [],
+  browsing = false,
+  leaveConfirm = false,
+  projectError?: string,
+  upload?: UploadProgress,
+  uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] },
+  onboardingState?: OnboardingState,
+  decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void,
+  applyOnboarding?: () => void,
+  patchOnboarding?: (patch: Partial<OnboardingState>) => void,
+  settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void },
+  creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void },
+): unknown {
+  const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, onboardingNamespace } = ns;
+  const { layers, chapters, review: reviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -579,7 +374,11 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, searchState, statisticsState, timelineState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, {
+            workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, onboardingNamespace,
+          }, {
+            layers, chapters, review: reviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState,
+          }, ops, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -700,77 +499,6 @@ function uploadStatusLabel(upload: UploadProgress | undefined): string {
   }
 }
 
-/* ---- store shape: the single reactive source of truth for the workbench ---- */
-
-interface WorkbenchState {
-  open: boolean;
-  collapsed: boolean;
-  /** 导航侧栏宽度（px，可拖动，UI 打磨）。 */
-  navWidth: number;
-  /** 侧栏拖动会话：active 期间 pointermove 更新宽度；结束即复位。 */
-  navResize: { active: boolean; startX: number; startWidth: number };
-  /** 创作台面板整体宽度（px，可拖动左边缘调整，UI 打磨）。 */
-  panelWidth: number;
-  /** 面板宽度拖动会话：active 期间 pointermove 更新宽度；结束即复位。 */
-  panelResize: { active: boolean; startX: number; startWidth: number };
-  /** I58 稳定视图状态锚点：唯一 active view（route/state/data 三锚点的 state 位）。 */
-  activeView: WorkbenchViewId;
-  status: WorkspaceStatus;
-  characters: CharacterLayerState;
-  worldview: WorldLayerState;
-  outline: OutlineLayerState;
-  relationship: RelationshipLayerState;
-  state: StateLayerState;
-  canon: CanonLayerState;
-  characterEditor: CharacterEditor;
-  worldEditor: WorldEditor;
-  outlineEditor: OutlineEditor;
-  relationshipEditor: RelationshipEditor;
-  stateEditor: StateEditor;
-  canonEditor: CanonEditor;
-  /** I60：C5 章节树 + 章节/场景只读读取状态（R13-1）。 */
-  chapters: ChaptersLayerState;
-  /** I64：一致性审校中心面板状态（投影/过滤/选中/审计记录，R13-5）。 */
-  review: ReviewLayerState;
-  /** I65：生成队列面板状态（投影/范围勾选/配置草稿，R13-6）。 */
-  queue: QueueLayerState;
-  /** I66：知情与揭示面板状态（投影/视图/选中/提案草稿/pending，R14-1）。 */
-  knowledge: KnowledgeLayerState;
-  /** I67：规则与文风面板状态（投影/编辑草稿/风格草稿，R14-2）。 */
-  ruleStyle: RuleStyleLayerState;
-  /** I68：进度与灵感面板状态（投影/偏差草稿/方向/待确认/审计，R14-3）。 */
-  progress: ProgressLayerState;
-  /** I69：导入导出与备份面板状态（导出选择/恢复结果/导入预览，R14-4）。 */
-  importExport: ImportExportLayerState;
-  /** I71：全局搜索与追踪面板状态（查询/引用/索引状态/结果，R14-6）。 */
-  search: SearchLayerState;
-  /** I72：写作进度面板状态（统计/概览/筛选/章节详情/任务历史，R14-7）。 */
-  statistics: StatisticsLayerState;
-  /** 方案 A：剧情时间线面板状态（timeline 文档/选中节点/编辑脏标记，design §8 相关角色对）。 */
-  timeline: TimelineLayerState;
-  selectedProjectId: string | undefined;
-  /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
-  selectedProjectName: string | undefined;
-  /** true 表示作品列表正在显示（无作品或正在切换），当前作品仍被保留。 */
-  browsing: boolean;
-  /** 脏表单离开裁决确认条是否显示（I55 / R12-2）。 */
-  leaveConfirm: boolean;
-  /** 可恢复的 open/切换失败信息（保持当前视图，不 brick 成整屏错误）。 */
-  projectError: string | undefined;
-  projects: Array<{ id: string; name: string }>;
-  projectLoading: boolean;
-  /** 项目目录层「空白创建」作品名称草稿（受控输入，与 selectedProjectId 无关，属目录层 UI 态）。 */
-  newProjectName: string;
-  upload: UploadProgress;
-  uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
-  onboarding: OnboardingState | undefined;
-  settingsView: LlmConfigViewShape | undefined;
-  settingsDraft: LlmConfigDraftShape;
-  creationSettingsView: WorkbenchSettingsViewShape | undefined;
-  creationSettingsDraft: WorkbenchSettingsDraftShape;
-}
-
-/** Public bundle factory; React, Remote and defineStore are supplied by the DSH shell. */
 export default function factory(require: BundleRequire): ClientPluginEntry {
   const React = require('react') as ReactFace;
   const runtime = require('@deepseek-ai/dsh-client-runtime/client') as { defineStore?: DefineStore } | undefined;
@@ -832,142 +560,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       // via useStore and re-renders. Every load result and every editor draft
       // mutation flows through an action, so no plain `let` mutation can leave
       // the UI stale (the I46–I49 defect this fixes).
-      const storeHandle = defineStore({
-        init: (): WorkbenchState => ({
-          open: true,
-          collapsed: false,
-          navWidth: NAV_WIDTH_DEFAULT,
-          navResize: { active: false, startX: 0, startWidth: 0 },
-          panelWidth: PANEL_WIDTH_DEFAULT,
-          panelResize: { active: false, startX: 0, startWidth: 0 },
-          activeView: DEFAULT_VIEW,
-          status: { status: 'loading' },
-          characters: { status: 'loading', list: [] },
-          worldview: { status: 'loading', list: [] },
-          outline: { status: 'loading' },
-          relationship: { status: 'loading', list: [] },
-          state: { status: 'loading', snapshots: [] },
-          canon: { status: 'loading', events: [] },
-          characterEditor: freshCharacterEditor(),
-          worldEditor: freshWorldEditor(),
-          outlineEditor: freshOutlineEditor(),
-          relationshipEditor: freshRelationshipEditor(),
-          stateEditor: freshStateEditor(),
-          canonEditor: freshCanonEditor(),
-          chapters: freshChapters(),
-          review: freshReview(),
-          queue: freshQueue(),
-          knowledge: freshKnowledge(),
-          ruleStyle: freshRuleStyle(),
-          progress: freshProgress(),
-          importExport: freshImportExport(),
-          search: freshSearch(),
-          statistics: freshStatistics(),
-          timeline: freshTimeline(),
-          selectedProjectId: undefined,
-          selectedProjectName: undefined,
-          browsing: false,
-          leaveConfirm: false,
-          projectError: undefined,
-          projects: [],
-          projectLoading: false,
-          newProjectName: '',
-          upload: { phase: 'idle' },
-          uploadResult: undefined,
-          onboarding: undefined,
-          settingsView: undefined,
-          settingsDraft: freshLlmConfigDraft(),
-          creationSettingsView: undefined,
-          creationSettingsDraft: freshWorkbenchSettingsDraft(),
-        }),
-        actions: {
-          open: (d) => { d.open = true; d.collapsed = false; },
-          close: (d) => { d.open = false; },
-          collapse: (d) => { d.collapsed = !d.collapsed; },
-          // UI 打磨：侧栏可拖动宽度（pointer 会话经 store 持久化，渲染层只消费快照）。
-          setNavWidth: (d, width: number) => { d.navWidth = Math.round(Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, width))); },
-          navResizeStart: (d, startX: number) => { d.navResize = { active: true, startX, startWidth: d.navWidth }; },
-          navResizeMove: (d, clientX: number) => { if (d.navResize.active) d.navWidth = Math.round(Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, d.navResize.startWidth + (clientX - d.navResize.startX)))); },
-          navResizeEnd: (d) => { d.navResize = { active: false, startX: 0, startWidth: 0 }; },
-          // UI 打磨：面板整体宽度可拖动（拖左边缘；store 持久化会话，渲染层只消费快照）。
-          setPanelWidth: (d, width: number) => { d.panelWidth = Math.round(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, width))); },
-          panelResizeStart: (d, startX: number) => { d.panelResize = { active: true, startX, startWidth: d.panelWidth }; },
-          panelResizeMove: (d, clientX: number) => { if (d.panelResize.active) d.panelWidth = Math.round(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, d.panelResize.startWidth + (d.panelResize.startX - clientX)))); },
-          panelResizeEnd: (d) => { d.panelResize = { active: false, startX: 0, startWidth: 0 }; },
-          activate: (d, id: LayerId) => { d.activeView = resolveWorkbenchView(id); },
-          activateView: (d, view: WorkbenchViewId) => { d.activeView = resolveWorkbenchView(view); },
-          activateOnboarding: (d) => { d.activeView = 'onboarding'; },
-          activateCreationSettings: (d) => { d.activeView = 'creationSettings'; },
-          ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
-          fail: (d, message: string) => { d.status = { status: 'error', message }; },
-          setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
-          selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.onboarding = undefined; d.leaveConfirm = false; },
-          browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
-          cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
-          showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
-          projectFailed: (d, message: string) => { d.projectError = message; d.projectLoading = false; },
-          createProject: (d) => { d.projectLoading = true; d.newProjectName = ''; },
-          newProjectName: (d, value: string) => { d.newProjectName = value; },
-          uploadProgress: (d, progress: UploadProgress) => { d.upload = progress; },
-          uploadSettled: (d, result: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined) => { d.uploadResult = result; },
-          onboarding: (d, state: OnboardingState | undefined) => { d.onboarding = state; },
-          onboardingDecision: (d, layer: OnboardingLayerId, decision: OnboardingDecision) => { if (d.onboarding) d.onboarding = { ...d.onboarding, decisions: { ...d.onboarding.decisions, [layer]: decision }, error: undefined }; },
-          onboardingPatch: (d, patch: Partial<OnboardingState>) => { if (d.onboarding) d.onboarding = { ...d.onboarding, ...patch }; },
-          onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding = { ...d.onboarding, applyResult: result, error: undefined }; },
-          onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding = { ...d.onboarding, error: message }; },
-          onboardingAnalysis: (d, analysis: OnboardingAnalysisState | undefined) => { if (d.onboarding) d.onboarding = { ...d.onboarding, analysis }; },
-          setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
-          setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
-          setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
-          setRelationship: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.relationship = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as RelationshipShape[] }; },
-          setState: (d, status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string) => { d.state = status === 'error' ? { status: 'error', snapshots: [], message } : { status, snapshots: snapshots as StateSnapshotShape[] }; },
-          setCanon: (d, status: 'loading' | 'ready' | 'error', events: unknown[], message?: string) => { d.canon = status === 'error' ? { status: 'error', events: [], message } : { status, events: events as CanonEventShape[] }; },
-          // I60 C5 章节/场景只读导航（R13-1）：选择/读取状态全部经 store 持久化，
-          // 渲染层只消费快照，跨项目切换由 resetEditors 清空。
-          setChapters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.chapters = { ...d.chapters, status, list: list as ChapterListItemShape[], message }; },
-          chaptersSelectChapter: (d, chapterId: string) => { d.chapters = { ...d.chapters, selectedChapterId: chapterId, selectedSceneId: undefined, chapter: { status: 'loading' }, scene: { status: 'idle' } }; },
-          chaptersSelectScene: (d, sceneId: string) => { d.chapters = { ...d.chapters, selectedSceneId: sceneId, scene: { status: 'loading' } }; },
-          chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
-          chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },
-          // I61：编辑器状态合并（与各层 draft 同一模式）；场景装载/重载时先 Reset 再初始化。
-          sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
-          sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
-          chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
-          chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
-          reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
-          queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
-          knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
-          ruleStylePatch: (d, patch: Partial<RuleStyleLayerState>) => { d.ruleStyle = { ...d.ruleStyle, ...patch }; },
-          progressPatch: (d, patch: Partial<ProgressLayerState>) => { d.progress = { ...d.progress, ...patch }; },
-          importExportPatch: (d, patch: Partial<ImportExportLayerState>) => { d.importExport = { ...d.importExport, ...patch }; },
-          searchPatch: (d, patch: Partial<SearchLayerState>) => { d.search = { ...d.search, ...patch }; },
-          statisticsPatch: (d, patch: Partial<StatisticsLayerState>) => { d.statistics = { ...d.statistics, ...patch }; },
-          timelinePatch: (d, patch: Partial<TimelineLayerState>) => { d.timeline = { ...d.timeline, ...patch }; },
-          characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
-          worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
-          outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
-          relationshipDraft: (d, patch: Partial<RelationshipEditor>) => { Object.assign(d.relationshipEditor, patch); },
-          stateDraft: (d, patch: Partial<StateEditor>) => { Object.assign(d.stateEditor, patch); },
-          canonDraft: (d, patch: Partial<CanonEditor>) => { Object.assign(d.canonEditor, patch); },
-          // Mutator actions: apply an update function to the LIVE draft (immer
-          // semantics) so consecutive edits in one tick never read a stale render
-          // snapshot — the root of the "unresponsive UI" defect.
-          characterMutate: (d, update: (draft: CharacterShape) => CharacterShape) => { d.characterEditor.draft = update(d.characterEditor.draft); d.characterEditor.dirty = true; d.characterEditor.saveMessage = ''; },
-          worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; d.worldEditor.saveMessage = ''; },
-          outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; d.outlineEditor.saveMessage = ''; },
-          relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; d.relationshipEditor.saveMessage = ''; },
-          // I58：非层视图重复点击回退默认层视图（保留旧 settings toggle 语义）；
-          // 层视图之间直接切换，不做 toggle。
-          toggleSettings: (d) => { d.activeView = d.activeView === 'settings' ? DEFAULT_VIEW : 'settings'; },
-          settingsLoaded: (d, view: LlmConfigViewShape) => { d.settingsView = view; d.settingsDraft = { ...d.settingsDraft, baseUrl: view.baseUrl, model: view.model, maxTokens: view.maxTokens, thinking: view.thinking, reasoningEffort: view.reasoningEffort }; },
-          settingsMutate: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
-          settingsSettled: (d, patch: Partial<LlmConfigDraftShape>) => { Object.assign(d.settingsDraft, patch); },
-          creationSettingsLoaded: (d, view: WorkbenchSettingsViewShape) => { d.creationSettingsView = view; d.creationSettingsDraft = { ...d.creationSettingsDraft, wordTarget: view.wordTarget, askWhenThin: view.askWhenThin }; },
-          creationSettingsMutate: (d, patch: Partial<WorkbenchSettingsDraftShape>) => { Object.assign(d.creationSettingsDraft, patch); },
-          creationSettingsSettled: (d, patch: Partial<WorkbenchSettingsDraftShape>) => { Object.assign(d.creationSettingsDraft, patch); },
-        },
-      });
+      // I82：store 工厂（fresh 状态 + actions 表）迁至 src/client/store/index.ts，
+      // 此处只把 DSH defineStore 交给它；返回的 StoreHandle 由 slot 注册的 `store:` 工厂持有。
+      const storeHandle = createWorkbenchStore(defineStore);
 
       // The renderer owns the store instance (created from the `store:` factory on
       // the registration). We capture its baked actions through the registration's
@@ -1191,1316 +786,29 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       // Edit-op closures: derive from the current store snapshot and write back
       // via actions. `makeOps` runs at render time, after `inject` has captured
       // the renderer's baked actions, so `capturedActions` resolves safely.
-      const makeOps = (snapshot: WorkbenchState): WorkbenchOps => {
-        const act = capturedActions as WorkbenchActions;
-        const projectId = currentProjectId;
-        // I71：搜索结果跳转复用正文 ops（openScene）；渲染期构造完成后填充。
-        let chaptersOpsRef: ChaptersEditOps | undefined;
-        return {
-          characters: {
-            select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '', saving: false, saveMessage: '' }),
-            newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },
-            mutate: (update) => act.characterMutate(update),
-            save: () => {
-              const e = snapshot.characterEditor;
-              // I59：saving 忙碌挡 + 同 tick 连点 inflight 挡（R12-6 至多一次 Remote）。
-              if (e.saving || !beginOp('characters:save')) return;
-              const release = (): void => endOp('characters:save');
-              if (!workspace || projectId === undefined) { release(); act.characterDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.name.trim() === '') { release(); act.characterDraft({ error: '角色名不能为空' }); return; }
-              const effectiveId = e.selectedId ?? slug(e.draft.name);
-              act.characterDraft({ saving: true, error: '', saveMessage: '' });
-              if (e.selectedId === undefined) {
-                void unwrap(workspace.characterCreate(projectId, buildCharacterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!active) return; const shape = created as CharacterShape; act.characterDraft({ draft: shape, selectedId: shape.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
-              } else {
-                void unwrap(workspace.characterUpdate(projectId, e.selectedId, buildCharacterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { release(); if (!active) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
-              }
-            },
-          },
-          worldview: {
-            select: (entry) => act.worldDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
-            newDraft: () => { const draft: WorldShape = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }; act.worldDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },
-            mutate: (update) => act.worldMutate(update),
-            save: () => {
-              const e = snapshot.worldEditor;
-              if (e.saving || !beginOp('worldview:save')) return;
-              const release = (): void => endOp('worldview:save');
-              if (!workspace || projectId === undefined) { release(); act.worldDraft({ error: '创作台远程服务不可用' }); return; }
-              if ((e.draft.title ?? '').trim() === '') { release(); act.worldDraft({ error: '标题不能为空' }); return; }
-              act.worldDraft({ saving: true, error: '', saveMessage: '' });
-              if (e.selectedId === undefined) {
-                const effectiveId = slug(e.draft.title ?? 'untitled');
-                void unwrap(workspace.worldviewCreate(projectId, buildWorldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!active) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: cause.message }); });
-              } else {
-                const replacementId = slug(e.draft.title ?? e.selectedId);
-                void unwrap(workspace.worldviewRewrite(projectId, e.selectedId, buildWorldviewInput({ ...e.draft, id: replacementId }))).then((result) => { release(); if (!active) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { act.setWorldview('error', [], cause.message); act.worldDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: cause.message }); });
-              }
-            },
-          },
-          outline: {
-            mutate: (update) => act.outlineMutate(update),
-            selectAct: (id) => act.outlineDraft({ selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }),
-            selectBeat: (actId, beatId) => act.outlineDraft({ selectedActId: actId, selectedBeatId: beatId, selectedDetailId: undefined }),
-            selectDetail: (id) => act.outlineDraft({ selectedDetailId: id }),
-            addAct: () => { const acts = snapshot.outlineEditor.draft.acts ?? []; const id = `act-${acts.length + 1}`; act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts: acts.concat({ id, index: acts.length, title: '', goal: '', beats: [] }) }, dirty: true, selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }); },
-            removeAct: (actId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).filter((act) => act.id !== actId).map((act, index) => ({ ...act, index })); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedActId, selectedBeatId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedActId === actId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
-            addBeat: (actId) => { const foundAct = (snapshot.outlineEditor.draft.acts ?? []).find((x) => x.id === actId); const count = foundAct?.beats?.length ?? 0; const id = `beat-${count + 1}`; const beat: OutlineBeatShape = { id, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }; const acts = (snapshot.outlineEditor.draft.acts ?? []).map((x) => x.id === actId ? { ...x, beats: (x.beats ?? []).concat(beat) } : x); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedActId: actId, selectedBeatId: id, selectedDetailId: undefined }); },
-            removeBeat: (actId, beatId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).filter((b) => b.id !== beatId) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedBeatId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedBeatId, selectedDetailId: snapshot.outlineEditor.selectedBeatId === beatId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
-            addDetailBeat: (actId, beatId) => { const foundAct = (snapshot.outlineEditor.draft.acts ?? []).find((x) => x.id === actId); const foundBeat = foundAct?.beats?.find((x) => x.id === beatId); const id = `detail-${actId}-${beatId}-${(foundBeat?.detailBeats?.length ?? 0) + 1}`; const card: OutlineDetailBeatShape = { id, title: '', summary: '', pov: '', wordTarget: 500, points: [], status: 'planned' }; const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).map((beat) => beat.id === beatId ? { ...beat, detailBeats: (beat.detailBeats ?? []).concat(card) } : beat) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedDetailId: id }); },
-            removeDetailBeat: (actId, beatId, cardId) => { const acts = (snapshot.outlineEditor.draft.acts ?? []).map((act) => act.id === actId ? { ...act, beats: (act.beats ?? []).map((beat) => beat.id === beatId ? { ...beat, detailBeats: (beat.detailBeats ?? []).filter((card) => card.id !== cardId) } : beat) } : act); act.outlineDraft({ draft: { ...snapshot.outlineEditor.draft, acts }, dirty: true, selectedDetailId: snapshot.outlineEditor.selectedDetailId === cardId ? undefined : snapshot.outlineEditor.selectedDetailId }); },
-            save: () => {
-              const e = snapshot.outlineEditor;
-              if (e.saving || !beginOp('outline:save')) return;
-              const release = (): void => endOp('outline:save');
-              if (!workspace || projectId === undefined) { release(); act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.logline.trim() === '') { release(); act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
-              act.outlineDraft({ saving: true, error: '', saveMessage: '' });
-              void unwrap(workspace.outlineSave(projectId, buildOutlineInput(e.draft))).then((saved) => { release(); if (!active) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setOutline('ready', outline); }, (cause: Error) => { release(); act.outlineDraft({ saving: false, saveMessage: '', error: cause.message }); });
-            },
-          },
-          relationship: {
-            select: (entry) => act.relationshipDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
-            newDraft: () => act.relationshipDraft({ selectedId: undefined, draft: freshRelationshipEditor().draft, dirty: false, error: '', saving: false, saveMessage: '' }),
-            mutate: (update) => act.relationshipMutate(update),
-            save: () => {
-              const e = snapshot.relationshipEditor;
-              if (e.saving || !beginOp('relationship:save')) return;
-              const release = (): void => endOp('relationship:save');
-              if (!workspace || projectId === undefined) { release(); act.relationshipDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { release(); act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
-              const effectiveId = e.selectedId ?? `${slug(e.draft.from)}+${slug(e.draft.to)}`;
-              act.relationshipDraft({ saving: true, error: '', saveMessage: '' });
-              void unwrap(workspace.relationshipSave(projectId, buildRelationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { release(); if (!active) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.relationshipDraft({ saving: false, saveMessage: '', error: cause.message }); });
-            },
-          },
-          state: {
-            select: (seq) => { const e = snapshot.stateEditor; let fromSeq = e.fromSeq; let toSeq = e.toSeq; if (fromSeq === undefined) fromSeq = seq; else if (toSeq === undefined && seq !== fromSeq) toSeq = seq; else { fromSeq = seq; toSeq = undefined; } act.stateDraft({ selectedSeq: seq, fromSeq, toSeq, diff: undefined }); },
-            showDiff: () => {
-              const e = snapshot.stateEditor;
-              if (!beginOp('state:diff')) return;
-              const release = (): void => endOp('state:diff');
-              if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.fromSeq === undefined || e.toSeq === undefined) { release(); act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
-              void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => { release(); act.stateDraft({ diff: diff as StateDiffShape, error: '' }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message, diff: undefined }); });
-            },
-            rollback: () => {
-              const e = snapshot.stateEditor;
-              if (!beginOp('state:rollback')) return;
-              const release = (): void => endOp('state:rollback');
-              if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.selectedSeq === undefined) { release(); act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
-              void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message }); });
-            },
-          },
-          canon: {
-            select: (event) => act.canonDraft({ selectedId: event.id, proposalId: undefined, draft: { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' }, dirty: false, error: '', saving: false, saveMessage: '' }),
-            mutate: (update) => act.canonDraft({ draft: update(snapshot.canonEditor.draft), dirty: true }),
-            propose: () => {
-              const e = snapshot.canonEditor;
-              if (e.saving || !beginOp('canon:propose')) return;
-              const release = (): void => endOp('canon:propose');
-              if (!workspace || projectId === undefined) { release(); act.canonDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.selectedId === undefined) { release(); act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
-              if ((e.draft.summary ?? '').trim() === '') { release(); act.canonDraft({ error: '更正摘要不能为空' }); return; }
-              act.canonDraft({ saving: true, saveMessage: '', error: '' });
-              void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, buildCanonCorrectionInput(e.draft))).then((proposal) => { release(); if (!active) return; act.canonDraft({ proposalId: (proposal as { id?: string }).id, saving: false, saveMessage: '更正提案已发起', error: '' }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
-            },
-            accept: () => {
-              const e = snapshot.canonEditor;
-              if (e.saving || !beginOp('canon:accept')) return;
-              const release = (): void => endOp('canon:accept');
-              if (!workspace || projectId === undefined) { release(); act.canonDraft({ error: '创作台远程服务不可用' }); return; }
-              if (e.proposalId === undefined) { release(); act.canonDraft({ error: '请先发起更正提案' }); return; }
-              act.canonDraft({ saving: true, saveMessage: '', error: '' });
-              void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
-            },
-          },
-          // I60/I61 C5 正文工作台 ops（R13-1 / R13-2）：只读导航 + 受控编辑。
-          // 注意：loadScene 必须显式接收 chapterId —— makeOps 在渲染时创建的闭包
-          // 快照里 selectedChapterId 尚未更新，不能依赖快照取章（陈旧闭包缺陷）。
-          chapters: (() => {
-            const editorPatch = (patch: Partial<SceneEditorState>): void => act.sceneEditor(patch);
-            const reparseLocked = (state: SceneEditorState): boolean => state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
-            const hashText = async (text: string): Promise<string> => {
-              const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-              return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-            };
-            // ---- I70 版本/分支面板（R14-5）：列表装载 / 命名存档 / 选用 / 对比 ----
-            const branchesPatch = (patch: Partial<BranchPanelState>): void => act.chaptersBranches(patch);
-            // 注意：branchesLoad 必须显式接收 chapterId/sceneId —— makeOps 渲染闭包
-            // 快照里 selected* 尚未更新（与 loadScene 同一陈旧闭包缺陷，见上注释）。
-            const branchesLoad = (chapterId?: string, sceneId?: string): void => {
-              const target = branchNamespace;
-              const cid = chapterId ?? snapshot.chapters.selectedChapterId;
-              const sid = sceneId ?? snapshot.chapters.selectedSceneId;
-              if (!target || projectId === undefined || cid === undefined || sid === undefined) return;
-              if (!beginOp(`branches:list:${sid}`)) return;
-              const release = (): void => endOp(`branches:list:${sid}`);
-              branchesPatch({ status: 'loading', message: undefined });
-              void unwrap(target.list(projectId, cid, sid)).then((result) => {
-                release();
-                if (!active) return;
-                const list = ((result as { branches?: BranchSummaryShape[] }).branches ?? []) as BranchSummaryShape[];
-                branchesPatch({ status: 'ready', list, message: undefined });
-              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
-            };
-            const branchSave = (): void => {
-              const target = branchNamespace;
-              const current = snapshot.chapters.branches;
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
-              const label = current.labelDraft.trim();
-              if (label === '') { branchesPatch({ message: '请先输入版本名称' }); return; }
-              if (current.acting || !beginOp('branches:save')) return;
-              const release = (): void => endOp('branches:save');
-              branchesPatch({ acting: true, message: undefined });
-              void unwrap(target.save(projectId, chapterId, sceneId, label)).then((result) => {
-                release();
-                if (!active) return;
-                const saved = (result as { branches?: BranchSummaryShape[] }).branches;
-                branchesPatch({ acting: false, status: 'ready', list: (saved ?? current.list) as BranchSummaryShape[], labelDraft: '', message: '已存档当前版本' });
-              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
-            };
-            const branchChoose = (branchId: string): void => {
-              const target = branchNamespace;
-              const current = snapshot.chapters.branches;
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
-              if (current.acting || !beginOp(`branches:choose:${branchId}`)) return;
-              const release = (): void => endOp(`branches:choose:${branchId}`);
-              branchesPatch({ acting: true, message: undefined });
-              void unwrap(target.choose(projectId, chapterId, sceneId, branchId)).then((result) => {
-                release();
-                if (!active) return;
-                const chosen = (result as { branches?: BranchSummaryShape[]; content?: string });
-                branchesPatch({ acting: false, status: 'ready', list: (chosen.branches ?? current.list) as BranchSummaryShape[], message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
-                // 切换后正文变化：重载场景，让编辑器以新原文初始化（baseHash 随之更新）。
-                if (chosen.content !== undefined && chosen.content !== snapshot.chapters.editor.original && sceneId !== undefined) loadScene(sceneId, chapterId);
-              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
-            };
-            const branchDiff = (branchId: string): void => {
-              const target = branchNamespace;
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
-              if (!beginOp(`branches:diff:${branchId}`)) return;
-              const release = (): void => endOp(`branches:diff:${branchId}`);
-              branchesPatch({ diff: { status: 'loading', lines: [] }, message: undefined });
-              void unwrap(target.diff(projectId, chapterId, sceneId, branchId)).then((result) => {
-                release();
-                if (!active) return;
-                const diff = result as { from?: { label: string }; to?: { label: string }; lines?: BranchDiffLineShape[] };
-                branchesPatch({ diff: { status: 'ready', fromLabel: diff.from?.label, toLabel: diff.to?.label, lines: (diff.lines ?? []) as BranchDiffLineShape[] } });
-              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
-            };
-            const branchCloseDiff = (): void => branchesPatch({ diff: { status: 'idle', lines: [] } });
-            const loadScene = (sceneId: string, chapterId: string): void => {
-              const target = workspace;
-              if (!target || projectId === undefined) return;
-              if (!beginOp(`chapters:scene:${sceneId}`)) return;
-              const release = (): void => endOp(`chapters:scene:${sceneId}`);
-              act.chaptersSelectScene(sceneId);
-              void unwrap(target.sceneRead(projectId, chapterId, sceneId)).then((scene) => {
-                release();
-                if (!active) return;
-                const shape = (scene as { scene?: SceneReadShape }).scene;
-                act.chaptersScene('ready', scene, undefined);
-                // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
-                act.sceneEditorReset();
-                act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
-                // I70：装载后刷新该场景的版本列表（chosen 唯一投影）。
-                branchesLoad(chapterId, sceneId);
-              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); branchesPatch({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
-            };
-            const selectChapter = (chapterId: string): void => {
-              // I61 脏文本保护：草稿未保存时先弹离开确认，把切换推迟到裁决后。
-              const editor = snapshot.chapters.editor;
-              if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId } }); return; }
-              const target = workspace;
-              if (!target || projectId === undefined) return;
-              if (!beginOp(`chapters:chapter:${chapterId}`)) return;
-              const release = (): void => endOp(`chapters:chapter:${chapterId}`);
-              act.chaptersSelectChapter(chapterId);
-              void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
-                release();
-                if (!active) return;
-                const shape = read as ChapterReadShape;
-                act.chaptersRead('ready', shape, undefined);
-                if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
-                else act.chaptersScene('idle', undefined, undefined);
-              }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
-            };
-            const selectScene = (sceneId: string): void => {
-              const chapterId = snapshot.chapters.selectedChapterId;
-              if (chapterId === undefined) return;
-              const editor = snapshot.chapters.editor;
-              if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); return; }
-              loadScene(sceneId, chapterId);
-            };
-            const save = (reparse: boolean): void => {
-              const target = workspace;
-              const editor = snapshot.chapters.editor;
-              if (!target || projectId === undefined) return;
-              if (editor.saving || reparseLocked(editor)) return;
-              if (!beginOp(reparse ? 'chapters:save:reparse' : 'chapters:save')) return;
-              const release = (): void => endOp(reparse ? 'chapters:save:reparse' : 'chapters:save');
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              if (chapterId === undefined || sceneId === undefined) { release(); editorPatch({ error: '请先选择场景' }); return; }
-              const diff = computeEditRange(editor.original, editor.draft);
-              if (diff.kind === 'none') { release(); editorPatch({ error: '没有需要保存的修改' }); return; }
-              editorPatch({ saving: true, error: '', saveMessage: '' });
-              // baseHash = 装载时正文哈希：Host 核对当前文本一致才允许写（脏文本保护）。
-              void hashText(editor.original).then((baseHash) => {
-                if (reparse) {
-                  void unwrap(target.sceneReparsePropose(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((proposal) => {
-                    release();
-                    if (!active) return;
-                    const p = proposal as { proposalId?: string; status?: string };
-                    if (!p.proposalId) { editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
-                    // 幂等提议：同一编辑重复提议返回既有提案（可能是已拒绝/已处理）。
-                    if (p.status === 'rejected') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
-                    if (p.status === 'accepted') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'done', message: '该重解析提案此前已确认并应用' } }); return; }
-                    editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId: p.proposalId, range: diff.range, replacement: diff.replacement, baseHash } });
-                  }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
-                } else {
-                  void unwrap(target.sceneEdit(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((result) => {
-                    release();
-                    if (!active) return;
-                    const r = result as { scene?: SceneReadShape };
-                    const content = r.scene?.content ?? editor.draft;
-                    act.chaptersScene('ready', { scene: r.scene }, undefined);
-                    editorPatch({ saving: false, saveMessage: '已保存', dirty: false, original: content, draft: content, error: '' });
-                  }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
-                }
-              }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
-            };
-            const acceptReparse = (): void => {
-              const target = workspace;
-              const editor = snapshot.chapters.editor;
-              const r = editor.reparse;
-              if (!target || projectId === undefined || r.kind !== 'proposed') return;
-              if (!beginOp('chapters:reparse:accept')) return;
-              const release = (): void => endOp('chapters:reparse:accept');
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              if (chapterId === undefined || sceneId === undefined) { release(); editorPatch({ reparse: { kind: 'error', message: '请先选择场景' } }); return; }
-              editorPatch({ reparse: { kind: 'accepting', proposalId: r.proposalId, range: r.range, replacement: r.replacement, baseHash: r.baseHash } });
-              // accept 再带 baseHash：Host 在 propose→accept 窗口内核对正文未变（脏文本保护）。
-              void unwrap(target.sceneReparseAccept(projectId, chapterId, sceneId, r.range, r.replacement, r.proposalId, r.baseHash)).then((result) => {
-                release();
-                if (!active) return;
-                const res = result as { scene?: SceneReadShape; layers?: string[] };
-                const content = res.scene?.content ?? editor.draft;
-                act.chaptersScene('ready', { scene: res.scene }, undefined);
-                editorPatch({ saving: false, dirty: false, original: content, draft: content, error: '', saveMessage: '', reparse: { kind: 'done', message: `已重解析并同步：${(res.layers ?? []).join(' / ')}` } });
-              }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const rejectReparse = (): void => {
-              const target = workspace;
-              const r = snapshot.chapters.editor.reparse;
-              if (!target || projectId === undefined || r.kind !== 'proposed') return;
-              if (!beginOp('chapters:reparse:reject')) return;
-              const release = (): void => endOp('chapters:reparse:reject');
-              void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!active) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const discardDraft = (): void => {
-              const pending = snapshot.chapters.editor.pendingNavigation;
-              editorPatch({ leaveConfirm: false, pendingNavigation: undefined, dirty: false, saveMessage: '', error: '' });
-              if (pending !== undefined) {
-                if (pending.sceneId !== undefined && pending.chapterId === snapshot.chapters.selectedChapterId) loadScene(pending.sceneId, pending.chapterId);
-                else selectChapter(pending.chapterId);
-              }
-            };
-            // ---- I63 候选审阅与生成后裁决（R13-4）----
-            const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
-            // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
-            const reloadChapters = (): void => {
-              const target = workspace;
-              if (!target || projectId === undefined) return;
-              void unwrap(target.chapterList(projectId)).then((list) => {
-                if (!active) return;
-                act.setChapters('ready', list as unknown[]);
-                const chapterId = snapshot.chapters.selectedChapterId;
-                if (chapterId !== undefined) selectChapter(chapterId);
-              }, (cause: Error) => { if (active) act.setChapters('error', [], (cause as Error).message); });
-            };
-            // 候选生成后立即预览（正文 + diff + 校验结果），ready 才允许裁决。
-            const previewAfterPropose = (candidateId: string, onReady: () => void): void => {
-              const target = writing;
-              if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
-              void unwrap(target.preview(candidateId)).then((review) => {
-                if (!active) return;
-                candidatePatch({ ui: { kind: 'ready', review: review as CandidateReviewShape } });
-                onReady();
-              }, (cause: Error) => { if (active) candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
-              const target = writing;
-              if (!target || projectId === undefined) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
-              if (!beginOp(`writing:propose:${intent}`)) return;
-              const release = (): void => endOp(`writing:propose:${intent}`);
-              candidatePatch({ ui: { kind: 'proposing', intent } });
-              void unwrap(target.propose(projectId, { intent })).then((result) => {
-                release();
-                if (!active) return;
-                const candidate = (result as { candidate?: { id: string } }).candidate;
-                if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
-                previewAfterPropose(candidate.id, () => undefined);
-              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const proposeRewrite = (): void => {
-              const target = writing;
-              const chapterId = snapshot.chapters.selectedChapterId;
-              const sceneId = snapshot.chapters.selectedSceneId;
-              const prompt = snapshot.chapters.candidate.rewritePrompt;
-              if (!target || projectId === undefined) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
-              if (chapterId === undefined || sceneId === undefined) { candidatePatch({ ui: { kind: 'error', message: '请先选择要重写的场景' } }); return; }
-              if (prompt.trim() === '') return;
-              if (!beginOp('writing:propose:rewrite')) return;
-              const release = (): void => endOp('writing:propose:rewrite');
-              candidatePatch({ ui: { kind: 'proposing', intent: 'rewrite' } });
-              void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt })).then((result) => {
-                release();
-                if (!active) return;
-                const candidate = (result as { candidate?: { id: string } }).candidate;
-                if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
-                previewAfterPropose(candidate.id, () => undefined);
-              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
-              const target = writing;
-              const ui = snapshot.chapters.candidate.ui;
-              if (!target || projectId === undefined || ui.kind !== 'ready') return;
-              const candidateId = ui.review.candidateId;
-              // I59 双击幂等：同候选同裁决在 Remote 返回前至多提交一次。
-              if (!beginOp(`writing:adjudicate:${candidateId}:${decision}`)) return;
-              const release = (): void => endOp(`writing:adjudicate:${candidateId}:${decision}`);
-              candidatePatch({ ui: { kind: 'acting', review: ui.review, action: decision } });
-              void unwrap(target.adjudicate(candidateId, decision)).then((result) => {
-                release();
-                if (!active) return;
-                const outcome = result as WritingAdjudicationOutcome;
-                if (outcome.status === 'written') {
-                  candidatePatch({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } });
-                  reloadChapters();
-                } else if (outcome.status === 'rejected') {
-                  candidatePatch({ ui: { kind: 'done', message: '已拒绝候选，未写入任何内容' } });
-                } else if (outcome.status === 'rewritten') {
-                  // 后继候选：立即审阅新候选（旧候选已被 Host 置为 superseded，不可静默接受）。
-                  previewAfterPropose(outcome.candidate.id, () => undefined);
-                } else if (outcome.status === 'generation-rejected' || outcome.status === 'prewrite-rejected') {
-                  candidatePatch({ ui: { kind: 'error', message: '校验未通过：存在硬冲突，未写入任何内容。请重写候选。' } });
-                } else if (outcome.status === 'pending-compensation') {
-                  candidatePatch({ ui: { kind: 'error', message: `写回中断（${outcome.failedStage}），未完成。请重试或重写。` } });
-                }
-              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
-            };
-            const chaptersOpsResult: ChaptersEditOps = {
-              selectChapter,
-              selectScene,
-              retryChapter() {
-                const chapterId = snapshot.chapters.selectedChapterId;
-                if (chapterId !== undefined) selectChapter(chapterId);
-              },
-              retryScene() {
-                const sceneId = snapshot.chapters.selectedSceneId;
-                const chapterId = snapshot.chapters.selectedChapterId;
-                if (sceneId !== undefined && chapterId !== undefined) loadScene(sceneId, chapterId);
-              },
-              startEdit() { editorPatch({ mode: 'edit' }); },
-              textChange(value) {
-                const editor = snapshot.chapters.editor;
-                editorPatch({ draft: value, dirty: value !== editor.original, saveMessage: '', error: '' });
-              },
-              save,
-              acceptReparse,
-              rejectReparse,
-              discardDraft,
-              cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); },
-              proposeWriting,
-              rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
-              proposeRewrite,
-              adjudicateCandidate,
-              dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); },
-              // I70 版本/分支面板（R14-5）。
-              branchesLoad,
-              branchLabelChange(value) { branchesPatch({ labelDraft: value }); },
-              branchSave,
-              branchChoose,
-              branchDiff,
-              branchCloseDiff,
-              // I71 搜索结果跳转（R14-6）：打开指定章节/场景（脏文本保护复用离开确认）。
-              openScene(chapterId, sceneId) {
-                const editor = snapshot.chapters.editor;
-                if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); return; }
-                const target = workspace;
-                if (!target || projectId === undefined) return;
-                if (!beginOp(`chapters:jump:${chapterId}`)) return;
-                const release = (): void => endOp(`chapters:jump:${chapterId}`);
-                act.chaptersSelectChapter(chapterId);
-                void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
-                  release();
-                  if (!active) return;
-                  act.chaptersRead('ready', read as ChapterReadShape, undefined);
-                  loadScene(sceneId, chapterId);
-                }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
-              },
-            };
-            chaptersOpsRef = chaptersOpsResult;
-            return chaptersOpsResult;
-          })(),
-          // ---- I64 一致性审校中心（R13-5）：刷新/过滤/选中/显式裁决 ----
-          review: (() => {
-            const reviewPatch = (patch: Partial<ReviewLayerState>): void => act.reviewPatch(patch);
-            const toggleFilter = (kind: 'categories' | 'severities' | 'statuses', value: string): void => {
-              const filter = snapshot.review.filter;
-              const next = (filter[kind] as readonly string[]).includes(value)
-                ? (filter[kind] as readonly string[]).filter((item) => item !== value)
-                : [...(filter[kind] as readonly string[]), value];
-              reviewPatch({ filter: { ...filter, [kind]: next } });
-            };
-            return {
-              scan(): void {
-                const target = reviewNamespace;
-                if (!target || projectId === undefined) { reviewPatch({ status: 'error', message: '审校服务不可用' }); return; }
-                if (!beginOp('review:scan')) return;
-                const release = (): void => endOp('review:scan');
-                reviewPatch({ status: 'scanning', message: undefined });
-                // 投影 + 审计记录并行读取（都为只读 Remote）。
-                void Promise.all([
-                  unwrap(target.scan(projectId)),
-                  unwrap(target.records(projectId)),
-                ]).then(([projection, recordList]) => {
-                  release();
-                  if (!active) return;
-                  // I77：records wire 契约即裸数组（组合根不再包 envelope）。
-                  const records = (recordList as ReviewAuditRecordShape[] | undefined) ?? [];
-                  reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined });
-                }, (cause: Error) => { release(); if (!active) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
-              },
-              toggleFilter,
-              clearFilters() { reviewPatch({ filter: { categories: [], severities: [], statuses: [] } }); },
-              selectIssue(issueId: string) {
-                const selected = snapshot.review.selected;
-                reviewPatch({ selected: selected.includes(issueId) ? selected.filter((item) => item !== issueId) : [...selected, issueId] });
-              },
-              adjudicate(decision: 'continue' | 'rewrite-requested'): void {
-                const target = reviewNamespace;
-                const state = snapshot.review;
-                if (!target || projectId === undefined || state.status !== 'ready') return;
-                if (state.selected.length === 0 || state.acting) return;
-                if (!beginOp(`review:adjudicate:${decision}`)) return;
-                const release = (): void => endOp(`review:adjudicate:${decision}`);
-                reviewPatch({ acting: true, message: undefined });
-                void unwrap(target.adjudicate(projectId, { decision, issueIds: [...state.selected] })).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as ReviewAdjudicationOutcomeShape;
-                  reviewPatch({
-                    acting: false,
-                    projection: result.projection,
-                    records: result.records,
-                    selected: [],
-                    message: `已记录 ${result.applied.length} 项${decision === 'continue' ? '「显式继续」' : '「请求重写」'}（重复 ${result.duplicate.length} 项）。`,
-                  });
-                }, (cause: Error) => { release(); if (!active) return; reviewPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [] }); },
-            };
-          })(),
-          // ---- I65 生成队列（R13-6）：范围/配置 + 暂停/继续/取消 + 重试 ----
-          queue: (() => {
-            const queuePatch = (patch: Partial<QueueLayerState>): void => act.queuePatch(patch);
-            // 运行中轮询状态（Host 后台 loop 驱动；terminal 后停止，Fiber 卸载即清）。
-            let queuePollTimer: ReturnType<typeof setTimeout> | undefined;
-            const clearQueuePoll = (): void => {
-              if (queuePollTimer !== undefined) { clearTimeout(queuePollTimer); queuePollTimer = undefined; }
-            };
-            const pollQueueStatus = (): void => {
-              const target = queueNamespace;
-              if (!active || target === undefined || projectId === undefined) { clearQueuePoll(); return; }
-              void unwrap(target.status(projectId)).then((projection) => {
-                if (!active) { clearQueuePoll(); return; }
-                const next = projection as QueueStatusShape;
-                queuePatch({ projection: next });
-                if (next.runState === 'running' || next.runState === 'paused') {
-                  queuePollTimer = setTimeout(pollQueueStatus, 2000);
-                } else {
-                  clearQueuePoll();
-                }
-              }, () => { clearQueuePoll(); });
-            };
-            const loadCards = (): void => {
-              const target = workspace;
-              if (!target || projectId === undefined) return;
-              void unwrap(target.outlineBeatCards(projectId)).then((cards) => {
-                if (!active) return;
-                const shaped = (cards as Array<{ actId: string; beatId: string; detailBeat: { id: string; title: string; pov: string; wordTarget: number; status: string } }>).map((card) => ({
-                  actId: card.actId, beatId: card.beatId, id: card.detailBeat.id, title: card.detailBeat.title,
-                  pov: card.detailBeat.pov, wordTarget: card.detailBeat.wordTarget, status: card.detailBeat.status,
-                }));
-                // 默认全选（start 时全部入队）；已有勾选保留。
-                queuePatch({ cards: shaped, selectedCardIds: snapshot.queue.selectedCardIds.length > 0 ? snapshot.queue.selectedCardIds : shaped.map((card) => card.id), status: 'ready' });
-              }, (cause: Error) => { if (active) queuePatch({ status: 'ready', message: (cause as Error).message }); });
-            };
-            /** 通用队列命令（幂等由 Host 状态机保证；同键 inflight 去重）。 */
-            const queueCommand = (method: 'pause' | 'resume' | 'cancel' | 'retry', taskId?: string): void => {
-              const target = queueNamespace;
-              if (!target || projectId === undefined) return;
-              if (!beginOp(`queue:${method}:${taskId ?? ''}`)) return;
-              const release = (): void => endOp(`queue:${method}:${taskId ?? ''}`);
-              const call = method === 'retry' ? target.retry(projectId, taskId as string) : (target[method] as (projectId: string) => Promise<unknown>)(projectId);
-              void unwrap(call).then((projection) => {
-                release();
-                if (!active) return;
-                const next = projection as QueueStatusShape;
-                queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
-                if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-              }, (cause: Error) => { release(); if (!active) return; queuePatch({ message: (cause as Error).message }); });
-            };
-            return {
-              refresh(): void {
-                const target = queueNamespace;
-                if (!target || projectId === undefined) { queuePatch({ status: 'error', message: '生成队列服务不可用' }); return; }
-                if (!beginOp('queue:refresh')) return;
-                const release = (): void => endOp('queue:refresh');
-                queuePatch({ status: 'loading', message: undefined });
-                void unwrap(target.status(projectId)).then((projection) => {
-                  release();
-                  if (!active) return;
-                  const next = projection as QueueStatusShape;
-                  queuePatch({ status: 'ready', projection: next });
-                  loadCards();
-                  if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-                }, (cause: Error) => { release(); if (!active) return; queuePatch({ status: 'error', message: (cause as Error).message }); });
-              },
-              toggleCard(cardId: string) {
-                const selected = snapshot.queue.selectedCardIds;
-                queuePatch({ selectedCardIds: selected.includes(cardId) ? selected.filter((id) => id !== cardId) : [...selected, cardId] });
-              },
-              setBudget(value: string) { queuePatch({ wordBudget: value }); },
-              setRetries(value: string) { queuePatch({ maxRetries: value }); },
-              toggleSoftStop() { queuePatch({ stopOnSoftWarnings: !snapshot.queue.stopOnSoftWarnings }); },
-              start(): void {
-                const target = queueNamespace;
-                const state = snapshot.queue;
-                if (!target || projectId === undefined || state.acting) return;
-                if (!beginOp('queue:start')) return;
-                const release = (): void => endOp('queue:start');
-                const budget = state.wordBudget.trim();
-                const parsedBudget = budget === '' ? undefined : Number.parseInt(budget, 10);
-                const parsedRetries = Number.parseInt(state.maxRetries, 10);
-                const input: QueueStartInputShape = {
-                  ...(state.selectedCardIds.length > 0 ? { cardIds: [...state.selectedCardIds] } : {}),
-                  ...(parsedBudget !== undefined && Number.isFinite(parsedBudget) && parsedBudget > 0 ? { wordBudget: parsedBudget } : {}),
-                  ...(Number.isFinite(parsedRetries) && parsedRetries >= 0 ? { maxRetries: parsedRetries } : {}),
-                  stopOnSoftWarnings: state.stopOnSoftWarnings,
-                };
-                queuePatch({ acting: true, message: undefined });
-                void unwrap(target.start(projectId, input)).then((projection) => {
-                  release();
-                  if (!active) return;
-                  const next = projection as QueueStatusShape;
-                  queuePatch({ acting: false, status: 'ready', projection: next });
-                  if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-                }, (cause: Error) => { release(); if (!active) return; queuePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              pause() { queueCommand('pause'); },
-              resume() { queueCommand('resume'); },
-              cancel() { queueCommand('cancel'); },
-              retry(taskId: string) { queueCommand('retry', taskId); },
-              dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); clearQueuePoll(); },
-            };
-          })(),
-          // ---- I66 知情与揭示管理面（R14-1）：双视图 + 揭示/holder Gate 提案 ----
-          knowledge: (() => {
-            const knowledgePatch = (patch: Partial<KnowledgeLayerState>): void => act.knowledgePatch(patch);
-            return {
-              refresh(): void {
-                const target = knowledgeNamespace;
-                if (!target || projectId === undefined) { knowledgePatch({ status: 'error', message: '知情与揭示服务不可用' }); return; }
-                if (!beginOp('knowledge:refresh')) return;
-                const release = (): void => endOp('knowledge:refresh');
-                knowledgePatch({ status: 'loading', message: undefined });
-                // 投影 + 待确认提案并行读取（都为只读 Remote）。
-                void Promise.all([
-                  unwrap(target.list(projectId)),
-                  unwrap(target.pending(projectId)),
-                ]).then(([projection, pendingList]) => {
-                  release();
-                  if (!active) return;
-                  // I77：pending wire 契约即裸数组（组合根不再包 envelope）。
-                  const pending = (pendingList as KnowledgeProposalShape[] | undefined) ?? [];
-                  knowledgePatch({ status: 'ready', projection: projection as KnowledgeProjectionShape, pending, message: undefined });
-                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ status: 'error', message: (cause as Error).message }); });
-              },
-              setView(view: KnowledgeViewId) { knowledgePatch({ view, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' } }); },
-              selectFact(entryId: string) {
-                const selected = snapshot.knowledge.selectedEntryId === entryId ? undefined : entryId;
-                knowledgePatch({ selectedEntryId: selected, draft: { holders: [], status: '', revealAt: '' }, message: undefined });
-              },
-              toggleDraftHolder(characterId: string) {
-                const holders = snapshot.knowledge.draft.holders;
-                knowledgePatch({ draft: { ...snapshot.knowledge.draft, holders: holders.includes(characterId) ? holders.filter((id) => id !== characterId) : [...holders, characterId] } });
-              },
-              setDraftStatus(value: '' | 'partially-revealed' | 'revealed') { knowledgePatch({ draft: { ...snapshot.knowledge.draft, status: value } }); },
-              setDraftRevealAt(value: string) { knowledgePatch({ draft: { ...snapshot.knowledge.draft, revealAt: value } }); },
-              propose(kind: 'reveal' | 'holder-add'): void {
-                const target = knowledgeNamespace;
-                const state = snapshot.knowledge;
-                if (!target || projectId === undefined || state.status !== 'ready') return;
-                if (state.selectedEntryId === undefined || state.draft.holders.length === 0 || state.acting) return;
-                if (!beginOp(`knowledge:propose:${kind}`)) return;
-                const release = (): void => endOp(`knowledge:propose:${kind}`);
-                const revealAt = state.draft.revealAt.trim();
-                const input = kind === 'reveal'
-                  ? {
-                    kind,
-                    entryId: state.selectedEntryId,
-                    holders: [...state.draft.holders],
-                    ...(state.draft.status === '' ? {} : { status: state.draft.status }),
-                    ...(revealAt === '' ? {} : { revealAt }),
-                  }
-                  : { kind, entryId: state.selectedEntryId, holders: [...state.draft.holders] };
-                knowledgePatch({ acting: true, message: undefined });
-                void unwrap(target.propose(projectId, input)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as KnowledgeProposeOutcomeShape;
-                  const names = new Map((state.projection?.characters ?? []).map((character) => [character.characterId, character.name]));
-                  const addedNames = state.draft.holders.map((id) => names.get(id) ?? id).join('、');
-                  knowledgePatch({
-                    acting: false,
-                    selectedEntryId: undefined,
-                    draft: { holders: [], status: '', revealAt: '' },
-                    message: `提案已提交待确认（${result.proposalId}）：${result.kind === 'reveal' ? '揭示' : 'holder 变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效（知情只增不退）。`,
-                  });
-                  // 刷新待确认提案列表（Gate pending 持久化）。
-                  void unwrap(target.pending(projectId)).then((pendingList) => {
-                    if (!active) return;
-                    knowledgePatch({ pending: (pendingList as KnowledgeProposalShape[] | undefined) ?? [] });
-                  }, () => undefined);
-                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              accept(proposalId: string): void {
-                const target = knowledgeNamespace;
-                if (!target || projectId === undefined || snapshot.knowledge.acting) return;
-                if (!beginOp(`knowledge:accept:${proposalId}`)) return;
-                const release = (): void => endOp(`knowledge:accept:${proposalId}`);
-                knowledgePatch({ acting: true, message: undefined });
-                void unwrap(target.accept(projectId, proposalId)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as KnowledgeApplyOutcomeShape;
-                  const pending = snapshot.knowledge.pending.filter((proposal) => proposal.proposalId !== proposalId);
-                  knowledgePatch({
-                    acting: false,
-                    projection: result.projection,
-                    pending,
-                    message: result.applied
-                      ? `已确认并应用揭示 / holder 变更（知情只增不退，已同步 holders 与角色知情状态）。`
-                      : '该变更此前已生效（幂等确认，未重复写 C3）。',
-                  });
-                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              reject(proposalId: string): void {
-                const target = knowledgeNamespace;
-                if (!target || projectId === undefined || snapshot.knowledge.acting) return;
-                if (!beginOp(`knowledge:reject:${proposalId}`)) return;
-                const release = (): void => endOp(`knowledge:reject:${proposalId}`);
-                knowledgePatch({ acting: true, message: undefined });
-                void unwrap(target.reject(projectId, proposalId)).then(() => {
-                  release();
-                  if (!active) return;
-                  knowledgePatch({
-                    acting: false,
-                    pending: snapshot.knowledge.pending.filter((proposal) => proposal.proposalId !== proposalId),
-                    message: `已拒绝提案 ${proposalId}（C3 零写）。`,
-                  });
-                }, (cause: Error) => { release(); if (!active) return; knowledgePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              dismiss() { knowledgePatch({ status: 'idle', projection: undefined, message: undefined, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' }, pending: [], acting: false }); },
-            };
-          })(),
-          // ---- I67 规则与文风控制面（R14-2）：规则列表/详情表单 + 风格档案 ----
-          ruleStyle: (() => {
-            const ruleStylePatch = (patch: Partial<RuleStyleLayerState>): void => act.ruleStylePatch(patch);
-            const ruleDraftFrom = (rule: RuleShape): RuleDraftShape => ({
-              id: rule.id, scope: rule.scope, kind: rule.kind, statement: rule.statement,
-              priority: String(rule.priority), immutable: rule.immutable, active: rule.active,
-              examples: [...rule.examples],
-            });
-            const styleDraftFrom = (style: StyleShape | null): StyleDraftShape => style === null
-              ? freshStyleDraft()
-              : {
-                name: style.name, person: style.person, tense: style.tense, povScope: style.povScope,
-                tone: style.tone, proseStyle: style.proseStyle, chapterFormat: style.chapterFormat,
-                dialogueConventions: style.dialogueConventions, forbidden: [...style.forbidden],
-              };
-            return {
-              refresh(): void {
-                const target = ruleStyleNamespace;
-                if (!target || projectId === undefined) { ruleStylePatch({ status: 'error', message: '规则与文风服务不可用' }); return; }
-                if (!beginOp('ruleStyle:refresh')) return;
-                const release = (): void => endOp('ruleStyle:refresh');
-                ruleStylePatch({ status: 'loading', message: undefined });
-                void unwrap(target.list(projectId)).then((projection) => {
-                  release();
-                  if (!active) return;
-                  const result = projection as RuleStyleProjectionShape;
-                  ruleStylePatch({ status: 'ready', projection: result, styleDraft: styleDraftFrom(result.style), message: undefined });
-                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ status: 'error', message: (cause as Error).message }); });
-              },
-              selectRule(ruleId: string): void {
-                const target = ruleStyleNamespace;
-                const state = snapshot.ruleStyle;
-                if (!target || projectId === undefined || state.acting) return;
-                if (state.editingRuleId === ruleId) {
-                  ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined });
-                  return;
-                }
-                if (!beginOp(`ruleStyle:read:${ruleId}`)) return;
-                const release = (): void => endOp(`ruleStyle:read:${ruleId}`);
-                void unwrap(target.readRule(projectId, ruleId)).then((rule) => {
-                  release();
-                  if (!active) return;
-                  ruleStylePatch({ editingRuleId: ruleId, ruleDraft: ruleDraftFrom(rule as RuleShape), message: undefined });
-                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ message: (cause as Error).message }); });
-              },
-              newRule(): void {
-                const editing = snapshot.ruleStyle.editingRuleId === '__new__';
-                ruleStylePatch({ editingRuleId: editing ? undefined : '__new__', ruleDraft: editing ? undefined : freshRuleDraft(), message: undefined });
-              },
-              cancelRuleEdit(): void { ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined }); },
-              setRuleDraft(patch: Partial<RuleDraftShape>): void {
-                const draft = snapshot.ruleStyle.ruleDraft;
-                if (draft === undefined) return;
-                ruleStylePatch({ ruleDraft: { ...draft, ...patch }, message: undefined });
-              },
-              saveRule(): void {
-                const target = ruleStyleNamespace;
-                const state = snapshot.ruleStyle;
-                if (!target || projectId === undefined || state.ruleDraft === undefined || state.acting) return;
-                const draft = state.ruleDraft;
-                if (!beginOp(`ruleStyle:save:${state.editingRuleId ?? ''}`)) return;
-                const release = (): void => endOp(`ruleStyle:save:${state.editingRuleId ?? ''}`);
-                const payload = {
-                  scope: draft.scope, kind: draft.kind, statement: draft.statement.trim(),
-                  priority: Number(draft.priority), immutable: draft.immutable, active: draft.active,
-                  examples: [...draft.examples],
-                };
-                ruleStylePatch({ acting: true, message: undefined });
-                const call = state.editingRuleId === '__new__'
-                  ? target.createRule(projectId, { ...payload, id: draft.id.trim() })
-                  : target.updateRule(projectId, draft.id.trim(), payload);
-                void unwrap(call).then((rule) => {
-                  release();
-                  if (!active) return;
-                  const saved = rule as RuleShape;
-                  ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则「${saved.id}」（v${saved.version}）。` });
-                  // 刷新列表投影以反映同一 Host 真相（生成/检测消费同一存储）。
-                  void unwrap(target.list(projectId)).then((projection) => {
-                    if (!active) return;
-                    const result = projection as RuleStyleProjectionShape;
-                    ruleStylePatch({ projection: result, status: 'ready' });
-                  }, () => undefined);
-                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              setStyleDraft(patch: Partial<StyleDraftShape>): void {
-                ruleStylePatch({ styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
-              },
-              saveStyle(): void {
-                const target = ruleStyleNamespace;
-                const state = snapshot.ruleStyle;
-                if (!target || projectId === undefined || state.acting) return;
-                if (!beginOp('ruleStyle:saveStyle')) return;
-                const release = (): void => endOp('ruleStyle:saveStyle');
-                const draft = state.styleDraft;
-                const input = {
-                  name: draft.name.trim(), person: draft.person, tense: draft.tense, povScope: draft.povScope,
-                  tone: draft.tone.trim(), proseStyle: draft.proseStyle.trim(), chapterFormat: draft.chapterFormat.trim(),
-                  dialogueConventions: draft.dialogueConventions.trim(), forbidden: [...draft.forbidden],
-                };
-                ruleStylePatch({ acting: true, message: undefined });
-                void unwrap(target.saveStyle(projectId, input)).then((style) => {
-                  release();
-                  if (!active) return;
-                  const saved = style as StyleShape;
-                  ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（v${saved.version}，id ${saved.id}）。` });
-                  // 刷新投影：style 视图同步（含 version/id）。
-                  void unwrap(target.list(projectId)).then((projection) => {
-                    if (!active) return;
-                    const result = projection as RuleStyleProjectionShape;
-                    ruleStylePatch({ projection: result, status: 'ready', styleDraft: styleDraftFrom(result.style) });
-                  }, () => undefined);
-                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
-              },
-              dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
-            };
-          })(),
-          // ---- I68 进度与灵感落地（R14-3）：导航/完成状态 + 偏差 + 灵感 Gate 落地 ----
-          progress: (() => {
-            const progressPatch = (patch: Partial<ProgressLayerState>): void => act.progressPatch(patch);
-            const refresh = (): void => {
-              const target = progressNamespace;
-              if (!target || projectId === undefined) { progressPatch({ status: 'error', message: '进度与灵感服务不可用' }); return; }
-              if (!beginOp('progress:refresh')) return;
-              const release = (): void => endOp('progress:refresh');
-              progressPatch({ status: 'loading', message: undefined });
-              // 投影 + 待确认 + 审计并行读取（都为只读 Remote）。
-              void Promise.all([
-                unwrap(target.projection(projectId)),
-                unwrap(target.pending(projectId)),
-                unwrap(target.audit(projectId)),
-              ]).then(([projection, pendingEnvelope, auditEnvelope]) => {
-                release();
-                if (!active) return;
-                progressPatch({
-                  status: 'ready',
-                  projection: projection as ProgressProjectionShape,
-                  pending: (pendingEnvelope as { proposals?: ProgressPendingProposalShape[] } | undefined)?.proposals ?? [],
-                  audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] } | undefined)?.records ?? [],
-                  message: undefined,
-                });
-              }, (cause: Error) => { release(); if (!active) return; progressPatch({ status: 'error', message: (cause as Error).message }); });
-            };
-            return {
-              refresh,
-              inspire(): void {
-                const target = progressNamespace;
-                if (!target || projectId === undefined || snapshot.progress.acting || snapshot.progress.inspiring) return;
-                if (!beginOp('progress:inspire')) return;
-                const release = (): void => endOp('progress:inspire');
-                progressPatch({ inspiring: true, message: undefined, directions: undefined, selectedDirectionId: undefined });
-                void unwrap(target.inspire(projectId, snapshot.progress.prompt.trim() || undefined)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as { projectId: string; directions: ProgressDirectionShape[] };
-                  progressPatch({ inspiring: false, directions: result.directions, message: `灵感时刻产出 ${result.directions.length} 个方向（零写；选定并经确认后才会调整 B5/C6）。` });
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ inspiring: false, message: (cause as Error).message }); });
-              },
-              setPrompt(value: string) { progressPatch({ prompt: value }); },
-              selectDirection(directionId: string) {
-                const state = snapshot.progress;
-                const next = state.selectedDirectionId === directionId ? undefined : directionId;
-                progressPatch({ selectedDirectionId: next, message: undefined });
-              },
-              proposeApply(): void {
-                const target = progressNamespace;
-                const state = snapshot.progress;
-                if (!target || projectId === undefined || state.status !== 'ready' || state.acting) return;
-                const selected = state.directions?.find((direction) => direction.id === state.selectedDirectionId);
-                if (selected === undefined) return;
-                if (!beginOp('progress:propose')) return;
-                const release = (): void => endOp('progress:propose');
-                progressPatch({ acting: true, message: undefined });
-                void unwrap(target.select(projectId, { direction: selected })).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as ProgressSelectOutcomeShape;
-                  progressPatch({
-                    acting: false,
-                    selectedDirectionId: undefined,
-                    message: `方向「${result.direction.title}」已提交待确认（${result.proposalId}）。确认后只改授权的 B5/C6；拒绝则零写。`,
-                  });
-                  void unwrap(target.pending(projectId)).then((pendingEnvelope) => {
-                    if (!active) return;
-                    progressPatch({ pending: (pendingEnvelope as { proposals?: ProgressPendingProposalShape[] }).proposals ?? [] });
-                  }, () => undefined);
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              accept(proposalId: string): void {
-                const target = progressNamespace;
-                if (!target || projectId === undefined || snapshot.progress.acting) return;
-                if (!beginOp(`progress:accept:${proposalId}`)) return;
-                const release = (): void => endOp(`progress:accept:${proposalId}`);
-                progressPatch({ acting: true, message: undefined });
-                void unwrap(target.apply(projectId, proposalId)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as ProgressApplyOutcomeShape;
-                  progressPatch({
-                    acting: false,
-                    projection: result.projection,
-                    pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
-                    audit: result.audit,
-                    message: result.applied
-                      ? '已确认并应用灵感方向（只改授权的 B5 立意/主题与 C6 偏差记录）。'
-                      : '该方向此前已应用（幂等确认，未重复写 B5/C6）。',
-                  });
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              reject(proposalId: string): void {
-                const target = progressNamespace;
-                if (!target || projectId === undefined || snapshot.progress.acting) return;
-                if (!beginOp(`progress:reject:${proposalId}`)) return;
-                const release = (): void => endOp(`progress:reject:${proposalId}`);
-                progressPatch({ acting: true, message: undefined });
-                void unwrap(target.reject(projectId, proposalId)).then(() => {
-                  release();
-                  if (!active) return;
-                  progressPatch({
-                    acting: false,
-                    pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
-                    message: `已拒绝方向提案 ${proposalId}（B5/C6 零写）。`,
-                  });
-                  void unwrap(target.audit(projectId)).then((auditEnvelope) => {
-                    if (!active) return;
-                    progressPatch({ audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] }).records ?? [] });
-                  }, () => undefined);
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              setDeviationDraft(patch: Partial<{ planned: string; actual: string; reason: string }>) {
-                progressPatch({ deviationDraft: { ...snapshot.progress.deviationDraft, ...patch } });
-              },
-              recordDeviation(): void {
-                const target = progressNamespace;
-                const state = snapshot.progress;
-                if (!target || projectId === undefined || state.status !== 'ready' || state.acting) return;
-                if (state.deviationDraft.planned.trim() === '' || state.deviationDraft.actual.trim() === '' || state.deviationDraft.reason.trim() === '') return;
-                if (!beginOp('progress:record-deviation')) return;
-                const release = (): void => endOp('progress:record-deviation');
-                progressPatch({ acting: true, message: undefined });
-                void unwrap(target.recordDeviation(projectId, {
-                  planned: state.deviationDraft.planned.trim(),
-                  actual: state.deviationDraft.actual.trim(),
-                  reason: state.deviationDraft.reason.trim(),
-                })).then((projection) => {
-                  release();
-                  if (!active) return;
-                  progressPatch({ acting: false, projection: projection as ProgressProjectionShape, deviationDraft: { planned: '', actual: '', reason: '' }, message: '偏差已记录（只写 C6；B5 未改变）。' });
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              reconcileDeviation(deviationId: string): void {
-                const target = progressNamespace;
-                if (!target || projectId === undefined || snapshot.progress.acting) return;
-                if (!beginOp(`progress:reconcile:${deviationId}`)) return;
-                const release = (): void => endOp(`progress:reconcile:${deviationId}`);
-                progressPatch({ acting: true, message: undefined });
-                void unwrap(target.reconcileDeviation(projectId, deviationId)).then((projection) => {
-                  release();
-                  if (!active) return;
-                  progressPatch({ acting: false, projection: projection as ProgressProjectionShape, message: `偏差 ${deviationId} 已标记为调和（只写 C6）。` });
-                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              dismiss() { progressPatch({ status: 'idle', projection: undefined, message: undefined, directions: undefined, inspiring: false, prompt: '', selectedDirectionId: undefined, pending: [], audit: [], deviationDraft: { planned: '', actual: '', reason: '' }, acting: false }); },
-            };
-          })(),
-          // ---- I69 导入导出与备份（R14-4）：受控下载 / round-trip 恢复 / 导入预览 ----
-          importExport: (() => {
-            const iePatch = (patch: Partial<ImportExportLayerState>): void => act.importExportPatch(patch);
-            return {
-              setExportMode(mode) { iePatch({ exportMode: mode, message: undefined, error: undefined }); },
-              setTextFormat(format) { iePatch({ textFormat: format, message: undefined, error: undefined }); },
-              setImportFormat(format) { iePatch({ importFormat: format, message: undefined, error: undefined }); },
-              setImportText(text) { iePatch({ importText: text, message: undefined, error: undefined }); },
-              pickImportFile(file) {
-                if (!file) return;
-                void file.text().then((text) => {
-                  if (!active) return;
-                  iePatch({ importText: text, importFileName: file.name, message: undefined, error: undefined });
-                }, () => { if (!active) return; iePatch({ error: `读取导入文件失败：${file.name}` }); });
-              },
-              pickRestoreFile(file) {
-                if (!file) return;
-                if (file.size > MAX_RESTORE_FILE_BYTES) {
-                  iePatch({ restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: '恢复包超过 10 MiB 上限。', error: undefined });
-                  return;
-                }
-                void file.text().then((text) => {
-                  if (!active) return;
-                  iePatch({ restoreFileName: file.name, restoreRaw: text, restoreResult: undefined, restoreError: undefined, message: undefined, error: undefined });
-                }, () => { if (!active) return; iePatch({ restoreError: `读取恢复包失败：${file.name}` }); });
-              },
-              exportArchive(): void {
-                const target = importExportNamespace;
-                if (!target || projectId === undefined || snapshot.importExport.acting) return;
-                if (!beginOp('importExport:export-archive')) return;
-                const release = (): void => endOp('importExport:export-archive');
-                iePatch({ acting: true, message: undefined, error: undefined });
-                void unwrap(target.exportArchive(projectId, snapshot.importExport.exportMode)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as { fileName: string; mode: string; fileCount: number; content: string };
-                  downloadText(result.fileName, result.content);
-                  iePatch({ acting: false, message: `已导出 ${result.fileCount} 个文件（${result.mode}），开始下载 ${result.fileName}。` });
-                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
-              },
-              exportText(): void {
-                const target = importExportNamespace;
-                if (!target || projectId === undefined || snapshot.importExport.acting) return;
-                if (!beginOp('importExport:export-text')) return;
-                const release = (): void => endOp('importExport:export-text');
-                iePatch({ acting: true, message: undefined, error: undefined });
-                void unwrap(target.exportText(projectId, snapshot.importExport.textFormat)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as { fileName: string; format: string; files: Record<string, string> };
-                  for (const [name, content] of Object.entries(result.files)) {
-                    const base = name.split('/').pop() ?? name;
-                    // Blob 类型只作浏览器提示，落盘文件名由 anchor.download 的扩展名决定；
-                    // 不传 MIME（默认 application/json），避免 `text/` 字样进入 bundle
-                    // （I60/I61 的 Client bundle 负向扫描禁止作品目录路径提示泄漏）。
-                    downloadText(base, content);
-                  }
-                  iePatch({ acting: false, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
-                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
-              },
-              restore(): void {
-                const target = importExportNamespace;
-                const state = snapshot.importExport;
-                if (!target || projectId === undefined || state.acting || state.restoreRaw === undefined) return;
-                if (!beginOp('importExport:restore')) return;
-                const release = (): void => endOp('importExport:restore');
-                iePatch({ acting: true, message: undefined, error: undefined, restoreError: undefined, restoreResult: undefined });
-                void unwrap(target.restore(projectId, state.restoreRaw)).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as ImportExportRestoreResultShape;
-                  if (result.status === 'imported') {
-                    iePatch({ acting: false, restoreResult: result, message: `恢复完成：写入 ${result.written.length} 个文件（round-trip）。` });
-                  } else {
-                    iePatch({ acting: false, restoreResult: result, message: undefined });
-                  }
-                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, restoreError: (cause as Error).message }); });
-              },
-              previewImport(): void {
-                const target = importExportNamespace;
-                const state = snapshot.importExport;
-                if (!target || projectId === undefined || state.acting || state.importText.trim() === '') return;
-                if (!beginOp('importExport:preview')) return;
-                const release = (): void => endOp('importExport:preview');
-                iePatch({ acting: true, message: undefined, error: undefined });
-                void unwrap(target.importPreview(projectId, { fileName: state.importFileName ?? `pasted.${state.importFormat}`, format: state.importFormat, text: state.importText })).then((outcome) => {
-                  release();
-                  if (!active) return;
-                  const result = outcome as ImportExportPreviewShape;
-                  iePatch({ acting: false, preview: result, message: `导入预览完成：${result.chunks.length} 块（零写）。` });
-                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
-              },
-              dismiss() { iePatch({ status: 'idle', message: undefined, error: undefined, acting: false, preview: undefined, restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: undefined, importText: '', importFileName: undefined }); },
-            };
-          })(),
-          // ---- I71 全局搜索与上下文追踪（R14-6）：搜索/引用/跳转/索引生命周期 ----
-          search: (() => {
-            const searchPatch = (patch: Partial<SearchLayerState>): void => act.searchPatch(patch);
-            const run = <T>(method: 'search' | 'references', key: string, onResult: (result: T) => void): void => {
-              const target = searchNamespace;
-              if (!target || projectId === undefined) { searchPatch({ status: 'error', message: '搜索服务不可用' }); return; }
-              if (!beginOp(`search:${method}:${key}`)) return;
-              const release = (): void => endOp(`search:${method}:${key}`);
-              searchPatch({ acting: true, message: undefined });
-              const pov = snapshot.search.pov.trim();
-              const call = method === 'search'
-                ? target.search(projectId, key, pov === '' ? undefined : pov)
-                : target.references(projectId, key, pov === '' ? undefined : pov);
-              void unwrap(call).then((result) => {
-                release();
-                if (!active) return;
-                onResult(result as T);
-                searchPatch({ acting: false, status: 'ready' });
-              }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
-            };
-            const runStats = (): void => {
-              const target = searchNamespace;
-              if (!target || projectId === undefined) return;
-              if (!beginOp('search:stats')) return;
-              const release = (): void => endOp('search:stats');
-              searchPatch({ acting: true, message: undefined });
-              void unwrap(target.stats(projectId)).then((stats) => {
-                release();
-                if (!active) return;
-                searchPatch({ acting: false, stats: stats as SearchStatsShape, message: undefined });
-              }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
-            };
-            return {
-              setQuery(value: string) { searchPatch({ query: value, message: undefined }); },
-              setPov(value: string) { searchPatch({ pov: value, message: undefined }); },
-              search() {
-                const q = snapshot.search.query.trim();
-                if (q === '') return;
-                searchPatch({ results: undefined, references: undefined, message: undefined });
-                run<SearchResultShape>('search', q, (result) => searchPatch({ results: result }));
-              },
-              setReferenceKey(value: string) { searchPatch({ referenceKey: value, message: undefined }); },
-              references() {
-                const key = snapshot.search.referenceKey.trim();
-                if (key === '') return;
-                searchPatch({ references: undefined, message: undefined });
-                run<{ key: string; total: number; hits: readonly SearchHitShape[] }>('references', key, (result) => searchPatch({ references: result }));
-              },
-              refreshStats() { runStats(); },
-              rebuild(): void {
-                const target = searchNamespace;
-                if (!target || projectId === undefined) { searchPatch({ message: '搜索服务不可用' }); return; }
-                if (!beginOp('search:rebuild')) return;
-                const release = (): void => endOp('search:rebuild');
-                searchPatch({ acting: true, message: undefined });
-                void unwrap(target.build(projectId)).then((stats) => {
-                  release();
-                  if (!active) return;
-                  searchPatch({ acting: false, stats: stats as SearchStatsShape, message: `已从六层 live source-of-truth 重建派生索引（${(stats as SearchStatsShape).totalEntries} 条，零写结构层）。` });
-                }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              drop(): void {
-                const target = searchNamespace;
-                if (!target || projectId === undefined) { searchPatch({ message: '搜索服务不可用' }); return; }
-                if (!beginOp('search:drop')) return;
-                const release = (): void => endOp('search:drop');
-                searchPatch({ acting: true, message: undefined });
-                void unwrap(target.drop(projectId)).then((stats) => {
-                  release();
-                  if (!active) return;
-                  searchPatch({ acting: false, stats: stats as SearchStatsShape, results: undefined, references: undefined, message: '已删除派生索引（可随时重建，不写任何结构层）。' });
-                }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
-              },
-              // 结果跳转：正文命中 → 正文视图对应场景；其余层 → 对应层面板（R14-6 结果跳转）。
-              jumpTo(hit: SearchHitShape): void {
-                if (hit.layer === 'text' && hit.nav.chapterId !== undefined && hit.nav.sceneId !== undefined) {
-                  act.activateView('chapters');
-                  chaptersOpsRef?.openScene(hit.nav.chapterId, hit.nav.sceneId);
-                  return;
-                }
-                const layerView: Record<string, WorkbenchViewId> = {
-                  characters: 'characters', worldview: 'worldview', outline: 'outline',
-                  canon: 'canon', knowledge: 'knowledge', text: 'chapters',
-                };
-                const view = layerView[hit.layer];
-                if (view !== undefined) act.activateView(view);
-              },
-              dismiss() { searchPatch({ status: 'idle', message: undefined, results: undefined, references: undefined, query: '', pov: '', referenceKey: '', acting: false }); },
-            };
-          })(),
-          // ---- I72 写作进度面板（R14-7）：概览/筛选/章节详情/重建/删除派生统计 ----
-          statistics: (() => {
-            const statisticsPatch = (patch: Partial<StatisticsLayerState>): void => act.statisticsPatch(patch);
-            const run = <T>(key: string, call: (target: StatisticsNamespace, projectId: string) => Promise<unknown>, onResult: (result: T) => void): void => {
-              const target = statisticsNamespace;
-              if (!target || projectId === undefined) { statisticsPatch({ status: 'error', message: '统计服务不可用' }); return; }
-              if (!beginOp(key)) return;
-              const release = (): void => endOp(key);
-              statisticsPatch({ acting: true, message: undefined });
-              void unwrap(call(target, projectId)).then((result) => {
-                release();
-                if (!active) return;
-                onResult(result as T);
-                statisticsPatch({ acting: false, status: 'ready' });
-              }, (cause: Error) => { release(); if (!active) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
-            };
-            const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
-              run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, (ns, pid) => ns.sceneCards(pid, {
-                ...(filters.actId !== '' ? { actId: filters.actId } : {}),
-                ...(filters.beatId !== '' ? { beatId: filters.beatId } : {}),
-                ...(filters.status !== '' ? { status: filters.status } : {}),
-              }), (result) => statisticsPatch({ sceneCards: result }));
-            };
-            const loadTasks = (status: string): void => {
-              run<TasksResultShape>(`statistics:tasks:${status}`, (ns, pid) => ns.tasks(pid, status === '' ? undefined : { status }), (result) => statisticsPatch({ tasks: result }));
-            };
-            const loadOverview = (): void => {
-              run<StatisticsOverviewShape>('statistics:overview', (ns, pid) => ns.overview(pid), (result) => statisticsPatch({ overview: result }));
-            };
-            return {
-              setCardAct(value: string) { statisticsPatch({ cardActId: value, cardBeatId: '' }); loadCards({ actId: value, beatId: '', status: snapshot.statistics.cardStatus }); },
-              setCardBeat(value: string) { statisticsPatch({ cardBeatId: value }); loadCards({ actId: snapshot.statistics.cardActId, beatId: value, status: snapshot.statistics.cardStatus }); },
-              setCardStatus(value: string) { statisticsPatch({ cardStatus: value }); loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: value }); },
-              setTaskStatus(value: string) { statisticsPatch({ taskStatus: value }); loadTasks(value); },
-              selectChapter(value: string) {
-                statisticsPatch({ chapterId: value });
-                if (value === '') { statisticsPatch({ chapterDetail: undefined }); return; }
-                run<ChapterDetailShape>(`statistics:chapterDetail:${value}`, (ns, pid) => ns.chapterDetail(pid, value), (result) => statisticsPatch({ chapterDetail: result }));
-              },
-              refreshOverview() { loadOverview(); },
-              refreshStats() {
-                run<StatisticsStatsShape>('statistics:stats', (ns, pid) => ns.stats(pid), (result) => statisticsPatch({ stats: result }));
-              },
-              rebuild(): void {
-                run<StatisticsStatsShape>('statistics:rebuild', (ns, pid) => ns.rebuild(pid), (stats) => {
-                  statisticsPatch({ stats });
-                  loadOverview();
-                  loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: snapshot.statistics.cardStatus });
-                  loadTasks(snapshot.statistics.taskStatus);
-                  statisticsPatch({ message: `已从 C5/B5/C6/任务记录重建派生统计（章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}，零写结构层）。` });
-                });
-              },
-              drop(): void {
-                run<StatisticsStatsShape>('statistics:drop', (ns, pid) => ns.drop(pid), (stats) => {
-                  statisticsPatch({ stats, overview: undefined, sceneCards: undefined, tasks: undefined, chapterDetail: undefined, message: '已删除派生统计（可随时重建，不写任何结构层）。' });
-                });
-              },
-              dismiss() { statisticsPatch({ status: 'idle', message: undefined, stats: undefined, overview: undefined, chapterId: '', chapterDetail: undefined, cardActId: '', cardBeatId: '', cardStatus: '', sceneCards: undefined, taskStatus: '', tasks: undefined, acting: false }); },
-            };
-          })(),
-          // 方案 A：剧情时间线面板（design §8 相关角色对）。只提交受控命令；
-          // 时间线文档与当前节点选择都由 Host（novelTimeline）持有。
-          timeline: (() => {
-            const timelinePatch = (patch: Partial<TimelineLayerState>): void => act.timelinePatch(patch);
-            const load = (): void => {
-              const target = timelineNamespace;
-              if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
-              if (!beginOp('timeline:read')) return;
-              const release = (): void => endOp('timeline:read');
-              timelinePatch({ status: 'loading', message: undefined });
-              void unwrap(target.read(projectId)).then((timeline) => {
-                release();
-                if (!active) return;
-                timelinePatch({ status: 'ready', timeline: (timeline ?? undefined) as TimelineShape | undefined, selectedId: undefined, dirty: false, saving: false, saveMessage: '', error: '', message: undefined });
-              }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', message: (cause as Error).message }); });
-            };
-            return {
-              refresh: load,
-              ensure(): void {
-                const target = timelineNamespace;
-                if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
-                if (!beginOp('timeline:ensure')) return;
-                const release = (): void => endOp('timeline:ensure');
-                timelinePatch({ status: 'loading', error: '', message: undefined });
-                void unwrap(target.ensureFromOutline(projectId)).then((timeline) => {
-                  release();
-                  if (!active) return;
-                  timelinePatch({ status: 'ready', timeline: timeline as TimelineShape, selectedId: undefined, dirty: false, saving: false, saveMessage: '已从大纲生成时间线骨架', error: '', message: undefined });
-                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', error: (cause as Error).message, message: undefined }); });
-              },
-              select(nodeId: string) {
-                timelinePatch({ selectedId: nodeId, dirty: false, error: '', saveMessage: '' });
-              },
-              mutate(update: (draft: TimelineShape) => TimelineShape) {
-                const current = snapshot.timeline.timeline;
-                if (current === undefined) return;
-                timelinePatch({ timeline: update(current), dirty: true, error: '', saveMessage: '' });
-              },
-              setCurrent(nodeId: string | null): void {
-                const target = timelineNamespace;
-                const current = snapshot.timeline.timeline;
-                if (!target || projectId === undefined || current === undefined) return;
-                if (!beginOp('timeline:setCurrent')) return;
-                const release = (): void => endOp('timeline:setCurrent');
-                void unwrap(target.setCurrentNode(projectId, nodeId)).then((timeline) => {
-                  release();
-                  if (!active) return;
-                  timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saveMessage: nodeId === null ? '已恢复自动锚定' : '已设为当前时间点', error: '' });
-                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ error: (cause as Error).message }); });
-              },
-              save(): void {
-                const target = timelineNamespace;
-                const current = snapshot.timeline.timeline;
-                if (!target || projectId === undefined || current === undefined || snapshot.timeline.saving) return;
-                if (!beginOp('timeline:save')) return;
-                const release = (): void => endOp('timeline:save');
-                timelinePatch({ saving: true, error: '', saveMessage: '' });
-                void unwrap(target.save(projectId, current)).then((timeline) => {
-                  release();
-                  if (!active) return;
-                  timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saving: false, saveMessage: '已保存', error: '' });
-                }, (cause: Error) => { release(); if (!active) return; timelinePatch({ saving: false, error: (cause as Error).message, saveMessage: '' }); });
-              },
-            };
-          })(),
-        };
-      };
+      // I82：逐层编辑动作（makeOps 1300 行）迁至 src/client/ops/（按层工厂）；
+      // 此处只构建 OpsContext 并交给组合根 createWorkbenchOps。渲染期闭包语义
+      // 不变：snapshot 是当前渲染快照，act 是 inject 捕获的 baked actions。
+      const makeOps = (snapshot: WorkbenchState): WorkbenchOps => createWorkbenchOps({
+        snapshot,
+        act: capturedActions as WorkbenchActions,
+        projectId: currentProjectId,
+        active,
+        beginOp,
+        endOp,
+        workspace,
+        writing,
+        reviewNamespace,
+        queueNamespace,
+        knowledgeNamespace,
+        ruleStyleNamespace,
+        progressNamespace,
+        importExportNamespace,
+        branchNamespace,
+        searchNamespace,
+        statisticsNamespace,
+        timelineNamespace,
+      });
 
       // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
       ctx.effect(() => {
@@ -2702,7 +1010,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.search, s.statistics, s.timeline, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, {
+            workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, onboardingNamespace: onboarding,
+          }, ui, {
+            layers, chapters: s.chapters, review: s.review, queue: s.queue, knowledge: s.knowledge, ruleStyle: s.ruleStyle, progress: s.progress, importExport: s.importExport, search: s.search, statistics: s.statistics, timeline: s.timeline,
+          }, makeOps(s), s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,

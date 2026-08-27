@@ -66,10 +66,12 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   const index = read('src/index.ts');
   const client = read('src/client.ts');
   const chapters = read('src/client/layers/chapters.ts');
+  // I82：C5 编辑 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。
+  const chaptersOps = read('src/client/ops/chapters.ts');
   for (const method of ['sceneEdit', 'sceneReparsePropose', 'sceneReparseAccept', 'sceneReparseReject']) {
     if (!hostRemote.includes(method)) fail(`host remote text.ts missing ${method}`);
     if (!workspace.includes(method)) fail(`workspace adapter missing ${method}`);
-    if (!client.includes(method)) fail(`client.ts missing ${method}`);
+    if (!chaptersOps.includes(method)) fail(`ops/chapters.ts missing ${method}`);
   }
   for (const fn of ['createTextEditService', 'reparsePropose', 'reparseAccept', 'reparseReject', 'buildParsers', 'buildWriters']) {
     if (!editService.includes(fn)) fail(`text-edit-service.ts missing ${fn}`);

@@ -2,20 +2,12 @@ import type { WorkspaceNamespace } from './shared.js';
 import { unwrap } from './shared.js';
 import { emptyOutline, type OutlineShape } from './layers/outline.js';
 import type { StateSnapshotShape } from './layers/state.js';
+import type { ProjectSessionActions } from './store/types.js';
 
-/** Load-result setters plus the editor initializers reload needs to seed. */
-export interface ProjectSessionActions {
-  setCharacters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setWorldview(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setOutline(status: 'loading' | 'ready' | 'error', outline: unknown, message?: string): void;
-  setRelationship(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  setState(status: 'loading' | 'ready' | 'error', snapshots: unknown[], message?: string): void;
-  setCanon(status: 'loading' | 'ready' | 'error', events: unknown[], message?: string): void;
-  /** I60：章节树随作品打开一并装载（C5 只读 Remote，R13-1）。 */
-  setChapters(status: 'loading' | 'ready' | 'error', list: unknown[], message?: string): void;
-  outlineDraft(patch: { draft?: OutlineShape; dirty?: boolean; error?: string; selectedActId?: string; selectedBeatId?: string; selectedDetailId?: string }): void;
-  stateDraft(patch: { selectedSeq?: number; fromSeq?: number; toSeq?: number; diff?: unknown; error?: string }): void;
-}
+/**
+ * 装载动作子集来自 store 契约单一来源（I82 接口收敛，架构审查 §5.1：
+ * `ProjectSessionActions` 由 `WorkbenchActions` Pick 派生，见 store/types.ts）。
+ */
 
 /**
  * Reload all six layers for one project. Each layer loads independently through

@@ -77,7 +77,9 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
     if (!styles.includes(cls)) fail(`styles missing ${cls}`);
   }
   if (!client.includes("activeView === 'chapters'")) fail('client.ts missing chapters view dispatch');
-  if (!client.includes("chaptersRead('ready'")) fail('client.ts missing chapters read ops');
+  // I82：正文 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。
+  const chaptersOps = read('src/client/ops/chapters.ts');
+  if (!chaptersOps.includes("chaptersRead('ready'")) fail('ops/chapters.ts missing chapters read ops');
   for (const method of ['chapterList', 'chapterRead', 'sceneRead']) {
     if (!hostRemote.includes(method)) fail(`host remote text.ts missing ${method}`);
     if (!read('src/host/workspace-service.ts').includes(method)) fail(`workspace adapter missing ${method}`);

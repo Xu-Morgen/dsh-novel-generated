@@ -150,7 +150,7 @@
     "verify:i14": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i14",
     "verify:stage-14": "pnpm run verify:i73 && pnpm run verify:i74",
     "verify:i15": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i15",
-    "verify:stage-15": "pnpm run verify:i75 && pnpm run verify:i76 && pnpm run verify:i77 && pnpm run verify:i78 && pnpm run verify:i79 && pnpm run verify:i80 && pnpm run verify:i81",
+    "verify:stage-15": "pnpm run verify:i75 && pnpm run verify:i76 && pnpm run verify:i77 && pnpm run verify:i78 && pnpm run verify:i79 && pnpm run verify:i80 && pnpm run verify:i81 && pnpm run verify:i82",
     "verify:i16": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i16",
     "verify:i17": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i17",
     "verify:i18": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i18",
@@ -223,6 +223,8 @@
     "verify:i80": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i80 && pnpm run smoke:i53 && pnpm run smoke:i50:profile && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "smoke:i81": "node scripts/smoke-i81.mjs",
     "verify:i81": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i81 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
+    "smoke:i82": "node scripts/smoke-i82.mjs",
+    "verify:i82": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i82 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {
