@@ -142,3 +142,4 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/evidence-bundle-draft-independent-design-review-final.json | 2026-08-24-stage10-project-onboarding evidence independent-design-review-final |
 | 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/resume-state-hint.json | 2026-08-24-stage10-project-onboarding resume state hint |
 | 2026-08-24 | plan | docs/aegis/plans/2026-08-24-stage10-project-onboarding-implementation.md | Stage 10 作品启动与六层初始化实施计划 |
+| 2026-08-27 | plan | docs/aegis/plans/2026-08-27-architecture-debt-elimination.md | Stage 15 架构债务消除实施计划（I75–I84） |

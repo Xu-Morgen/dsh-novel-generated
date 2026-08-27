@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.2
-> 日期：2026-08-26
+> 版本：v2.3
+> 日期：2026-08-27
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,17 +11,18 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.2：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
-2. 本文件 v2.2：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.2：I1–I74 的执行卡片、交付物与命令细节。
-4. `AGENTS.md` v2.2：执行纪律。
+1. `docs/novel-creation-tool-design.md` v2.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
+2. 本文件 v2.3：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v2.3：I1–I84 的执行卡片、交付物与命令细节。
+4. `AGENTS.md` v2.3：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
+6. `docs/novel-creation-tool-architecture-review.md`（v1.0）：架构审查记录，Stage 15（R16）重构立项输入；review record，非设计权威，不覆盖上述产品权威。
 
 ### 0.2 v1.x supersession 与 provenance
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I74**：I1–I53 已完成，I54–I72 已批准，I73–I74 剧情时间线（R15）已批准。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- 当前迭代身份只有本文件定义的 **I1–I84**：I1–I53 已完成，I54–I74 已批准，I75–I84 架构债务消除（R16）已批准。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R14 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -54,6 +55,7 @@
 | Stage 12 P0 正文写作闭环 | I60–I65 | `pnpm run verify:stage-12` |
 | Stage 13 P1 能力可达性 | I66–I72 | `pnpm run verify:stage-13` |
 | Stage 14 剧情时间线 | I73–I74 | `pnpm run verify:stage-14` |
+| Stage 15 架构债务消除 | I75–I84 | `pnpm run verify:stage-15` |
 
 ---
 
@@ -280,6 +282,19 @@
 | R15-4 | onboarding finalApply 落地 B5 后自建时间线骨架（不覆盖已存在的手动编辑）；时间线可手动编辑保存（reveals/relationships/storyTime/currentNodeId）。 | finalApply 成功自建、已存在不覆盖、面板编辑→save 只经 novelTimeline Remote。 | I73, I74 | `pnpm run verify:i73`; `pnpm run verify:i74`; `pnpm run verify:stage-14` |
 | R15-5 | Client 提供时间线面板：有序节点列表（当前节点标记）、每节点编辑、手动设当前节点（null 恢复自动）、一键自建、保存；Client 不持有时间线真相。 | 面板渲染/自建/节点列表/保存断言；Remote 挂载失败降级；Client bundle 无 node:fs。 | I74 | `pnpm run verify:i74`; `pnpm run verify:stage-14` |
 
+## R16. 架构质量与债务消除（Stage 15 重构）
+
+> 定位：I1–I74 功能交付后，按 `docs/novel-creation-tool-architecture-review.md`（v1.0，review record，非设计权威）§9 路线图消除系统级架构债务——霰弹枪修改、god file / god service、契约/形状手写多重复声明与边界类型安全侵蚀。重构只消除复制与接线债务，不改变任何领域契约、公开 Remote/wire 形状与产品能力；领域所有权设计（core 归 core、接线归组合根、真相单 owner）与 §0.1 宿主基线保持不变。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R16-1 | 接线层类型安全恢复：生产代码不得依赖 `as Parameters<...>`/`as never`/`as unknown as` 断言接线签名或领域输入；方法签名变更必须在接线层产生编译错。 | grep 断言归零；方法签名变更负向夹具；`pnpm test` 全量绿。 | I75, I80 | `pnpm run verify:i75`; `pnpm run verify:i80`; `pnpm run verify:stage-15` |
+| R16-2 | 全仓库最大复制源归零：parse-JSON 样板（9 份）、`confidenceSchema`（7 份）、violation schema（3 份）、C2→C1→C3→C4→B2 五层写回器（2 份）、文本管道 normalize/chunk（2 份）、SHA-256→hex（3 份）各自只保留一份实现。 | grep 定义唯一断言 + DRY 扫描；既有 parser 样本回归（含 held-out）阈值不变；`pnpm test` 全量绿。 | I76, I79, I84 | `pnpm run verify:i76`; `pnpm run verify:i79`; `pnpm run verify:i84`; `pnpm run verify:stage-15` |
+| R16-3 | 契约单一来源：host/remote wire schema 从 core schema 派生；`contracts/` 存形状本体而非空 shapeIds；Client 投影 shape 为可打包纯 zod 直用；schema 字段单一变更影响面 ≤3 文件。 | characters 层字段改名横切面 ≤3；strict codec wire smoke；契约锁一致性断言。 | I77, I78 | `pnpm run verify:i77`; `pnpm run verify:i78`; `pnpm run verify:stage-15` |
+| R16-4 | god file / god service 消除：`client.ts`（~2876）、`index.ts`（~581）、writing/onboarding adjudication service（588/648 行）按职责拆分；行数护栏成立；`$mount` 块与 `WorkbenchActions`/`WorkbenchState`/`ProjectSessionActions` 三接口重复声明归零。 | 行数护栏断言；接口重复归零；既有 UI/service 测试迁移后等价全绿。 | I79, I80, I82, I83 | `pnpm run verify:i79`; `pnpm run verify:i80`; `pnpm run verify:i82`; `pnpm run verify:i83`; `pnpm run verify:stage-15` |
+| R16-5 | 分层边界纪律保持并显式化：core→host/client 反向 import 保持 0；分层倒置边（`core/settings-index→llm/port`、`core/upload→import`、`llm/template→core/settings-index` 往返）修复；可入 client 图的 core 纯模块白名单显式化并受构建扫描约束。 | 反向 import 扫描 0；倒置边扫描 0；白名单外 core 引用负测失败。 | I78, I84 | `pnpm run verify:i78`; `pnpm run verify:i84`; `pnpm run verify:stage-15` |
+| R16-6 | 重构不改变领域行为与公开契约：I1–I74 全部既有验收（`pnpm test` + stage verify + LLM 样本阈值）在重构后保持绿；公开 Remote/wire 契约形状不变。 | 全量测试 + 全 held-out 回归 + 既有 stage 累积门全绿；契约形状快照不变。 | I75–I84（全部） | `pnpm run verify:stage-15`（含 I75–I84 各迭代 verify 全绿） |
+
 ---
 
 ## 覆盖矩阵
@@ -330,7 +345,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I74 全覆盖矩阵
+### M-P. 产品能力与 I1–I84 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -408,6 +423,16 @@
 | 写作进度面板 | I72 | R14 |
 | 剧情时间线数据层与服务 | I73 | R15 |
 | 剧情时间线面板 | I74 | R15 |
+| 共享 Remote 接线层与组合根收敛 | I75 | R16 |
+| llm 解析/检测公共基座 | I76 | R16 |
+| wire schema 单一来源与契约补丁修复 | I77 | R16 |
+| 契约锁落地与 Client shape 收敛 | I78 | R16 |
+| writing-adjudication 拆分与共享写回器 | I79 | R16 |
+| onboarding-adjudication 拆分与类型断言消除 | I80 | R16 |
+| core 高优先文件拆分 | I81 | R16 |
+| client.ts 拆分（一）store/ops | I82 | R16 |
+| client.ts 拆分（二）panels/mount/harness | I83 | R16 |
+| 低优先级债务清零 | I84 | R16 |
 
 ---
 
@@ -423,11 +448,12 @@
 | N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
 | N-7 | 已有非空作品合并导入 | Stage 10 仅初始化新建/空作品；不静默合并或覆盖已有六层。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
 | N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
+| N-9 | 重构改变领域契约与产品能力 | Stage 15（I75–I84）重构只消除复制与接线债务：不改变任何领域契约、公开 Remote/wire 形状、LLM 样本/gold/阈值与产品功能；公开服务改名属破坏性变更，另行立项走兼容迁移。 |
 
 ---
 
 ## 结论
 
-**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并为每个迭代和 Stage 11–13 定义可机器执行的验证门。新增 Stage 14（I73–I74）剧情时间线（方案 A），为关系注入与知情层提供确定性时间轴（R15）。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展改变 Host source-of-truth。**
+**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并新增 Stage 14（I73–I74）剧情时间线（方案 A，R15）。v2.3 依据 `docs/novel-creation-tool-architecture-review.md` §9 新增 Stage 15（I75–I84）架构债务消除（R16）：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零，只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展或重构改变 Host source-of-truth。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 还必须执行 D20 Slot 兼容门：若新版出现 additive 侧区公共 Slot，先通知升级并更新兼容基线；否则使用单一 `shell.overlay` 右侧停靠侧板路径。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

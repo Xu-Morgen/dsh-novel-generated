@@ -4,9 +4,10 @@ AI 长篇小说创作器是一个运行在 **DeepSeek Harness（DSH）** 中的 
 
 > **重要**：本项目的唯一运行宿主和主交付形态是 DeepSeek Harness。它**不是**一个独立 Node/Vite 应用，也没有独立的第二前端或浏览器直连 LLM。文件、凭据、LLM 与领域真相全部由 Host 拥有；Client 只拥有注册到 DSH Slot 的 UI。
 
-- 权威设计文档：`docs/novel-creation-tool-design.md`（v2.2）
-- 权威开发计划：`docs/novel-creation-tool-development-plan.md`（v2.2；I1–I53 已完成，I54–I72 待执行）
-- 需求与验收矩阵：`docs/novel-creation-tool-requirements.md`（v2.2）
+- 权威设计文档：`docs/novel-creation-tool-design.md`（v2.3）
+- 权威开发计划：`docs/novel-creation-tool-development-plan.md`（v2.3；I1–I53 已完成，I54–I84 待执行——I54–I74 功能迭代 + I75–I84 架构债务消除重构）
+- 需求与验收矩阵：`docs/novel-creation-tool-requirements.md`（v2.3）
+- 架构审查记录：`docs/novel-creation-tool-architecture-review.md`（v1.0；Stage 15 重构立项输入，非设计权威）
 
 ---
 

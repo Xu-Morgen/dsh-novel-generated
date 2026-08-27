@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v2.2
+> 规则版本：v2.3
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -10,9 +10,10 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v2.2）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-requirements.md`（v2.2）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v2.2）—— 执行层，14 个阶段、72 个迭代（I1–I72）；I1–I53 已完成，I54–I72 待逐迭代执行，每一步从对应阶段/迭代卡片出发。
+1. `docs/novel-creation-tool-design.md`（v2.3）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v2.3）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v2.3）—— 执行层，15 个阶段、84 个迭代（I1–I84）；I1–I53 已完成，I54–I84 待逐迭代执行（I54–I74 功能迭代，I75–I84 架构债务消除重构），每一步从对应阶段/迭代卡片出发。
+4. `docs/novel-creation-tool-architecture-review.md`（v1.0）—— 架构审查记录，Stage 15 重构立项输入；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
 
@@ -35,6 +36,7 @@
 - 地基切片必配「消费者夹具」（至少一条按下游消费方式的测试）。
 - 样本禁改：禁止为让测试通过而修改样本/金标/阈值，违者该迭代判失败并回退。
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
+- 重构迭代（I75–I84）：只消除复制与接线债务，**不改变领域契约与公开 Remote/wire 形状**；以「既有验收回归全绿（`pnpm test` + stage 回归 + LLM 样本阈值不变）+ 本迭代专属负向扫描断言」为完成条件；禁止夹带新功能；结构性拆分一次一个切片（见计划 §16）。
 
 ## 3. 完成定义（DoD）
 
@@ -78,6 +80,7 @@
   - 内部扩展点：`src/extensions/`（不是外层 Cordis Plugin）
   - 导入/导出/写作辅助：`src/import/`、`src/export/`、`src/write/`、`src/agents/`
 - 层 Schema 集中在 `src/core/schema/`（rules.ts、style.ts、characters.ts、worldview.ts、relationship.ts、outline.ts、knowledge.ts…）。
+- Stage 15 重构落点（I75–I84，见计划 §16）：`src/host/remote/` 共享接线工厂与 helper；`src/llm/parse/shared.ts` / `src/llm/validate/shared.ts` 公共基座；`src/client/{store,ops,panels}/` 与 `src/client/mount.ts`；`contracts/` 存形状本体（跨模块共享类型一律走契约锁，I78 起强制）。
 - 数据目录由 I3 的 `createProject()` 生成（对应设计 §10.1），源码不硬编码路径。
 - 新迭代优先在自属目录内新增文件；不得**静默**改动已交付目录语义。只有对应迭代卡明确列出 canonical owner、兼容/退役边界和跨模块验收时，才可对既有目录做最小 owner-level 修改；跨模块共享类型走 `contracts/` 契约锁。
 - 不创建任何空目录（git 不跟踪空目录）。

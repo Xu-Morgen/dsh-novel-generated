@@ -1,24 +1,25 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v2.2
-> 状态：v2.2 当前设计权威；I1–I53 已完成，I54–I74 为已批准待执行计划；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v2.3
+> 状态：v2.3 当前设计权威；I1–I53 已完成，I54–I84 为已批准待执行计划（I54–I74 功能迭代，I75–I84 架构债务消除重构）；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
 
 | 版本 | 变更 |
 |---|---|
-| v1.1（历史来源） | provenance only：设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展）；不构成 v2.2 当前执行权威。 |
-| v1.2（历史来源） | provenance only：产品升级为「创作环境」，引入细纲、世界观一级能力、辅助 agent、导入导出/编辑 UI、不变设定索引层等；不构成 v2.2 当前执行权威。 |
-| v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成 v2.2 当前执行权威。 |
-| v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成 v2.2 当前执行权威。 |
+| v1.1（历史来源） | provenance only：设计定稿（13 层模型 + 7 引擎 + 生成/注入/一致性/存储/扩展）；不构成当前执行权威。 |
+| v1.2（历史来源） | provenance only：产品升级为「创作环境」，引入细纲、世界观一级能力、辅助 agent、导入导出/编辑 UI、不变设定索引层等；不构成当前执行权威。 |
+| v1.3（历史来源） | provenance only：曾将计划细分为 57 个迭代并引入 ConfirmationGate、thin 闭环等执行安排；这些 v1.x 迭代标签与顺序不构成当前执行权威。 |
+| v1.4（历史来源） | provenance only：曾将计划细分为 68 个迭代并补充真实 LLM thin 切片、原子性、规模 smoke 与样本金标规则；这些 v1.x 迭代标签与顺序不构成当前执行权威。 |
 | **v2.0** | **架构重置**：将 v1.x 的独立 Node/Vite 应用方向记为历史且已被取代；DeepSeek Harness（DSH）成为唯一运行宿主和主交付形态，产品作为 ordinary persistent plugin（普通持久插件）交付；生产安装/组合合同唯一见 §0.1.1。13 层叙事模型、引擎、存储、导入导出、编辑与 agent 产品设计继续有效，唯有与宿主边界冲突的实现方式失效。 |
 | **v2.0（增补 2026-08-24）** | 新增 §14.6「创作台」UI 重设计：在 I33–I36 已交付的 Slot 工作区之上，重做信息架构与视觉体系（编辑台/书斋方向），记录决策 D11–D14 与迭代 I46–I49；§0.1 宿主基线不变，A-7 novel 自有主题系统仍后置。 |
 | **v2.1（2026-08-24）** | 新增 §14.7「作品启动与六层初始化」及 Stage 10（I50–I53）：修复缺失的 Host-owned 作品启动编排，增加多作品选择、空白作品、受控 DOCX 上传、自由文本六层分析、逐层裁决与幂等落地；记录 D15–D19。§0.1 宿主基线不变。 |
 | **v2.2（2026-08-26）** | 将 I1–I53 同步为已完成；新增 Stage 11–13（I54–I72），先把居中浮窗退役为 DSH 内右侧停靠侧板并修复现有 UI，再交付 P0 正文写作闭环与 P1 能力可达性；记录 D20。§0.1 宿主基线不变。 |
 | **v2.2（增补：剧情时间线）** | 新增剧情时间线层（§5.13）：把 B5 大纲结构展开为有序剧情时间轴（timeline.yaml），节点可安排揭示信息与关系建立时机；C1 关系注入改为按「当前时间线节点之前已建立」过滤（§8），C3 revealAt 可对齐时间线节点；onboarding 落地 B5 后自建骨架，作者可手动编辑保存。记录 R15/I73–I74。§0.1 宿主基线不变。 |
+| **v2.3（2026-08-27）** | 依据 `docs/novel-creation-tool-architecture-review.md`（v1.0）§9 新增 **Stage 15 架构债务消除（I75–I84）**：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零；记录 D21–D22。重构只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。§0.1 宿主基线不变。 |
 
-> **v2.2 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.2 当前执行材料；当前迭代身份为 I1–I74，其中 I1–I53 已完成，I54–I72 已批准，I73–I74 剧情时间线（R15）已批准，均须按单迭代纪律逐项执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。
+> **v2.3 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md`、`AGENTS.md` 与 `README.md` 已同步为 v2.3 当前执行材料；当前迭代身份为 I1–I84，其中 I1–I53 已完成，I54–I74 已批准，I75–I84 架构债务消除重构（R16）已批准，均须按单迭代纪律逐项执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。`docs/novel-creation-tool-architecture-review.md`（v1.0）是重构立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线，也不构成新的设计决策。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -897,6 +898,8 @@ project/
 | D18 | DOCX 浏览器入口与解析 owner | Host 路径输入 / Client 解析 / Client 受控运输 + Host 解析 | ✅ 已定（I51）：文件选择器只做限额分块运输；Host 校验 SHA-256、压缩/解压上限与包结构并提取文本。使用成熟 ZIP/XML 解析依赖，退役手写最小 parser，不保留双路径 fallback。 |
 | D19 | Stage 10 切分与失败恢复 | 巨型 I50 / 两迭代压缩 / 四迭代分层 | ✅ 已定：I50 启动编排、I51 上传提取、I52 六层分析、I53 审阅落地；跨文件写入不伪装为原子事务，先全量预检，部分失败报告 `partial-retryable`，重试以确定性 ID 和现值比较继续，禁止补偿性删除作品数据。 |
 | D20 | 创作台侧区落点与兼容门 | 替换 `sidebar`/`details` 单槽 / 居中浮窗继续存在 / DSH additive 侧区 Slot 优先、否则 `shell.overlay` 右侧停靠侧板 | ✅ 已定（I54）：I54 执行前先核验所选 DSH 版本及最新公开 Slot 合同；若新版已有 additive 侧区内容 Slot，停止并先通知用户升级、更新项目兼容基线后再实现；若仍无，则使用 `shell.overlay` list Slot 渲染贴右、全高、非模态停靠侧板。当前安装 `0.1.0-rc.7` 的 live Slot tree，以及最新版 `0.1.1-rc.2` 发布包 `dsh-client-ui-slots`、`dsh-client-ui-sidebar`、`dsh-client-ui-layout`、`dsh-client-ui-workspace` 的静态合同核验，均未发现该公共 Slot，故当前目标为右侧停靠侧板（发布参考：https://github.com/deepseek-ai/DeepSeek-Harness/releases/tag/dsh-v0.1.1-rc.2）。禁止接管 `sidebar`/`details` 单槽，禁止保留居中浮窗与停靠侧板双路径。 |
+| D21 | 架构债务治理策略 | 不立项（继续功能优先）/ 一次巨型重构 / 按架构审查 §9 性价比排序的分阶段重构 | ✅ 已定（v2.3，Stage 15 立项）：新增 Stage 15（I75–I84）分阶段重构；纯机械重构优先（共享 Remote 接线层、llm 公共基座、core 文件拆分），结构性拆分一次一个切片（两个 god service、client.ts）；重构只消除复制与接线债务，不改变领域契约与公开 Remote 形状；每个迭代以「既有验收回归全绿 + 本迭代负向扫描断言」为完成条件，禁止夹带新功能。 |
+| D22 | 契约单一来源方式 | 继续手写多重复声明 / 引入独立 codegen 工具链 / 复用 core schema 派生 + 启用 `contracts/` 形状本体 | ✅ 已定（v2.3，I77–I78）：wire schema 从 core schema 派生（沿用 timeline/editor 直接复用先例）；`contracts/` 存形状本体并加一致性断言；Client 投影 shape 用可打包纯 zod 直用；**不引入独立 codegen 工具链**（避免第二构建面）。 |
 
 ---
 
@@ -921,6 +924,7 @@ project/
 | **M12** | DSH 内右侧停靠侧板 + 现有 UI 正确性/恢复性修复 | 不创建新窗口、不替换宿主单槽；作品切换、初始化裁决、异步恢复、任务型导航和可访问性闭环 |
 | **M13** | C5 正文工作台 + 候选裁决 + 一致性中心 + 自动生成队列 | 作者可在 DSH 内完成章节/场景写作、审校、接受与可恢复批量生成 |
 | **M14** | C3/B1/B4/C6、导入导出、正文分支、搜索与进度可达性 | 已有 Host 能力进入作者工作流，长篇知识边界、版本和交付路径可视化 |
+| **M15** | 架构债务消除（Stage 15，I75–I84）：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、god file/god service 拆分、client.ts 拆分与低优先级债务清零 | 霰弹枪修改、契约多重复声明与边界类型安全侵蚀消除；公开契约与领域行为不变 |
 
 ---
 
@@ -1042,6 +1046,16 @@ project/
 - **时间线数据层与服务（I73）**：新增 `core/timeline`（schema + `timeline.yaml` 仓库 + 从 B5 确定性生成骨架 + 当前节点锚定/关系过滤纯函数）；`host/timeline-service` + `novelTimeline` Remote（read/ensureFromOutline/setCurrentNode/save）；onboarding `finalApply` 落地 B5 后自建；`writing-context` 关系注入按当前时间线节点过滤（未安排关系始终保留）。
 - **时间线面板（I74）**：策划组新增「时间线」视图——有序节点列表（含当前节点标记）、每节点的 storyTime/关系/揭示安排编辑、手动设当前节点（null 恢复自动锚定）、一键自建与保存；Client 只提交受控命令，时间线文档由 Host 持有。
 - **知情联动（后置）**：C3 `revealAt` 仍为自由文本，作者可手动对齐时间线节点 label；后续迭代可让 revealAt 直接引用节点 id 并联动展示。
+
+### 14.12 架构债务消除（Stage 15，I75–I84，v2.3）
+
+> 定位：I1–I74 功能交付后，按 `docs/novel-creation-tool-architecture-review.md`（v1.0，review record，非设计权威）§9 的性价比路线图立项消除系统级架构债务——霰弹枪修改、god file / god service、契约/形状手写多重复声明与边界类型安全侵蚀。重构只消除复制与接线债务，保持 §0.1 宿主基线、领域所有权设计（core 归 core、接线归组合根、真相单 owner）与全部公开 Remote/wire 契约不变。
+
+- **执行策略（D21）**：纯机械重构优先（共享 Remote 接线层、llm 公共基座、core 文件拆分），结构性拆分一次一个切片（两个 god service、client.ts）；每个重构迭代以「重构前后领域行为等价」为完成条件（既有全量测试 + stage 回归 + LLM 样本阈值不变 + 负向扫描断言）；禁止夹带新功能。
+- **工作线映射（对应架构审查 §9 #1–#6）**：① 共享 Remote 接线层 `defineRemote(serviceKey, methods[])`（收敛 19 份 `param()`/`xxxInvocation()`、16 个 bindRemote 适配块、27 个 dispose 钩子，消除 `as Parameters<...>`/`as never`）→ I75；② llm 解析/检测公共基座（`llm/parse/shared.ts` / `llm/validate/shared.ts`，收敛 9 份 parse 样板、7 份 `confidenceSchema`、3 份 violation schema）→ I76；③ 契约单一来源（wire schema 从 core schema 派生、修复组合根契约补丁、`contracts/` 存形状本体、Client 投影纯 zod 直用、可入 client 图 core 纯模块白名单显式化）→ I77–I78；④ 拆分两个 god service（含 C2→C1→C3→C4→B2 五层写回器提取共享）→ I79–I80；⑤ core 高优先文件拆分（statistics/analyzer/search/schema-onboarding）→ I81；⑥ client.ts 拆分（store/ops/panels/mount + 测试 harness 抽取）→ I82–I83；⑦ 低优先级债务清零（文本管道、SHA-256、分层倒置边、杂项与内部命名统一）→ I84。
+- **类型安全恢复要求**：接线层与领域边界不得依赖 `as Parameters<...>`/`as never`/`as unknown as` 断言掩盖签名漂移；方法签名变更必须在接线层产生编译错（review §3.3）。
+- **Client 纯模块白名单**：允许进入 client 图的 core 纯模块（如 `core/review/issue`、`core/timeline/schema`）显式列入白名单并受构建扫描约束；白名单外 core 引用失败（review §8#5）。
+- **完成线**：接线层类型安全恢复、全仓库最大复制源归零、契约单一来源生效（schema 字段单一变更影响面 ≤3 文件）、god file/god service 消除、分层边界保持、I1–I74 全部既有验收回归保持绿、公开契约形状不变。
 
 ---
 
