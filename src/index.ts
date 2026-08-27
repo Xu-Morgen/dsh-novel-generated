@@ -32,7 +32,8 @@ import { createLocalizedEditService } from './host/edit-service.js';
 import { createTextEditService } from './host/text-edit-service.js';
 import { createWritingCandidateService } from './host/candidate-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
-import { createContinuationService } from './host/continuation-service.js';
+import { createWritingAdjudicationService } from './host/writing-adjudication-service.js';
+import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
 import { createLlmConfigService } from './host/llm-config-service.js';
@@ -178,8 +179,6 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelClassifier', createClassifierService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
   ctx.provide('novelLocalizedEdit', createLocalizedEditService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
    ctx.provide('novelChapterWriting', createChapterWritingService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose)));
-   const continuationService = createContinuationService(llm, projectsRoot, (dispose) => ctx.effect(() => dispose));
-   ctx.provide('novelContinuation', continuationService);
    const inspirationService = createInspirationService(llm, (dispose) => ctx.effect(() => dispose));
    ctx.provide('novelInspiration', inspirationService);
   const uploadService = createHostUploadService((dispose) => ctx.effect(() => dispose));
@@ -275,6 +274,45 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // （I65 队列 owner）；I63 裁决 UI 复用本服务并消费 assertCandidateFresh。
   const writingCandidateService = createWritingCandidateService({ llm, projectsRoot, onDispose: (dispose) => ctx.effect(() => dispose) });
   ctx.provide('novelWritingCandidate', writingCandidateService);
+  // I63 候选审阅与生成后裁决（design §14.9 / R13-4）：共享上下文装配 + 既有 Domain
+  // Service 写回 + I21/I22/I24 校验 + I30 标准生命周期。退役 novel_continue 预先
+  // accept 产品路径 —— agent 工具与 GUI 审阅面板共用同一 owner（novelWritingAdjudication）。
+  const nextSceneContext = createNextSceneContextBuilder({
+    outline: outlineService,
+    characters: characterService,
+    worldview: worldviewService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    style: styleService,
+    rules: ruleService,
+    knowledge: knowledgeService,
+    text: textService,
+    workbenchSettings: workbenchSettingsService,
+  });
+  const writingAdjudicationService = createWritingAdjudicationService({
+    llm,
+    projectsRoot,
+    context: nextSceneContext,
+    state: stateService,
+    relationship: relationshipService,
+    knowledge: knowledgeService,
+    canon: canonService,
+    worldview: worldviewService,
+    confirmation: confirmationService,
+    rules: ruleService,
+    style: styleService,
+    consistency: ctx.get('novelConsistencyDetection') as never,
+    knowledgeLeak: ctx.get('novelKnowledgeLeakDetection') as never,
+    relationshipStyle: ctx.get('novelRelationshipStyleDetection') as never,
+    resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelWritingAdjudication', bindRemote({
+    propose: (projectId: unknown, input: unknown, settings?: unknown) => writingAdjudicationService.propose(String(projectId), input as Parameters<typeof writingAdjudicationService.propose>[1], settings),
+    preview: (candidateId: unknown) => writingAdjudicationService.preview(String(candidateId)),
+    adjudicate: (candidateId: unknown, decision: unknown, settings?: unknown) => writingAdjudicationService.adjudicate(String(candidateId), decision as 'accept' | 'reject' | 'rewrite', settings),
+  }, 'novelWritingAdjudication', 'novelWriting'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,
@@ -297,7 +335,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     rules: ruleService,
     knowledge: knowledgeService,
     text: textService,
-    continuation: continuationService,
+    writing: writingAdjudicationService,
     inspiration: inspirationService,
     confirmation: confirmationService,
     resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,

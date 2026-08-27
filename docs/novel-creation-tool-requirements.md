@@ -247,6 +247,14 @@
 | R13-5 | 一致性审校中心统一展示规则、正史、知情、关系与风格五类问题，包含严重度、引用和正文定位；硬冲突阻止接受，软警告需显式裁决。 | 五类问题投影消费者夹具；定位引用；硬/软策略与审计记录。 | I64 | `pnpm run verify:i64`; `pnpm run verify:stage-12` |
 | R13-6 | Host 持有可恢复自动生成队列；支持场景范围、暂停/继续/取消、重试、字数/token 预算和硬/软停止策略。每场景独立候选，不绕过 Gate、不静默改 B5/C6。 | stop/restart 恢复、任务幂等、预算、硬停/软停、取消和 Fiber 清理 E2E。 | I65 | `pnpm run verify:i65`; `pnpm run verify:stage-12` |
 
+> **迁移说明（I63 退役生成前预先 accept 的产品路径）**：`novel_continue` 不再接受
+> `decision=accept` —— 它只产生绑定 project/chapter/scene/sourceHash 的候选（零写，
+> R13-3）。接受/拒绝/重写统一经 `novel_adjudicate`（candidateId + decision）或 GUI
+> 「写作候选」审阅面板（`novelWriting` Remote）裁决；accept 才进入标准校验→解析→
+> 受控写回，reject 零写，rewrite 产生后继候选且旧候选不可静默接受。对话入口与 GUI
+> 共用同一 Host owner（`novelWritingAdjudication`）；I44 续写引擎不再被任何产品入口
+> 引用（其单元测试仍作为已交付模块回归）。
+
 ## R14. P1 能力可达性
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |

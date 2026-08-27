@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -49,6 +49,13 @@ export interface EditorRemote {
 /** The mounted `remote.novelWorkspace` namespace service surface. */
 export interface WorkspaceNamespace extends EditorRemote {
   viewModel(): Promise<unknown>;
+}
+
+/** I63 候选审阅与裁决 Remote 面（design §14.9 / R13-4）：只提交受控命令。 */
+export interface WritingNamespace {
+  propose(projectId: string, input: unknown, settings?: unknown): Promise<unknown>;
+  preview(candidateId: string): Promise<unknown>;
+  adjudicate(candidateId: string, decision: string, settings?: unknown): Promise<unknown>;
 }
 
 export interface WorkspaceSlots {
@@ -139,4 +146,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution };

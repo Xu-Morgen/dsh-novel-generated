@@ -2,12 +2,9 @@ import type { Context } from '@deepseek-ai/cordis';
 
 import { validateProjectId } from '../core/io/path.js';
 import { INITIAL_STATE, type ProjectOpenResult } from '../core/schema/project-lifecycle.js';
-import type { StoryGenerationSources } from '../core/pipeline/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { GenerationSettings } from '../llm/port/index.js';
-import type { StoryLifecycleParserInputs, StoryLifecycleRequest } from '../host/story-lifecycle-service.js';
-import type { ContinuationResult, NovelContinuationService } from '../host/continuation-service.js';
 import type { NovelProjectService } from '../host/project-service.js';
 import type { NovelCharacterService } from '../host/character-service.js';
 import type { NovelWorldviewService } from '../host/worldview-service.js';
@@ -21,33 +18,30 @@ import type { NovelKnowledgeService } from '../host/knowledge-service.js';
 import type { NovelTextService } from '../host/text-service.js';
 import type { NovelInspirationService, InspirationResult } from '../host/inspiration-service.js';
 import type { NovelConfirmationService } from '../host/confirmation-service.js';
-import type { C2StateParserOutput } from '../llm/parse/state.js';
-import { applyC2StateOperationsToDraft } from '../llm/parse/state.js';
-import type { C1RelationshipParserOutput } from '../llm/parse/relationship.js';
-import { materializeC1RelationshipOperations } from '../llm/parse/relationship.js';
-import type { C3KnowledgeParserOutput } from '../llm/parse/knowledge.js';
-import { materializeC3KnowledgeOperations } from '../llm/parse/knowledge.js';
-import type { C4CanonParserOutput } from '../llm/parse/canon.js';
-import type { B2WorldviewParserOutput } from '../llm/parse/worldview.js';
-import type { StateDraft } from '../core/state/index.js';
+import type { NovelWritingAdjudicationService, WritingAdjudicationOutcome } from '../host/writing-adjudication-service.js';
+import type { WritingCandidate } from '../core/candidate/index.js';
+import { createNextSceneContextBuilder, type NovelAgentContext, type NovelCreationSettingsView } from '../host/writing-context.js';
 
 /**
- * 小说创作 Agent 工具层（对话驱动写作，设计 §14.8 之后新增的对话创作入口）。
+ * 小说创作 Agent 工具层（对话驱动写作，design §14.8 之后新增的对话创作入口）。
  *
- * 职责：把既有 Host 领域服务包装成 Agent 可调用的模型工具，让用户直接在 DSH
- * 对话框里驱动生成并落到本地项目：
+ * I63 退役生成前预先 accept 的产品路径（design §14.9 / R13-4）：`novel_continue`
+ * 不再接受 `decision=accept` —— 它只产生绑定 project/chapter/scene/sourceHash 的
+ * 候选（零写），接受/拒绝/重写统一经 `novel_adjudicate` 走写作裁决服务（与 GUI
+ * 审阅面板同一 owner，见 writing-adjudication-service）。
  *
  * - `novel_open` / `novel_status`：打开作品并回读各层就绪状态（只读）；
  * - `novel_context`：组装「下一场景」写作上下文（大纲导航、当前细纲卡、C2 状态、
  *   C4 正史尾部、B3 角色、B4 风格、B1 规则、C3 POV 知情、C5 文本尾部）；
- * - `novel_continue`：按当前上下文续写下一场景；`decision: 'accept'` 时经 I30
- *   生命周期把 C5 文本与 C2/C1/C3/C4/B2 结构化变更落盘（仍走既有 Domain Service
- *   写入与 ConfirmationGate，绝不绕过 Host 改文件）；
+ * - `novel_continue`：续写下一场景候选（只产候选，绝不预先接受或写任何层）；
+ * - `novel_adjudicate`：对候选接受 / 拒绝 / 重写（accept 才经 I30 标准生命周期
+ *   受控写回；reject 零写；rewrite 产生后继候选且旧候选不可静默接受）；
  * - `novel_inspire`：2–3 个灵感方向（只读，不写）。
  *
  * 契约/不变式：
- * - 本模块不拥有任何存储；全部读写委托给注入的 Host 服务（H0-5）。
- * - 低置信结构化变更 fail-closed（抛错并提示需 GUI 确认），不自动落盘。
+ * - 本模块不拥有任何存储；上下文装配复用 `writing-context` 共享 builder，裁决委托
+ *   `novelWritingAdjudication`（不复制第二套实现）。
+ * - 低置信结构化变更 fail-closed（由写作裁决服务在写回层拒绝）。
  * - 工具经 DSH `tools` 注册表暴露（`registerNovelAgentTools`），卸载时完整释放。
  */
 
@@ -64,7 +58,8 @@ export interface NovelAgentDeps {
   readonly rules: NovelRuleService;
   readonly knowledge: NovelKnowledgeService;
   readonly text: NovelTextService;
-  readonly continuation: NovelContinuationService;
+  /** I63：候选产生与裁决统一走写作裁决服务（退役 novel_continue 预先 accept）。 */
+  readonly writing: NovelWritingAdjudicationService;
   readonly inspiration: NovelInspirationService;
   readonly confirmation: NovelConfirmationService;
   /** 解析当前活动生成设置（modelRef/credentialRef/maxTokens/思维链）。 */
@@ -73,12 +68,6 @@ export interface NovelAgentDeps {
   readonly workbenchSettings: {
     load(): Promise<{ readonly wordTarget: number; readonly askWhenThin: boolean }>;
   };
-}
-
-/** 创作台通用设置的紧凑视图（透出给 Agent 决定是否询问补充）。 */
-export interface NovelCreationSettingsView {
-  readonly wordTarget: number;
-  readonly askWhenThin: boolean;
 }
 
 /** 一个作品的紧凑状态视图（供 Agent 与工具展示）。 */
@@ -94,33 +83,22 @@ export interface NovelProjectStatus {
   readonly creation: NovelCreationSettingsView;
 }
 
-/** 下一场景的写作上下文（compact JSON 视图 + 内部装配结果）。 */
-export interface NovelAgentContext {
-  readonly projectId: string;
-  readonly navigation: OutlineNavigation;
-  readonly card: DetailBeat;
-  readonly sources: StoryGenerationSources;
-  /** I30 解析器的输入快照（写回前由生命周期使用）。 */
-  readonly parserInputs: StoryLifecycleParserInputs;
-  readonly recentScenes: number;
-  readonly creation: NovelCreationSettingsView;
-}
-
 export interface NovelAgentService {
   open(projectId: string): Promise<ProjectOpenResult>;
   listProjects(): Promise<readonly { id: string; name: string }[]>;
   status(projectId: string): Promise<NovelProjectStatus>;
   context(projectId: string): Promise<NovelAgentContext>;
-  continueScene(projectId: string, decision: 'accept' | 'reject', signal?: AbortSignal): Promise<ContinuationResult>;
+  /** I63：续写下一场景候选（只产候选、零写；接受经 novel_adjudicate）。 */
+  proposeContinue(projectId: string, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
+  /** I63：对候选裁决（accept 受控写回 / reject 零写 / rewrite 后继候选）。 */
+  adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
   inspire(projectId: string, signal?: AbortSignal): Promise<InspirationResult>;
-}
-
-function hasLowConfidence(ops: readonly { confidence?: unknown }[]): boolean {
-  return ops.some((operation) => operation.confidence === 'low');
 }
 
 export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService {
   const opened = new Set<string>();
+  // 共享下一场景上下文装配（与 GUI 写作裁决服务同一 builder，AGENTS §2 不复制）。
+  const contextBuilder = createNextSceneContextBuilder(deps);
 
   async function openProject(projectId: string): Promise<ProjectOpenResult> {
     validateProjectId(projectId);
@@ -132,120 +110,11 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
         deps.rules.open(projectId),
         deps.knowledge.open(projectId),
         deps.text.open(projectId),
-        deps.continuation.open(projectId),
+        deps.writing.open(projectId),
       ]);
       opened.add(projectId);
     }
     return deps.project.openProject(projectId);
-  }
-
-  /** 装配下一场景的全部生成源（上下文/导航/知情/正史/历史）。 */
-  async function buildContext(projectId: string): Promise<NovelAgentContext> {
-    const navigation = await deps.outline.navigate(projectId);
-    const cards = await deps.outline.beatCards(projectId);
-    const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
-    const [characters, worldview, relationships, state, canonViews, styleSegment, activeRules, knowledgeView, fullKnowledge, chapters] = await Promise.all([
-      deps.characters.list(projectId),
-      deps.worldview.list(projectId),
-      deps.relationship.read(projectId),
-      deps.state.current(projectId),
-      deps.canon.query(projectId),
-      deps.style.constantSegment(projectId),
-      deps.rules.listActive(projectId),
-      deps.knowledge.forPov(projectId, card.pov),
-      deps.knowledge.read(projectId),
-      deps.text.listChapters(projectId),
-    ]);
-    const characterIds = characters.map((character) => character.id);
-    const sceneCharacters = await deps.characters.listForScene(projectId, characterIds);
-    const recentScenes = chapters.flatMap((chapter) => chapter.scenes).slice(-3);
-    // B2 触发注入只取 active 命中（设计 §5.4 / R1-B2）：rewritten/obsolete 旧条目与
-    // 尚未在正文揭示的条目不得进入生成上下文——组装器对非 active 命中 fail-closed，
-    // 且全量注入会把未来才应知道的条目泄漏进生成提示（C3 知情边界）。
-    // 触发文本 = 当前细纲卡 + 最近场景正文；parserInputs.b2 仍保留全量 worldview 以支持改写提案。
-    const triggerText = [card.title, card.summary, ...card.points]
-      .concat(recentScenes.map((scene) => scene.content))
-      .filter((text) => text.trim().length > 0)
-      .join('\n');
-    const worldviewHits =
-      triggerText.length > 0 ? await deps.worldview.matchTriggers(projectId, [triggerText], []) : [];
-    const sources: StoryGenerationSources = {
-      context: {
-        macros: { user: '作者', pov: card.pov },
-        sources: {
-          rules: activeRules,
-          style: styleSegment,
-          characters: sceneCharacters,
-          worldview: worldviewHits,
-          relationships: { relationships, characterIds },
-          state,
-        },
-      },
-      navigation,
-      knowledge: knowledgeView,
-      canon: canonViews,
-      history: { recentScenes, historicalSummaries: [] },
-    };
-    const parserInputs = {
-      c2: { state },
-      c1: { current: relationships },
-      c3: { entries: [...fullKnowledge.entries], states: [...fullKnowledge.states] },
-      c4: { canon: [...canonViews] },
-      b2: { current: worldview },
-    };
-    const creation = await deps.workbenchSettings.load();
-    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation };
-  }
-
-  /** 把解析输出应用到既有 Domain Service 的写回器（顺序 C2→C1→C3→C4→B2，设计 §14.7.4）。 */
-  function buildWriters(projectId: string, requestId: string): StoryLifecycleRequest['writers'] {
-    return {
-      c2: async (output) => {
-        const parsed = output as C2StateParserOutput;
-        if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C2 operations require ConfirmationGate');
-        await deps.state.transaction(projectId, (draft) => applyC2StateOperationsToDraft(draft as StateDraft, parsed.ops));
-      },
-      c1: async (output) => {
-        const parsed = output as C1RelationshipParserOutput;
-        if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C1 operations require ConfirmationGate');
-        const next = materializeC1RelationshipOperations(await deps.relationship.read(projectId), parsed.ops);
-        await deps.relationship.saveAll(projectId, next);
-      },
-      c3: async (output) => {
-        const parsed = output as C3KnowledgeParserOutput;
-        if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence C3 operations require ConfirmationGate');
-        const next = materializeC3KnowledgeOperations(await deps.knowledge.read(projectId), parsed.ops);
-        await deps.knowledge.saveAll(projectId, next.entries, next.states);
-      },
-      c4: async (output) => {
-        const parsed = output as C4CanonParserOutput;
-        if (hasLowConfidence(parsed.ops)) throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
-        for (const operation of parsed.ops) {
-          if (operation.op !== 'append') throw new Error('C4 supersede operations require ConfirmationGate');
-          await deps.canon.append(projectId, operation.event);
-        }
-      },
-      b2: async (output) => {
-        const parsed = output as B2WorldviewParserOutput;
-        // B2 改写 confirmation-first：先经 I11 Gate 提出并接受，再经既有改写服务落盘。
-        const proposalId = `${requestId}-b2`;
-        await deps.confirmation.propose(projectId, {
-          id: proposalId,
-          kind: 'b2-worldview-parser-supersedes',
-          payload: { ops: parsed.ops },
-        });
-        await deps.confirmation.accept(projectId, proposalId);
-        for (const operation of parsed.ops) {
-          // B2 解析器契约（b2ReplacementSchema）约定 version/status/supersededBy 归存储层；
-          // 改写服务要求完整 WorldEntryInput，此处补默认值（语义同 asWorldEntryInput）。
-          await deps.worldview.rewrite(projectId, operation.targetId, {
-            ...operation.replacement,
-            status: 'active',
-            supersededBy: null,
-          });
-        }
-      },
-    };
   }
 
   const service: NovelAgentService = {
@@ -277,37 +146,14 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
     },
     async context(projectId) {
       await openProject(projectId);
-      return buildContext(projectId);
+      return contextBuilder.context(projectId);
     },
-    async continueScene(projectId, decision, signal) {
+    async proposeContinue(projectId, signal) {
       await openProject(projectId);
-      const built = await buildContext(projectId);
-      const requestId = `agent-continue-${Date.now()}`;
-      // 通用目标字数优先于细纲卡自带 wordTarget（创作设置）。
-      const card = { ...built.card, wordTarget: built.creation.wordTarget };
-      const request = {
-        id: requestId,
-        projectId,
-        chapter: { id: 'chapter-1', index: 1, title: '正文', pov: card.pov, status: 'draft' as const },
-        scene: {
-          id: `agent-scene-${Date.now()}`,
-          summary: card.summary,
-          beats: [built.navigation.beatId],
-          canonEvents: [],
-          notes: '',
-        },
-        sources: built.sources,
-        card,
-        navigation: built.navigation,
-        settings: await deps.resolveSettings(),
-        decision,
-        afterGenerationViolations: [],
-        beforeWritebackViolations: [],
-        parserInputs: built.parserInputs,
-        writers: buildWriters(projectId, requestId),
-        signal,
-      };
-      return deps.continuation.continue(request);
+      return deps.writing.propose(projectId, { intent: 'continue' }, undefined, signal);
+    },
+    async adjudicate(candidateId, decision, signal) {
+      return deps.writing.adjudicate(candidateId, decision, undefined, signal);
     },
     async inspire(projectId, signal) {
       await openProject(projectId);
@@ -319,28 +165,6 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
     },
   };
   return Object.freeze(service);
-}
-
-/** 从细纲卡中选择当前应写的一张：优先当前 beat 中未完成的，其次最后一张。 */
-function pickCurrentCard(
-  cards: readonly { beatId: string; detailBeat: DetailBeat }[],
-  navigation: OutlineNavigation,
-): DetailBeat | undefined {
-  const inBeat = cards.filter((card) => card.beatId === navigation.beatId);
-  const picked = inBeat.find((card) => card.detailBeat.status !== 'done') ?? inBeat[inBeat.length - 1];
-  return picked?.detailBeat ?? undefined;
-}
-
-function fallbackCard(navigation: OutlineNavigation): DetailBeat {
-  return {
-    id: 'agent-fallback-card',
-    title: navigation.title,
-    summary: navigation.instruction,
-    pov: 'mira',
-    wordTarget: 500,
-    points: [],
-    status: 'planned',
-  };
 }
 
 /* --------------------------------------------------------------------------
@@ -417,7 +241,7 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
           navigation: built.navigation,
           currentCard: built.card,
           recentScenes: built.recentScenes,
-          // sources 仅回传紧凑摘要，避免把整包上下文塞给模型（完整 prompt 由续写工具内部装配）。
+          // sources 仅回传紧凑摘要，避免把整包上下文塞给模型（完整 prompt 由候选命令内部装配）。
           characters: built.sources.context.sources.characters.length,
           worldview: built.sources.context.sources.worldview.length,
           canon: built.sources.canon.length,
@@ -427,22 +251,24 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     },
     {
       name: 'novel_continue',
-      description: '按当前大纲/细纲/状态/正史续写下一场景。decision=accept 时落盘 C5 文本与结构化层（C2/C1/C3/C4/B2）；reject 时不写入。返回生成文本与执行状态。',
-      parameters: objectParams({
-        projectId: { type: 'string', description: '作品 id' },
-        decision: { type: 'string', enum: ['accept', 'reject'], description: 'accept=生成并落盘；reject=仅生成不落盘' },
-      }, ['projectId', 'decision']),
+      description: '按当前大纲/细纲/状态/正史续写下一场景，只产生可审阅候选（零写，不落盘）。接受/拒绝/重写请调用 novel_adjudicate（candidateId）。',
+      parameters: objectParams({ projectId: { type: 'string', description: '作品 id' } }, ['projectId']),
       output: TEXT_OUTPUT,
       async execute(args, exec) {
-        const result = await service.continueScene(String(args.projectId), args.decision as 'accept' | 'reject', exec.signal);
-        return {
-          status: result.execution.result.status,
-          // 失败路径（未落盘）下 scene 与 candidate.text 可能为 undefined，须兜底为
-          // 无损 JSON 允许的值，否则工具输出序列化失败、诊断不可见。
-          text: result.scene?.content ?? result.execution.candidate.text ?? '',
-          sceneId: result.scene?.id ?? null,
-          violations: result.execution.result,
-        };
+        const { candidate } = await service.proposeContinue(String(args.projectId), exec.signal);
+        return { candidateId: candidate.id, intent: candidate.intent, text: candidate.text, target: candidate.target };
+      },
+    },
+    {
+      name: 'novel_adjudicate',
+      description: '对候选作出裁决（candidateId 来自 novel_continue）。accept=进入标准校验→解析→受控写回（C5 与结构化层）；reject=零写；rewrite=产生后继候选且旧候选不可再接受。',
+      parameters: objectParams({
+        candidateId: { type: 'string', description: '候选 id（novel_continue 返回）' },
+        decision: { type: 'string', enum: ['accept', 'reject', 'rewrite'], description: 'accept=受控写回；reject=零写；rewrite=后继候选' },
+      }, ['candidateId', 'decision']),
+      output: TEXT_OUTPUT,
+      async execute(args, exec) {
+        return service.adjudicate(String(args.candidateId), args.decision as 'accept' | 'reject' | 'rewrite', exec.signal);
       },
     },
     {
@@ -463,4 +289,4 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
   return () => { for (const dispose of disposers) dispose(); };
 }
 
-export type { ProjectOpenResult };
+export type { ProjectOpenResult, NovelAgentContext, NovelCreationSettingsView, OutlineNavigation, DetailBeat };

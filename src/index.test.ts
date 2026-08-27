@@ -53,10 +53,10 @@ describe('novel-creation-tool Host plugin (I1)', () => {
       },
     });
     const fiber = await root.plugin(apply);
-    expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_inspire']);
+    expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_adjudicate', 'novel_inspire']);
     await fiber.dispose();
     // 卸载后清空（下次重挂不再重复注册）。
-    expect(registered).toHaveLength(5);
+    expect(registered).toHaveLength(6);
 
     // 无 tools：必须照常启动（此前 “cannot get property tools without inject” 崩溃）。
     const bare = new Context();

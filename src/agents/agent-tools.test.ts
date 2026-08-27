@@ -15,8 +15,12 @@ import { createStyleService } from '../host/style-service.js';
 import { createRuleService } from '../host/rule-service.js';
 import { createKnowledgeService } from '../host/knowledge-service.js';
 import { createTextService } from '../host/text-service.js';
-import { createContinuationService } from '../host/continuation-service.js';
 import { createInspirationService } from '../host/inspiration-service.js';
+import { createConsistencyDetectionService } from '../host/consistency-detection-service.js';
+import { createKnowledgeLeakDetectionService } from '../host/knowledge-leak-detection-service.js';
+import { createRelationshipStyleDetectionService } from '../host/relationship-style-detection-service.js';
+import { createNextSceneContextBuilder } from '../host/writing-context.js';
+import { createWritingAdjudicationService } from '../host/writing-adjudication-service.js';
 import { INITIAL_STATE } from '../core/schema/project-lifecycle.js';
 import { createNovelAgentService, registerNovelAgentTools, type NovelAgentDeps } from './agent-tools.js';
 
@@ -29,7 +33,9 @@ function fakeLlm(seen: string[] = []) {
       const prompt = options.messages[0].content[0].text;
       seen.push(prompt);
       let output: unknown;
-      if (prompt.includes('你是小说世界状态解析器')) {
+      if (prompt.includes('你是小说一致性硬约束检测器') || prompt.includes('你是小说 POV 知情泄漏硬约束检测器') || prompt.includes('你是小说一致性软约束检测器')) {
+        output = { violations: [] };
+      } else if (prompt.includes('你是小说世界状态解析器')) {
         output = { ops: [{ op: 'modify', target: 'state', field: 'storyTime', action: 'set', value: 'dawn', confidence: 'high' }] };
       } else if (prompt.includes('你是小说正史解析器')) {
         output = { ops: [{ op: 'append', event: { id: 'evt-1', storyTime: 'dawn', kind: 'event', summary: '米拉找到铜钥匙', detail: '米拉在码头找到铜钥匙。', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: ['state'] }, confidence: 'high' }] };
@@ -66,11 +72,25 @@ async function setup(creation?: { wordTarget?: number; askWhenThin?: boolean }):
   const rules = createRuleService(root);
   const knowledge = createKnowledgeService(root);
   const text = createTextService(root);
-  const continuation = createContinuationService(fakeLlm(seen), root);
   const inspiration = createInspirationService(fakeLlm());
+  const llm = fakeLlm(seen);
+  const context = createNextSceneContextBuilder({
+    outline, characters, worldview, relationship, state, canon, style, rules, knowledge, text,
+    workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
+  });
+  const writing = createWritingAdjudicationService({
+    llm,
+    projectsRoot: root,
+    context,
+    state, relationship, knowledge, canon, worldview, confirmation, rules, style,
+    consistency: createConsistencyDetectionService(llm),
+    knowledgeLeak: createKnowledgeLeakDetectionService(llm),
+    relationshipStyle: createRelationshipStyleDetectionService(llm),
+    resolveSettings: async () => settings,
+  });
   const deps: NovelAgentDeps = {
     project, characters, worldview, outline, relationship, state, canon,
-    style, rules, knowledge, text, continuation, inspiration, confirmation,
+    style, rules, knowledge, text, writing, inspiration, confirmation,
     resolveSettings: async () => settings,
     workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
   };
@@ -145,15 +165,22 @@ describe('novel agent tools（对话创作入口）', () => {
     }
   });
 
-  it('continues with accept: writes C5 text and structured layers through existing owners', async () => {
+  it('proposeContinue 只产候选（零写）；accept 经写作裁决进入标准生命周期并受控写回；重复 accept 幂等', async () => {
     const { agent, deps, root, seen } = await setup({ wordTarget: 800 });
     try {
       await seedProject(deps, 'demo');
-      const result = await agent.continueScene('demo', 'accept');
-      expect(result.execution.result.status).toBe('written');
-      expect(result.scene?.content).toBe('米拉在码头找到铜钥匙。');
+      const { candidate } = await agent.proposeContinue('demo');
+      expect(candidate.intent).toBe('continue');
+      expect(candidate.target.chapterId).toBe('chapter-1');
+      // 只产候选：无章节、无结构化层写入。
+      expect(await deps.text.listChapters('demo')).toHaveLength(0);
+      expect(deps.state.current('demo').storyTime).toBe('');
       // 通用目标字数（创作设置 800）覆盖了细纲卡自带的 wordTarget（20）。
       expect(seen.some((prompt) => prompt.includes('目标字数: 800'))).toBe(true);
+
+      const accepted = await agent.adjudicate(candidate.id, 'accept');
+      expect(accepted.status).toBe('written');
+      if (accepted.status !== 'written') return;
       // C2 状态被写回（storyTime → dawn）。
       expect(deps.state.current('demo').storyTime).toBe('dawn');
       // C4 正史追加。
@@ -162,6 +189,7 @@ describe('novel agent tools（对话创作入口）', () => {
       const chapters = await deps.text.listChapters('demo');
       expect(chapters).toHaveLength(1);
       expect(chapters[0].scenes).toHaveLength(1);
+      expect(chapters[0].scenes[0].content).toBe('米拉在码头找到铜钥匙。');
       // 文件级证据：重启后数据仍在磁盘上（结构化文档，无需重新上传/初始化）。
       const projectDir = join(root, 'demo');
       const chapterFile = await readFile(join(projectDir, 'text', 'chapter-1.json'), 'utf8');
@@ -179,27 +207,33 @@ describe('novel agent tools（对话创作入口）', () => {
       await expect(readFile(join(projectDir, 'relationships.yaml'), 'utf8')).resolves.toMatch(/\S/);
       await expect(readFile(join(projectDir, 'characters', 'mira.yaml'), 'utf8')).resolves.toContain('米拉');
       await expect(readFile(join(projectDir, 'worldview', 'north-harbor.yaml'), 'utf8')).resolves.toContain('北港');
+      // 双击幂等：重复 accept 不重复写。
+      const again = await agent.adjudicate(candidate.id, 'accept');
+      expect(again.status).toBe('written');
+      expect((await deps.text.listChapters('demo'))[0].scenes).toHaveLength(1);
+      expect(deps.canon.query('demo')).toHaveLength(1);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it('continues with reject: no scene and no structured-layer write', async () => {
+  it('reject 零写：无场景、无结构化层写入；重复 reject 幂等', async () => {
     const { agent, deps, root } = await setup();
     try {
       await seedProject(deps, 'demo');
-      const result = await agent.continueScene('demo', 'reject');
-      expect(result.execution.result.status).toBe('decision-rejected');
-      expect(result.scene).toBeUndefined();
+      const { candidate } = await agent.proposeContinue('demo');
+      const outcome = await agent.adjudicate(candidate.id, 'reject');
+      expect(outcome).toEqual({ status: 'rejected', candidateId: candidate.id });
       expect(deps.state.current('demo').storyTime).toBe('');
       expect(deps.canon.query('demo')).toHaveLength(0);
       expect(await deps.text.listChapters('demo')).toHaveLength(0);
+      expect((await agent.adjudicate(candidate.id, 'reject')).status).toBe('rejected');
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 
-  it('registers the five novel tools into the DSH tools registry and disposes cleanly', () => {
+  it('registers the six novel tools into the DSH tools registry and disposes cleanly', () => {
     const registered: string[] = [];
     const registry = {
       register(definition: { name: string }) {
@@ -212,7 +246,7 @@ describe('novel agent tools（对话创作入口）', () => {
     } as never;
     const agent = { listProjects: async () => [] } as never;
     const dispose = registerNovelAgentTools(ctx, agent);
-    expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_inspire']);
+    expect(registered).toEqual(['novel_open', 'novel_status', 'novel_context', 'novel_continue', 'novel_adjudicate', 'novel_inspire']);
     dispose();
   });
 
@@ -233,10 +267,9 @@ describe('novel agent tools（对话创作入口）', () => {
       // 上下文只注入 active 的 north-harbor-v2，绝不注入 rewritten 的 north-harbor。
       const context = await agent.context('demo');
       expect(context.sources.context.sources.worldview.map((hit) => hit.entryId)).toEqual(['north-harbor-v2']);
-      // 端到端：存在 rewritten 条目时，续写组装不再抛「World entry hit must be active」。
-      const result = await agent.continueScene('demo', 'reject');
-      expect(result.execution.result.status).toBe('decision-rejected');
-      expect(result.scene).toBeUndefined();
+      // 端到端：存在 rewritten 条目时，续写候选不再抛「World entry hit must be active」。
+      const { candidate } = await agent.proposeContinue('demo');
+      expect(candidate.text).toBe('米拉在码头找到铜钥匙。');
     } finally {
       await rm(root, { recursive: true, force: true });
     }

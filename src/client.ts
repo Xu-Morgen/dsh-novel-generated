@@ -10,6 +10,7 @@ import {
   type WorkspaceStatus,
   type WorkspaceViewModel,
   type TypertDisposer,
+  type WritingNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -17,6 +18,7 @@ import {
   slug,
   unwrap,
   workspaceRemoteContribution,
+  writingRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -56,7 +58,7 @@ import {
   type OutlineShape,
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
-import { chaptersPanel, computeEditRange, freshSceneEditor, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
+import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -146,6 +148,8 @@ export type WorkbenchActions = {
   /** I61 正文编辑器（R13-2）：保存/重解析/脏文本保护全部经 store 持久化。 */
   sceneEditor(patch: Partial<SceneEditorState>): void;
   sceneEditorReset(): void;
+  /** I63 候选审阅面板（R13-4）：面板状态机 + 局部重写指令草稿。 */
+  chaptersCandidate(patch: Partial<CandidatePanelState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -162,10 +166,17 @@ export type WorkbenchActions = {
   settingsSettled(patch: Partial<LlmConfigDraftShape>): void;
 };
 
+/** I63 裁决结果的 Client 投影（最小 owned JSON；与 Host `novelWriting.adjudicate` 对齐）。 */
+type WritingAdjudicationOutcome =
+  | { readonly status: 'written'; readonly candidateId: string; readonly scene: { readonly chapterId: string; readonly sceneId: string }; readonly layers: readonly string[] }
+  | { readonly status: 'rejected'; readonly candidateId: string }
+  | { readonly status: 'rewritten'; readonly candidateId: string; readonly superseded: string; readonly candidate: { readonly id: string } }
+  | { readonly status: 'generation-rejected' | 'prewrite-rejected'; readonly candidateId: string; readonly adjudication: { readonly status: string } }
+  | { readonly status: 'pending-compensation'; readonly candidateId: string; readonly failedStage: string };
+
 /** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。tabIndex=-1 + data-novel-focus-target
  *  作为 I59 打开面板后的焦点进入落点（R12-6 焦点进入）。 */
-function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }): unknown {
-  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '', 'data-novel-focus-target': '', tabIndex: -1 },
+function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }): unknown {  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '', 'data-novel-focus-target': '', tabIndex: -1 },
     h('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
     h('div', null,
       h('h2', { className: 'nv-workbench__title' }, '创作台'),
@@ -292,6 +303,7 @@ function viewPanel(
   activeView: WorkbenchViewId,
   projectId: string,
   workspace: WorkspaceNamespace | undefined,
+  writing: WritingNamespace | undefined,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -309,9 +321,9 @@ function viewPanel(
   if (activeView === 'onboarding') {
     return h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '', 'data-novel-view-panel': 'onboarding' }, sourceEntry, review);
   }
-  // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）。
+  // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）+ I63 候选审阅。
   if (activeView === 'chapters') {
-    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, chapters, ops.chapters));
+    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, chapters, ops.chapters));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -344,7 +356,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -383,7 +395,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         groupNav(h, ui.activeView, ui.activateView),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -516,6 +528,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let analyzer: OnboardingAnalyzerNamespace | undefined;
       let llmConfig: LlmConfigNamespace | undefined;
       let workbenchSettings: WorkbenchSettingsNamespace | undefined;
+      let writing: WritingNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -523,6 +536,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let analyzerDisposer: TypertDisposer | undefined;
       let llmConfigDisposer: TypertDisposer | undefined;
       let workbenchSettingsDisposer: TypertDisposer | undefined;
+      let writingDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -615,6 +629,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           // I61：编辑器状态合并（与各层 draft 同一模式）；场景装载/重载时先 Reset 再初始化。
           sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
           sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
+          chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1110,6 +1125,90 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 else selectChapter(pending.chapterId);
               }
             };
+            // ---- I63 候选审阅与生成后裁决（R13-4）----
+            const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
+            // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
+            const reloadChapters = (): void => {
+              const target = workspace;
+              if (!target || projectId === undefined) return;
+              void unwrap(target.chapterList(projectId)).then((list) => {
+                if (!active) return;
+                act.setChapters('ready', list as unknown[]);
+                const chapterId = snapshot.chapters.selectedChapterId;
+                if (chapterId !== undefined) selectChapter(chapterId);
+              }, (cause: Error) => { if (active) act.setChapters('error', [], (cause as Error).message); });
+            };
+            // 候选生成后立即预览（正文 + diff + 校验结果），ready 才允许裁决。
+            const previewAfterPropose = (candidateId: string, onReady: () => void): void => {
+              const target = writing;
+              if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
+              void unwrap(target.preview(candidateId)).then((review) => {
+                if (!active) return;
+                candidatePatch({ ui: { kind: 'ready', review: review as CandidateReviewShape } });
+                onReady();
+              }, (cause: Error) => { if (active) candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+            };
+            const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
+              const target = writing;
+              if (!target || projectId === undefined) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
+              if (!beginOp(`writing:propose:${intent}`)) return;
+              const release = (): void => endOp(`writing:propose:${intent}`);
+              candidatePatch({ ui: { kind: 'proposing', intent } });
+              void unwrap(target.propose(projectId, { intent })).then((result) => {
+                release();
+                if (!active) return;
+                const candidate = (result as { candidate?: { id: string } }).candidate;
+                if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
+                previewAfterPropose(candidate.id, () => undefined);
+              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+            };
+            const proposeRewrite = (): void => {
+              const target = writing;
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              const prompt = snapshot.chapters.candidate.rewritePrompt;
+              if (!target || projectId === undefined) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
+              if (chapterId === undefined || sceneId === undefined) { candidatePatch({ ui: { kind: 'error', message: '请先选择要重写的场景' } }); return; }
+              if (prompt.trim() === '') return;
+              if (!beginOp('writing:propose:rewrite')) return;
+              const release = (): void => endOp('writing:propose:rewrite');
+              candidatePatch({ ui: { kind: 'proposing', intent: 'rewrite' } });
+              void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt })).then((result) => {
+                release();
+                if (!active) return;
+                const candidate = (result as { candidate?: { id: string } }).candidate;
+                if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
+                previewAfterPropose(candidate.id, () => undefined);
+              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+            };
+            const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
+              const target = writing;
+              const ui = snapshot.chapters.candidate.ui;
+              if (!target || projectId === undefined || ui.kind !== 'ready') return;
+              const candidateId = ui.review.candidateId;
+              // I59 双击幂等：同候选同裁决在 Remote 返回前至多提交一次。
+              if (!beginOp(`writing:adjudicate:${candidateId}:${decision}`)) return;
+              const release = (): void => endOp(`writing:adjudicate:${candidateId}:${decision}`);
+              candidatePatch({ ui: { kind: 'acting', review: ui.review, action: decision } });
+              void unwrap(target.adjudicate(candidateId, decision)).then((result) => {
+                release();
+                if (!active) return;
+                const outcome = result as WritingAdjudicationOutcome;
+                if (outcome.status === 'written') {
+                  candidatePatch({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } });
+                  reloadChapters();
+                } else if (outcome.status === 'rejected') {
+                  candidatePatch({ ui: { kind: 'done', message: '已拒绝候选，未写入任何内容' } });
+                } else if (outcome.status === 'rewritten') {
+                  // 后继候选：立即审阅新候选（旧候选已被 Host 置为 superseded，不可静默接受）。
+                  previewAfterPropose(outcome.candidate.id, () => undefined);
+                } else if (outcome.status === 'generation-rejected' || outcome.status === 'prewrite-rejected') {
+                  candidatePatch({ ui: { kind: 'error', message: '校验未通过：存在硬冲突，未写入任何内容。请重写候选。' } });
+                } else if (outcome.status === 'pending-compensation') {
+                  candidatePatch({ ui: { kind: 'error', message: `写回中断（${outcome.failedStage}），未完成。请重试或重写。` } });
+                }
+              }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+            };
             return {
               selectChapter,
               selectScene,
@@ -1132,6 +1231,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               rejectReparse,
               discardDraft,
               cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); },
+              proposeWriting,
+              rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
+              proposeRewrite,
+              adjudicateCandidate,
+              dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); },
             };
           })(),
         };
@@ -1307,7 +1411,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, ui, layers, makeOps(s), s.chapters, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, ui, layers, makeOps(s), s.chapters, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -1372,6 +1476,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           workbenchSettingsDisposer = dispose;
           workbenchSettings = ctx.get('remote.novelWorkbenchSettings', false) as WorkbenchSettingsNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: workbench settings Remote mount failed', cause); });
+        // I63：候选审阅与裁决 Remote（R13-4）。挂载失败静默降级：审阅面板显示不可用。
+        void ctx.remote.$mount(writingRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          writingDisposer = dispose;
+          writing = ctx.get('remote.novelWriting', false) as WritingNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: writing Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -1382,11 +1492,14 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           analyzer = undefined;
           llmConfig = undefined;
           workbenchSettings = undefined;
+          writing = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
           if (analyzerDisposer) void analyzerDisposer();
           if (llmConfigDisposer) void llmConfigDisposer();
+          if (workbenchSettingsDisposer) void workbenchSettingsDisposer();
+          if (writingDisposer) void writingDisposer();
         };
       });
 

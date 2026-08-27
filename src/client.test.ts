@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -239,6 +239,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const analyzer = mountOptions.onboardingAnalyzer;
   const onboardingStub = mountOptions.onboarding;
   const workbenchSettingsStub = mountOptions.workbenchSettings;
+  const writingStub = mountOptions.writing;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -260,6 +261,11 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       adjudicate: async () => { throw new Error('未注入 remote.novelOnboarding'); },
       acceptedLayers: async () => [],
       finalApply: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', appliedLayers: [], skippedLayers: [], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
+    })
+    : name === 'remote.novelWriting' ? (writingStub ?? {
+      propose: async () => { throw new Error('未注入 remote.novelWriting.propose'); },
+      preview: async () => { throw new Error('未注入 remote.novelWriting.preview'); },
+      adjudicate: async () => { throw new Error('未注入 remote.novelWriting.adjudicate'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
@@ -2845,5 +2851,124 @@ describe('I59 响应式、可访问性与保存反馈 (R12-6)', () => {
     // Fiber 清理：轮询定时器随卸载归零（不残留监听）。
     overlayCleanups[0]();
     await flush();
+  });
+});
+
+describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const candidatePanel = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-candidate-panel'] !== undefined);
+
+  const REVIEW = {
+    ok: true,
+    value: {
+      candidateId: 'cand-1',
+      intent: 'continue',
+      target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' },
+      text: '米拉在码头找到铜钥匙。',
+      diff: { kind: 'new-scene' },
+      validation: { status: 'pass', violations: [] },
+    },
+  };
+
+  it('续写候选生成后先展示正文/diff/校验结果（ready），accept 才提交裁决；双击幂等', async () => {
+    const proposes: Array<{ projectId: string; input: unknown }> = [];
+    const adjudicates: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        chapterList: async () => [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', sceneCount: 0 }],
+        chapterRead: async () => ({ ok: true, value: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [] } }),
+        sceneRead: async () => ({ ok: true, value: { chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira' }, scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' } } }),
+      },
+      {
+        writing: {
+          propose: async (projectId, input) => { proposes.push({ projectId, input }); return { ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId, chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }; },
+          preview: async (candidateId) => { expect(candidateId).toBe('cand-1'); return REVIEW; },
+          adjudicate: async (candidateId, decision) => { adjudicates.push(`${candidateId}:${decision}`); return { ok: true, value: { status: 'written', candidateId, scene: { chapterId: 'chapter-1', sceneId: 'scene-next', index: 0, content: '米拉在码头找到铜钥匙。' }, layers: ['c2', 'c1', 'c3', 'c4', 'b2'] } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+
+    // idle：发起入口可用，无裁决按钮。
+    let panel = candidatePanel(render());
+    expect(panel?.props?.['data-novel-candidate-state']).toBe('idle');
+    expect(collect(render(), 'button').some((n) => n.props?.['data-novel-candidate-accept'] === '')).toBe(false);
+
+    // 续写 → propose → preview → ready（正文 + diff + 校验结果可见）。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
+    await flush();
+    panel = candidatePanel(render());
+    expect(proposes).toEqual([{ projectId: 'fixture-project', input: { intent: 'continue' } }]);
+    expect(panel?.props?.['data-novel-candidate-state']).toBe('ready');
+    expect(collect(render(), 'p').some((n) => String(n.children?.[0] ?? '').includes('米拉在码头找到铜钥匙。'))).toBe(true);
+    expect(collect(render(), 'p').some((n) => n.props?.['data-novel-candidate-diff'] === 'new-scene')).toBe(true);
+    expect(collect(render(), 'div').some((n) => n.props?.['data-novel-candidate-validation'] === 'pass')).toBe(true);
+
+    // 双击接受：至多一次 adjudicate（inflight 幂等）；成功后显示完成态。
+    const accept = () => collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-accept'] === '');
+    (accept()?.props?.onClick as () => void)();
+    (accept()?.props?.onClick as () => void)();
+    await flush();
+    expect(adjudicates).toEqual(['cand-1:accept']);
+    expect(candidatePanel(render())?.props?.['data-novel-candidate-state']).toBe('done');
+  });
+
+  it('reject 零写：显示完成态且不再展示候选正文', async () => {
+    const adjudicates: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        writing: {
+          propose: async () => ({ ok: true, value: { candidate: { id: 'cand-2', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '文本', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
+          preview: async (candidateId) => ({ ok: true, value: { ...REVIEW.value, candidateId } }),
+          adjudicate: async (candidateId, decision) => { adjudicates.push(`${candidateId}:${decision}`); return { ok: true, value: { status: 'rejected', candidateId } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-reject'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(adjudicates).toEqual(['cand-2:reject']);
+    const panel = candidatePanel(render());
+    expect(panel?.props?.['data-novel-candidate-state']).toBe('done');
+    expect(collect(render(), 'div').some((n) => n.props?.['data-novel-candidate-review'] !== undefined)).toBe(false);
+  });
+
+  it('重写裁决展示后继候选审阅（旧候选被 Host superseded，Client 直接审阅后继）', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        writing: {
+          propose: async () => ({ ok: true, value: { candidate: { id: 'cand-3', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '文本', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
+          preview: async (candidateId) => ({ ok: true, value: { ...REVIEW.value, candidateId } }),
+          adjudicate: async (candidateId, decision) => ({ ok: true, value: { status: 'rewritten', candidateId, superseded: candidateId, candidate: { id: 'cand-3-r1', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '后继文本', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-rewrite'] === '')?.props?.onClick as () => void)();
+    await flush();
+    // 后继候选立即进入 ready 审阅（面板展示新候选 id）。
+    const panel = candidatePanel(render());
+    expect(panel?.props?.['data-novel-candidate-state']).toBe('ready');
+    expect(collect(render(), 'span').some((n) => String(n.children?.[0] ?? '') === 'cand-3-r1')).toBe(true);
   });
 });
