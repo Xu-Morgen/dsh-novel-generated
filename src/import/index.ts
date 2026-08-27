@@ -83,6 +83,23 @@ function chunkText(text: string, size: number): ImportedChunk[] {
 }
 
 /**
+ * I69 文本化导入入口：对已解码文本跑 I37 同一套规范化 + 确定性分块（零写）。
+ * 供作品设置「导入预览」Remote 复用文件导入的同一 normalize/chunk 不变式，
+ * 使 txt/md round-trip 与文件导入走同一契约。
+ */
+export function normalizeTextInput(
+  raw: string,
+  format: ImportFormat,
+  options: Pick<ImportOptions, 'chunkSize'> = {},
+): { readonly format: ImportFormat; readonly text: string; readonly chunks: readonly ImportedChunk[] } {
+  const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
+  if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) fail('chunkSize must be positive');
+  const text = normalizeText(raw);
+  if (!text) fail('normalized text is empty');
+  return Object.freeze({ format, text, chunks: chunkText(text, chunkSize) });
+}
+
+/**
  * Deterministic Host import primitive (design §14.2 / requirement R8-1).
  * It owns path, byte, format, decoding and chunk invariants; it never writes a layer.
  */

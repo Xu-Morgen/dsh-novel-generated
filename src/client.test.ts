@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; importExport?: { exportArchive?: (projectId: string, mode: string) => Promise<unknown>; exportText?: (projectId: string, format: string) => Promise<unknown>; restore?: (projectId: string, raw: string) => Promise<unknown>; importPreview?: (projectId: string, input: { fileName: string; format: string; text: string }) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -247,6 +247,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const knowledgeStub = mountOptions.knowledge;
   const ruleStyleStub = mountOptions.ruleStyle;
   const progressStub = mountOptions.progress;
+  const importExportStub = mountOptions.importExport;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -315,6 +316,12 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       reject: async () => { throw new Error('未注入 remote.novelOutlineProgress.reject'); },
       pending: async () => { throw new Error('未注入 remote.novelOutlineProgress.pending'); },
       audit: async () => { throw new Error('未注入 remote.novelOutlineProgress.audit'); },
+    })
+    : name === 'remote.novelImportExport' ? (importExportStub ?? {
+      exportArchive: async () => { throw new Error('未注入 remote.novelImportExport.exportArchive'); },
+      exportText: async () => { throw new Error('未注入 remote.novelImportExport.exportText'); },
+      restore: async () => { throw new Error('未注入 remote.novelImportExport.restore'); },
+      importPreview: async () => { throw new Error('未注入 remote.novelImportExport.importPreview'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
@@ -389,10 +396,10 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：十五个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6）。
+    // 稳定 data 锚点：十六个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings',
+      'outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
@@ -2330,19 +2337,19 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,LLM 设置}。
+    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,导入导出与备份,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
     expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'ruleStyle']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon', 'knowledge']);
-    expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'settings']);
+    expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'importExport', 'settings']);
   });
 
   it('navigates to every existing panel through the grouped nav with the stable data anchor', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2404,7 +2411,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(15);
+    expect(grouped).toHaveLength(16);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2421,7 +2428,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(15);
+    expect(NAV_ITEMS).toHaveLength(16);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2438,14 +2445,15 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
     expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'queue', 'onboarding', 'creationSettings', 'settings']);
-    // I60/I64/I65/I66/I67/I68：层视图、正文视图、审校中心、生成队列、知情、规则/文风与进度/灵感视图是稳定视图（重复点击保持），设置类视图回退默认。
+    expect(noBadge).toEqual(['review', 'queue', 'onboarding', 'creationSettings', 'importExport', 'settings']);
+    // I60/I64/I65/I66/I67/I68/I69：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感与导入导出视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
     expect(isStableView('queue')).toBe(true);
     expect(isStableView('knowledge')).toBe(true);
     expect(isStableView('ruleStyle')).toBe(true);
     expect(isStableView('progress')).toBe(true);
+    expect(isStableView('importExport')).toBe(true);
     expect(isStableView('characters')).toBe(true);
     expect(isStableView('settings')).toBe(false);
   });
@@ -4083,5 +4091,87 @@ describe('I68 C6 进度与灵感落地 UI (R14-3)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-deviation-reconcile'] === 'drift-1')?.props?.onClick as () => void)();
     await flush();
     expect(messageOf(render)).toContain('已标记为调和');
+  });
+});
+
+describe('I69 导入导出与备份 UI (R14-4)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const iePanel = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-import-export-panel'] !== undefined);
+  const openIe = (render: () => FakeNode): void => {
+    (navButton(render(), 'importExport')?.props?.onClick as () => void)();
+  };
+  const messageOf = (render: () => FakeNode): string =>
+    String((collect(render(), 'p').find((n) => n.props?.['data-novel-ie-message'] !== undefined)?.children?.[0] ?? ''));
+
+  const EXPORT_OUTCOME = {
+    projectId: 'fixture-project', mode: 'full-project', exportedAt: '2025-01-01T00:00:00.000Z',
+    fileName: 'fixture-project.full-project.2025-01-01.portable.json', fileCount: 7, content: '{"files":{}}',
+  };
+
+  it('导出项目包：Remote 返回下载载荷并反馈文件数（受控下载）', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { importExport: { exportArchive: async () => ({ ok: true, value: EXPORT_OUTCOME }) } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openIe(render);
+    await flush();
+    expect(iePanel(render())?.props?.['data-novel-import-export-state']).toBe('idle');
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-ie-export-archive'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(messageOf(render)).toContain('已导出 7 个文件');
+    expect(messageOf(render)).toContain('fixture-project.full-project');
+  });
+
+  it('恢复 N-7 阻断：非空作品列出冲突层并说明，不静默合并', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { importExport: { restore: async () => ({ ok: true, value: { status: 'blocked', reason: 'non-empty-project', layers: ['text', 'outline.yaml'] } }) } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openIe(render);
+    await flush();
+    const input = collect(render(), 'input').find((n) => n.props?.['data-novel-ie-restore-file'] !== undefined);
+    (input?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File(['{}'], 'backup.portable.json', { type: 'application/json' })] as unknown as FileList } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-ie-restore'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const blocked = collect(render(), 'div').find((n) => n.props?.['data-novel-ie-restore-blocked'] !== undefined);
+    expect(blocked).toBeDefined();
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-ie-restore-blocked-text'] !== undefined)?.children?.[0] ?? '')).toContain('text、outline.yaml');
+  });
+
+  it('导入预览：粘贴文本 → Host 归一化分块预览（零写反馈）', async () => {
+    let previewInput: unknown;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        importExport: {
+          importPreview: async (projectId, input) => {
+            previewInput = input;
+            return { ok: true, value: { projectId, fileName: input.fileName, format: input.format, text: input.text, chunks: [{ index: 0, text: input.text }] } };
+          },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openIe(render);
+    await flush();
+    const textarea = collect(render(), 'textarea').find((n) => n.props?.['data-novel-ie-import-text'] !== undefined);
+    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '第一段\n\n第二段' } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-ie-import-preview'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(previewInput).toMatchObject({ format: 'txt', text: '第一段\n\n第二段' });
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-ie-preview-text'] !== undefined)?.children?.[0] ?? '')).toContain('1 块');
+    expect(messageOf(render)).toContain('零写');
   });
 });

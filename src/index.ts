@@ -38,6 +38,7 @@ import { createQueueService } from './host/queue-service.js';
 import { createKnowledgeManagerService } from './host/knowledge-manager-service.js';
 import { createRuleStyleManagerService } from './host/rule-style-manager-service.js';
 import { createProgressInspirationService } from './host/progress-inspiration-service.js';
+import { createImportExportService } from './host/import-export-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -431,6 +432,17 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     pending: (projectId: unknown) => progressInspirationService.pending(String(projectId)),
     audit: (projectId: unknown) => progressInspirationService.audit(String(projectId)),
   }, 'novelOutlineProgress', 'novelOutlineProgress'));
+  // I69 导入导出与备份 UI（design §14.10「导入、导出与备份」/ R14-4）：受控
+  // import/export Remote —— I39 可移植档案/纯文本导出下载、round-trip 备份恢复
+  // （N-7 非空作品 fail closed + 空壳事务写盘）与 I37 确定性导入预览。复用
+  // `core/export` 与 `import` 既有 owner；Client 只接收下载载荷/命令，不持有路径。
+  const importExportService = createImportExportService(projectsRoot);
+  ctx.provide('novelImportExport', bindRemote({
+    exportArchive: (projectId: unknown, mode: unknown) => importExportService.exportArchive(String(projectId), mode as Parameters<typeof importExportService.exportArchive>[1]),
+    exportText: (projectId: unknown, format: unknown) => importExportService.exportText(String(projectId), format as Parameters<typeof importExportService.exportText>[1]),
+    restore: (projectId: unknown, raw: unknown) => importExportService.restore(String(projectId), String(raw)),
+    importPreview: (projectId: unknown, input: unknown) => importExportService.importPreview(String(projectId), input as Parameters<typeof importExportService.importPreview>[1]),
+  }, 'novelImportExport', 'novelImportExport'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

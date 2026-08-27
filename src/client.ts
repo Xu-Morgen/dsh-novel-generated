@@ -16,6 +16,7 @@ import {
   type KnowledgeNamespace,
   type RuleStyleNamespace,
   type ProgressNamespace,
+  type ImportExportNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -29,6 +30,7 @@ import {
   knowledgeRemoteContribution,
   ruleStyleRemoteContribution,
   progressRemoteContribution,
+  importExportRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -74,6 +76,7 @@ import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type Q
 import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
 import { freshRuleDraft, freshRuleStyle, freshStyleDraft, ruleStylePanel, type RuleDraftShape, type RuleShape, type RuleStyleEditOps, type RuleStyleLayerState, type RuleStyleProjectionShape, type StyleDraftShape, type StyleShape } from './client/layers/rule-style.js';
 import { freshProgress, progressPanel, type ProgressApplyOutcomeShape, type ProgressAuditRecordShape, type ProgressDirectionShape, type ProgressEditOps, type ProgressLayerState, type ProgressPendingProposalShape, type ProgressProjectionShape, type ProgressSelectOutcomeShape } from './client/layers/progress.js';
+import { freshImportExport, importExportPanel, downloadText, MAX_RESTORE_FILE_BYTES, type ImportExportEditOps, type ImportExportLayerState, type ImportExportPreviewShape, type ImportExportRestoreResultShape } from './client/layers/import-export.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -207,6 +210,8 @@ export type WorkbenchActions = {
   ruleStylePatch(patch: Partial<RuleStyleLayerState>): void;
   /** I68：进度与灵感面板状态合并（R14-3）。 */
   progressPatch(patch: Partial<ProgressLayerState>): void;
+  /** I69：导入导出与备份面板状态合并（R14-4）。 */
+  importExportPatch(patch: Partial<ImportExportLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -366,11 +371,13 @@ function viewPanel(
   knowledgeNamespace: KnowledgeNamespace | undefined,
   ruleStyleNamespace: RuleStyleNamespace | undefined,
   progressNamespace: ProgressNamespace | undefined,
+  importExportNamespace: ImportExportNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
   ruleStyleState: RuleStyleLayerState,
   progressState: ProgressLayerState,
+  importExportState: ImportExportLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -412,6 +419,10 @@ function viewPanel(
   if (activeView === 'progress') {
     return h('div', { 'data-novel-view-panel': 'progress' }, progressPanel(h, projectId, progressNamespace, progressState, ops.progress));
   }
+  // I69：导入导出与备份（作品设置组）—— 项目包/纯文本导出 + round-trip 恢复 + 导入预览（R14-4）。
+  if (activeView === 'importExport') {
+    return h('div', { 'data-novel-view-panel': 'importExport' }, importExportPanel(h, projectId, importExportNamespace, importExportState, ops.importExport));
+  }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
 
@@ -450,10 +461,12 @@ interface WorkbenchOps {
   readonly ruleStyle: RuleStyleEditOps;
   /** I68：进度与灵感（刷新/偏差记录与调和/灵感时刻/选定→Gate 提案→确认/拒绝，R14-3）。 */
   readonly progress: ProgressEditOps;
+  /** I69：导入导出与备份（导出下载/恢复/N-7 说明/导入预览，R14-4）。 */
+  readonly importExport: ImportExportEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -517,7 +530,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -664,6 +677,8 @@ interface WorkbenchState {
   ruleStyle: RuleStyleLayerState;
   /** I68：进度与灵感面板状态（投影/偏差草稿/方向/待确认/审计，R14-3）。 */
   progress: ProgressLayerState;
+  /** I69：导入导出与备份面板状态（导出选择/恢复结果/导入预览，R14-4）。 */
+  importExport: ImportExportLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -707,6 +722,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let knowledgeNamespace: KnowledgeNamespace | undefined;
       let ruleStyleNamespace: RuleStyleNamespace | undefined;
       let progressNamespace: ProgressNamespace | undefined;
+      let importExportNamespace: ImportExportNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -720,6 +736,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let knowledgeDisposer: TypertDisposer | undefined;
       let ruleStyleDisposer: TypertDisposer | undefined;
       let progressDisposer: TypertDisposer | undefined;
+      let importExportDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -764,6 +781,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           knowledge: freshKnowledge(),
           ruleStyle: freshRuleStyle(),
           progress: freshProgress(),
+          importExport: freshImportExport(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -801,7 +819,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -837,6 +855,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
           ruleStylePatch: (d, patch: Partial<RuleStyleLayerState>) => { d.ruleStyle = { ...d.ruleStyle, ...patch }; },
           progressPatch: (d, patch: Partial<ProgressLayerState>) => { d.progress = { ...d.progress, ...patch }; },
+          importExportPatch: (d, patch: Partial<ImportExportLayerState>) => { d.importExport = { ...d.importExport, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1980,6 +1999,98 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { progressPatch({ status: 'idle', projection: undefined, message: undefined, directions: undefined, inspiring: false, prompt: '', selectedDirectionId: undefined, pending: [], audit: [], deviationDraft: { planned: '', actual: '', reason: '' }, acting: false }); },
             };
           })(),
+          // ---- I69 导入导出与备份（R14-4）：受控下载 / round-trip 恢复 / 导入预览 ----
+          importExport: (() => {
+            const iePatch = (patch: Partial<ImportExportLayerState>): void => act.importExportPatch(patch);
+            return {
+              setExportMode(mode) { iePatch({ exportMode: mode, message: undefined, error: undefined }); },
+              setTextFormat(format) { iePatch({ textFormat: format, message: undefined, error: undefined }); },
+              setImportFormat(format) { iePatch({ importFormat: format, message: undefined, error: undefined }); },
+              setImportText(text) { iePatch({ importText: text, message: undefined, error: undefined }); },
+              pickImportFile(file) {
+                if (!file) return;
+                void file.text().then((text) => {
+                  if (!active) return;
+                  iePatch({ importText: text, importFileName: file.name, message: undefined, error: undefined });
+                }, () => { if (!active) return; iePatch({ error: `读取导入文件失败：${file.name}` }); });
+              },
+              pickRestoreFile(file) {
+                if (!file) return;
+                if (file.size > MAX_RESTORE_FILE_BYTES) {
+                  iePatch({ restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: '恢复包超过 10 MiB 上限。', error: undefined });
+                  return;
+                }
+                void file.text().then((text) => {
+                  if (!active) return;
+                  iePatch({ restoreFileName: file.name, restoreRaw: text, restoreResult: undefined, restoreError: undefined, message: undefined, error: undefined });
+                }, () => { if (!active) return; iePatch({ restoreError: `读取恢复包失败：${file.name}` }); });
+              },
+              exportArchive(): void {
+                const target = importExportNamespace;
+                if (!target || projectId === undefined || snapshot.importExport.acting) return;
+                if (!beginOp('importExport:export-archive')) return;
+                const release = (): void => endOp('importExport:export-archive');
+                iePatch({ acting: true, message: undefined, error: undefined });
+                void unwrap(target.exportArchive(projectId, snapshot.importExport.exportMode)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as { fileName: string; mode: string; fileCount: number; content: string };
+                  downloadText(result.fileName, result.content);
+                  iePatch({ acting: false, message: `已导出 ${result.fileCount} 个文件（${result.mode}），开始下载 ${result.fileName}。` });
+                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+              },
+              exportText(): void {
+                const target = importExportNamespace;
+                if (!target || projectId === undefined || snapshot.importExport.acting) return;
+                if (!beginOp('importExport:export-text')) return;
+                const release = (): void => endOp('importExport:export-text');
+                iePatch({ acting: true, message: undefined, error: undefined });
+                void unwrap(target.exportText(projectId, snapshot.importExport.textFormat)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as { fileName: string; format: string; files: Record<string, string> };
+                  for (const [name, content] of Object.entries(result.files)) {
+                    const base = name.split('/').pop() ?? name;
+                    downloadText(base, content, 'text/plain;charset=utf-8');
+                  }
+                  iePatch({ acting: false, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
+                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+              },
+              restore(): void {
+                const target = importExportNamespace;
+                const state = snapshot.importExport;
+                if (!target || projectId === undefined || state.acting || state.restoreRaw === undefined) return;
+                if (!beginOp('importExport:restore')) return;
+                const release = (): void => endOp('importExport:restore');
+                iePatch({ acting: true, message: undefined, error: undefined, restoreError: undefined, restoreResult: undefined });
+                void unwrap(target.restore(projectId, state.restoreRaw)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as ImportExportRestoreResultShape;
+                  if (result.status === 'imported') {
+                    iePatch({ acting: false, restoreResult: result, message: `恢复完成：写入 ${result.written.length} 个文件（round-trip）。` });
+                  } else {
+                    iePatch({ acting: false, restoreResult: result, message: undefined });
+                  }
+                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, restoreError: (cause as Error).message }); });
+              },
+              previewImport(): void {
+                const target = importExportNamespace;
+                const state = snapshot.importExport;
+                if (!target || projectId === undefined || state.acting || state.importText.trim() === '') return;
+                if (!beginOp('importExport:preview')) return;
+                const release = (): void => endOp('importExport:preview');
+                iePatch({ acting: true, message: undefined, error: undefined });
+                void unwrap(target.importPreview(projectId, { fileName: state.importFileName ?? `pasted.${state.importFormat}`, format: state.importFormat, text: state.importText })).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as ImportExportPreviewShape;
+                  iePatch({ acting: false, preview: result, message: `导入预览完成：${result.chunks.length} 块（零写）。` });
+                }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+              },
+              dismiss() { iePatch({ status: 'idle', message: undefined, error: undefined, acting: false, preview: undefined, restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: undefined, importText: '', importFileName: undefined }); },
+            };
+          })(),
         };
       };
 
@@ -2171,7 +2282,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -2272,6 +2383,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           progressDisposer = dispose;
           progressNamespace = ctx.get('remote.novelOutlineProgress', false) as ProgressNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: progress Remote mount failed', cause); });
+        // I69：导入导出与备份 Remote（R14-4）。挂载失败静默降级：面板显示不可用。
+        void ctx.remote.$mount(importExportRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          importExportDisposer = dispose;
+          importExportNamespace = ctx.get('remote.novelImportExport', false) as ImportExportNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: importExport Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -2288,6 +2405,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           knowledgeNamespace = undefined;
           ruleStyleNamespace = undefined;
           progressNamespace = undefined;
+          importExportNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -2300,6 +2418,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (knowledgeDisposer) void knowledgeDisposer();
           if (ruleStyleDisposer) void ruleStyleDisposer();
           if (progressDisposer) void progressDisposer();
+          if (importExportDisposer) void importExportDisposer();
         };
       });
     },

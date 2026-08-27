@@ -9,7 +9,11 @@ export const PORTABLE_VERSION = 1;
 export const ARCHIVE_MODES = ['full-project', 'shareable-template'] as const;
 export type ArchiveMode = (typeof ARCHIVE_MODES)[number];
 
-const LAYER_PATHS = [
+/**
+ * I39 可移植档案覆盖的 11 层路径（B1–B5 + C1–C6 落地文件）。
+ * I69 恢复面用它做 N-7 非空作品检测（导出与检测共用同一层清单，避免双源真相）。
+ */
+export const LAYER_PATHS = [
   'rules', 'worldview', 'characters', 'outline.yaml', 'relationships.yaml',
   'state', 'knowledge.yaml', 'canon', 'text', 'outline-progress.yaml',
 ] as const;

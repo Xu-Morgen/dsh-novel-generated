@@ -13,6 +13,7 @@ import { queueInvocations, queueRemoteContribution } from './host/remote/queue.j
 import { knowledgeInvocations, knowledgeRemoteContribution } from './host/remote/knowledge.js';
 import { ruleStyleInvocations, ruleStyleRemoteContribution } from './host/remote/rule-style.js';
 import { progressInvocations, progressRemoteContribution } from './host/remote/progress.js';
+import { importExportInvocations, importExportRemoteContribution } from './host/remote/import-export.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -30,13 +31,14 @@ export * from './host/remote/queue.js';
 export * from './host/remote/knowledge.js';
 export * from './host/remote/rule-style.js';
 export * from './host/remote/progress.js';
+export * from './host/remote/import-export.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
 /** Compatibility aggregation for the single Typert Host face. */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations],
 };
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution };

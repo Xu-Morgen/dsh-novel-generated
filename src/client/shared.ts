@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -110,6 +110,14 @@ export interface ProgressNamespace {
   audit(projectId: string): Promise<unknown>;
 }
 
+/** I69 导入导出与备份 Remote（design §14.10 / R14-4）：只提交受控命令/接收下载载荷，不持有 Host 路径。 */
+export interface ImportExportNamespace {
+  exportArchive(projectId: string, mode: string): Promise<unknown>;
+  exportText(projectId: string, format: string): Promise<unknown>;
+  restore(projectId: string, raw: string): Promise<unknown>;
+  importPreview(projectId: string, input: { fileName: string; format: string; text: string }): Promise<unknown>;
+}
+
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
   register(options: unknown, component: () => unknown): () => void;
@@ -198,4 +206,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution };
