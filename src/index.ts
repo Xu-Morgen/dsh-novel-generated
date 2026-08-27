@@ -348,7 +348,11 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
       (input as { decision: 'continue' | 'rewrite-requested' }).decision,
       (input as { issueIds: string[] }).issueIds,
     ),
-    records: (projectId: unknown) => reviewService.records(String(projectId)),
+    // 服务层 `records()` 返回裸数组（I64 smoke 的 service 级消费者夹具契约）；
+    // wire 契约（host/remote/review.ts reviewRecordsInvocation）声明 envelope
+    // `{ records: [...] }`，网关按 descriptor.result strict codec 校验业务结果，
+    // 因此适配层必须在此整形，否则 bare array 触发 boundary validation 失败。
+    records: async (projectId: unknown) => ({ records: await reviewService.records(String(projectId)) }),
   }, 'novelReview', 'novelReview'));
   // I65 可恢复自动生成队列（design §14.9 / R13-6）：Host 持有按场景卡范围执行的
   // 生成队列，支持暂停/继续/取消、重试、预算与停止策略。队列只编排生成——候选经
