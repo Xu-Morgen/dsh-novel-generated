@@ -300,4 +300,43 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     expect(services.state.current('demo').storyTime).toBe('');
     expect(services.canon.query('demo')).toHaveLength(0);
   });
+
+  it('I65 registerRecoveredCandidate：队列候选可审阅/裁决/落盘；重复注册幂等；非 scene-card 拒绝', async () => {
+    const { service, root, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+
+    // 手工构造一个 I62 合同候选（模拟队列持久化后 rehydrate；绑定稳定 scene id）。
+    const candidate = {
+      id: 'cand-queue-recovered-1',
+      intent: 'scene-card' as const,
+      target: { projectId: 'demo', chapterId: 'chapter-1', sceneId: 'scene-recovered' },
+      prompt: '你是长篇小说章节写作器。…',
+      text: '米拉在码头找到铜钥匙。',
+      chunkCount: 1,
+      createdAt: '2025-01-01T00:00:00.000Z',
+    };
+    const recovery = {
+      card: { id: 'detail-1', title: '发现海图', summary: '米拉发现半张烧焦海图', pov: 'mira', wordTarget: 20, points: ['发现海图'], status: 'writing' as const },
+      navigation: { actId: 'act-1', beatId: 'beat-1', title: '午夜旧灯塔', description: 'd', prerequisites: [], prerequisitesMet: true, instruction: 'i', deviationIds: [] },
+      settings,
+    };
+    // 重复注册幂等（恢复路径可重入，不覆盖、不报错）。
+    service.registerRecoveredCandidate(candidate, recovery);
+    service.registerRecoveredCandidate(candidate, recovery);
+
+    // 可审阅（正文 + diff + 校验结果）→ 可裁决。
+    const review = await service.preview(candidate.id);
+    expect(review.text).toBe('米拉在码头找到铜钥匙。');
+    expect(review.validation.status).toBe('pass');
+    const accepted = await service.adjudicate(candidate.id, 'accept');
+    expect(accepted.status).toBe('written');
+    const chapters = await services.text.listChapters('demo');
+    expect(chapters[0].scenes.find((scene) => scene.id === 'scene-recovered')?.content).toBe('米拉在码头找到铜钥匙。');
+
+    // 非 scene-card 意图 fail-closed（不伪造候选入账）。
+    const rewriteCandidate = { ...candidate, id: 'cand-queue-recovered-2', intent: 'rewrite' as const, target: { ...candidate.target, sourceHash: 'a'.repeat(64) } };
+    expect(() => service.registerRecoveredCandidate(rewriteCandidate, recovery)).toThrow(/scene-card candidates only/);
+  });
 });

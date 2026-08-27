@@ -1257,6 +1257,136 @@ export const WORKBENCH_STYLES = `
   cursor: not-allowed;
 }
 
+/* I65 生成队列（design §14.9 / R13-6）：范围勾选 + 配置 + 控制 + 任务列表。 */
+.nv-queue__cards {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.5);
+  margin: 0 0 var(--nv-grid);
+}
+
+.nv-queue__card {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink);
+}
+
+.nv-queue__card-title {
+  font-weight: 600;
+}
+
+.nv-queue__card-meta {
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-queue__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nv-grid);
+  align-items: flex-end;
+}
+
+.nv-queue__option {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink);
+  padding-bottom: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-queue__summary {
+  margin: 0 0 var(--nv-grid);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nv-ink-dim);
+}
+
+.nv-queue__tasks {
+  list-style: none;
+  margin: var(--nv-grid) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-queue__task {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
+  background: var(--nv-paper);
+}
+
+.nv-queue__task--failed {
+  border-color: var(--nv-cinnabar);
+}
+
+.nv-queue__task--candidate-ready {
+  border-color: var(--nv-cinnabar);
+}
+
+.nv-queue__task-main {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-queue__task-title {
+  font-family: var(--nv-serif);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--nv-ink);
+}
+
+.nv-queue__badge {
+  border-radius: calc(var(--nv-grid) * 0.5);
+  padding: 0 calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  font-size: 11px;
+  line-height: 1.6;
+  border: 1px solid var(--nv-line);
+  color: var(--nv-ink-dim);
+}
+
+.nv-queue__badge--running {
+  border-color: var(--nv-cinnabar);
+  color: var(--nv-cinnabar);
+}
+
+.nv-queue__badge--candidate-ready,
+.nv-queue__badge--failed {
+  border-color: var(--nv-cinnabar);
+  color: var(--nv-cinnabar);
+}
+
+.nv-queue__task-meta {
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-queue__task-error {
+  margin: calc(var(--nv-grid) * 0.5) 0 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-cinnabar);
+}
+
+.nv-queue__empty {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink-faint);
+}
+
 /* I59 响应式断点（design §14.8 / R12-6）：窄屏把左右分栏改为纵向堆叠，导航退化
    为可横向滚动的横条；仍由同一 shell.overlay Slot/Fiber 管理，不创建新容器，
    窄屏无不可达内容（主列纵向滚动 + 导航横向滚动双轴可达）。 */

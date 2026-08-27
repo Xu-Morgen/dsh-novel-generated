@@ -12,6 +12,7 @@ import {
   type TypertDisposer,
   type WritingNamespace,
   type ReviewNamespace,
+  type QueueNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -21,6 +22,7 @@ import {
   workspaceRemoteContribution,
   writingRemoteContribution,
   reviewRemoteContribution,
+  queueRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -62,6 +64,7 @@ import {
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
 import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
 import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
+import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -155,6 +158,8 @@ export type WorkbenchActions = {
   chaptersCandidate(patch: Partial<CandidatePanelState>): void;
   /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
   reviewPatch(patch: Partial<ReviewLayerState>): void;
+  /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
+  queuePatch(patch: Partial<QueueLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -310,7 +315,9 @@ function viewPanel(
   workspace: WorkspaceNamespace | undefined,
   writing: WritingNamespace | undefined,
   reviewNamespace: ReviewNamespace | undefined,
+  queueNamespace: QueueNamespace | undefined,
   reviewState: ReviewLayerState,
+  queueState: QueueLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -335,6 +342,10 @@ function viewPanel(
   // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
   if (activeView === 'review') {
     return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review));
+  }
+  // I65：生成队列（写作组）—— 场景卡范围/配置 + 暂停/继续/取消 + 任务列表（R13-6）。
+  if (activeView === 'queue') {
+    return h('div', { 'data-novel-view-panel': 'queue' }, queuePanel(h, projectId, queueNamespace, workspace, queueState, ops.queue));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -366,10 +377,12 @@ interface WorkbenchOps {
   readonly chapters: ChaptersEditOps;
   /** I64：一致性审校中心（刷新/过滤/选中/显式裁决，R13-5）。 */
   readonly review: ReviewEditOps;
+  /** I65：生成队列（范围/配置 + 暂停/继续/取消 + 重试，R13-6）。 */
+  readonly queue: QueueEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -407,8 +420,8 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       h('div', { className: 'nv-workbench__body-row' },
         groupNav(h, ui.activeView, ui.activateView),
         h('div', { className: 'nv-workbench__main' },
-          // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, reviewState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, reviewState, queueState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -506,6 +519,8 @@ interface WorkbenchState {
   chapters: ChaptersLayerState;
   /** I64：一致性审校中心面板状态（投影/过滤/选中/审计记录，R13-5）。 */
   review: ReviewLayerState;
+  /** I65：生成队列面板状态（投影/范围勾选/配置草稿，R13-6）。 */
+  queue: QueueLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -545,6 +560,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let workbenchSettings: WorkbenchSettingsNamespace | undefined;
       let writing: WritingNamespace | undefined;
       let reviewNamespace: ReviewNamespace | undefined;
+      let queueNamespace: QueueNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -554,6 +570,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let workbenchSettingsDisposer: TypertDisposer | undefined;
       let writingDisposer: TypertDisposer | undefined;
       let reviewDisposer: TypertDisposer | undefined;
+      let queueDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -590,6 +607,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           canonEditor: freshCanonEditor(),
           chapters: freshChapters(),
           review: freshReview(),
+          queue: freshQueue(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -617,7 +635,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -649,6 +667,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
           chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
           reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
+          queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1315,6 +1334,110 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [] }); },
             };
           })(),
+          // ---- I65 生成队列（R13-6）：范围/配置 + 暂停/继续/取消 + 重试 ----
+          queue: (() => {
+            const queuePatch = (patch: Partial<QueueLayerState>): void => act.queuePatch(patch);
+            // 运行中轮询状态（Host 后台 loop 驱动；terminal 后停止，Fiber 卸载即清）。
+            let queuePollTimer: ReturnType<typeof setTimeout> | undefined;
+            const clearQueuePoll = (): void => {
+              if (queuePollTimer !== undefined) { clearTimeout(queuePollTimer); queuePollTimer = undefined; }
+            };
+            const pollQueueStatus = (): void => {
+              const target = queueNamespace;
+              if (!active || target === undefined || projectId === undefined) { clearQueuePoll(); return; }
+              void unwrap(target.status(projectId)).then((projection) => {
+                if (!active) { clearQueuePoll(); return; }
+                const next = projection as QueueStatusShape;
+                queuePatch({ projection: next });
+                if (next.runState === 'running' || next.runState === 'paused') {
+                  queuePollTimer = setTimeout(pollQueueStatus, 2000);
+                } else {
+                  clearQueuePoll();
+                }
+              }, () => { clearQueuePoll(); });
+            };
+            const loadCards = (): void => {
+              const target = workspace;
+              if (!target || projectId === undefined) return;
+              void unwrap(target.outlineBeatCards(projectId)).then((cards) => {
+                if (!active) return;
+                const shaped = (cards as Array<{ actId: string; beatId: string; detailBeat: { id: string; title: string; pov: string; wordTarget: number; status: string } }>).map((card) => ({
+                  actId: card.actId, beatId: card.beatId, id: card.detailBeat.id, title: card.detailBeat.title,
+                  pov: card.detailBeat.pov, wordTarget: card.detailBeat.wordTarget, status: card.detailBeat.status,
+                }));
+                // 默认全选（start 时全部入队）；已有勾选保留。
+                queuePatch({ cards: shaped, selectedCardIds: snapshot.queue.selectedCardIds.length > 0 ? snapshot.queue.selectedCardIds : shaped.map((card) => card.id), status: 'ready' });
+              }, (cause: Error) => { if (active) queuePatch({ status: 'ready', message: (cause as Error).message }); });
+            };
+            /** 通用队列命令（幂等由 Host 状态机保证；同键 inflight 去重）。 */
+            const queueCommand = (method: 'pause' | 'resume' | 'cancel' | 'retry', taskId?: string): void => {
+              const target = queueNamespace;
+              if (!target || projectId === undefined) return;
+              if (!beginOp(`queue:${method}:${taskId ?? ''}`)) return;
+              const release = (): void => endOp(`queue:${method}:${taskId ?? ''}`);
+              const call = method === 'retry' ? target.retry(projectId, taskId as string) : (target[method] as (projectId: string) => Promise<unknown>)(projectId);
+              void unwrap(call).then((projection) => {
+                release();
+                if (!active) return;
+                const next = projection as QueueStatusShape;
+                queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
+                if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
+              }, (cause: Error) => { release(); if (!active) return; queuePatch({ message: (cause as Error).message }); });
+            };
+            return {
+              refresh(): void {
+                const target = queueNamespace;
+                if (!target || projectId === undefined) { queuePatch({ status: 'error', message: '生成队列服务不可用' }); return; }
+                if (!beginOp('queue:refresh')) return;
+                const release = (): void => endOp('queue:refresh');
+                queuePatch({ status: 'loading', message: undefined });
+                void unwrap(target.status(projectId)).then((projection) => {
+                  release();
+                  if (!active) return;
+                  const next = projection as QueueStatusShape;
+                  queuePatch({ status: 'ready', projection: next });
+                  loadCards();
+                  if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
+                }, (cause: Error) => { release(); if (!active) return; queuePatch({ status: 'error', message: (cause as Error).message }); });
+              },
+              toggleCard(cardId: string) {
+                const selected = snapshot.queue.selectedCardIds;
+                queuePatch({ selectedCardIds: selected.includes(cardId) ? selected.filter((id) => id !== cardId) : [...selected, cardId] });
+              },
+              setBudget(value: string) { queuePatch({ wordBudget: value }); },
+              setRetries(value: string) { queuePatch({ maxRetries: value }); },
+              toggleSoftStop() { queuePatch({ stopOnSoftWarnings: !snapshot.queue.stopOnSoftWarnings }); },
+              start(): void {
+                const target = queueNamespace;
+                const state = snapshot.queue;
+                if (!target || projectId === undefined || state.acting) return;
+                if (!beginOp('queue:start')) return;
+                const release = (): void => endOp('queue:start');
+                const budget = state.wordBudget.trim();
+                const parsedBudget = budget === '' ? undefined : Number.parseInt(budget, 10);
+                const parsedRetries = Number.parseInt(state.maxRetries, 10);
+                const input: QueueStartInputShape = {
+                  ...(state.selectedCardIds.length > 0 ? { cardIds: [...state.selectedCardIds] } : {}),
+                  ...(parsedBudget !== undefined && Number.isFinite(parsedBudget) && parsedBudget > 0 ? { wordBudget: parsedBudget } : {}),
+                  ...(Number.isFinite(parsedRetries) && parsedRetries >= 0 ? { maxRetries: parsedRetries } : {}),
+                  stopOnSoftWarnings: state.stopOnSoftWarnings,
+                };
+                queuePatch({ acting: true, message: undefined });
+                void unwrap(target.start(projectId, input)).then((projection) => {
+                  release();
+                  if (!active) return;
+                  const next = projection as QueueStatusShape;
+                  queuePatch({ acting: false, status: 'ready', projection: next });
+                  if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
+                }, (cause: Error) => { release(); if (!active) return; queuePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              pause() { queueCommand('pause'); },
+              resume() { queueCommand('resume'); },
+              cancel() { queueCommand('cancel'); },
+              retry(taskId: string) { queueCommand('retry', taskId); },
+              dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); clearQueuePoll(); },
+            };
+          })(),
         };
       };
 
@@ -1488,7 +1611,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             stateEditor: s.stateEditor,
             canonEditor: s.canonEditor,
           };
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -1565,6 +1688,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           reviewDisposer = dispose;
           reviewNamespace = ctx.get('remote.novelReview', false) as ReviewNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: review Remote mount failed', cause); });
+        // I65：可恢复自动生成队列 Remote（R13-6）。挂载失败静默降级：队列面板显示不可用。
+        void ctx.remote.$mount(queueRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          queueDisposer = dispose;
+          queueNamespace = ctx.get('remote.novelQueue', false) as QueueNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: queue Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -1577,6 +1706,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           workbenchSettings = undefined;
           writing = undefined;
           reviewNamespace = undefined;
+          queueNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -1585,6 +1715,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (workbenchSettingsDisposer) void workbenchSettingsDisposer();
           if (writingDisposer) void writingDisposer();
           if (reviewDisposer) void reviewDisposer();
+          if (queueDisposer) void queueDisposer();
         };
       });
 

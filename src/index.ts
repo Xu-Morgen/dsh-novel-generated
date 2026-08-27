@@ -34,6 +34,7 @@ import { createWritingCandidateService } from './host/candidate-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createWritingAdjudicationService } from './host/writing-adjudication-service.js';
 import { createReviewService } from './host/review-service.js';
+import { createQueueService } from './host/queue-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -342,6 +343,30 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     ),
     records: (projectId: unknown) => reviewService.records(String(projectId)),
   }, 'novelReview', 'novelReview'));
+  // I65 可恢复自动生成队列（design §14.9 / R13-6）：Host 持有按场景卡范围执行的
+  // 生成队列，支持暂停/继续/取消、重试、预算与停止策略。队列只编排生成——候选经
+  // I62（零写）产生并注册进 I63（registerRecoveredCandidate，作者在裁决面板
+  // accept/reject/rewrite），绝不自动接受、绝不静默改 B5/C6。任务状态 + 候选正文
+  // 持久化到 queue-journal.yaml，重启后 recover 对账 + rehydrate（无重复正文）。
+  const queueService = createQueueService({
+    projectsRoot,
+    candidate: writingCandidateService,
+    writing: writingAdjudicationService,
+    text: textService,
+    outline: outlineService,
+    resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelQueue', bindRemote({
+    status: (projectId: unknown) => queueService.status(String(projectId)),
+    start: (projectId: unknown, input?: unknown) => queueService.start(String(projectId), input as Parameters<typeof queueService.start>[1]),
+    pause: (projectId: unknown) => queueService.pause(String(projectId)),
+    resume: (projectId: unknown) => queueService.resume(String(projectId)),
+    cancel: (projectId: unknown) => queueService.cancel(String(projectId)),
+    retry: (projectId: unknown, taskId: unknown) => queueService.retry(String(projectId), String(taskId)),
+    cancelTask: (projectId: unknown, taskId: unknown) => queueService.cancelTask(String(projectId), String(taskId)),
+    recover: (projectId: unknown) => queueService.recover(String(projectId)),
+  }, 'novelQueue', 'novelQueue'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

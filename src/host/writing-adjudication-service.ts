@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   assertCandidateFresh,
   hashText,
+  parseWritingCandidate,
   validateCandidateTarget,
   type CandidateTarget,
   type WritingCandidate,
@@ -27,6 +28,8 @@ import { materializeC3KnowledgeOperations } from '../llm/parse/knowledge.js';
 import type { StateDraft } from '../core/state/index.js';
 import { createWritingCandidateService, type WritingCandidateRequest } from './candidate-service.js';
 import type { NextSceneContextProvider, NovelAgentContext } from './writing-context.js';
+import type { DetailBeat } from '../core/schema/outline.js';
+import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { NovelStateService } from './state-service.js';
 import type { NovelRelationshipService } from './relationship-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
@@ -104,6 +107,16 @@ export interface NovelWritingAdjudicationService {
   preview(candidateId: string, signal?: AbortSignal): Promise<CandidateReview>;
   /** 唯一裁决入口：accept 进入标准生命周期并受控写回；reject 零写；rewrite 后继候选。 */
   adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
+  /**
+   * I65 队列恢复注册（design §14.9 / R13-6）：把一个由队列持久化的候选登记为
+   * 可审阅/可裁决。候选必须已通过 `parseWritingCandidate` 严格复验；同 candidateId
+   * 重复注册幂等（恢复路径与正常 propose 路径可能并存）。
+   *
+   * 恢复上下文（recovery）只含场景卡 + 大纲导航 + 生成 settings —— 与 I62/I63
+   * 正常路径同构：pov 判定 / accept 落盘 summary+beats / rewrite 后继候选重建全部
+   * 可复用，不引入第二套候选持有。
+   */
+  registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void;
 }
 
 export interface WritingAdjudicationServiceDeps {
@@ -133,6 +146,8 @@ interface CandidateEntry {
   readonly candidate: WritingCandidate;
   readonly request: WritingCandidateRequest;
   readonly context?: NovelAgentContext;
+  /** I65 队列恢复上下文：card/navigation 供 pov/summary/beats 重建（正常路径为 undefined）。 */
+  readonly recovery?: { card: DetailBeat; navigation: OutlineNavigation };
   /** preview 计算并缓存的校验结果（与 accept 同源，I20 复判）。 */
   violations?: readonly ConsistencyViolationView[];
   /** accept 落地结果缓存（重复 accept 幂等返回）。 */
@@ -199,7 +214,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     ]);
     // POV：continue/scene-card 取细纲卡 pov；rewrite 取目标章节 pov（I22 探测器输入）。
     const requestPov = (entry.request as { card?: { pov?: string } }).card?.pov;
-    const pov = entry.context?.card.pov ?? requestPov ?? await resolvePovFromChapter(candidate);
+    const pov = entry.context?.card.pov ?? entry.recovery?.card.pov ?? requestPov ?? await resolvePovFromChapter(candidate);
     const [hard, leak, soft] = await Promise.all([
       deps.consistency.detectRuleAndCanon({
         prose: candidate.text,
@@ -318,8 +333,8 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     const chapterId = target.chapterId as string;
     const sceneId = target.sceneId as string;
     const entry = entries.get(candidate.id);
-    const card = entry?.context?.card;
-    const navigation = entry?.context?.navigation;
+    const card = entry?.context?.card ?? entry?.recovery?.card;
+    const navigation = entry?.context?.navigation ?? entry?.recovery?.navigation;
     let chapter: Chapter;
     try {
       chapter = await repository.readChapter(chapterId);
@@ -433,6 +448,30 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       validateProjectId(projectId);
       await candidates.open(projectId);
       await ensureOpen(projectId);
+    },
+    registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void {
+      // 严格复验（消费方不得绕过合同）；同 id 重复注册幂等（I65 恢复可重入）。
+      const parsed = parseWritingCandidate(candidate);
+      if (entries.has(parsed.id)) return;
+      // I65 队列只编排 scene-card 意图；其余意图 fail-closed（避免伪造候选入账）。
+      if (parsed.intent !== 'scene-card') {
+        throw new Error(`Queue recovery supports scene-card candidates only: ${parsed.intent}`);
+      }
+      validateCandidateTarget(parsed.intent, parsed.target);
+      const request: WritingCandidateRequest = {
+        id: parsed.id,
+        intent: parsed.intent,
+        target: parsed.target,
+        card: recovery.card,
+        navigation: recovery.navigation,
+        settings: recovery.settings,
+      };
+      entries.set(parsed.id, {
+        candidate: parsed,
+        request,
+        recovery: { card: recovery.card, navigation: recovery.navigation },
+        attempts: 0,
+      });
     },
     async propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal) {
       validateProjectId(projectId);

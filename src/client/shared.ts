@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -63,6 +63,18 @@ export interface ReviewNamespace {
   scan(projectId: string, settings?: unknown): Promise<unknown>;
   adjudicate(projectId: string, input: { decision: 'continue' | 'rewrite-requested'; issueIds: string[] }): Promise<unknown>;
   records(projectId: string): Promise<unknown>;
+}
+
+/** I65 可恢复自动生成队列 Remote 面（design §14.9 / R13-6）：只提交受控命令。 */
+export interface QueueNamespace {
+  status(projectId: string): Promise<unknown>;
+  start(projectId: string, input?: unknown): Promise<unknown>;
+  pause(projectId: string): Promise<unknown>;
+  resume(projectId: string): Promise<unknown>;
+  cancel(projectId: string): Promise<unknown>;
+  retry(projectId: string, taskId: string): Promise<unknown>;
+  cancelTask(projectId: string, taskId: string): Promise<unknown>;
+  recover(projectId: string): Promise<unknown>;
 }
 
 export interface WorkspaceSlots {
@@ -153,4 +165,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution };

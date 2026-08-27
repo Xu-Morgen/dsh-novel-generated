@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> } }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -55,6 +55,8 @@ interface WorkspaceOverrides {
   sceneReparsePropose?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
   sceneReparseAccept?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, proposalId: string, baseHash?: string) => Promise<unknown>;
   sceneReparseReject?: (projectId: string, proposalId: string) => Promise<unknown>;
+  /** I65：B5 场景卡范围（生成队列勾选）。 */
+  outlineBeatCards?: (projectId: string) => Promise<unknown[]>;
 }
 
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
@@ -70,7 +72,7 @@ const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: WorkspaceOv
   worldviewRewrite: overrides.worldviewRewrite ?? (async () => ({})),
   outlineRead: overrides.outlineRead ?? (async () => ({ id: 'outline', structure: 'free', logline: '', themes: [], acts: [], foreshadowing: [], endings: [] })),
   outlineSave: overrides.outlineSave ?? (async () => ({})),
-  outlineBeatCards: async () => [],
+  outlineBeatCards: overrides.outlineBeatCards ?? (async () => []),
   relationshipRead: overrides.relationshipRead ?? (async () => []),
   relationshipSave: overrides.relationshipSave ?? (async () => ({})),
   stateCurrent: async () => ({}),
@@ -241,6 +243,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const workbenchSettingsStub = mountOptions.workbenchSettings;
   const writingStub = mountOptions.writing;
   const reviewStub = mountOptions.review;
+  const queueStub = mountOptions.queue;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -272,6 +275,16 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },
       adjudicate: async () => { throw new Error('未注入 remote.novelReview.adjudicate'); },
       records: async () => { throw new Error('未注入 remote.novelReview.records'); },
+    })
+    : name === 'remote.novelQueue' ? (queueStub ?? {
+      status: async () => { throw new Error('未注入 remote.novelQueue.status'); },
+      start: async () => { throw new Error('未注入 remote.novelQueue.start'); },
+      pause: async () => { throw new Error('未注入 remote.novelQueue.pause'); },
+      resume: async () => { throw new Error('未注入 remote.novelQueue.resume'); },
+      cancel: async () => { throw new Error('未注入 remote.novelQueue.cancel'); },
+      retry: async () => { throw new Error('未注入 remote.novelQueue.retry'); },
+      cancelTask: async () => { throw new Error('未注入 remote.novelQueue.cancelTask'); },
+      recover: async () => { throw new Error('未注入 remote.novelQueue.recover'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
@@ -347,10 +360,10 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：十一个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心）。
+    // 稳定 data 锚点：十二个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'chapters', 'review', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings',
+      'outline', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C5/B3/B2/C1/C2/C4），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
@@ -2173,9 +2186,9 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲,正文,审校中心} 策划={角色,世界观} 连续性={关系,状态,正史} 设置={初始化,创作设置,LLM 设置}。
+    // 迁移映射：写作={大纲,正文,审校中心,生成队列} 策划={角色,世界观} 连续性={关系,状态,正史} 设置={初始化,创作设置,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
-    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'chapters', 'review']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'chapters', 'review', 'queue']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'settings']);
@@ -2185,7 +2198,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'chapters', 'review', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings'];
+    const views = ['outline', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'onboarding', 'creationSettings', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2247,7 +2260,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(11);
+    expect(grouped).toHaveLength(12);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2264,7 +2277,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(11);
+    expect(NAV_ITEMS).toHaveLength(12);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2281,10 +2294,11 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
     expect(badges).toEqual(['B5', 'C5', 'B3', 'B2', 'C1', 'C2', 'C4']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'onboarding', 'creationSettings', 'settings']);
-    // I60/I64：层视图、正文视图与审校中心视图是稳定视图（重复点击保持），设置类视图回退默认。
+    expect(noBadge).toEqual(['review', 'queue', 'onboarding', 'creationSettings', 'settings']);
+    // I60/I64/I65：层视图、正文视图、审校中心与生成队列视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
+    expect(isStableView('queue')).toBe(true);
     expect(isStableView('characters')).toBe(true);
     expect(isStableView('settings')).toBe(false);
   });
@@ -3175,5 +3189,114 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-review-retry'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(reviewPanel(render())?.props?.['data-novel-review-state']).toBe('ready');
+  });
+});
+
+describe('I65 生成队列 UI (R13-6)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const queuePanel = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-queue-panel'] !== undefined);
+  const openQueue = (render: () => FakeNode): void => {
+    (navButton(render(), 'queue')?.props?.onClick as () => void)();
+  };
+
+  const QUEUE_STATUS = {
+    projectId: 'fixture-project',
+    runState: 'completed',
+    config: { wordBudget: 200, maxRetries: 1, stopOnSoftWarnings: false },
+    consumedUnits: 20,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    error: null,
+    tasks: [
+      { id: 'qt-scene-a', sceneId: 'scene-a', chapterId: 'chapter-1', cardTitle: '发现海图', cardPov: 'mira', status: 'candidate-ready', candidateId: 'cand-1', attempts: 1, error: null, budgetUnits: 10, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'qt-scene-b', sceneId: 'scene-b', chapterId: 'chapter-1', cardTitle: '灯塔守夜', cardPov: 'mira', status: 'failed', candidateId: null, attempts: 1, error: 'backend exploded', budgetUnits: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+    ],
+  };
+  const CARDS = [
+    { actId: 'act-1', beatId: 'beat-1', beatTitle: '午夜旧灯塔', detailBeat: { id: 'detail-1', title: '发现海图', summary: 's', pov: 'mira', wordTarget: 20, points: [], status: 'writing' } },
+    { actId: 'act-1', beatId: 'beat-1', beatTitle: '午夜旧灯塔', detailBeat: { id: 'detail-2', title: '灯塔守夜', summary: 's', pov: 'mira', wordTarget: 20, points: [], status: 'writing' } },
+  ];
+
+  it('刷新队列后展示运行态/预算/任务列表；失败任务可重试；开始/暂停/取消按钮按 runState 可用', async () => {
+    const starts: unknown[] = [];
+    let retried: string | undefined;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { outlineBeatCards: async () => CARDS },
+      {
+        queue: {
+          status: async () => ({ ok: true, value: QUEUE_STATUS }),
+          start: async (projectId, input) => { starts.push({ projectId, input }); return { ok: true, value: QUEUE_STATUS }; },
+          pause: async () => ({ ok: true, value: QUEUE_STATUS }),
+          resume: async () => ({ ok: true, value: QUEUE_STATUS }),
+          cancel: async () => ({ ok: true, value: QUEUE_STATUS }),
+          retry: async (projectId, taskId) => { retried = taskId; return { ok: true, value: QUEUE_STATUS }; },
+          cancelTask: async () => ({ ok: true, value: QUEUE_STATUS }),
+          recover: async () => ({ ok: true, value: QUEUE_STATUS }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openQueue(render);
+    await flush();
+    // 刷新 → ready：运行态 + 预算 + 任务列表（待裁决 + 失败）。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('ready');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-queue-summary'] !== undefined)?.children?.[0] ?? ''))).toContain('已完成');
+    expect(collect(render(), 'li').filter((n) => n.props?.['data-novel-queue-task'] !== undefined)).toHaveLength(2);
+    expect(collect(render(), 'span').some((n) => n.props?.['data-novel-queue-task-badge'] === 'candidate-ready')).toBe(true);
+    expect(collect(render(), 'span').some((n) => n.props?.['data-novel-queue-task-badge'] === 'failed')).toBe(true);
+    // 场景卡勾选范围（B5 beatCards 投影）。
+    expect(collect(render(), 'input').filter((n) => n.props?.['data-novel-queue-card-check'] !== undefined)).toHaveLength(2);
+    // 失败任务重试按钮。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-retry'] === 'qt-scene-b')?.props?.onClick as () => void)();
+    await flush();
+    expect(retried).toBe('qt-scene-b');
+    // runState=completed 时：开始可用、暂停/继续/取消禁用。
+    const startButton = () => collect(render(), 'button').find((n) => n.props?.['data-novel-queue-start'] !== undefined);
+    expect(startButton()?.props?.disabled).toBe(false);
+    expect(collect(render(), 'button').find((n) => n.props?.['data-novel-queue-pause'] !== undefined)?.props?.disabled).toBe(true);
+    // 点击开始：携带勾选范围（默认全选）与配置草稿。
+    (startButton()?.props?.onClick as () => void)();
+    await flush();
+    expect(starts).toHaveLength(1);
+    const input = (starts[0] as { input: { cardIds?: string[]; maxRetries?: number; stopOnSoftWarnings?: boolean } }).input;
+    expect(input.cardIds).toEqual(['detail-1', 'detail-2']);
+  });
+
+  it('队列 Remote 拒绝时显示错误态并可重试（不 brick 面板）', async () => {
+    let calls = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { outlineBeatCards: async () => CARDS },
+      {
+        queue: {
+          status: async () => { calls += 1; if (calls === 1) throw new Error('队列账本损坏：queue-journal.yaml 解析失败'); return { ok: true, value: QUEUE_STATUS }; },
+          start: async () => ({ ok: true, value: QUEUE_STATUS }),
+          pause: async () => ({ ok: true, value: QUEUE_STATUS }),
+          resume: async () => ({ ok: true, value: QUEUE_STATUS }),
+          cancel: async () => ({ ok: true, value: QUEUE_STATUS }),
+          retry: async () => ({ ok: true, value: QUEUE_STATUS }),
+          cancelTask: async () => ({ ok: true, value: QUEUE_STATUS }),
+          recover: async () => ({ ok: true, value: QUEUE_STATUS }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openQueue(render);
+    await flush();
+    // 首次 status 失败 → error 态 + 可读错误。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('error');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-queue-error-text'] !== undefined)?.children?.[0] ?? ''))).toContain('队列账本损坏');
+    // 重试成功 → ready。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('ready');
   });
 });

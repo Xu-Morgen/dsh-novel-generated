@@ -12,6 +12,9 @@
  * I64（design §14.9 / R13-5）：写作组新增「审校中心」视图（一致性审校中心，
  * 与正文工作台同组），同样为稳定视图；技术层编号只作辅助徽标。
  *
+ * I65（design §14.9 / R13-6）：写作组新增「生成队列」视图（可恢复自动生成队列，
+ * 与正文/审校同组），同样为稳定视图；技术层编号只作辅助徽标。
+ *
  * 契约与不变式：
  * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
  *   内容区携带 `data-novel-view-panel`，创作台根节点携带 `data-novel-route`；
@@ -32,8 +35,8 @@
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 正文/审校中心视图 + 三个非层视图（I58/I60/I64 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列视图 + 三个非层视图（I58/I60/I64/I65 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -58,6 +61,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'outline', label: '大纲', badge: 'B5', layer: 'outline' },
       { view: 'chapters', label: '正文', badge: 'C5' },
       { view: 'review', label: '审校中心' },
+      { view: 'queue', label: '生成队列' },
     ],
   },
   {
@@ -116,7 +120,7 @@ export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
 }
 
-/** 稳定视图判定（I60/I64）：层视图、正文视图与审校中心视图重复点击保持原位；设置类视图才回退默认。 */
+/** 稳定视图判定（I60/I64/I65）：层视图、正文视图、审校中心与生成队列视图重复点击保持原位；设置类视图才回退默认。 */
 export function isStableView(view: WorkbenchViewId): boolean {
-  return view === 'chapters' || view === 'review' || isLayerView(view);
+  return view === 'chapters' || view === 'review' || view === 'queue' || isLayerView(view);
 }
