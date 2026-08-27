@@ -165,7 +165,7 @@ describe('I60 C5 章节/场景只读 Remote', () => {
     // 镜像仍是每次章节写入后的派生产物（I6/I39 语义，引擎不读它）。
     const mirrorPath = join(root, 'book', 'docs', 'chapter-1.md');
     const rendered = await readFile(mirrorPath, 'utf8');
-    expect(rendered).toBe(renderChapterMarkdown({ ...chapter, scenes: [{ id: 'scene-1', index: 0, content: '第一段。\n\n第二段。', summary: '相遇', beats: ['beat-scene-1'], canonEvents: [], notes: '' }] }));
+    expect(rendered).toBe(renderChapterMarkdown({ ...chapter, scenes: [{ id: 'scene-1', index: 0, content: '第一段。\n\n第二段。', summary: '相遇', beats: ['beat-scene-1'], canonEvents: [], notes: '', branches: [] }] }));
     expect(rendered).toContain('# 第一章 火车上');
     expect(rendered).toContain('第一段。\n\n第二段。');
 

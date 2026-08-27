@@ -806,6 +806,143 @@ export const WORKBENCH_STYLES = `
   line-height: 1.6;
 }
 
+/* I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：版本列表、
+   命名存档、选用与行 diff 视图。Client 只提交受控命令，版本真相始终在 Host。 */
+.nv-branch {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+  margin-top: var(--nv-grid);
+  padding: var(--nv-grid);
+  border: 1px solid var(--nv-line);
+  border-radius: var(--nv-grid);
+  background: var(--nv-paper-raised);
+}
+
+.nv-branch__body {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.75);
+}
+
+.nv-branch__hint {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+  line-height: 1.6;
+}
+
+.nv-branch__error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__item {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.25);
+  padding: calc(var(--nv-grid) * 0.5);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__item.is-chosen {
+  border-color: var(--nv-cinnabar);
+}
+
+.nv-branch__item-head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__label {
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink);
+  overflow-wrap: anywhere;
+}
+
+.nv-branch__badge {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--nv-cinnabar);
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: 999px;
+  padding: 0 calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__meta {
+  font-size: 11px;
+  color: var(--nv-ink-faint);
+}
+
+.nv-branch__save {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.5);
+}
+
+.nv-branch__message {
+  color: var(--nv-ok);
+}
+
+.nv-branch__diff {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 0.5);
+  padding: calc(var(--nv-grid) * 0.5);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.5);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.nv-branch__diff-title {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-branch__diff-lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.nv-branch__line {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.nv-branch__line--same {
+  color: var(--nv-ink-faint);
+}
+
+.nv-branch__line--del {
+  color: var(--nv-danger);
+}
+
+.nv-branch__line--add {
+  color: var(--nv-ok);
+}
+
 .nv-editor__actions {
   display: flex;
   gap: var(--nv-grid);

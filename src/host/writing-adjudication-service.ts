@@ -316,7 +316,11 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     },
   });
 
-  /** accept 落地 C5：rewrite 替换既有场景全文（半开区间 [0, len)）；新场景追加。 */
+  /**
+   * accept 落地 C5：rewrite 替换既有场景全文（半开区间语义由 commitSceneVersion
+   * 承担 —— I70/R14-5：替换前把旧正文保留为非 chosen 分支，新正文成为唯一 chosen，
+   * 候选可保留为分支、比较并回切）；新场景追加（无分支，隐含单版本）。
+   */
   const landScene = async (candidate: WritingCandidate): Promise<{ chapterId: string; sceneId: string; index: number; content: string }> => {
     const projectId = candidate.target.projectId;
     const repository = await ensureOpen(projectId);
@@ -327,7 +331,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       const chapter = await repository.readChapter(chapterId);
       const existing = chapter.scenes.find((item) => item.id === sceneId);
       if (existing === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-      const scene = await repository.replaceRange(chapterId, sceneId, { start: 0, end: existing.content.length }, candidate.text);
+      const scene = await repository.commitSceneVersion(chapterId, sceneId, candidate.text, '重写候选');
       return { chapterId, sceneId, index: scene.index, content: scene.content };
     }
     const chapterId = target.chapterId as string;

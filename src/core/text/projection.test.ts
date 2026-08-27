@@ -7,7 +7,7 @@ const chapter = (id: string, index: number, scenes: Chapter['scenes']): Chapter 
 });
 
 const scene = (id: string, index: number, content: string, summary = `${id} summary`) => ({
-  id, index, content, summary, beats: [`beat-${id}`], canonEvents: ['event-1'], notes: 'note',
+  id, index, content, summary, beats: [`beat-${id}`], canonEvents: ['event-1'], notes: 'note', branches: [],
 });
 
 describe('I60 C5 只读投影', () => {

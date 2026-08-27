@@ -24,7 +24,7 @@ function sources(): StoryGenerationSources {
     ], [{ characterId: 'mira', knows: ['known-secret'] }, { characterId: 'lin', knows: ['hidden-secret'] }]),
     canon: [{ id: 'canon-1', seq: 0, storyTime: 'dawn', kind: 'event', summary: 'The bell rang.', detail: 'A warning bell rang at dawn.', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: [], immutable: true, supersededBy: null }],
     history: {
-      recentScenes: [{ id: 'scene-recent', index: 1, content: 'Recent scene prose.', summary: 'Recent summary.', beats: ['beat-old'], canonEvents: [], notes: '' }],
+      recentScenes: [{ id: 'scene-recent', index: 1, content: 'Recent scene prose.', summary: 'Recent summary.', beats: ['beat-old'], canonEvents: [], notes: '', branches: [] }],
       historicalSummaries: ['Long-ago summary.'],
     },
   };

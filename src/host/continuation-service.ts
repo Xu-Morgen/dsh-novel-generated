@@ -19,7 +19,8 @@ export interface ContinuationRequest {
   readonly id: string;
   readonly projectId: string;
   readonly chapter: CreateChapterInput;
-  readonly scene: Omit<Scene, 'index' | 'content'> & { readonly content?: string };
+  /** index/branches 由存储层生成（appendScene 注入），调用方只提供正文与元数据。 */
+  readonly scene: Omit<Scene, 'index' | 'content' | 'branches'> & { readonly content?: string };
   readonly sources: StoryGenerationSources;
   readonly card: DetailBeat;
   readonly navigation: OutlineNavigation;

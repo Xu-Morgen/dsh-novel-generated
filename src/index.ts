@@ -39,6 +39,7 @@ import { createKnowledgeManagerService } from './host/knowledge-manager-service.
 import { createRuleStyleManagerService } from './host/rule-style-manager-service.js';
 import { createProgressInspirationService } from './host/progress-inspiration-service.js';
 import { createImportExportService } from './host/import-export-service.js';
+import { createBranchService } from './host/branch-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -443,6 +444,19 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     restore: (projectId: unknown, raw: unknown) => importExportService.restore(String(projectId), String(raw)),
     importPreview: (projectId: unknown, input: unknown) => importExportService.importPreview(String(projectId), input as Parameters<typeof importExportService.importPreview>[1]),
   }, 'novelImportExport', 'novelImportExport'));
+  // I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：Host-owned
+  // 分支/版本模型 —— 候选可保留为分支、比较并选择唯一 chosen。复用 TextRepository
+  // （C5 唯一存储 owner；legacy 单版本文档兼容迁移 + fail closed 在 open 内完成）；
+  // choose 只写 C5，结构化同步仍必须显式 reparse/Gate。Client 分支面板只提交受控
+  // 命令，不持有版本真相。
+  const branchService = createBranchService(projectsRoot);
+  ctx.provide('novelBranches', bindRemote({
+    list: (projectId: unknown, chapterId: unknown, sceneId: unknown) => branchService.listBranches(String(projectId), String(chapterId), String(sceneId)),
+    read: (projectId: unknown, chapterId: unknown, sceneId: unknown, branchId: unknown) => branchService.readBranch(String(projectId), String(chapterId), String(sceneId), String(branchId)),
+    save: (projectId: unknown, chapterId: unknown, sceneId: unknown, label: unknown) => branchService.saveBranch(String(projectId), String(chapterId), String(sceneId), String(label)),
+    choose: (projectId: unknown, chapterId: unknown, sceneId: unknown, branchId: unknown) => branchService.chooseBranch(String(projectId), String(chapterId), String(sceneId), String(branchId)),
+    diff: (projectId: unknown, chapterId: unknown, sceneId: unknown, fromBranchId: unknown, toBranchId?: unknown) => branchService.diffBranches(String(projectId), String(chapterId), String(sceneId), String(fromBranchId), toBranchId === undefined ? undefined : String(toBranchId)),
+  }, 'novelBranches', 'novelBranches'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

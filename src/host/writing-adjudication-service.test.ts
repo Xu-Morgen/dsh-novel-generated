@@ -206,7 +206,7 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     expect(services.canon.query('demo')).toHaveLength(1);
   });
 
-  it('rewrite 候选绑定 sourceHash；preview 显示替换 diff；accept 替换既有场景全文', async () => {
+  it('rewrite 候选绑定 sourceHash；preview 显示替换 diff；accept 替换既有场景全文并保留旧正文为分支', async () => {
     const { service, root, services } = await setup();
     roots.push(root);
     await seedProject(root, services, 'demo');
@@ -224,7 +224,22 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     if (outcome.status !== 'written') return;
     const chapter = await services.text.readChapter('demo', 'chapter-1');
     expect(chapter.scenes).toHaveLength(1);
-    expect(chapter.scenes[0].content).toBe('米拉在码头找到铜钥匙。');
+    // I70/R14-5：候选可保留为分支 —— 旧正文保留为非 chosen 分支，新正文成为唯一 chosen。
+    const scene = chapter.scenes[0];
+    expect(scene.content).toBe('米拉在码头找到铜钥匙。');
+    expect(scene.branches).toHaveLength(2);
+    const [previous, current] = scene.branches;
+    expect(previous.content).toBe('原场景正文。');
+    expect(previous.chosen).toBe(false);
+    expect(current.content).toBe('米拉在码头找到铜钥匙。');
+    expect(current.chosen).toBe(true);
+    // 可逆回切：choose 旧分支逐字还原（只写 C5，不改结构层）。
+    const repository = new TextRepository(join(root, 'demo'));
+    await repository.open();
+    const switched = await repository.chooseSceneBranch('chapter-1', 'scene-1', previous.id);
+    expect(switched.content).toBe('原场景正文。');
+    expect(services.canon.query('demo').map((entry) => entry.id)).toEqual(['evt-1']);
+    expect(services.state.current('demo').storyTime).toBe('dawn');
   });
 
   it('reject 零写且幂等；rejected 之后 accept 失败', async () => {

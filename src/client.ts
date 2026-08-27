@@ -17,6 +17,7 @@ import {
   type RuleStyleNamespace,
   type ProgressNamespace,
   type ImportExportNamespace,
+  type BranchNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -31,6 +32,7 @@ import {
   ruleStyleRemoteContribution,
   progressRemoteContribution,
   importExportRemoteContribution,
+  branchRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -70,7 +72,7 @@ import {
   type OutlineShape,
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
-import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
+import { chaptersPanel, computeEditRange, freshSceneEditor, type BranchDiffLineShape, type BranchPanelState, type BranchSummaryShape, type CandidatePanelState, type CandidateReviewShape, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
 import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
 import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
 import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
@@ -200,6 +202,8 @@ export type WorkbenchActions = {
   sceneEditorReset(): void;
   /** I63 候选审阅面板（R13-4）：面板状态机 + 局部重写指令草稿。 */
   chaptersCandidate(patch: Partial<CandidatePanelState>): void;
+  /** I70 版本/分支面板（R14-5）：版本列表/存档草稿/对比视图状态合并。 */
+  chaptersBranches(patch: Partial<BranchPanelState>): void;
   /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
   reviewPatch(patch: Partial<ReviewLayerState>): void;
   /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
@@ -372,6 +376,7 @@ function viewPanel(
   ruleStyleNamespace: RuleStyleNamespace | undefined,
   progressNamespace: ProgressNamespace | undefined,
   importExportNamespace: ImportExportNamespace | undefined,
+  branchNamespace: BranchNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
@@ -397,7 +402,7 @@ function viewPanel(
   }
   // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）+ I63 候选审阅。
   if (activeView === 'chapters') {
-    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, chapters, ops.chapters));
+    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, branchNamespace, chapters, ops.chapters));
   }
   // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
   if (activeView === 'review') {
@@ -466,7 +471,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, importExportNamespace: ImportExportNamespace | undefined, branchNamespace: BranchNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, importExportState: ImportExportLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -530,7 +535,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, importExportState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -723,6 +728,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let ruleStyleNamespace: RuleStyleNamespace | undefined;
       let progressNamespace: ProgressNamespace | undefined;
       let importExportNamespace: ImportExportNamespace | undefined;
+      let branchNamespace: BranchNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -737,6 +743,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let ruleStyleDisposer: TypertDisposer | undefined;
       let progressDisposer: TypertDisposer | undefined;
       let importExportDisposer: TypertDisposer | undefined;
+      let branchDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -850,6 +857,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
           sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
           chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
+          chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
           reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
           queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
           knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
@@ -1235,6 +1243,77 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
               return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
             };
+            // ---- I70 版本/分支面板（R14-5）：列表装载 / 命名存档 / 选用 / 对比 ----
+            const branchesPatch = (patch: Partial<BranchPanelState>): void => act.chaptersBranches(patch);
+            // 注意：branchesLoad 必须显式接收 chapterId/sceneId —— makeOps 渲染闭包
+            // 快照里 selected* 尚未更新（与 loadScene 同一陈旧闭包缺陷，见上注释）。
+            const branchesLoad = (chapterId?: string, sceneId?: string): void => {
+              const target = branchNamespace;
+              const cid = chapterId ?? snapshot.chapters.selectedChapterId;
+              const sid = sceneId ?? snapshot.chapters.selectedSceneId;
+              if (!target || projectId === undefined || cid === undefined || sid === undefined) return;
+              if (!beginOp(`branches:list:${sid}`)) return;
+              const release = (): void => endOp(`branches:list:${sid}`);
+              branchesPatch({ status: 'loading', message: undefined });
+              void unwrap(target.list(projectId, cid, sid)).then((result) => {
+                release();
+                if (!active) return;
+                const list = ((result as { branches?: BranchSummaryShape[] }).branches ?? []) as BranchSummaryShape[];
+                branchesPatch({ status: 'ready', list, message: undefined });
+              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
+            };
+            const branchSave = (): void => {
+              const target = branchNamespace;
+              const current = snapshot.chapters.branches;
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
+              const label = current.labelDraft.trim();
+              if (label === '') { branchesPatch({ message: '请先输入版本名称' }); return; }
+              if (current.acting || !beginOp('branches:save')) return;
+              const release = (): void => endOp('branches:save');
+              branchesPatch({ acting: true, message: undefined });
+              void unwrap(target.save(projectId, chapterId, sceneId, label)).then((result) => {
+                release();
+                if (!active) return;
+                const saved = (result as { branches?: BranchSummaryShape[] }).branches;
+                branchesPatch({ acting: false, status: 'ready', list: (saved ?? current.list) as BranchSummaryShape[], labelDraft: '', message: '已存档当前版本' });
+              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+            };
+            const branchChoose = (branchId: string): void => {
+              const target = branchNamespace;
+              const current = snapshot.chapters.branches;
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
+              if (current.acting || !beginOp(`branches:choose:${branchId}`)) return;
+              const release = (): void => endOp(`branches:choose:${branchId}`);
+              branchesPatch({ acting: true, message: undefined });
+              void unwrap(target.choose(projectId, chapterId, sceneId, branchId)).then((result) => {
+                release();
+                if (!active) return;
+                const chosen = (result as { branches?: BranchSummaryShape[]; content?: string });
+                branchesPatch({ acting: false, status: 'ready', list: (chosen.branches ?? current.list) as BranchSummaryShape[], message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
+                // 切换后正文变化：重载场景，让编辑器以新原文初始化（baseHash 随之更新）。
+                if (chosen.content !== undefined && chosen.content !== snapshot.chapters.editor.original && sceneId !== undefined) loadScene(sceneId, chapterId);
+              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+            };
+            const branchDiff = (branchId: string): void => {
+              const target = branchNamespace;
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined) return;
+              if (!beginOp(`branches:diff:${branchId}`)) return;
+              const release = (): void => endOp(`branches:diff:${branchId}`);
+              branchesPatch({ diff: { status: 'loading', lines: [] }, message: undefined });
+              void unwrap(target.diff(projectId, chapterId, sceneId, branchId)).then((result) => {
+                release();
+                if (!active) return;
+                const diff = result as { from?: { label: string }; to?: { label: string }; lines?: BranchDiffLineShape[] };
+                branchesPatch({ diff: { status: 'ready', fromLabel: diff.from?.label, toLabel: diff.to?.label, lines: (diff.lines ?? []) as BranchDiffLineShape[] } });
+              }, (cause: Error) => { release(); if (!active) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
+            };
+            const branchCloseDiff = (): void => branchesPatch({ diff: { status: 'idle', lines: [] } });
             const loadScene = (sceneId: string, chapterId: string): void => {
               const target = workspace;
               if (!target || projectId === undefined) return;
@@ -1249,7 +1328,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
                 act.sceneEditorReset();
                 act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
-              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); });
+                // I70：装载后刷新该场景的版本列表（chosen 唯一投影）。
+                branchesLoad(chapterId, sceneId);
+              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); branchesPatch({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
             };
             const selectChapter = (chapterId: string): void => {
               // I61 脏文本保护：草稿未保存时先弹离开确认，把切换推迟到裁决后。
@@ -1462,6 +1543,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               proposeRewrite,
               adjudicateCandidate,
               dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); },
+              // I70 版本/分支面板（R14-5）。
+              branchesLoad,
+              branchLabelChange(value) { branchesPatch({ labelDraft: value }); },
+              branchSave,
+              branchChoose,
+              branchDiff,
+              branchCloseDiff,
             };
           })(),
           // ---- I64 一致性审校中心（R13-5）：刷新/过滤/选中/显式裁决 ----
@@ -2285,7 +2373,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.importExport, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -2392,6 +2480,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           importExportDisposer = dispose;
           importExportNamespace = ctx.get('remote.novelImportExport', false) as ImportExportNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: importExport Remote mount failed', cause); });
+        // I70：C5 正文版本与分支 Remote（R14-5）。挂载失败静默降级：分支面板显示不可用。
+        void ctx.remote.$mount(branchRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          branchDisposer = dispose;
+          branchNamespace = ctx.get('remote.novelBranches', false) as BranchNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: branches Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -2409,6 +2503,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           ruleStyleNamespace = undefined;
           progressNamespace = undefined;
           importExportNamespace = undefined;
+          branchNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -2422,6 +2517,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (ruleStyleDisposer) void ruleStyleDisposer();
           if (progressDisposer) void progressDisposer();
           if (importExportDisposer) void importExportDisposer();
+          if (branchDisposer) void branchDisposer();
         };
       });
     },

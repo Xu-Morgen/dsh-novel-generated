@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -118,6 +118,15 @@ export interface ImportExportNamespace {
   importPreview(projectId: string, input: { fileName: string; format: string; text: string }): Promise<unknown>;
 }
 
+/** I70 C5 正文版本/分支 Remote（design §14.10「正文版本与分支」/ R14-5）：只提交受控命令，不持有版本真相。 */
+export interface BranchNamespace {
+  list(projectId: string, chapterId: string, sceneId: string): Promise<unknown>;
+  read(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<unknown>;
+  save(projectId: string, chapterId: string, sceneId: string, label: string): Promise<unknown>;
+  choose(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<unknown>;
+  diff(projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string): Promise<unknown>;
+}
+
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
   register(options: unknown, component: () => unknown): () => void;
@@ -206,4 +215,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution };

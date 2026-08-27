@@ -113,7 +113,7 @@ describe('I6 TextRepository', () => {
   it('renderChapterMarkdown produces paragraphs from newline-separated prose', () => {
     const rendered = renderChapterMarkdown({
       id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft',
-      scenes: [{ id: 'scene-1', index: 0, content: '第一段。\n第二段。\n\n第三段。', summary: '相遇', beats: [], canonEvents: [], notes: '' }],
+      scenes: [{ id: 'scene-1', index: 0, content: '第一段。\n第二段。\n\n第三段。', summary: '相遇', beats: [], canonEvents: [], notes: '', branches: [] }],
     });
     expect(rendered).toContain('# 第一章');
     expect(rendered).toContain('## 场景 1 · 相遇');
