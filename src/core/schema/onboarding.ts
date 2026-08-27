@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { confidenceSchema, entityIdSchema } from './base.js';
-import { characterArcSchema, characterKindSchema } from './characters.js';
-import { triggerModeSchema, worldKindSchema } from './worldview.js';
-import { actSchema, endingSchema, foreshadowingSchema, outlineStructureSchema } from './outline.js';
-import { relationshipTypeSchema } from './relationship.js';
-import { characterStateSchema, sceneStateSchema } from './state.js';
-import { canonKindSchema } from './canon.js';
+import { confidenceSchema } from './base.js';
+import { characterCoreSchema } from './characters.js';
+import { worldEntrySchema } from './worldview.js';
+import { outlineSchema } from './outline.js';
+import { relationshipSchema } from './relationship.js';
+import { worldStateSchema } from './state.js';
+import { canonEventSchema } from './canon.js';
 
 /**
  * I52 six-layer initialization analyzer contract (design §14.8 / R11-3).
@@ -47,88 +47,32 @@ export type EvidenceAtom = z.infer<typeof evidenceAtomSchema>;
 export const evidenceMapSchema = z.record(z.string().min(1), evidenceAtomSchema);
 export type EvidenceMap = z.infer<typeof evidenceMapSchema>;
 
-/** B3 character candidate: CharacterCore minus version, with C1/C3/C2 arcs emptied. */
-export const onboardingCharacterSchema = z.object({
-  id: entityIdSchema,
-  name: z.string().trim().min(1),
-  aliases: z.array(z.string()),
-  kind: characterKindSchema,
-  personality: z.string(),
-  background: z.string(),
-  motivation: z.string(),
-  goals: z.array(z.string()),
-  flaws: z.array(z.string()),
-  abilities: z.array(z.string()),
-  speechStyle: z.string(),
-  staticTraits: z.array(z.string()),
-  arc: characterArcSchema,
-  /** Forced empty: the analyzer never infers C1/C3 forward references. */
-  relationships: z.array(entityIdSchema),
-  knowledgeIds: z.array(entityIdSchema),
-}).strict();
+/**
+ * B3 character candidate: CharacterCore minus version, with C1/C3/C2 arcs emptied.
+ * I81 组合（架构审查 §4.2）：由 `characterCoreSchema.omit(...)` 派生，消除手写逐字段
+ * 重列 —— 字段单一来源在 characters.ts，本层只表达「去掉 Host-owned version」。
+ */
+export const onboardingCharacterSchema = characterCoreSchema.omit({ version: true });
 export type OnboardingCharacter = z.infer<typeof onboardingCharacterSchema>;
 
-/** B2 worldview candidate: WorldEntry minus version/status/supersededBy. */
-export const onboardingWorldviewSchema = z.object({
-  id: entityIdSchema,
-  kind: worldKindSchema,
-  title: z.string().trim().min(1),
-  content: z.string().trim().min(1),
-  keywords: z.array(z.string()),
-  triggerMode: triggerModeSchema,
-  weight: z.number().int(),
-  parent: entityIdSchema.nullable(),
-  mutable: z.boolean(),
-}).strict();
+/** B2 worldview candidate: WorldEntry minus version/status/supersededBy（I81 omit 组合）。 */
+export const onboardingWorldviewSchema = worldEntrySchema.omit({ version: true, status: true, supersededBy: true });
 export type OnboardingWorldview = z.infer<typeof onboardingWorldviewSchema>;
 
-/** B5 outline candidate: Outline minus version. */
-export const onboardingOutlineSchema = z.object({
-  id: entityIdSchema,
-  structure: outlineStructureSchema,
-  logline: z.string().trim().min(1),
-  themes: z.array(z.string().trim().min(1)),
-  acts: z.array(actSchema),
-  foreshadowing: z.array(foreshadowingSchema),
-  endings: z.array(endingSchema),
-}).strict();
+/** B5 outline candidate: Outline minus version（I81 omit 组合）。 */
+export const onboardingOutlineSchema = outlineSchema.omit({ version: true });
 export type OnboardingOutline = z.infer<typeof onboardingOutlineSchema>;
 
-/** C1 relationship candidate: Relationship minus version. */
-export const onboardingRelationshipSchema = z.object({
-  id: entityIdSchema,
-  from: entityIdSchema,
-  to: entityIdSchema,
-  type: relationshipTypeSchema,
-  affinity: z.number().int().min(-100).max(100),
-  trust: z.number().int().min(0).max(100),
-  status: z.string().trim().min(1),
-  milestones: z.array(entityIdSchema),
-  knownTo: z.array(entityIdSchema),
-}).strict();
+/** C1 relationship candidate: Relationship minus version（I81 omit 组合）。 */
+export const onboardingRelationshipSchema = relationshipSchema.omit({ version: true });
 export type OnboardingRelationship = z.infer<typeof onboardingRelationshipSchema>;
 
-/** C2 state candidate: the input-end story-start snapshot, scene+characters only. */
-export const onboardingStateSchema = z.object({
-  id: entityIdSchema,
-  storyTime: z.string(),
-  scene: sceneStateSchema,
-  characters: z.array(characterStateSchema),
-}).strict();
+/** C2 state candidate: the input-end story-start snapshot, scene+characters only（I81 omit 组合）。 */
+export const onboardingStateSchema = worldStateSchema.omit({ version: true, seq: true });
 export type OnboardingState = z.infer<typeof onboardingStateSchema>;
 
-/** C4 canon candidate: CanonEvent minus seq/immutable; text-explicit events only. */
-export const onboardingCanonSchema = z.object({
-  id: entityIdSchema,
-  storyTime: z.string(),
-  kind: canonKindSchema,
-  summary: z.string().min(1),
-  detail: z.string(),
-  participants: z.array(entityIdSchema),
-  location: z.string(),
-  consequences: z.array(entityIdSchema),
-  affectedLayers: z.array(z.string()),
-}).strict();
+/** C4 canon candidate: CanonEvent minus seq/immutable/supersedes; text-explicit events only（I81 omit 组合）。 */
+export const onboardingCanonSchema = canonEventSchema.omit({ seq: true, immutable: true, supersedes: true });
 export type OnboardingCanon = z.infer<typeof onboardingCanonSchema>;
 
 /** A per-layer candidate list with its own evidence references and warnings. */

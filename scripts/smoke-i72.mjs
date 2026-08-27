@@ -57,7 +57,6 @@ const fail = (msg) => { throw new Error(`I72 smoke: ${msg}`); };
   const shared = read('src/client/shared.ts');
   const nav = read('src/client/nav.ts');
   const statisticsLayer = read('src/client/layers/statistics.ts');
-  const coreStatistics = read('src/core/statistics/index.ts');
   const exportSource = read('src/core/export/index.ts');
   if (!index.includes("ctx.provide('novelStatistics'") || !index.includes('createStatisticsService') || !index.includes('queue: queueService')) {
     fail('index.ts missing novelStatistics wiring');
@@ -78,7 +77,9 @@ const fail = (msg) => { throw new Error(`I72 smoke: ${msg}`); };
     fail('statistics.ts missing statistics panel UI');
   }
   // 派生统计目录不在可移植档案 LAYER_PATHS 白名单内（不成为档案/真相的一部分）。
-  assert.ok(coreStatistics.includes("STATISTICS_DIRECTORY = '.statistics'"), 'core statistics must declare the .statistics derived directory');
+  // I81 拆分后常量声明落在 statistics/types.ts 契约层（index.ts 只做兼容 re-export）。
+  const coreStatisticsTypes = read('src/core/statistics/types.ts');
+  assert.ok(coreStatisticsTypes.includes("STATISTICS_DIRECTORY = '.statistics'"), 'core statistics must declare the .statistics derived directory');
   assert.ok(!exportSource.includes("'.statistics'"), 'portable export must not include the derived .statistics directory');
 }
 
