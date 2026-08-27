@@ -17,3 +17,14 @@ export const projectMetaSchema = baseEntitySchema.extend({
 }).strict();
 
 export type ProjectMeta = z.infer<typeof projectMetaSchema>;
+
+/**
+ * Canonical three-level model confidence shared by every llm parser/validator
+ * (I76 convergence; review §9 #2 — previously duplicated 7× across
+ * `llm/parse/*` and `core/schema/onboarding.ts`). Defined in this zod-only
+ * core leaf so `core/schema/onboarding.ts` can consume it without a core→llm
+ * import edge (review §8#4); `src/llm/parse/shared.ts` re-exports it as the
+ * llm-side single source. 'low' always implies I11 ConfirmationGate.
+ */
+export const confidenceSchema = z.enum(['low', 'medium', 'high']);
+export type Confidence = z.infer<typeof confidenceSchema>;

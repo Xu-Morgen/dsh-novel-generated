@@ -5,8 +5,8 @@ import { type ConfirmationRecord } from '../../core/schema/confirm.js';
 import { entityIdSchema } from '../../core/schema/base.js';
 import { worldEntrySchema, type WorldEntry, type WorldEntryInput } from '../../core/schema/worldview.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
 const b2ReplacementSchema = worldEntrySchema.omit({ version: true, status: true, supersededBy: true });
 
 /** A B2 replacement is always a new active entry; version and supersede links remain repository-owned. */
@@ -36,14 +36,7 @@ export type B2WorldviewParserInput = z.infer<typeof b2WorldviewParserInputSchema
 
 /** Parse a JSON-only B2 response and reject malformed or extra model output. */
 export function parseB2WorldviewParserOutput(text: unknown): B2WorldviewParserOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('B2 worldview parser output must be valid JSON', { cause });
-  }
-  return b2WorldviewParserOutputSchema.parse(json);
+  return parseJsonObject(text, b2WorldviewParserOutputSchema, 'B2 worldview parser output');
 }
 
 /**

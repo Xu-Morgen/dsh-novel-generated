@@ -4,8 +4,8 @@ import { type ConfirmationRecord } from '../../core/schema/confirm.js';
 import { StateEngine, type StateDraft } from '../../core/state/index.js';
 import { worldStateSchema, type WorldState } from '../../core/schema/state.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
 const stateFieldSchema = z.enum([
   'storyTime', 'location', 'timeOfDay', 'weather', 'season', 'atmosphere',
   'alive', 'health', 'mood', 'inventory', 'condition', 'currentGoal', 'flags',
@@ -42,14 +42,7 @@ const characterScalarFields = new Set(['location', 'alive', 'health', 'mood', 'c
 
 /** Parse a JSON-only C2 parser response and reject malformed or extra model output. */
 export function parseC2StateParserOutput(text: unknown): C2StateParserOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('C2 state parser output must be valid JSON', { cause });
-  }
-  return c2StateParserOutputSchema.parse(json);
+  return parseJsonObject(text, c2StateParserOutputSchema, 'C2 state parser output');
 }
 
 /**

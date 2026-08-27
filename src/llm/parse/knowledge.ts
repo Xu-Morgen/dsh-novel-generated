@@ -5,8 +5,7 @@ import { type ConfirmationRecord } from '../../core/schema/confirm.js';
 import { entityIdSchema } from '../../core/schema/base.js';
 import { knowledgeEntrySchema, knowledgeStateSchema, knowledgeStatusSchema } from '../../core/schema/knowledge.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
-
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
 /** Exact I28 C3 operation: add known holders and advance exactly one revelation status. */
 export const c3KnowledgeAdvanceOperationSchema = z.object({
@@ -34,14 +33,7 @@ export type C3KnowledgeParserInput = z.infer<typeof c3KnowledgeParserInputSchema
 
 /** Parse a JSON-only C3 parser response and reject malformed or extra model output. */
 export function parseC3KnowledgeParserOutput(text: unknown): C3KnowledgeParserOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('C3 knowledge parser output must be valid JSON', { cause });
-  }
-  return c3KnowledgeParserOutputSchema.parse(json);
+  return parseJsonObject(text, c3KnowledgeParserOutputSchema, 'C3 knowledge parser output');
 }
 
 /**

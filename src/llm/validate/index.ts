@@ -5,6 +5,8 @@ import {
   type ConsistencyViolationView,
 } from '../../core/validate/index.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { parseJsonObject } from '../parse/shared.js';
+import { violationSchema } from './shared.js';
 
 const detectorRuleSchema = z.object({
   id: z.string().trim().min(1),
@@ -27,12 +29,7 @@ export const ruleCanonDetectionInputSchema = z.object({
 }).strict();
 export type RuleCanonDetectionInput = z.infer<typeof ruleCanonDetectionInputSchema>;
 
-const hardViolationSchema = z.object({
-  kind: z.enum(['immutable-rule', 'canon-conflict']),
-  severity: z.literal('hard'),
-  message: z.string().trim().min(1),
-  references: z.array(z.string().trim().min(1)).min(1),
-}).strict();
+const hardViolationSchema = violationSchema(z.enum(['immutable-rule', 'canon-conflict']), 'hard');
 
 /** Exact model envelope: prose analysis cannot introduce soft or unknown findings. */
 export const ruleCanonDetectorOutputSchema = z.object({
@@ -56,14 +53,7 @@ export interface RuleCanonDetectionResult {
  * rather than being converted to a passing result (plan I21).
  */
 export function parseRuleCanonDetectorOutput(text: unknown): RuleCanonDetectorOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('Rule/canon detector output must be valid JSON', { cause });
-  }
-  return ruleCanonDetectorOutputSchema.parse(json);
+  return parseJsonObject(text, ruleCanonDetectorOutputSchema, 'Rule/canon detector output');
 }
 
 /**

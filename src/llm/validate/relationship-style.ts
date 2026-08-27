@@ -7,6 +7,8 @@ import {
   type ConsistencyViolationView,
 } from '../../core/validate/index.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { parseJsonObject } from '../parse/shared.js';
+import { violationSchema } from './shared.js';
 
 /** The minimum C1/B4 source view available to I24 semantic soft detection. */
 export const relationshipStyleDetectionInputSchema = z.object({
@@ -16,12 +18,7 @@ export const relationshipStyleDetectionInputSchema = z.object({
 }).strict();
 export type RelationshipStyleDetectionInput = z.infer<typeof relationshipStyleDetectionInputSchema>;
 
-const relationshipStyleViolationSchema = z.object({
-  kind: z.enum(['relationship-drift', 'style-deviation']),
-  severity: z.literal('soft'),
-  message: z.string().trim().min(1),
-  references: z.array(z.string().trim().min(1)).min(1),
-}).strict();
+const relationshipStyleViolationSchema = violationSchema(z.enum(['relationship-drift', 'style-deviation']), 'soft');
 
 /** Exact I24 model envelope; hard and unrelated findings fail closed. */
 export const relationshipStyleDetectorOutputSchema = z.object({
@@ -37,14 +34,7 @@ export interface RelationshipStyleDetectionResult {
 
 /** Parse JSON-only model output at the I24 fail-closed boundary. */
 export function parseRelationshipStyleDetectorOutput(text: unknown): RelationshipStyleDetectorOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('Relationship/style detector output must be valid JSON', { cause });
-  }
-  return relationshipStyleDetectorOutputSchema.parse(json);
+  return parseJsonObject(text, relationshipStyleDetectorOutputSchema, 'Relationship/style detector output');
 }
 
 /**

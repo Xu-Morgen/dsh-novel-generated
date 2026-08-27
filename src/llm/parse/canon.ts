@@ -5,8 +5,8 @@ import { entityIdSchema } from '../../core/schema/base.js';
 import { canonKindSchema } from '../../core/schema/canon.js';
 import { type ConfirmationRecord } from '../../core/schema/confirm.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
 const appendKindSchema = canonKindSchema.exclude(['correction']);
 
 /** I26 model-supplied content for a new C4 fact; sequence and immutability remain ledger-owned. */
@@ -75,14 +75,7 @@ export type C4CanonParserInput = z.infer<typeof c4CanonParserInputSchema>;
 
 /** Parse a JSON-only C4 parser response and reject malformed or extra model output. */
 export function parseC4CanonParserOutput(text: unknown): C4CanonParserOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('C4 Canon parser output must be valid JSON', { cause });
-  }
-  return c4CanonParserOutputSchema.parse(json);
+  return parseJsonObject(text, c4CanonParserOutputSchema, 'C4 Canon parser output');
 }
 
 /**

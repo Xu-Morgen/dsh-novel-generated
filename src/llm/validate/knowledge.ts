@@ -7,6 +7,8 @@ import {
   type ConsistencyViolationView,
 } from '../../core/validate/index.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { parseJsonObject } from '../parse/shared.js';
+import { violationSchema } from './shared.js';
 
 /** C3 source needed to derive one POV's permitted and protected knowledge views. */
 export const knowledgeLeakDetectionInputSchema = z.object({
@@ -17,12 +19,7 @@ export const knowledgeLeakDetectionInputSchema = z.object({
 }).strict();
 export type KnowledgeLeakDetectionInput = z.infer<typeof knowledgeLeakDetectionInputSchema>;
 
-const knowledgeLeakViolationSchema = z.object({
-  kind: z.literal('knowledge-leak'),
-  severity: z.literal('hard'),
-  message: z.string().trim().min(1),
-  references: z.array(z.string().trim().min(1)).min(1),
-}).strict();
+const knowledgeLeakViolationSchema = violationSchema(z.literal('knowledge-leak'), 'hard');
 
 /** Exact I22 model envelope; soft and non-C3 findings fail closed. */
 export const knowledgeLeakDetectorOutputSchema = z.object({
@@ -38,14 +35,7 @@ export interface KnowledgeLeakDetectionResult {
 
 /** Parse an I22 JSON-only response at the fail-closed model boundary. */
 export function parseKnowledgeLeakDetectorOutput(text: unknown): KnowledgeLeakDetectorOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('Knowledge-leak detector output must be valid JSON', { cause });
-  }
-  return knowledgeLeakDetectorOutputSchema.parse(json);
+  return parseJsonObject(text, knowledgeLeakDetectorOutputSchema, 'Knowledge-leak detector output');
 }
 
 /**

@@ -4,8 +4,8 @@ import { ConfirmationGate } from '../../core/confirm/index.js';
 import { type ConfirmationRecord } from '../../core/schema/confirm.js';
 import { relationshipSchema, relationshipTypeSchema } from '../../core/schema/relationship.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
 const relationshipInputSchema = relationshipSchema.omit({ version: true });
 const relationshipFieldSchema = z.enum(['type', 'affinity', 'trust', 'status', 'milestones', 'knownTo']);
 
@@ -46,14 +46,7 @@ export type C1RelationshipParserInput = z.infer<typeof c1RelationshipParserInput
 
 /** Parse a JSON-only C1 parser response and reject malformed or extra model output. */
 export function parseC1RelationshipParserOutput(text: unknown): C1RelationshipParserOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('C1 relationship parser output must be valid JSON', { cause });
-  }
-  return c1RelationshipParserOutputSchema.parse(json);
+  return parseJsonObject(text, c1RelationshipParserOutputSchema, 'C1 relationship parser output');
 }
 
 /**

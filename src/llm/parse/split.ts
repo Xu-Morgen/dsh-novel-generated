@@ -6,8 +6,8 @@ import type { ConfirmationRecord } from '../../core/schema/confirm.js';
 import { detailBeatSchema, outlineSchema, type DetailBeat, type Outline, type OutlineInput } from '../../core/schema/outline.js';
 import { worldEntrySchema, type WorldEntry, type WorldEntryInput } from '../../core/schema/worldview.js';
 import { collectCandidate, resolveGenerationSettings, type LlmBackend } from '../port/index.js';
+import { confidenceSchema, parseJsonObject } from './shared.js';
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
 const sourceChunkSchema = z.number().int().nonnegative();
 
 /** A B5 outline candidate is complete enough for the existing outline store. */
@@ -68,14 +68,7 @@ export type SplitAgentInput = z.infer<typeof splitAgentInputSchema>;
 
 /** Parse one JSON-only I38 response and reject markdown, unknown fields, and C-layer leakage. */
 export function parseSplitAgentOutput(text: unknown): SplitAgentOutput {
-  const response = z.string().trim().min(1).parse(text);
-  let json: unknown;
-  try {
-    json = JSON.parse(response);
-  } catch (cause) {
-    throw new Error('Split agent output must be valid JSON', { cause });
-  }
-  return splitAgentOutputSchema.parse(json);
+  return parseJsonObject(text, splitAgentOutputSchema, 'Split agent output');
 }
 
 /** Validate source references and candidate identity before any Gate proposal. */

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { entityIdSchema } from './base.js';
+import { confidenceSchema, entityIdSchema } from './base.js';
 import { characterArcSchema, characterKindSchema } from './characters.js';
 import { triggerModeSchema, worldKindSchema } from './worldview.js';
 import { actSchema, endingSchema, foreshadowingSchema, outlineStructureSchema } from './outline.js';
@@ -32,7 +32,8 @@ import { canonKindSchema } from './canon.js';
  * five (their serialized candidates hash is invariant).
  */
 
-const confidenceSchema = z.enum(['low', 'medium', 'high']);
+// confidenceSchema 为全仓唯一 canonical 定义（见 ./base.js，I76 收敛；review §9 #2），
+// 本层从 core 叶子直引，避免 core→llm 反向依赖（review §8#4）。
 export type CandidateConfidence = z.infer<typeof confidenceSchema>;
 
 /** Shared evidence atom: a quoted excerpt plus its source chunk index. */
