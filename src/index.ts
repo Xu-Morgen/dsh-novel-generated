@@ -30,6 +30,7 @@ import { createExportService } from './host/export-service.js';
 import { createClassifierService } from './host/classifier-service.js';
 import { createLocalizedEditService } from './host/edit-service.js';
 import { createTextEditService } from './host/text-edit-service.js';
+import { createWritingCandidateService } from './host/candidate-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
@@ -268,6 +269,12 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     onDispose: (dispose) => ctx.effect(() => dispose),
   });
   ctx.provide('novelTextEdit', textEditService);
+  // I62 统一写作候选命令（design §14.9 / R13-3）：生成/续写/按场景卡写作/局部重写
+  // 共用同一 Host 候选命令，只产生绑定 project/chapter/scene/sourceHash 的候选，
+  // 不预先接受或写任何层；取消/错误/过期语义在 core/candidate 冻结。候选不持久化
+  // （I65 队列 owner）；I63 裁决 UI 复用本服务并消费 assertCandidateFresh。
+  const writingCandidateService = createWritingCandidateService({ llm, projectsRoot, onDispose: (dispose) => ctx.effect(() => dispose) });
+  ctx.provide('novelWritingCandidate', writingCandidateService);
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,
