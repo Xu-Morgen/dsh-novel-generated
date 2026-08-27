@@ -80,6 +80,11 @@ export const NAV_WIDTH_MIN = 120;
 export const NAV_WIDTH_MAX = 360;
 export const NAV_WIDTH_DEFAULT = 160;
 
+/** 创作台面板整体宽度边界（UI 打磨补强：拖左边缘调整面板宽度，§14.8 停靠侧板）。 */
+export const PANEL_WIDTH_MIN = 480;
+export const PANEL_WIDTH_MAX = 1200;
+export const PANEL_WIDTH_DEFAULT = 860;
+
 /** 侧栏宽度键盘步进（resizer 方向键，I59 键盘可达性延续）。 */
 export const GRID_STEP = 8;
 
@@ -128,6 +133,14 @@ export type WorkbenchActions = {
   navResizeMove(clientX: number): void;
   /** 拖动会话结束：释放指针。 */
   navResizeEnd(): void;
+  /** 创作台面板整体宽度（可拖动，UI 打磨）：设置面板宽度（钳制在 PANEL_WIDTH_MIN/MAX 内）。 */
+  setPanelWidth(width: number): void;
+  /** 面板宽度拖动会话开始：记录指针起点 X 与当前宽度。 */
+  panelResizeStart(startX: number): void;
+  /** 面板宽度拖动会话移动：按指针位移更新面板宽度。 */
+  panelResizeMove(clientX: number): void;
+  /** 面板宽度拖动会话结束：释放指针。 */
+  panelResizeEnd(): void;
   activate(id: LayerId): void;
   /** I58 稳定视图导航：以 WorkbenchViewId 为唯一 route/state 锚点。 */
   activateView(view: WorkbenchViewId): void;
@@ -398,7 +411,7 @@ interface WorkbenchOps {
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -494,13 +507,14 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
     }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
   return h('section', {
     className: 'nv-workbench',
-    // UI 打磨：nav 宽度经 CSS 变量下发，resizer 拖拽更新 store → 根节点变量 → 侧栏宽度。
-    style: { '--nv-nav-width': `${ui.navWidth}px` },
+    // UI 打磨：nav 宽度经 CSS 变量下发，resizer 拖拽更新 store → 根节点变量 → 侧栏宽度；
+    // 面板整体宽度同样经 --nv-panel-width 下发（左边缘拖柄调整，见下方 panel-resizer）。
+    style: { '--nv-nav-width': `${ui.navWidth}px`, '--nv-panel-width': `${ui.panelWidth}px` },
     'data-novel-workspace': effectiveStatus,
     'data-novel-project-open': selectedProjectId,
     'data-novel-route': ui.activeView,
     // I59 键盘/Esc（R12-6）：面板内 Esc 先取消脏表单离开确认，否则关闭面板
-    // （关闭时焦点恢复到侧栏启动按钮，见 ui.close）。data-novel-focus-scope 是
+    // （关闭时焦点恢复到悬浮圆形入口，见 ui.close）。data-novel-focus-scope 是
     // 打开后的焦点进入范围锚点。
     'data-novel-focus-scope': '',
     onKeyDown: (event: { key: string; preventDefault(): void }): void => {
@@ -510,6 +524,31 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
       ui.close();
     },
   },
+    // UI 打磨：面板左边缘拖柄 —— 拖动调整创作台整体宽度（贴右停靠，左边缘即宽度边界）。
+    h('div', {
+      className: 'nv-workbench__panel-resizer',
+      'data-novel-panel-resizer': '',
+      role: 'separator',
+      'aria-orientation': 'vertical',
+      'aria-valuenow': String(ui.panelWidth),
+      'aria-valuemin': String(PANEL_WIDTH_MIN),
+      'aria-valuemax': String(PANEL_WIDTH_MAX),
+      tabIndex: 0,
+      onPointerDown: (event: { clientX: number; pointerId: number; preventDefault(): void; currentTarget: { setPointerCapture?(id: number): void } }) => {
+        event.preventDefault();
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        ui.panelResizeStart(event.clientX);
+      },
+      onPointerMove: (event: { clientX: number }) => ui.panelResizeMove(event.clientX),
+      onPointerUp: () => ui.panelResizeEnd(),
+      onPointerCancel: () => ui.panelResizeEnd(),
+      // 键盘可访问：左右方向键以 8px 步进调整面板宽度（I59 键盘可达性延续）。
+      onKeyDown: (event: { key: string; preventDefault(): void }) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        ui.panelResizeStep(event.key === 'ArrowLeft' ? -GRID_STEP : GRID_STEP);
+      },
+    }),
     brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
     ui.collapsed ? null : body,
   );
@@ -549,6 +588,10 @@ interface WorkbenchState {
   navWidth: number;
   /** 侧栏拖动会话：active 期间 pointermove 更新宽度；结束即复位。 */
   navResize: { active: boolean; startX: number; startWidth: number };
+  /** 创作台面板整体宽度（px，可拖动左边缘调整，UI 打磨）。 */
+  panelWidth: number;
+  /** 面板宽度拖动会话：active 期间 pointermove 更新宽度；结束即复位。 */
+  panelResize: { active: boolean; startX: number; startWidth: number };
   /** I58 稳定视图状态锚点：唯一 active view（route/state/data 三锚点的 state 位）。 */
   activeView: WorkbenchViewId;
   status: WorkspaceStatus;
@@ -642,6 +685,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           collapsed: false,
           navWidth: NAV_WIDTH_DEFAULT,
           navResize: { active: false, startX: 0, startWidth: 0 },
+          panelWidth: PANEL_WIDTH_DEFAULT,
+          panelResize: { active: false, startX: 0, startWidth: 0 },
           activeView: DEFAULT_VIEW,
           status: { status: 'loading' },
           characters: { status: 'loading', list: [] },
@@ -683,6 +728,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           navResizeStart: (d, startX: number) => { d.navResize = { active: true, startX, startWidth: d.navWidth }; },
           navResizeMove: (d, clientX: number) => { if (d.navResize.active) d.navWidth = Math.round(Math.min(NAV_WIDTH_MAX, Math.max(NAV_WIDTH_MIN, d.navResize.startWidth + (clientX - d.navResize.startX)))); },
           navResizeEnd: (d) => { d.navResize = { active: false, startX: 0, startWidth: 0 }; },
+          // UI 打磨：面板整体宽度可拖动（拖左边缘；store 持久化会话，渲染层只消费快照）。
+          setPanelWidth: (d, width: number) => { d.panelWidth = Math.round(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, width))); },
+          panelResizeStart: (d, startX: number) => { d.panelResize = { active: true, startX, startWidth: d.panelWidth }; },
+          panelResizeMove: (d, clientX: number) => { if (d.panelResize.active) d.panelWidth = Math.round(Math.min(PANEL_WIDTH_MAX, Math.max(PANEL_WIDTH_MIN, d.panelResize.startWidth + (d.panelResize.startX - clientX)))); },
+          panelResizeEnd: (d) => { d.panelResize = { active: false, startX: 0, startWidth: 0 }; },
           activate: (d, id: LayerId) => { d.activeView = resolveWorkbenchView(id); },
           activateView: (d, view: WorkbenchViewId) => { d.activeView = resolveWorkbenchView(view); },
           activateOnboarding: (d) => { d.activeView = 'onboarding'; },
@@ -1528,6 +1578,11 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             navResizeMove(clientX: number) { props.actions.navResizeMove(clientX); },
             navResizeEnd() { props.actions.navResizeEnd(); },
             navResizeStep(delta: number) { props.actions.setNavWidth(s.navWidth + delta); },
+            get panelWidth() { return s.panelWidth; },
+            panelResizeStart(startX: number) { props.actions.panelResizeStart(startX); },
+            panelResizeMove(clientX: number) { props.actions.panelResizeMove(clientX); },
+            panelResizeEnd() { props.actions.panelResizeEnd(); },
+            panelResizeStep(delta: number) { props.actions.setPanelWidth(s.panelWidth + delta); },
             collapse() { props.actions.collapse(); },
             close() { closeWorkbench(); },
             activate(id: LayerId) { props.actions.activate(id); },

@@ -512,6 +512,36 @@ describe('I46 创作台 workbench shell', () => {
     expect(navVar(render())).toBe(`${NAV_WIDTH_MIN}px`);
     (resizer?.props?.onPointerUp as () => void)?.();
   });
+
+  it('drags the panel left edge to resize the whole workbench width within bounds', async () => {
+    const { PANEL_WIDTH_MIN, PANEL_WIDTH_MAX, PANEL_WIDTH_DEFAULT } = await import('./client.js');
+    const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+
+    const panelVar = (tree: FakeNode): string | undefined =>
+      (tree.props?.style as Record<string, string> | undefined)?.['--nv-panel-width'];
+    // 默认面板宽度经根节点 CSS 变量下发。
+    expect(panelVar(render())).toBe(`${PANEL_WIDTH_DEFAULT}px`);
+
+    const resizer = collect(render(), 'div').find((n) => n.props?.['data-novel-panel-resizer'] !== undefined);
+    expect(resizer).toBeDefined();
+    expect(resizer?.props?.['role']).toBe('separator');
+    expect(resizer?.props?.['aria-orientation']).toBe('vertical');
+
+    // 左边缘拖动：面板贴右，左边缘左移（clientX 减小）→ 宽度增加；右移 → 宽度减小；钳制在 [MIN, MAX]。
+    const pointer = (clientX: number) => ({ clientX, pointerId: 1, preventDefault: () => {}, currentTarget: { setPointerCapture: () => {} } });
+    (resizer?.props?.onPointerDown as (e: { clientX: number }) => void)?.(pointer(700));
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(600));
+    expect(panelVar(render())).toBe(`${PANEL_WIDTH_DEFAULT + 100}px`);
+    // 拖出上界 → 钳制到 MAX。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(-10000));
+    expect(panelVar(render())).toBe(`${PANEL_WIDTH_MAX}px`);
+    // 拖出下界 → 钳制到 MIN。
+    (resizer?.props?.onPointerMove as (e: { clientX: number }) => void)?.(pointer(10000));
+    expect(panelVar(render())).toBe(`${PANEL_WIDTH_MIN}px`);
+    (resizer?.props?.onPointerUp as () => void)?.();
+  });
 });
 
 describe('I50 project-session startup', () => {
@@ -1604,6 +1634,10 @@ describe('I46 visual system and Fiber cleanup (R10-2 / R10-3)', () => {
     expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav \{[^}]*width: var\(--nv-nav-width, 160px\)/);
     expect(WORKBENCH_STYLES).toContain('.nv-workbench__nav-resizer');
     expect(WORKBENCH_STYLES).toContain('cursor: col-resize');
+    // 面板整体宽度可拖动：左边缘拖柄 + 根节点 CSS 变量驱动面板宽度。
+    expect(WORKBENCH_STYLES).toContain('.nv-workbench__panel-resizer');
+    expect(WORKBENCH_STYLES).toContain('cursor: ew-resize');
+    expect(WORKBENCH_STYLES).toContain('width: min(var(--nv-panel-width, 860px), 100vw)');
     // 按钮与文字间距：品牌头栏 gap、导航项内边距、徽标与文字间距。
     expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__brand \{[^}]*gap: calc\(var\(--nv-grid\) \* 1\.5\)/);
     expect(WORKBENCH_STYLES).toMatch(/\.nv-workbench__nav-item \{[^}]*padding: calc\(var\(--nv-grid\) \* 1\) calc\(var\(--nv-grid\) \* 1\.25\)/);
@@ -2181,13 +2215,14 @@ describe('I46 keeps the verified SlotCore registration reversible', () => {
 
 describe('I54 右侧停靠侧板（D20 / §14.8 / R12-1）', () => {
   it('docks the workbench right, full-height and non-modal in shell.overlay', () => {
-    // 贴右全高：position:fixed + top/right/bottom:0；width:min(860px,100vw) 让窄屏占满主视区仍同一 Slot。
+    // 贴右全高：position:fixed + top/right/bottom:0；width:min(var(--nv-panel-width,860px),100vw)
+    // 让窄屏占满主视区仍同一 Slot（UI 打磨：面板宽度经 --nv-panel-width 下发，左边缘拖柄可调）。
     expect(WORKBENCH_STYLES).toContain('position: fixed');
     expect(WORKBENCH_STYLES).toContain('top: 0');
     expect(WORKBENCH_STYLES).toContain('right: 0');
     expect(WORKBENCH_STYLES).toContain('bottom: 0');
     expect(WORKBENCH_STYLES).toContain('height: 100%');
-    expect(WORKBENCH_STYLES).toContain('width: min(860px, 100vw)');
+    expect(WORKBENCH_STYLES).toContain('width: min(var(--nv-panel-width, 860px), 100vw)');
     // 非模态：面板自身 pointer-events:auto（overlay 层本身 click-through），无遮罩。
     expect(WORKBENCH_STYLES).toContain('pointer-events: auto');
   });

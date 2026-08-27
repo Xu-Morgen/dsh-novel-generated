@@ -69,13 +69,14 @@ export const WORKBENCH_STYLES = `
   --nv-grid: ${GRID};
 
   /* I54（D20/§14.8）：居中浮窗退役为 shell.overlay 内贴右、全高、非模态停靠侧板。
-     position:fixed + top/right/bottom:0 贴右全高；width:min(860px,100vw) 让窄屏占满
-     主视区但仍由同一 Slot/Fiber 管理；无遮罩即非模态；不再有窗口圆角与四向投影。 */
+     position:fixed + top/right/bottom:0 贴右全高；width:min(var(--nv-panel-width,860px),100vw)
+     让窄屏占满主视区但仍由同一 Slot/Fiber 管理；无遮罩即非模态；不再有窗口圆角与四向投影。
+     UI 打磨：面板整体宽度经 --nv-panel-width 下发（左边缘拖柄调整，见 client.ts panel-resizer）。 */
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(860px, 100vw);
+  width: min(var(--nv-panel-width, 860px), 100vw);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -95,6 +96,28 @@ export const WORKBENCH_STYLES = `
 .nv-workbench :focus-visible {
   outline: 2px solid var(--nv-cinnabar);
   outline-offset: 2px;
+}
+
+/* UI 打磨：面板左边缘拖柄 —— 调整创作台整体宽度（贴右停靠，左边缘即宽度边界）。
+   绝对定位于面板左缘、全高；拖拽经 client.ts panel-resizer pointer 会话更新
+   --nv-panel-width。 */
+.nv-workbench__panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--nv-grid) * 0.75);
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 5;
+  background: transparent;
+  border-right: 1px solid transparent;
+}
+
+.nv-workbench__panel-resizer:hover,
+.nv-workbench__panel-resizer.is-active {
+  background: var(--nv-hover);
+  border-right-color: var(--nv-line-strong);
 }
 
 /* UI 打磨：悬浮圆形入口在面板关闭时独立于 .nv-workbench 渲染，需自带焦点环。 */

@@ -59,10 +59,10 @@ const fail = (msg) => { throw new Error(`I54 smoke: ${msg}`); };
   if (!existsSync(bundlePath)) fail('lib/client.js missing — run `pnpm build` first');
   const bundle = readFileSync(bundlePath, 'utf8');
 
-  // 贴右全高非模态：确定性 CSS 标记必须存在于停靠侧板。
+  // 贴右全高非模态：确定性 CSS 标记必须存在于停靠侧板（UI 打磨：宽度经 --nv-panel-width 下发，左边缘可拖）。
   for (const required of [
     'position: fixed', 'top: 0', 'right: 0', 'bottom: 0',
-    'height: 100%', 'width: min(860px, 100vw)', 'border-left: 1px solid var(--nv-line)',
+    'height: 100%', 'width: min(var(--nv-panel-width, 860px), 100vw)', 'border-left: 1px solid var(--nv-line)',
     'pointer-events: auto',
     'shell.overlay', 'nv-launch', 'novel-creation-tool-workspace',
   ]) {
