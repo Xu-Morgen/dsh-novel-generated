@@ -12,6 +12,8 @@ export interface NovelConfirmationService {
   reject(projectId: string, id: string): Promise<ConfirmationRecord>;
   get(projectId: string, id: string): ConfirmationRecord;
   pending(projectId: string): ConfirmationRecord[];
+  /** 全部持久化裁决（含已接受/已拒绝），按插入顺序 —— I68 审计记录消费者（design §14.10「刷新与审计记录」/ R14-3）。 */
+  list(projectId: string): ConfirmationRecord[];
 }
 
 /**
@@ -37,5 +39,6 @@ export function createConfirmationService(
     reject: (projectId, id) => get(projectId).reject(id),
     get: (projectId, id) => get(projectId).get(id),
     pending: (projectId) => get(projectId).pending(),
+    list: (projectId) => get(projectId).list(),
   };
 }

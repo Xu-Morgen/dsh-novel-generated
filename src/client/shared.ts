@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, type WorkspaceViewModel } from '../remote.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
@@ -97,6 +97,19 @@ export interface RuleStyleNamespace {
   saveStyle(projectId: string, input: unknown): Promise<unknown>;
 }
 
+/** I68 C6 进度与灵感落地 Remote（design §14.10 / R14-3）：只提交受控命令；灵感默认只读，经 Gate 确认才写 B5/C6。 */
+export interface ProgressNamespace {
+  projection(projectId: string): Promise<unknown>;
+  recordDeviation(projectId: string, input: unknown): Promise<unknown>;
+  reconcileDeviation(projectId: string, deviationId: string): Promise<unknown>;
+  inspire(projectId: string, prompt?: string): Promise<unknown>;
+  select(projectId: string, input: unknown): Promise<unknown>;
+  apply(projectId: string, proposalId: string): Promise<unknown>;
+  reject(projectId: string, proposalId: string): Promise<unknown>;
+  pending(projectId: string): Promise<unknown>;
+  audit(projectId: string): Promise<unknown>;
+}
+
 export interface WorkspaceSlots {
   inject(key: string, cb: () => () => void): () => void;
   register(options: unknown, component: () => unknown): () => void;
@@ -185,4 +198,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution };

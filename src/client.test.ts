@@ -20,7 +20,7 @@ const fakeReact = {
 };
 
 /** Overridable subset of the `novelWorkspace` remote for I47/I48/I49 round-trip tests. */
-interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> } }
+interface MountOptions { deferStoreInjection?: boolean; openProjectId?: string | null; llmConfig?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown> }; workbenchSettings?: { load?: () => Promise<unknown>; save?: (input: unknown) => Promise<unknown>; openProjectFolder?: (projectId: string) => Promise<unknown> }; onboardingAnalyzer?: { begin?: (input: unknown, settings: unknown) => Promise<unknown>; status?: (onboardingSessionId: string) => Promise<unknown>; cancel?: (onboardingSessionId: string) => Promise<unknown>; result?: (onboardingSessionId: string) => Promise<unknown>; start?: (input: unknown, settings: unknown) => Promise<unknown> }; onboarding?: { adjudicate?: (input: unknown, settings: unknown) => Promise<unknown>; acceptedLayers?: (onboardingSessionId: string) => Promise<unknown>; finalApply?: (input: unknown) => Promise<unknown> }; writing?: { propose?: (projectId: string, input: unknown) => Promise<unknown>; preview?: (candidateId: string) => Promise<unknown>; adjudicate?: (candidateId: string, decision: string) => Promise<unknown> }; review?: { scan?: (projectId: string) => Promise<unknown>; adjudicate?: (projectId: string, input: { decision: string; issueIds: string[] }) => Promise<unknown>; records?: (projectId: string) => Promise<unknown> }; queue?: { status?: (projectId: string) => Promise<unknown>; start?: (projectId: string, input?: unknown) => Promise<unknown>; pause?: (projectId: string) => Promise<unknown>; resume?: (projectId: string) => Promise<unknown>; cancel?: (projectId: string) => Promise<unknown>; retry?: (projectId: string, taskId: string) => Promise<unknown>; cancelTask?: (projectId: string, taskId: string) => Promise<unknown>; recover?: (projectId: string) => Promise<unknown> }; ruleStyle?: { list?: (projectId: string) => Promise<unknown>; readRule?: (projectId: string, ruleId: string) => Promise<unknown>; createRule?: (projectId: string, input: unknown) => Promise<unknown>; updateRule?: (projectId: string, ruleId: string, patch: unknown) => Promise<unknown>; readStyle?: (projectId: string) => Promise<unknown>; saveStyle?: (projectId: string, input: unknown) => Promise<unknown> }; knowledge?: { list?: (projectId: string) => Promise<unknown>; read?: (projectId: string, entryId: string) => Promise<unknown>; propose?: (projectId: string, input: unknown) => Promise<unknown>; accept?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown> }; progress?: { projection?: (projectId: string) => Promise<unknown>; recordDeviation?: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation?: (projectId: string, deviationId: string) => Promise<unknown>; inspire?: (projectId: string, prompt?: string) => Promise<unknown>; select?: (projectId: string, input: unknown) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown>; pending?: (projectId: string) => Promise<unknown>; audit?: (projectId: string) => Promise<unknown> }; }
 
 interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
@@ -246,6 +246,7 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
   const queueStub = mountOptions.queue;
   const knowledgeStub = mountOptions.knowledge;
   const ruleStyleStub = mountOptions.ruleStyle;
+  const progressStub = mountOptions.progress;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -303,6 +304,17 @@ function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides 
       accept: async () => { throw new Error('未注入 remote.novelKnowledgeManager.accept'); },
       reject: async () => { throw new Error('未注入 remote.novelKnowledgeManager.reject'); },
       pending: async () => { throw new Error('未注入 remote.novelKnowledgeManager.pending'); },
+    })
+    : name === 'remote.novelOutlineProgress' ? (progressStub ?? {
+      projection: async () => { throw new Error('未注入 remote.novelOutlineProgress.projection'); },
+      recordDeviation: async () => { throw new Error('未注入 remote.novelOutlineProgress.recordDeviation'); },
+      reconcileDeviation: async () => { throw new Error('未注入 remote.novelOutlineProgress.reconcileDeviation'); },
+      inspire: async () => { throw new Error('未注入 remote.novelOutlineProgress.inspire'); },
+      select: async () => { throw new Error('未注入 remote.novelOutlineProgress.select'); },
+      apply: async () => { throw new Error('未注入 remote.novelOutlineProgress.apply'); },
+      reject: async () => { throw new Error('未注入 remote.novelOutlineProgress.reject'); },
+      pending: async () => { throw new Error('未注入 remote.novelOutlineProgress.pending'); },
+      audit: async () => { throw new Error('未注入 remote.novelOutlineProgress.audit'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));
@@ -377,14 +389,14 @@ describe('I46 创作台 workbench shell', () => {
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
       'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
     ]);
-    // 稳定 data 锚点：十四个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风）。
+    // 稳定 data 锚点：十五个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'chapters', 'review', 'queue', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings',
+      'outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings',
     ]);
-    // 技术层编号只作辅助徽标（B5/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
+    // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
-    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
+    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
   });
 
   it('fails loud when the required DSH defineStore runtime is unavailable', () => {
@@ -2318,9 +2330,9 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'planning')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('策划');
     expect(String(((navGroupOf(tree, 'continuity')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('连续性');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('作品设置');
-    // 迁移映射：写作={大纲,正文,审校中心,生成队列} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,LLM 设置}。
+    // 迁移映射：写作={大纲,进度与灵感,正文,审校中心,生成队列} 策划={角色,世界观,规则与文风} 连续性={关系,状态,正史,知情} 设置={初始化,创作设置,LLM 设置}。
     const itemsOf = (group: FakeNode | undefined): unknown[] => collect(group, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined).map((n) => n.props?.['data-novel-view']);
-    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'chapters', 'review', 'queue']);
+    expect(itemsOf(navGroupOf(tree, 'writing'))).toEqual(['outline', 'progress', 'chapters', 'review', 'queue']);
     expect(itemsOf(navGroupOf(tree, 'planning'))).toEqual(['characters', 'worldview', 'ruleStyle']);
     expect(itemsOf(navGroupOf(tree, 'continuity'))).toEqual(['relationship', 'state', 'canon', 'knowledge']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['onboarding', 'creationSettings', 'settings']);
@@ -2330,7 +2342,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -2392,7 +2404,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(14);
+    expect(grouped).toHaveLength(15);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');
@@ -2409,7 +2421,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(14);
+    expect(NAV_ITEMS).toHaveLength(15);
     expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
     // 非法/陈旧/空值一律回退默认视图（characters）。
     expect(resolveWorkbenchView('bogus-view')).toBe('characters');
@@ -2422,17 +2434,18 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
       expect(isWorkbenchViewId(view)).toBe(true);
       expect(resolveWorkbenchView(view)).toBe(view);
     }
-    // 技术层编号只作徽标：九个层/正文项有 badge，非层视图无 badge。
+    // 技术层编号只作徽标：十个层/正文项有 badge，非层视图无 badge。
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
-    expect(badges).toEqual(['B5', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
+    expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
     expect(noBadge).toEqual(['review', 'queue', 'onboarding', 'creationSettings', 'settings']);
-    // I60/I64/I65/I66/I67：层视图、正文视图、审校中心、生成队列、知情与规则/文风视图是稳定视图（重复点击保持），设置类视图回退默认。
+    // I60/I64/I65/I66/I67/I68：层视图、正文视图、审校中心、生成队列、知情、规则/文风与进度/灵感视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
     expect(isStableView('queue')).toBe(true);
     expect(isStableView('knowledge')).toBe(true);
     expect(isStableView('ruleStyle')).toBe(true);
+    expect(isStableView('progress')).toBe(true);
     expect(isStableView('characters')).toBe(true);
     expect(isStableView('settings')).toBe(false);
   });
@@ -3880,5 +3893,195 @@ describe('I67 规则与文风控制面 UI (R14-2)', () => {
     await flush();
     expect(panel(render())?.props?.['data-novel-rule-style-state']).toBe('ready');
     expect(messageOf(render())).toContain('规则优先级必须在 1–100 之间');
+  });
+});
+
+describe('I68 C6 进度与灵感落地 UI (R14-3)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const progressPanel = (tree: FakeNode): FakeNode | undefined =>
+    collect(tree, 'section').find((node) => node.props?.['data-novel-progress-panel'] !== undefined);
+  const openProgress = (render: () => FakeNode): void => {
+    (navButton(render(), 'progress')?.props?.onClick as () => void)();
+  };
+  const refresh = (render: () => FakeNode): void => {
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-refresh'] === '')?.props?.onClick as () => void)();
+  };
+  const messageOf = (render: () => FakeNode): string =>
+    String((collect(render(), 'p').find((n) => n.props?.['data-novel-progress-message'] !== undefined)?.children?.[0] ?? ''));
+
+  const DIRECTION_DAWN = {
+    id: 'dawn', title: '黎明交易', premise: '以黎明交易换取封印。',
+    changes: { logline: '米拉以黎明交易换取封印。', outlineNote: '米拉在黎明与守夜人交易。', progressNote: '新方向带来更紧的倒计时。' },
+    rationale: '提高冲突强度。',
+  };
+  const DIRECTION_STORM = {
+    id: 'storm', title: '风暴交易', premise: '在风暴中达成交易。',
+    changes: { outlineNote: '米拉在风暴中交易。', progressNote: '天气迫使改道。' },
+    rationale: '增加紧迫感。',
+  };
+  const PROJECTION = {
+    outlineId: 'outline',
+    acts: [{ id: 'act-one', index: 1, title: '第一幕', beats: [
+      { id: 'first', title: '进入旧港', optional: false, completed: false, current: true, prerequisitesMet: true, doneScenes: 1, totalScenes: 2, sceneCards: [
+        { id: 'scene-1', title: '雨夜入港', summary: '抵达旧港。', pov: 'mira', wordTarget: 800, status: 'done' },
+        { id: 'scene-2', title: '守夜人', summary: '遇见守夜人。', pov: 'mira', wordTarget: 700, status: 'writing' },
+      ] },
+    ] }],
+    currentAct: 'act-one',
+    currentBeat: 'first',
+    completedBeats: [],
+    deviations: [{ id: 'drift-1', planned: '入港', actual: '绕行山道', reason: '封路', reconciled: false }],
+    tensionLevel: 20,
+    navigation: { actId: 'act-one', beatId: 'first', title: '进入旧港', description: '米拉找到入口。', prerequisites: [], prerequisitesMet: true, instruction: '完成进入旧港。', deviationIds: ['drift-1'] },
+    consistency: { currentBeatCompleted: false, completedBeatsWithOpenScenes: [], navigationTargetAllScenesDone: false },
+  };
+  const AUDIT_RECORD = { proposalId: 'insp-dawn-1700000000000', status: 'accepted', direction: DIRECTION_DAWN };
+  const baseStub = (overrides: Partial<{ projection: (projectId: string) => Promise<unknown>; pending: (projectId: string) => Promise<unknown>; audit: (projectId: string) => Promise<unknown>; inspire: (projectId: string, prompt?: string) => Promise<unknown>; select: (projectId: string, input: unknown) => Promise<unknown>; apply: (projectId: string, proposalId: string) => Promise<unknown>; reject: (projectId: string, proposalId: string) => Promise<unknown>; recordDeviation: (projectId: string, input: unknown) => Promise<unknown>; reconcileDeviation: (projectId: string, deviationId: string) => Promise<unknown> }> = {}) => ({
+    projection: overrides.projection ?? (async () => ({ ok: true, value: PROJECTION })),
+    pending: overrides.pending ?? (async () => ({ ok: true, value: { proposals: [] } })),
+    audit: overrides.audit ?? (async () => ({ ok: true, value: { records: [] } })),
+    inspire: overrides.inspire ?? (async () => ({ ok: true, value: { projectId: 'fixture-project', directions: [DIRECTION_DAWN, DIRECTION_STORM] } })),
+    select: overrides.select ?? (async () => { throw new Error('未注入 select'); }),
+    apply: overrides.apply ?? (async () => { throw new Error('未注入 apply'); }),
+    reject: overrides.reject ?? (async () => { throw new Error('未注入 reject'); }),
+    recordDeviation: overrides.recordDeviation ?? (async () => { throw new Error('未注入 recordDeviation'); }),
+    reconcileDeviation: overrides.reconcileDeviation ?? (async () => { throw new Error('未注入 reconcileDeviation'); }),
+  });
+
+  it('装载投影：导航目标、完成状态、偏差与一致性（只读展示）', async () => {
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { progress: baseStub() },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openProgress(render);
+    await flush();
+    expect(progressPanel(render())?.props?.['data-novel-progress-state']).toBe('idle');
+    refresh(render);
+    await flush();
+    const tree = render();
+    expect(progressPanel(tree)?.props?.['data-novel-progress-state']).toBe('ready');
+    expect(String((collect(tree, 'p').find((n) => n.props?.['data-novel-progress-nav-target'] !== undefined)?.children?.[0] ?? ''))).toContain('进入旧港');
+    expect(String((collect(tree, 'p').find((n) => n.props?.['data-novel-progress-nav-meta'] !== undefined)?.children?.[0] ?? ''))).toContain('已完成节 0');
+    const scenes = collect(tree, 'li').filter((n) => n.props?.['data-novel-progress-scene'] !== undefined);
+    expect(scenes.map((n) => n.props?.['data-novel-progress-scene'])).toEqual(['scene-1', 'scene-2']);
+    const sceneStatuses = collect(tree, 'span').filter((n) => n.props?.['data-novel-progress-scene-status'] !== undefined);
+    expect(sceneStatuses.map((n) => n.props?.['data-novel-progress-scene-status'])).toEqual(['done', 'writing']);
+    const deviations = collect(tree, 'li').filter((n) => n.props?.['data-novel-progress-deviation'] !== undefined);
+    expect(deviations.map((n) => n.props?.['data-novel-progress-deviation'])).toEqual(['drift-1']);
+    expect(collect(tree, 'div').some((n) => n.props?.['data-novel-progress-consistency'] !== undefined)).toBe(false);
+  });
+
+  it('灵感时刻 → 选定方向 → Gate 提案（pending；未确认不写）', async () => {
+    let selected: unknown;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        progress: baseStub({
+          select: async (projectId, input) => {
+            selected = input;
+            return { ok: true, value: { projectId, proposalId: 'insp-dawn-1700000000000', direction: (input as { direction: unknown }).direction, status: 'pending' } };
+          },
+          pending: async () => ({ ok: true, value: { proposals: [{ proposalId: 'insp-dawn-1700000000000', direction: DIRECTION_DAWN, status: 'pending' }] } }),
+        }),
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openProgress(render);
+    await flush();
+    refresh(render);
+    await flush();
+    // 灵感时刻 → 两个方向出现（零写展示）。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-inspire'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const directions = collect(render(), 'li').filter((n) => n.props?.['data-novel-progress-direction'] !== undefined);
+    expect(directions.map((n) => n.props?.['data-novel-progress-direction'])).toEqual(['dawn', 'storm']);
+    // 未选定前没有「确认应用」按钮（不发起任何 Gate 提案）。
+    expect(collect(render(), 'button').some((n) => n.props?.['data-novel-progress-propose'] === '')).toBe(false);
+    expect(selected).toBeUndefined();
+    // 选定方向 → 确认应用 → Gate 提案（pending 列表出现）。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-direction-select'] === 'dawn')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-propose'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(selected).toMatchObject({ direction: { id: 'dawn' } });
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-progress-pending-item'] === 'insp-dawn-1700000000000')).toBe(true);
+    expect(messageOf(render)).toContain('已提交待确认');
+  });
+
+  it('确认应用 → 投影与审计更新；拒绝 → 零写并记录 rejected 审计', async () => {
+    const projectionWithDeviation = {
+      ...PROJECTION,
+      deviations: [{ id: 'insp-dawn-1700000000000-deviation', planned: PROJECTION.navigation.description, actual: DIRECTION_DAWN.changes.outlineNote, reason: DIRECTION_DAWN.changes.progressNote, reconciled: false }],
+      navigation: { ...PROJECTION.navigation, deviationIds: ['insp-dawn-1700000000000-deviation'] },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        progress: baseStub({
+          apply: async (projectId, proposalId) => ({ ok: true, value: { projectId, proposalId, applied: true, projection: projectionWithDeviation, audit: [AUDIT_RECORD] } }),
+          reject: async (projectId, proposalId) => ({ ok: true, value: { projectId, proposalId, status: 'rejected' } }),
+          pending: async () => ({ ok: true, value: { proposals: [{ proposalId: 'insp-dawn-1700000000000', direction: DIRECTION_DAWN, status: 'pending' }] } }),
+          audit: async () => ({ ok: true, value: { records: [AUDIT_RECORD] } }),
+        }),
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openProgress(render);
+    await flush();
+    refresh(render);
+    await flush();
+    // 确认应用 → 偏差出现、待确认消失、审计记录可见。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-pending-accept'] === 'insp-dawn-1700000000000')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-progress-pending-item'] === 'insp-dawn-1700000000000')).toBe(false);
+    expect(collect(render(), 'li').filter((n) => n.props?.['data-novel-progress-deviation'] !== undefined)).toHaveLength(1);
+    expect(collect(render(), 'li').some((n) => n.props?.['data-novel-progress-audit-record'] === 'insp-dawn-1700000000000')).toBe(true);
+    expect(messageOf(render)).toContain('已确认并应用');
+  });
+
+  it('记录偏差与调和：只写 C6（投影更新），消息反馈', async () => {
+    let recorded: unknown;
+    const projectionWithDeviation = { ...PROJECTION, deviations: [...PROJECTION.deviations, { id: 'dev-1', planned: 'A', actual: 'B', reason: 'C', reconciled: false }] };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        progress: baseStub({
+          recordDeviation: async (projectId, input) => {
+            recorded = input;
+            return { ok: true, value: projectionWithDeviation };
+          },
+          reconcileDeviation: async () => ({ ok: true, value: projectionWithDeviation }),
+        }),
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openProgress(render);
+    await flush();
+    refresh(render);
+    await flush();
+    const inputOf = (anchor: string): FakeNode | undefined => collect(render(), 'input').find((n) => n.props?.[anchor] !== undefined);
+    (inputOf('data-novel-progress-deviation-planned')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'A' } });
+    (inputOf('data-novel-progress-deviation-actual')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'B' } });
+    (inputOf('data-novel-progress-deviation-reason')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'C' } });
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-deviation-submit'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(recorded).toMatchObject({ planned: 'A', actual: 'B', reason: 'C' });
+    expect(messageOf(render)).toContain('偏差已记录');
+    expect(collect(render(), 'li').filter((n) => n.props?.['data-novel-progress-deviation'] !== undefined)).toHaveLength(2);
+    // 调和第一条偏差。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-progress-deviation-reconcile'] === 'drift-1')?.props?.onClick as () => void)();
+    await flush();
+    expect(messageOf(render)).toContain('已标记为调和');
   });
 });

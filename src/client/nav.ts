@@ -21,17 +21,20 @@
  * I67（design §14.10 / R14-2）：策划组新增「规则与文风」视图（B1 规则 + B4 风格
  * 档案控制面，与角色/世界观同组），同样为稳定视图；技术层编号只作辅助徽标。
  *
+ * I68（design §14.10 / R14-3）：写作组新增「进度与灵感」视图（C6 执行态进度/
+ * 偏差 + 灵感方向落地，与大纲同组），同样为稳定视图；技术层编号只作辅助徽标。
+ *
  * 契约与不变式：
  * - WorkbenchViewId 是稳定 route/state/data 锚点：导航项携带 `data-novel-view`，
  *   内容区携带 `data-novel-view-panel`，创作台根节点携带 `data-novel-route`；
  *   store 只维护单一 activeView，不再并行维护四个互斥页签标记。
  * - 迁移映射（旧九项 → 新四组）：
- *   写作（writing）：大纲 B5（细纲场景卡是写作导航目标，§14.4）、正文 C5
- *     （I60 起 C5 正文工作台与审校中心同组）
+ *   写作（writing）：大纲 B5、进度与灵感 C6（执行态与偏差，§14.4/§14.10）、
+ *     正文 C5（I60 起 C5 正文工作台与审校中心同组）
  *   策划（planning）：角色 B3、世界观 B2（世界与角色设定策划）
  *   连续性（continuity）：关系 C1、状态 C2、正史 C4（故事一致性与事实追踪）
  *   作品设置（settings）：六层初始化审阅、创作设置、LLM 设置（项目级启动与配置）
- * - 技术层编号（B3/B2/B5/C1/C2/C4/C5）只出现在 badge 辅助徽标位，不是首要导航语言。
+ * - 技术层编号（B3/B2/B5/C1/C2/C4/C5/C6）只出现在 badge 辅助徽标位，不是首要导航语言。
  * - resolveWorkbenchView 把任意来源的 view 收敛到合法视图：未知/陈旧值回退默认
  *   视图（characters），保证刷新/折叠/重开作品后 active view 始终合法。
  * - isStableView：层视图与正文视图重复点击保持原位；设置类视图（onboarding/
@@ -41,8 +44,8 @@
 
 import type { LayerId } from './shared.js';
 
-/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风视图 + 三个非层视图（I58/I60/I64/I65/I66/I67 route/state/data 锚点）。 */
-export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'onboarding' | 'creationSettings' | 'settings';
+/** 稳定视图身份：六个层视图 + 正文/审校中心/生成队列/知情/规则与文风/进度与灵感视图 + 三个非层视图（I58/I60/I64/I65/I66/I67/I68 route/state/data 锚点）。 */
+export type WorkbenchViewId = LayerId | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
   readonly view: WorkbenchViewId;
@@ -65,6 +68,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
     label: '写作',
     items: [
       { view: 'outline', label: '大纲', badge: 'B5', layer: 'outline' },
+      { view: 'progress', label: '进度与灵感', badge: 'C6' },
       { view: 'chapters', label: '正文', badge: 'C5' },
       { view: 'review', label: '审校中心' },
       { view: 'queue', label: '生成队列' },
@@ -128,7 +132,7 @@ export function isLayerView(view: WorkbenchViewId): boolean {
   return navItemOf(view)?.layer !== undefined;
 }
 
-/** 稳定视图判定（I60/I64/I65/I66/I67）：层视图、正文视图、审校中心、生成队列、知情与规则/文风视图重复点击保持原位；设置类视图才回退默认。 */
+/** 稳定视图判定（I60/I64/I65/I66/I67/I68）：层视图、正文视图、审校中心、生成队列、知情、规则/文风与进度/灵感视图重复点击保持原位；设置类视图才回退默认。 */
 export function isStableView(view: WorkbenchViewId): boolean {
-  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || isLayerView(view);
+  return view === 'chapters' || view === 'review' || view === 'queue' || view === 'knowledge' || view === 'ruleStyle' || view === 'progress' || isLayerView(view);
 }

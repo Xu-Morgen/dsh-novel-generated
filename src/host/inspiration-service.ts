@@ -15,6 +15,8 @@ const directionSchema = z.object({
   }).strict(),
   rationale: z.string().trim().min(1),
 }).strict();
+/** I45 灵感方向 schema；I68（进度与灵感落地）复用同一 strict 合同复验 select/apply 载荷。 */
+export { directionSchema };
 export type InspirationDirection = z.infer<typeof directionSchema>;
 
 export const inspirationResultSchema = z.object({

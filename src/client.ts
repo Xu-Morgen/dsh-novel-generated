@@ -15,6 +15,7 @@ import {
   type QueueNamespace,
   type KnowledgeNamespace,
   type RuleStyleNamespace,
+  type ProgressNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -27,6 +28,7 @@ import {
   queueRemoteContribution,
   knowledgeRemoteContribution,
   ruleStyleRemoteContribution,
+  progressRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -71,6 +73,7 @@ import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type Rev
 import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
 import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
 import { freshRuleDraft, freshRuleStyle, freshStyleDraft, ruleStylePanel, type RuleDraftShape, type RuleShape, type RuleStyleEditOps, type RuleStyleLayerState, type RuleStyleProjectionShape, type StyleDraftShape, type StyleShape } from './client/layers/rule-style.js';
+import { freshProgress, progressPanel, type ProgressApplyOutcomeShape, type ProgressAuditRecordShape, type ProgressDirectionShape, type ProgressEditOps, type ProgressLayerState, type ProgressPendingProposalShape, type ProgressProjectionShape, type ProgressSelectOutcomeShape } from './client/layers/progress.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -202,6 +205,8 @@ export type WorkbenchActions = {
   knowledgePatch(patch: Partial<KnowledgeLayerState>): void;
   /** I67：规则与文风面板状态合并（R14-2）。 */
   ruleStylePatch(patch: Partial<RuleStyleLayerState>): void;
+  /** I68：进度与灵感面板状态合并（R14-3）。 */
+  progressPatch(patch: Partial<ProgressLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -360,10 +365,12 @@ function viewPanel(
   queueNamespace: QueueNamespace | undefined,
   knowledgeNamespace: KnowledgeNamespace | undefined,
   ruleStyleNamespace: RuleStyleNamespace | undefined,
+  progressNamespace: ProgressNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
   ruleStyleState: RuleStyleLayerState,
+  progressState: ProgressLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -401,6 +408,10 @@ function viewPanel(
   if (activeView === 'ruleStyle') {
     return h('div', { 'data-novel-view-panel': 'ruleStyle' }, ruleStylePanel(h, projectId, ruleStyleNamespace, ruleStyleState, ops.ruleStyle));
   }
+  // I68：进度与灵感（写作组）—— C6 执行态进度/偏差 + 灵感方向 Gate 落地（R14-3）。
+  if (activeView === 'progress') {
+    return h('div', { 'data-novel-view-panel': 'progress' }, progressPanel(h, projectId, progressNamespace, progressState, ops.progress));
+  }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
 
@@ -437,10 +448,12 @@ interface WorkbenchOps {
   readonly knowledge: KnowledgeEditOps;
   /** I67：规则与文风（刷新/规则选中与新建/表单草稿/保存，R14-2）。 */
   readonly ruleStyle: RuleStyleEditOps;
+  /** I68：进度与灵感（刷新/偏差记录与调和/灵感时刻/选定→Gate 提案→确认/拒绝，R14-3）。 */
+  readonly progress: ProgressEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, progressNamespace: ProgressNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, progressState: ProgressLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -504,7 +517,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, reviewState, queueState, knowledgeState, ruleStyleState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, reviewState, queueState, knowledgeState, ruleStyleState, progressState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -649,6 +662,8 @@ interface WorkbenchState {
   knowledge: KnowledgeLayerState;
   /** I67：规则与文风面板状态（投影/编辑草稿/风格草稿，R14-2）。 */
   ruleStyle: RuleStyleLayerState;
+  /** I68：进度与灵感面板状态（投影/偏差草稿/方向/待确认/审计，R14-3）。 */
+  progress: ProgressLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -691,6 +706,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let queueNamespace: QueueNamespace | undefined;
       let knowledgeNamespace: KnowledgeNamespace | undefined;
       let ruleStyleNamespace: RuleStyleNamespace | undefined;
+      let progressNamespace: ProgressNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -703,6 +719,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let queueDisposer: TypertDisposer | undefined;
       let knowledgeDisposer: TypertDisposer | undefined;
       let ruleStyleDisposer: TypertDisposer | undefined;
+      let progressDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -746,6 +763,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           queue: freshQueue(),
           knowledge: freshKnowledge(),
           ruleStyle: freshRuleStyle(),
+          progress: freshProgress(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -783,7 +801,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -818,6 +836,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
           knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
           ruleStylePatch: (d, patch: Partial<RuleStyleLayerState>) => { d.ruleStyle = { ...d.ruleStyle, ...patch }; },
+          progressPatch: (d, patch: Partial<ProgressLayerState>) => { d.progress = { ...d.progress, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1813,6 +1832,154 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
             };
           })(),
+          // ---- I68 进度与灵感落地（R14-3）：导航/完成状态 + 偏差 + 灵感 Gate 落地 ----
+          progress: (() => {
+            const progressPatch = (patch: Partial<ProgressLayerState>): void => act.progressPatch(patch);
+            const refresh = (): void => {
+              const target = progressNamespace;
+              if (!target || projectId === undefined) { progressPatch({ status: 'error', message: '进度与灵感服务不可用' }); return; }
+              if (!beginOp('progress:refresh')) return;
+              const release = (): void => endOp('progress:refresh');
+              progressPatch({ status: 'loading', message: undefined });
+              // 投影 + 待确认 + 审计并行读取（都为只读 Remote）。
+              void Promise.all([
+                unwrap(target.projection(projectId)),
+                unwrap(target.pending(projectId)),
+                unwrap(target.audit(projectId)),
+              ]).then(([projection, pendingEnvelope, auditEnvelope]) => {
+                release();
+                if (!active) return;
+                progressPatch({
+                  status: 'ready',
+                  projection: projection as ProgressProjectionShape,
+                  pending: (pendingEnvelope as { proposals?: ProgressPendingProposalShape[] } | undefined)?.proposals ?? [],
+                  audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] } | undefined)?.records ?? [],
+                  message: undefined,
+                });
+              }, (cause: Error) => { release(); if (!active) return; progressPatch({ status: 'error', message: (cause as Error).message }); });
+            };
+            return {
+              refresh,
+              inspire(): void {
+                const target = progressNamespace;
+                if (!target || projectId === undefined || snapshot.progress.acting || snapshot.progress.inspiring) return;
+                if (!beginOp('progress:inspire')) return;
+                const release = (): void => endOp('progress:inspire');
+                progressPatch({ inspiring: true, message: undefined, directions: undefined, selectedDirectionId: undefined });
+                void unwrap(target.inspire(projectId, snapshot.progress.prompt.trim() || undefined)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as { projectId: string; directions: ProgressDirectionShape[] };
+                  progressPatch({ inspiring: false, directions: result.directions, message: `灵感时刻产出 ${result.directions.length} 个方向（零写；选定并经确认后才会调整 B5/C6）。` });
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ inspiring: false, message: (cause as Error).message }); });
+              },
+              setPrompt(value: string) { progressPatch({ prompt: value }); },
+              selectDirection(directionId: string) {
+                const state = snapshot.progress;
+                const next = state.selectedDirectionId === directionId ? undefined : directionId;
+                progressPatch({ selectedDirectionId: next, message: undefined });
+              },
+              proposeApply(): void {
+                const target = progressNamespace;
+                const state = snapshot.progress;
+                if (!target || projectId === undefined || state.status !== 'ready' || state.acting) return;
+                const selected = state.directions?.find((direction) => direction.id === state.selectedDirectionId);
+                if (selected === undefined) return;
+                if (!beginOp('progress:propose')) return;
+                const release = (): void => endOp('progress:propose');
+                progressPatch({ acting: true, message: undefined });
+                void unwrap(target.select(projectId, { direction: selected })).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as ProgressSelectOutcomeShape;
+                  progressPatch({
+                    acting: false,
+                    selectedDirectionId: undefined,
+                    message: `方向「${result.direction.title}」已提交待确认（${result.proposalId}）。确认后只改授权的 B5/C6；拒绝则零写。`,
+                  });
+                  void unwrap(target.pending(projectId)).then((pendingEnvelope) => {
+                    if (!active) return;
+                    progressPatch({ pending: (pendingEnvelope as { proposals?: ProgressPendingProposalShape[] }).proposals ?? [] });
+                  }, () => undefined);
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              accept(proposalId: string): void {
+                const target = progressNamespace;
+                if (!target || projectId === undefined || snapshot.progress.acting) return;
+                if (!beginOp(`progress:accept:${proposalId}`)) return;
+                const release = (): void => endOp(`progress:accept:${proposalId}`);
+                progressPatch({ acting: true, message: undefined });
+                void unwrap(target.apply(projectId, proposalId)).then((outcome) => {
+                  release();
+                  if (!active) return;
+                  const result = outcome as ProgressApplyOutcomeShape;
+                  progressPatch({
+                    acting: false,
+                    projection: result.projection,
+                    pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
+                    audit: result.audit,
+                    message: result.applied
+                      ? '已确认并应用灵感方向（只改授权的 B5 立意/主题与 C6 偏差记录）。'
+                      : '该方向此前已应用（幂等确认，未重复写 B5/C6）。',
+                  });
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              reject(proposalId: string): void {
+                const target = progressNamespace;
+                if (!target || projectId === undefined || snapshot.progress.acting) return;
+                if (!beginOp(`progress:reject:${proposalId}`)) return;
+                const release = (): void => endOp(`progress:reject:${proposalId}`);
+                progressPatch({ acting: true, message: undefined });
+                void unwrap(target.reject(projectId, proposalId)).then(() => {
+                  release();
+                  if (!active) return;
+                  progressPatch({
+                    acting: false,
+                    pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
+                    message: `已拒绝方向提案 ${proposalId}（B5/C6 零写）。`,
+                  });
+                  void unwrap(target.audit(projectId)).then((auditEnvelope) => {
+                    if (!active) return;
+                    progressPatch({ audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] }).records ?? [] });
+                  }, () => undefined);
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              setDeviationDraft(patch: Partial<{ planned: string; actual: string; reason: string }>) {
+                progressPatch({ deviationDraft: { ...snapshot.progress.deviationDraft, ...patch } });
+              },
+              recordDeviation(): void {
+                const target = progressNamespace;
+                const state = snapshot.progress;
+                if (!target || projectId === undefined || state.status !== 'ready' || state.acting) return;
+                if (state.deviationDraft.planned.trim() === '' || state.deviationDraft.actual.trim() === '' || state.deviationDraft.reason.trim() === '') return;
+                if (!beginOp('progress:record-deviation')) return;
+                const release = (): void => endOp('progress:record-deviation');
+                progressPatch({ acting: true, message: undefined });
+                void unwrap(target.recordDeviation(projectId, {
+                  planned: state.deviationDraft.planned.trim(),
+                  actual: state.deviationDraft.actual.trim(),
+                  reason: state.deviationDraft.reason.trim(),
+                })).then((projection) => {
+                  release();
+                  if (!active) return;
+                  progressPatch({ acting: false, projection: projection as ProgressProjectionShape, deviationDraft: { planned: '', actual: '', reason: '' }, message: '偏差已记录（只写 C6；B5 未改变）。' });
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              reconcileDeviation(deviationId: string): void {
+                const target = progressNamespace;
+                if (!target || projectId === undefined || snapshot.progress.acting) return;
+                if (!beginOp(`progress:reconcile:${deviationId}`)) return;
+                const release = (): void => endOp(`progress:reconcile:${deviationId}`);
+                progressPatch({ acting: true, message: undefined });
+                void unwrap(target.reconcileDeviation(projectId, deviationId)).then((projection) => {
+                  release();
+                  if (!active) return;
+                  progressPatch({ acting: false, projection: projection as ProgressProjectionShape, message: `偏差 ${deviationId} 已标记为调和（只写 C6）。` });
+                }, (cause: Error) => { release(); if (!active) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+              },
+              dismiss() { progressPatch({ status: 'idle', projection: undefined, message: undefined, directions: undefined, inspiring: false, prompt: '', selectedDirectionId: undefined, pending: [], audit: [], deviationDraft: { planned: '', actual: '', reason: '' }, acting: false }); },
+            };
+          })(),
         };
       };
 
@@ -2004,7 +2171,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.progress, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -2099,6 +2266,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           ruleStyleDisposer = dispose;
           ruleStyleNamespace = ctx.get('remote.novelRuleStyleManager', false) as RuleStyleNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: ruleStyle Remote mount failed', cause); });
+        // I68：进度与灵感 Remote（R14-3）。挂载失败静默降级：进度与灵感面板显示不可用。
+        void ctx.remote.$mount(progressRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          progressDisposer = dispose;
+          progressNamespace = ctx.get('remote.novelOutlineProgress', false) as ProgressNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: progress Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -2114,6 +2287,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           queueNamespace = undefined;
           knowledgeNamespace = undefined;
           ruleStyleNamespace = undefined;
+          progressNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -2125,6 +2299,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (queueDisposer) void queueDisposer();
           if (knowledgeDisposer) void knowledgeDisposer();
           if (ruleStyleDisposer) void ruleStyleDisposer();
+          if (progressDisposer) void progressDisposer();
         };
       });
     },

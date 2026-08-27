@@ -37,6 +37,7 @@ import { createReviewService } from './host/review-service.js';
 import { createQueueService } from './host/queue-service.js';
 import { createKnowledgeManagerService } from './host/knowledge-manager-service.js';
 import { createRuleStyleManagerService } from './host/rule-style-manager-service.js';
+import { createProgressInspirationService } from './host/progress-inspiration-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -407,6 +408,29 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     readStyle: (projectId: unknown) => ruleStyleManagerService.readStyle(String(projectId)),
     saveStyle: (projectId: unknown, input: unknown) => ruleStyleManagerService.saveStyle(String(projectId), input as Parameters<typeof ruleStyleManagerService.saveStyle>[1]),
   }, 'novelRuleStyleManager', 'novelRuleStyleManager'));
+  // I68 C6 进度与灵感方向落地（design §14.10「C6 与灵感落地」/ R14-3）：进度/
+  // 偏差投影 + 导航/完成状态 + 灵感 select→propose→apply + 刷新与审计记录。
+  // 复用 I14/I15 outlineService（B5/C6 唯一写 owner）、I11 ConfirmationGate 与
+  // I45 灵感 agent；灵感默认只读，选定并确认后才允许改授权的 B5/C6（N-5：
+  // 偏差先记录、不自动选方向、不强制改大纲）。重复 apply 由 C6 偏差标记幂等。
+  const progressInspirationService = createProgressInspirationService({
+    outline: outlineService,
+    confirmation: confirmationService,
+    inspiration: inspirationService,
+    projectsRoot,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelOutlineProgress', bindRemote({
+    projection: (projectId: unknown) => progressInspirationService.projection(String(projectId)),
+    recordDeviation: (projectId: unknown, input: unknown) => progressInspirationService.recordDeviation(String(projectId), input as Parameters<typeof progressInspirationService.recordDeviation>[1]),
+    reconcileDeviation: (projectId: unknown, deviationId: unknown) => progressInspirationService.reconcileDeviation(String(projectId), String(deviationId)),
+    inspire: (projectId: unknown, prompt?: unknown) => progressInspirationService.inspire(String(projectId), prompt === undefined ? undefined : String(prompt)),
+    select: (projectId: unknown, input: unknown) => progressInspirationService.select(String(projectId), input as Parameters<typeof progressInspirationService.select>[1]),
+    apply: (projectId: unknown, proposalId: unknown) => progressInspirationService.apply(String(projectId), String(proposalId)),
+    reject: (projectId: unknown, proposalId: unknown) => progressInspirationService.reject(String(projectId), String(proposalId)),
+    pending: (projectId: unknown) => progressInspirationService.pending(String(projectId)),
+    audit: (projectId: unknown) => progressInspirationService.audit(String(projectId)),
+  }, 'novelOutlineProgress', 'novelOutlineProgress'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,

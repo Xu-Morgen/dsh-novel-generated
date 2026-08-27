@@ -12,6 +12,7 @@ import { reviewInvocations, reviewRemoteContribution } from './host/remote/revie
 import { queueInvocations, queueRemoteContribution } from './host/remote/queue.js';
 import { knowledgeInvocations, knowledgeRemoteContribution } from './host/remote/knowledge.js';
 import { ruleStyleInvocations, ruleStyleRemoteContribution } from './host/remote/rule-style.js';
+import { progressInvocations, progressRemoteContribution } from './host/remote/progress.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -28,13 +29,14 @@ export * from './host/remote/review.js';
 export * from './host/remote/queue.js';
 export * from './host/remote/knowledge.js';
 export * from './host/remote/rule-style.js';
+export * from './host/remote/progress.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
 /** Compatibility aggregation for the single Typert Host face. */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations],
 };
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution };
