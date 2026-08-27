@@ -8,6 +8,7 @@ import type { NovelConfirmationService } from './confirmation-service.js';
 import type { NovelProjectService } from './project-service.js';
 import type { NovelHostUploadService } from './upload-service.js';
 import type { NovelTextService } from './text-service.js';
+import type { NovelTextEditService } from './text-edit-service.js';
 import type { UploadChunkResult, UploadFinalizeResult, UploadStartInput, UploadStartResult } from '../core/schema/upload.js';
 import type { CharacterCore, CharacterCoreInput, CharacterCorePatch } from '../core/schema/characters.js';
 import type { WorldEntry, WorldEntryInput } from '../core/schema/worldview.js';
@@ -48,6 +49,11 @@ export interface WorkspaceEditorService {
   chapterList(projectId: string): Promise<ChapterListItem[]>;
   chapterRead(projectId: string, chapterId: string): Promise<ChapterReadResult>;
   sceneRead(projectId: string, chapterId: string, sceneId: string): Promise<SceneReadResult>;
+  /** I61 受控编辑（design §5.12 / R13-2）：固定范围逐字保存（只写 C5）+ 变更 diff 证据。 */
+  sceneEdit(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, baseHash?: string): Promise<{ scene: SceneReadResult['scene']; evidence: import('../core/edit/index.js').EditFingerprint }>;
+  sceneReparsePropose(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, baseHash?: string): Promise<import('./text-edit-service.js').ReparseProposeResult>;
+  sceneReparseAccept(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, proposalId: string, baseHash?: string): Promise<{ status: 'written'; scene: SceneReadResult['scene']; layers: readonly import('./text-edit-service.js').ReparseLayer[] }>;
+  sceneReparseReject(projectId: string, proposalId: string): Promise<{ proposalId: string; status: 'rejected' }>;
   projectList(): Promise<import('../core/schema/base.js').ProjectMeta[]>;
   projectCreate(input: import('../core/project/index.js').CreateProjectInput): Promise<import('../core/schema/base.js').ProjectMeta>;
   projectOpen(projectId: string): Promise<import('../core/schema/project-lifecycle.js').ProjectOpenResult>;
@@ -58,12 +64,17 @@ export interface WorkspaceEditorService {
 }
 
 /** Host adapter; domain services remain the only layer write owners. */
-export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline?: NovelOutlineService, relationship?: NovelRelationshipService, state?: NovelStateService, canon?: NovelCanonService, confirmation?: NovelConfirmationService, projects?: NovelProjectService, upload?: NovelHostUploadService, text?: NovelTextService): WorkspaceEditorService {
+export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline?: NovelOutlineService, relationship?: NovelRelationshipService, state?: NovelStateService, canon?: NovelCanonService, confirmation?: NovelConfirmationService, projects?: NovelProjectService, upload?: NovelHostUploadService, text?: NovelTextService, textEdit?: NovelTextEditService): WorkspaceEditorService {
   if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
   // I60：C5 只读走 I6 `novelText` owner；open 幂等（目录已存在时只登记 repository）。
   const requireText = (): NovelTextService => {
     if (!text) throw new Error('C5 Host service is required');
     return text;
+  };
+  // I61：受控编辑走 I42/I11 `novelTextEdit` owner（文本写仍归 I6 TextRepository）。
+  const requireTextEdit = (): NovelTextEditService => {
+    if (!textEdit) throw new Error('C5 edit Host service is required');
+    return textEdit;
   };
   return {
     viewModel: workspaceViewModel,
@@ -79,6 +90,30 @@ export function createWorkspaceEditorService(characters: NovelCharacterService, 
     chapterList: async (id) => { const t = requireText(); await t.open(id); return projectChapterList(await t.listChapters(id)); },
     chapterRead: async (id, chapterId) => { const t = requireText(); await t.open(id); return toChapterReadResult(await t.readChapter(id, chapterId)); },
     sceneRead: async (id, chapterId, sceneId) => { const t = requireText(); await t.open(id); const chapter = await t.readChapter(id, chapterId); const scene = chapter.scenes.find((item) => item.id === sceneId); if (!scene) throw new Error(`Unknown scene: ${sceneId}`); return toSceneReadResult(chapter, scene); },
+    // I61 受控编辑（R13-2）：文本写与 Gate 归 novelTextEdit；投影仍走最小 owned JSON。
+    // sceneEdit 只写 C5；reparse 三方法经 I11 提案→accept/reject（未确认/拒绝零写）。
+    // 写回后统一经 textService 重读并投影，保证 Client 只见合法 SceneReadShape。
+    sceneEdit: async (id, chapterId, sceneId, range, replacement, baseHash) => {
+      const e = requireTextEdit(); await e.open(id);
+      const result = await e.edit(id, chapterId, sceneId, range, replacement, baseHash);
+      const t = requireText(); const chapter = await t.readChapter(id, chapterId);
+      const scene = chapter.scenes.find((item) => item.id === sceneId);
+      if (!scene) throw new Error(`Unknown scene: ${sceneId}`);
+      return Object.freeze({ scene: toSceneReadResult(chapter, scene).scene, evidence: result.evidence });
+    },
+    sceneReparsePropose: async (id, chapterId, sceneId, range, replacement, baseHash) => {
+      const e = requireTextEdit(); await e.open(id);
+      return e.reparsePropose(id, chapterId, sceneId, range, replacement, baseHash);
+    },
+    sceneReparseAccept: async (id, chapterId, sceneId, range, replacement, proposalId, baseHash) => {
+      const e = requireTextEdit(); await e.open(id);
+      const result = await e.reparseAccept(id, chapterId, sceneId, range, replacement, proposalId, baseHash);
+      const t = requireText(); const chapter = await t.readChapter(id, chapterId);
+      const scene = chapter.scenes.find((item) => item.id === sceneId);
+      if (!scene) throw new Error(`Unknown scene: ${sceneId}`);
+      return Object.freeze({ status: result.status, scene: toSceneReadResult(chapter, scene).scene, layers: result.layers });
+    },
+    sceneReparseReject: async (id, proposalId) => { const e = requireTextEdit(); await e.open(id); return e.reparseReject(id, proposalId); },
     projectList: () => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.listProjects(); }, projectCreate: (input) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.createProject(input); }, projectOpen: (id) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.openProject(id); },
     uploadStart: (input) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadStart(input); }, uploadChunk: (uploadId, index, base64) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadChunk(uploadId, index, base64); }, uploadFinalize: (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadFinalize(uploadId); }, uploadCancel: async (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); await upload.uploadCancel(uploadId); },
   };

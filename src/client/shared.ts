@@ -32,6 +32,11 @@ export interface EditorRemote {
   chapterList(projectId: string): Promise<unknown[]>;
   chapterRead(projectId: string, chapterId: string): Promise<unknown>;
   sceneRead(projectId: string, chapterId: string, sceneId: string): Promise<unknown>;
+  /** I61 受控编辑（design §5.12 / R13-2）：固定范围逐字保存 + reparse propose/accept/reject。 */
+  sceneEdit(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string): Promise<unknown>;
+  sceneReparsePropose(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string): Promise<unknown>;
+  sceneReparseAccept(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, proposalId: string, baseHash?: string): Promise<unknown>;
+  sceneReparseReject(projectId: string, proposalId: string): Promise<unknown>;
   projectList(): Promise<unknown[]>;
   projectCreate(input: unknown): Promise<unknown>;
   projectOpen(projectId: string): Promise<unknown>;

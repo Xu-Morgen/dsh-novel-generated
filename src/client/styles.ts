@@ -606,6 +606,88 @@ export const WORKBENCH_STYLES = `
   line-height: 1.6;
 }
 
+/* I61 C5 正文编辑（design §5.12 / §14.9 / R13-2）：编辑模式表单、范围提示、
+   保存动作、reparse 提案面板与脏文本离开确认条。 */
+.nv-chapters__read,
+.nv-chapters__editor {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--nv-grid) * 1.25);
+}
+
+.nv-chapters__editor-input {
+  font-family: var(--nv-serif);
+  font-size: 15px;
+  line-height: 1.9;
+  min-height: 240px;
+  resize: vertical;
+}
+
+.nv-chapters__editor-range {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+  line-height: 1.6;
+}
+
+.nv-chapters__reparse {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.nv-chapters__reparse-status {
+  margin: 0 0 calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink-dim);
+}
+
+.nv-chapters__reparse--proposed,
+.nv-chapters__reparse--accepting {
+  padding: var(--nv-grid);
+  border: 1px solid var(--nv-line);
+  border-radius: var(--nv-grid);
+  background: var(--nv-paper-raised);
+}
+
+.nv-chapters__reparse--done,
+.nv-chapters__reparse--rejected {
+  color: var(--nv-ink-dim);
+}
+
+.nv-chapters__reparse--error {
+  color: var(--nv-danger);
+}
+
+.nv-chapters__reparse-hint {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  color: var(--nv-ink-faint);
+  line-height: 1.6;
+}
+
+.nv-chapters__leave {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+  padding: var(--nv-grid);
+  border: 1px solid var(--nv-cinnabar);
+  border-radius: var(--nv-grid);
+  background: var(--nv-paper-raised);
+}
+
+.nv-chapters__leave-hint {
+  margin: 0;
+  font-family: var(--nv-sans);
+  font-size: 13px;
+  color: var(--nv-ink);
+  line-height: 1.6;
+}
+
 .nv-editor__actions {
   display: flex;
   gap: var(--nv-grid);

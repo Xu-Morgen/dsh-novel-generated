@@ -1,28 +1,65 @@
 import type { El, WorkspaceNamespace } from '../shared.js';
+import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 
 /**
- * I60 C5 章节/场景只读导航面板（design §5.12 / R13-1）。
+ * I60/I61 C5 章节/场景导航 + 正文编辑面板（design §5.12 / §14.9 / R13-1 / R13-2）。
  *
- * 三栏布局：章节树 → 场景列表 → 正文。所有读取只经 Host `novelWorkspace` 的
- * chapterList / chapterRead / sceneRead 三个只读 Remote，Client 不拥有正文真相、
- * 不接触文件路径（design §0.1.2）。本面板只读：不提供编辑/生成/落盘入口
- * （I61 起才引入受控编辑）。
+ * I60 只读三栏：章节树 → 场景列表 → 正文（最小 owned JSON 投影，Client 不拥有
+ * 正文真相、不接触文件路径）。
+ *
+ * I61 受控编辑：正文区默认仍为只读段落（保留 I60 阅读语义），经「编辑」按钮
+ * `data-novel-scene-edit` 进入编辑模式 —— textarea 草稿 + 单一连续范围 diff 计算
+ * （`computeEditRange`，任意草稿变化都精确映射为最小范围替换，逐字 round-trip）：
+ * - 「保存修改」`data-novel-scene-save`：只写 C5（sceneEdit），不动结构层。
+ * - 「保存并重解析」`data-novel-scene-save-reparse`：sceneReparsePropose →
+ *   面板显示提案；「确认重解析」`data-novel-scene-reparse-accept` 才走
+ *   sceneReparseAccept（Gate 确认 + 既有 parser fan-out）；「拒绝」
+ *   `data-novel-scene-reparse-reject` 零写。
+ * - 脏文本保护：草稿未保存时切换章节/场景先弹确认条（放弃并离开
+ *   `data-novel-scene-discard` / 取消 `data-novel-scene-leave-cancel`）；
+ *   Host 侧另有 baseHash 陈旧草稿校验（sceneEdit/propose 都带装载时哈希）。
  *
  * 契约与不变式：
- * - `ChapterListItemShape` 只含元数据与 sceneCount（章节树）；`ChapterReadShape`
- *   只含场景摘要；`SceneReadShape` 是唯一携带正文的投影 —— 与 Host 侧
- *   `src/core/text/projection.ts` 的最小 owned JSON 契约一一对应。
- * - 空章态：章节树显示 0 场景章节；场景列与正文区显示 `data-novel-chapters-empty`
- *   空态提示，不崩溃。
- * - 错误态：章节/场景读取失败分别显示 `data-novel-chapters-error` 与重试按钮
- *   （`data-novel-chapters-retry`），可独立恢复，不 brick 整个面板。
- * - 场景正文按空行拆段渲染为只读段落（与 docs/ 派生镜像同一分节习惯）。
+ * - 所有读写只经 Host `novelWorkspace` Remote；编辑请求始终携带装载时的
+ *   `baseHash = sha256(original)`，Host 核对不一致即拒绝（脏文本保护）。
+ * - `computeEditRange` 是纯函数：`original` 与 `draft` 的最小前缀/后缀分解唯一，
+ *   替换后的文本恒等于 draft（exact round-trip），未变前后缀逐字保留。
+ * - reparse 提案期间锁定草稿（textarea disabled），范围/替换冻结在提案状态里，
+ *   避免 accept 时使用与提案不一致的新范围。
  */
 
 export interface ChapterListItemShape { id: string; index: number; title: string; pov: string; status: string; sceneCount: number; [key: string]: unknown; }
 export interface SceneSummaryShape { id: string; index: number; summary: string; [key: string]: unknown; }
 export interface ChapterReadShape { id: string; index: number; title: string; pov: string; status: string; scenes: SceneSummaryShape[]; [key: string]: unknown; }
 export interface SceneReadShape { id: string; index: number; summary: string; content: string; beats: string[]; canonEvents: string[]; notes: string; [key: string]: unknown; }
+
+/** I61 单一连续范围（半开区间 [start, end)，UTF-16 code unit 偏移）。 */
+export interface SceneEditRange { start: number; end: number; }
+
+/** I61 reparse 提案的 UI 状态机（kind 即三态 + 忙碌/终态）。 */
+export type ReparseUiState =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'proposed'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string }
+  | { readonly kind: 'accepting'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string }
+  | { readonly kind: 'rejected' }
+  | { readonly kind: 'done'; readonly message: string }
+  | { readonly kind: 'error'; readonly message: string };
+
+/** I61 正文编辑表单状态（mode: read = 只读段落，edit = textarea 草稿）。 */
+export interface SceneEditorState {
+  readonly mode: 'read' | 'edit';
+  /** 装载时的正文（baseHash 计算基准；保存成功/重解析成功后被新内容替换）。 */
+  readonly original: string;
+  readonly draft: string;
+  readonly dirty: boolean;
+  readonly saving: boolean;
+  readonly saveMessage: string;
+  readonly error: string;
+  readonly reparse: ReparseUiState;
+  /** 脏文本导航保护：true 时显示确认条，pendingNavigation 记录被推迟的切换。 */
+  readonly leaveConfirm: boolean;
+  readonly pendingNavigation: { readonly chapterId: string; readonly sceneId?: string } | undefined;
+}
 
 export interface ChaptersLayerState {
   readonly status: 'loading' | 'ready' | 'error';
@@ -34,6 +71,8 @@ export interface ChaptersLayerState {
   readonly chapter: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly read?: ChapterReadShape; readonly message?: string };
   /** 已选场景的读取结果（唯一携带正文）。 */
   readonly scene: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly item?: SceneReadShape; readonly message?: string };
+  /** I61 正文编辑器状态（每个场景装载时以原文初始化）。 */
+  readonly editor: SceneEditorState;
 }
 
 export interface ChaptersEditOps {
@@ -41,10 +80,51 @@ export interface ChaptersEditOps {
   selectScene(sceneId: string): void;
   retryChapter(): void;
   retryScene(): void;
+  /** I61：进入/退出编辑模式。 */
+  startEdit(): void;
+  textChange(value: string): void;
+  save(reparse: boolean): void;
+  acceptReparse(): void;
+  rejectReparse(): void;
+  discardDraft(): void;
+  cancelLeave(): void;
 }
 
 export function freshChapters(): ChaptersLayerState {
-  return { status: 'loading', list: [], chapter: { status: 'idle' }, scene: { status: 'idle' } };
+  return { status: 'loading', list: [], chapter: { status: 'idle' }, scene: { status: 'idle' }, editor: freshSceneEditor() };
+}
+
+export function freshSceneEditor(): SceneEditorState {
+  return {
+    mode: 'read', original: '', draft: '', dirty: false, saving: false, saveMessage: '', error: '',
+    reparse: { kind: 'idle' }, leaveConfirm: false, pendingNavigation: undefined,
+  };
+}
+
+/**
+ * 把任意 (original, draft) 映射为「最小单一连续范围」替换。
+ *
+ * 前缀/后缀贪心分解是唯一的：`original = P + A + S`、`draft = P + B + S` 且 P、S
+ * 取最大匹配。返回的 range 即 A 的 [start, end)，replacement 即 B。替换结果恒等于
+ * draft（exact round-trip），P/S（范围外文本）逐字不变。相同文本返回 none。
+ */
+export function computeEditRange(original: string, draft: string): { kind: 'none' } | { kind: 'single'; range: SceneEditRange; replacement: string } {
+  if (original === draft) return { kind: 'none' };
+  const max = Math.min(original.length, draft.length);
+  let start = 0;
+  while (start < max && original[start] === draft[start]) start += 1;
+  let endOriginal = original.length;
+  let endDraft = draft.length;
+  while (endOriginal > start && endDraft > start && original[endOriginal - 1] === draft[endDraft - 1]) {
+    endOriginal -= 1;
+    endDraft -= 1;
+  }
+  return { kind: 'single', range: { start, end: endOriginal }, replacement: draft.slice(start, endDraft) };
+}
+
+/** reparse 提案/接受进行中锁定草稿（禁止继续修改，避免 accept 用错范围）。 */
+function reparseLocked(state: SceneEditorState): boolean {
+  return state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
 }
 
 function errorBlock(h: El, message: string, retry: () => void, retryLabel: string): unknown {
@@ -64,6 +144,86 @@ function proseParagraphs(h: El, content: string): unknown {
   );
 }
 
+/** I61 编辑模式：textarea 草稿 + 范围提示 + 保存/重解析动作 + 提案面板 + 离开确认。 */
+function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEditOps): unknown {
+  const diff = computeEditRange(state.original, state.draft);
+  const canSave = state.dirty && diff.kind === 'single' && !state.saving && !reparseLocked(state);
+  const locked = reparseLocked(state);
+  let rangeHint: unknown;
+  if (diff.kind === 'none') {
+    rangeHint = h('p', { className: 'nv-chapters__editor-range', 'data-novel-scene-range': 'none' }, '未检测到修改。');
+  } else {
+    rangeHint = h('p', { className: 'nv-chapters__editor-range', 'data-novel-scene-range': 'single' },
+      `检测到 1 处修改：第 ${diff.range.start + 1}–${diff.range.end} 字符（范围外保持不变）。`);
+  }
+  let reparsePanel: unknown;
+  if (state.reparse.kind === 'idle') {
+    reparsePanel = h('p', { className: 'nv-chapters__reparse-hint', 'data-novel-scene-reparse-hint': '' },
+      '可选：保存并重解析将把本次修改经 ConfirmationGate 同步到结构层（C2/C1/C3/C4/B2）。');
+  } else if (state.reparse.kind === 'proposed') {
+    reparsePanel = h('div', { className: 'nv-chapters__reparse nv-chapters__reparse--proposed', 'data-novel-scene-reparse-proposed': '', role: 'status', 'aria-live': 'polite' },
+      h('p', { className: 'nv-chapters__reparse-status' }, '重解析提案已发起，确认后才会同步结构层。'),
+      h('div', { className: 'nv-editor__actions' },
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-reparse-accept': '', onClick: () => ops.acceptReparse() }, '确认重解析'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-reparse-reject': '', onClick: () => ops.rejectReparse() }, '拒绝'),
+      ),
+    );
+  } else if (state.reparse.kind === 'accepting') {
+    reparsePanel = h('div', { className: 'nv-chapters__reparse nv-chapters__reparse--accepting', 'data-novel-scene-reparse-accepting': '', role: 'status', 'aria-live': 'polite' },
+      h('p', { className: 'nv-chapters__reparse-status' }, '正在重解析并同步结构层…'));
+  } else if (state.reparse.kind === 'rejected') {
+    reparsePanel = h('p', { className: 'nv-chapters__reparse nv-chapters__reparse--rejected', 'data-novel-scene-reparse-rejected': '', role: 'status', 'aria-live': 'polite' },
+      '已拒绝重解析，结构层未改动。可再次「保存并重解析」或仅保存正文。');
+  } else if (state.reparse.kind === 'done') {
+    reparsePanel = h('p', { className: 'nv-chapters__reparse nv-chapters__reparse--done', 'data-novel-scene-reparse-done': '', role: 'status', 'aria-live': 'polite' }, state.reparse.message);
+  } else {
+    reparsePanel = h('p', { className: 'nv-chapters__reparse nv-chapters__reparse--error', 'data-novel-scene-reparse-error': '', role: 'alert', 'aria-live': 'assertive' },
+      `重解析失败：${state.reparse.message}`);
+  }
+  const leaveConfirm = state.leaveConfirm
+    ? h('div', { className: 'nv-chapters__leave', 'data-novel-scene-leave': '', role: 'alertdialog', 'aria-label': '放弃未保存的正文修改' },
+      h('p', { className: 'nv-chapters__leave-hint', 'data-novel-scene-leave-hint': '' }, '有未保存的正文修改，放弃将丢失这些修改。'),
+      h('div', { className: 'nv-editor__actions' },
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-discard': '', onClick: () => ops.discardDraft() }, '放弃并离开'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-leave-cancel': '', onClick: () => ops.cancelLeave() }, '取消'),
+      ),
+    )
+    : null;
+  return h('div', { className: 'nv-chapters__editor', 'data-novel-scene-editor': '' },
+    h('label', { className: 'nv-field' },
+      h('span', { className: 'nv-field__label' }, '正文（编辑模式）'),
+      h('textarea', {
+        className: 'nv-field__input nv-chapters__editor-input',
+        'data-novel-scene-text': '',
+        value: state.draft,
+        rows: 12,
+        disabled: locked,
+        onChange: (event: { target: { value: string } }) => ops.textChange(event.target.value),
+      }),
+    ),
+    rangeHint,
+    h('div', { className: 'nv-editor__actions' },
+      h('button', {
+        type: 'button',
+        className: 'nv-btn',
+        'data-novel-scene-save': '',
+        disabled: !canSave,
+        onClick: () => ops.save(false),
+      }, saveButtonLabel(state.saving, '保存修改')),
+      h('button', {
+        type: 'button',
+        className: 'nv-btn nv-btn--primary',
+        'data-novel-scene-save-reparse': '',
+        disabled: !canSave,
+        onClick: () => ops.save(true),
+      }, saveButtonLabel(state.saving, '保存并重解析')),
+    ),
+    renderSaveStatus(h, saveStatusLine(state.saving, state.saveMessage, state.error), 'scene'),
+    reparsePanel,
+    leaveConfirm,
+  );
+}
+
 export function chaptersPanel(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
   if (state.status === 'loading') {
     return h('section', { className: 'nv-chapters', 'data-novel-chapters-panel': '', 'data-novel-chapters-state': 'loading' }, '正在装载章节…');
@@ -74,7 +234,7 @@ export function chaptersPanel(h: El, _projectId: string, _workspace: WorkspaceNa
   }
   const chapter = state.chapter.read;
   const scenes = chapter?.scenes ?? [];
-  // 正文区状态机：场景错误 → 场景读取中 → 章节错误 → 空章 → 场景正文 → 未选择。
+  // 正文区状态机：场景错误 → 场景读取中 → 章节错误 → 空章 → 正文（编辑/只读）→ 未选择。
   let body: unknown;
   if (state.scene.status === 'error') {
     body = errorBlock(h, state.scene.message ?? '场景读取失败', () => ops.retryScene(), '重试场景');
@@ -85,7 +245,14 @@ export function chaptersPanel(h: El, _projectId: string, _workspace: WorkspaceNa
   } else if (state.chapter.status === 'ready' && state.chapter.read !== undefined && scenes.length === 0) {
     body = h('p', { className: 'nv-chapters__empty', 'data-novel-chapters-empty': '' }, '本章暂无场景正文（空章）。');
   } else if (state.scene.status === 'ready' && state.scene.item !== undefined) {
-    body = proseParagraphs(h, state.scene.item.content);
+    body = state.editor.mode === 'edit'
+      ? sceneEditorPanel(h, state.editor, ops)
+      : h('div', { className: 'nv-chapters__read', 'data-novel-scene-read': '' },
+        proseParagraphs(h, state.scene.item.content),
+        h('div', { className: 'nv-editor__actions' },
+          h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-edit': '', onClick: () => ops.startEdit() }, '编辑正文'),
+        ),
+      );
   } else {
     body = h('p', { className: 'nv-chapters__empty' }, '选择左侧章节与场景后阅读正文。');
   }

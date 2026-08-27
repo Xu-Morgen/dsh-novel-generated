@@ -2,21 +2,44 @@ import type { InvocationDescriptor, InvocationParameterDescriptor } from '@deeps
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { chapterStatusSchema } from '../../core/schema/text.js';
+import type { EditRange } from '../../core/edit/index.js';
 
 /**
- * I60 C5 最小只读 Remote 描述符（design §5.12 / R13-1）。
+ * 线上范围边界：与 `core/edit.editRangeSchema` 同构，但内联定义以避免 Client
+ * bundle 拉入 Host-only 的 `core/edit`（其 `fingerprintEdit` 依赖 node:crypto）。
+ * Host 侧 `novelTextEdit` 仍以领域 schema 与文本长度做最终校验（非法范围零写）。
+ */
+const editRangeSchema = z.object({
+  start: z.number().int().nonnegative(),
+  end: z.number().int().nonnegative(),
+}).strict().superRefine((range, context) => {
+  if (range.end < range.start) context.addIssue({ code: 'custom', path: ['end'], message: 'Range end must not precede start' });
+});
+
+/**
+ * I60/I61 C5 Remote 描述符（design §5.12 / R13-1 / R13-2）。
  *
- * 三个只读方法挂在 `novelWorkspace` 命名空间（与既有六层编辑器同一 Client 挂载面）：
+ * 只读方法挂在 `novelWorkspace` 命名空间（与既有六层编辑器同一 Client 挂载面）：
  * - `chapterList(projectId)` → 章节树列表项（无正文）。
  * - `chapterRead(projectId, chapterId)` → 章节元数据 + 场景摘要（无正文）。
  * - `sceneRead(projectId, chapterId, sceneId)` → 唯一携带正文的投影。
  *
+ * I61 受控编辑（R13-2，均复用 I42 / I11）：
+ * - `sceneEdit(projectId, chapterId, sceneId, range, replacement, baseHash?)` →
+ *   固定范围逐字保存（只写 C5），返回变更 diff 证据（before/after 哈希 + 未变前后缀）。
+ * - `sceneReparsePropose(projectId, chapterId, sceneId, range, replacement, baseHash?)`
+ *   → 把范围修改作为 I11 提案交给 Gate；返回最小提案投影（id + 三态）。
+ * - `sceneReparseAccept(projectId, chapterId, sceneId, range, replacement, proposalId)`
+ *   → 幂等 accept 后走既有 parser fan-out 并写 C5。
+ * - `sceneReparseReject(projectId, proposalId)` → Gate 置 rejected，零写。
+ *
  * 契约与不变式：
- * - 结果 schema 都是 strict、精确类型（绝不使用 `#json` 透传），与
- *   `src/core/text/projection.ts` 的投影类型一一对应（最小 owned JSON）。
- * - 没有任何参数/结果携带文件路径或 live repository 句柄；章节/场景引用只经
- *   Host 侧 `validateProjectId` / 按项目目录隔离解析（跨项目引用必然失败）。
- * - 只有读方法：不暴露 create/append/edit/delete 描述符（I61 才引入受控编辑）。
+ * - 结果 schema 都是 strict、精确类型（绝不使用 `#json` 透传）；`range` 参数在
+ *   线上以严格 `editRangeSchema` 校验（负向：start>end、小数、越界由 Host 校验）。
+ * - 没有任何参数/结果携带文件路径或 live repository 句柄；引用只经 Host 侧
+ *   `validateProjectId` / 按项目目录隔离解析（跨项目引用必然失败）。
+ * - `baseHash` 为可选脏文本保护：缺省时由 Host 直接按当前文本执行（测试/兼容），
+ *   携带时 Host 必须先核对当前正文哈希，不一致即拒绝（零写）。
  */
 export const sceneSummarySchema = z.object({
   id: z.string().min(1).max(64),
@@ -60,11 +83,45 @@ export const sceneReadResultSchema = z.object({
   }).strict(),
 }).strict();
 
-const param = (name: string, codec: InvocationParameterDescriptor['codec'] = strictCodec('novel-creation-tool#json', z.unknown())): InvocationParameterDescriptor =>
-  ({ name, wire: name, source: 'json', codec });
+/** I61 变更 diff 证据：before/after 是目标场景全文 SHA-256；未变前后缀逐字证明范围外不变。 */
+export const sceneEditEvidenceSchema = z.object({
+  before: z.string(),
+  after: z.string(),
+  unchangedPrefix: z.string(),
+  unchangedSuffix: z.string(),
+}).strict();
+
+export const sceneEditResultSchema = z.object({
+  scene: sceneReadResultSchema.shape.scene,
+  evidence: sceneEditEvidenceSchema,
+}).strict();
+
+/** 最小提案投影：payload（业务 JSON）与 before/after 指纹不出现在线上。 */
+export const sceneReparseProposeResultSchema = z.object({
+  proposalId: z.string().min(1).max(64),
+  status: z.enum(['pending', 'accepted', 'rejected']),
+}).strict();
+
+export const sceneReparseAcceptResultSchema = z.object({
+  status: z.literal('written'),
+  scene: sceneReadResultSchema.shape.scene,
+  layers: z.array(z.enum(['c2', 'c1', 'c3', 'c4', 'b2'])),
+}).strict();
+
+export const sceneReparseRejectResultSchema = z.object({
+  proposalId: z.string().min(1).max(64),
+  status: z.literal('rejected'),
+}).strict();
+
+const param = (name: string, codec: InvocationParameterDescriptor['codec'] = strictCodec('novel-creation-tool#json', z.unknown()), optional = false): InvocationParameterDescriptor =>
+  ({ name, wire: name, source: 'json', codec, ...(optional ? { acceptsUndefined: true } : {}) });
 const projectParameter = param('projectId', stringCodec);
 const chapterParameter = param('chapterId', stringCodec);
 const sceneParameter = param('sceneId', stringCodec);
+const replacementParameter = param('replacement', stringCodec);
+const baseHashParameter = param('baseHash', stringCodec, true);
+const proposalIdParameter = param('proposalId', stringCodec);
+const rangeParameter = param('range', strictCodec('novel-creation-tool#editRange', editRangeSchema));
 
 function c5Invocation(service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor {
   return { id: `novel-creation-tool/${service}/${method}`, service, namespace: service, method, invocation: { kind: 'direct' }, parameters, result: strictCodec(`novel-creation-tool#${method}:result`, resultSchema) };
@@ -73,5 +130,12 @@ function c5Invocation(service: string, method: string, parameters: readonly Invo
 export const chapterListInvocation = c5Invocation('novelWorkspace', 'chapterList', [projectParameter], z.array(chapterListItemSchema));
 export const chapterReadInvocation = c5Invocation('novelWorkspace', 'chapterRead', [projectParameter, chapterParameter], chapterReadResultSchema);
 export const sceneReadInvocation = c5Invocation('novelWorkspace', 'sceneRead', [projectParameter, chapterParameter, sceneParameter], sceneReadResultSchema);
+export const sceneEditInvocation = c5Invocation('novelWorkspace', 'sceneEdit', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, baseHashParameter], sceneEditResultSchema);
+export const sceneReparseProposeInvocation = c5Invocation('novelWorkspace', 'sceneReparsePropose', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, baseHashParameter], sceneReparseProposeResultSchema);
+export const sceneReparseAcceptInvocation = c5Invocation('novelWorkspace', 'sceneReparseAccept', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, proposalIdParameter, baseHashParameter], sceneReparseAcceptResultSchema);
+export const sceneReparseRejectInvocation = c5Invocation('novelWorkspace', 'sceneReparseReject', [projectParameter, proposalIdParameter], sceneReparseRejectResultSchema);
 
-export const c5Invocations = [chapterListInvocation, chapterReadInvocation, sceneReadInvocation] as const;
+export const c5Invocations = [
+  chapterListInvocation, chapterReadInvocation, sceneReadInvocation,
+  sceneEditInvocation, sceneReparseProposeInvocation, sceneReparseAcceptInvocation, sceneReparseRejectInvocation,
+] as const;

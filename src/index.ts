@@ -29,6 +29,7 @@ import { createSplitAgentService } from './host/split-agent-service.js';
 import { createExportService } from './host/export-service.js';
 import { createClassifierService } from './host/classifier-service.js';
 import { createLocalizedEditService } from './host/edit-service.js';
+import { createTextEditService } from './host/text-edit-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createContinuationService } from './host/continuation-service.js';
 import { createInspirationService } from './host/inspiration-service.js';
@@ -251,9 +252,25 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I2 public Remote probe: provide the service, then register its Typert
   // contribution when the registry is available (full DSH Host composition).
   ctx.provide(NOVEL_PROBE_NAMESPACE, { probe: probeData });
+  // I61 C5 正文编辑与可选 reparse（design §5.12 / §14.9 / R13-2）：I42 编辑服务 +
+  // 真实 I25–I29 parser fan-out + 既有 Domain Service writers + I11 Gate。设置解析
+  // 惰性执行（accept 时才需要），与 analyzer 共用同一 A2 generation settings owner。
+  const textEditService = createTextEditService({
+    llm,
+    projectsRoot,
+    state: stateService,
+    relationship: relationshipService,
+    knowledge: knowledgeService,
+    canon: canonService,
+    worldview: worldviewService,
+    confirmation: confirmationService,
+    resolveSettings: async () => resolveA2GenerationConfig(await settingsIndex.load()).settings,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelTextEdit', textEditService);
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService, projectService, uploadService, textService,
+    stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,
   );
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).

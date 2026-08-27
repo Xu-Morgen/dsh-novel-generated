@@ -56,7 +56,7 @@ import {
   type OutlineShape,
 } from './client/layers/outline.js';
 import { freshCanonEditor, freshCharacterEditor, freshOutlineEditor, freshRelationshipEditor, freshStateEditor, freshWorldEditor, freshChapters, type ChaptersLayerState } from './client/store.js';
-import { chaptersPanel, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneReadShape } from './client/layers/chapters.js';
+import { chaptersPanel, computeEditRange, freshSceneEditor, type ChapterListItemShape, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from './client/layers/chapters.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -143,6 +143,9 @@ export type WorkbenchActions = {
   chaptersSelectScene(sceneId: string): void;
   chaptersRead(status: 'loading' | 'ready' | 'error', read: unknown, message?: string): void;
   chaptersScene(status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string): void;
+  /** I61 正文编辑器（R13-2）：保存/重解析/脏文本保护全部经 store 持久化。 */
+  sceneEditor(patch: Partial<SceneEditorState>): void;
+  sceneEditorReset(): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -207,9 +210,10 @@ function groupNav(h: El, activeView: WorkbenchViewId, activateView: (view: Workb
   );
 }
 
-/** I55 脏表单检测：任一编辑层存在未保存草案即需在切换离开前裁决（§14.8 / R12-2）。 */
-function hasDirtyDrafts(snapshot: { characterEditor: { dirty: boolean }; worldEditor: { dirty: boolean }; outlineEditor: { dirty: boolean }; relationshipEditor: { dirty: boolean }; canonEditor: { dirty: boolean } }): boolean {
-  return snapshot.characterEditor.dirty || snapshot.worldEditor.dirty || snapshot.outlineEditor.dirty || snapshot.relationshipEditor.dirty || snapshot.canonEditor.dirty;
+/** I55 脏表单检测：任一编辑层存在未保存草案即需在切换离开前裁决（§14.8 / R12-2）。
+ *  I61：正文编辑器的未保存草稿同样受保护（脏文本保护，R13-2）。 */
+function hasDirtyDrafts(snapshot: { characterEditor: { dirty: boolean }; worldEditor: { dirty: boolean }; outlineEditor: { dirty: boolean }; relationshipEditor: { dirty: boolean }; canonEditor: { dirty: boolean }; chapters: { editor: { dirty: boolean } } }): boolean {
+  return snapshot.characterEditor.dirty || snapshot.worldEditor.dirty || snapshot.outlineEditor.dirty || snapshot.relationshipEditor.dirty || snapshot.canonEditor.dirty || snapshot.chapters.editor.dirty;
 }
 
 /** I55 作品上下文栏：当前作品名持续可见 + 返回作品列表（切换）入口（§14.8 / R12-2）。 */
@@ -608,6 +612,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           chaptersSelectScene: (d, sceneId: string) => { d.chapters = { ...d.chapters, selectedSceneId: sceneId, scene: { status: 'loading' } }; },
           chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
           chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },
+          // I61：编辑器状态合并（与各层 draft 同一模式）；场景装载/重载时先 Reset 再初始化。
+          sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
+          sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -977,12 +984,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
             },
           },
-          // I60 C5 只读导航（R13-1）：选择章节 → chapterRead → 自动选首个场景 →
-          // sceneRead；正文只经 sceneRead 投影读取（最小 owned JSON）。读取失败
-          // 各自可重试；重复点击经 beginOp 去重（I59 至多一次 Remote 语义）。
+          // I60/I61 C5 正文工作台 ops（R13-1 / R13-2）：只读导航 + 受控编辑。
           // 注意：loadScene 必须显式接收 chapterId —— makeOps 在渲染时创建的闭包
           // 快照里 selectedChapterId 尚未更新，不能依赖快照取章（陈旧闭包缺陷）。
           chapters: (() => {
+            const editorPatch = (patch: Partial<SceneEditorState>): void => act.sceneEditor(patch);
+            const reparseLocked = (state: SceneEditorState): boolean => state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
+            const hashText = async (text: string): Promise<string> => {
+              const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+              return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+            };
             const loadScene = (sceneId: string, chapterId: string): void => {
               const target = workspace;
               if (!target || projectId === undefined) return;
@@ -992,10 +1003,17 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               void unwrap(target.sceneRead(projectId, chapterId, sceneId)).then((scene) => {
                 release();
                 if (!active) return;
+                const shape = (scene as { scene?: SceneReadShape }).scene;
                 act.chaptersScene('ready', scene, undefined);
-              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); });
+                // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
+                act.sceneEditorReset();
+                act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
+              }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); });
             };
             const selectChapter = (chapterId: string): void => {
+              // I61 脏文本保护：草稿未保存时先弹离开确认，把切换推迟到裁决后。
+              const editor = snapshot.chapters.editor;
+              if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId } }); return; }
               const target = workspace;
               if (!target || projectId === undefined) return;
               if (!beginOp(`chapters:chapter:${chapterId}`)) return;
@@ -1010,12 +1028,91 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 else act.chaptersScene('idle', undefined, undefined);
               }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
             };
+            const selectScene = (sceneId: string): void => {
+              const chapterId = snapshot.chapters.selectedChapterId;
+              if (chapterId === undefined) return;
+              const editor = snapshot.chapters.editor;
+              if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); return; }
+              loadScene(sceneId, chapterId);
+            };
+            const save = (reparse: boolean): void => {
+              const target = workspace;
+              const editor = snapshot.chapters.editor;
+              if (!target || projectId === undefined) return;
+              if (editor.saving || reparseLocked(editor)) return;
+              if (!beginOp(reparse ? 'chapters:save:reparse' : 'chapters:save')) return;
+              const release = (): void => endOp(reparse ? 'chapters:save:reparse' : 'chapters:save');
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              if (chapterId === undefined || sceneId === undefined) { release(); editorPatch({ error: '请先选择场景' }); return; }
+              const diff = computeEditRange(editor.original, editor.draft);
+              if (diff.kind === 'none') { release(); editorPatch({ error: '没有需要保存的修改' }); return; }
+              editorPatch({ saving: true, error: '', saveMessage: '' });
+              // baseHash = 装载时正文哈希：Host 核对当前文本一致才允许写（脏文本保护）。
+              void hashText(editor.original).then((baseHash) => {
+                if (reparse) {
+                  void unwrap(target.sceneReparsePropose(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((proposal) => {
+                    release();
+                    if (!active) return;
+                    const p = proposal as { proposalId?: string; status?: string };
+                    if (!p.proposalId) { editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
+                    // 幂等提议：同一编辑重复提议返回既有提案（可能是已拒绝/已处理）。
+                    if (p.status === 'rejected') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
+                    if (p.status === 'accepted') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'done', message: '该重解析提案此前已确认并应用' } }); return; }
+                    editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId: p.proposalId, range: diff.range, replacement: diff.replacement, baseHash } });
+                  }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+                } else {
+                  void unwrap(target.sceneEdit(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((result) => {
+                    release();
+                    if (!active) return;
+                    const r = result as { scene?: SceneReadShape };
+                    const content = r.scene?.content ?? editor.draft;
+                    act.chaptersScene('ready', { scene: r.scene }, undefined);
+                    editorPatch({ saving: false, saveMessage: '已保存', dirty: false, original: content, draft: content, error: '' });
+                  }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+                }
+              }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+            };
+            const acceptReparse = (): void => {
+              const target = workspace;
+              const editor = snapshot.chapters.editor;
+              const r = editor.reparse;
+              if (!target || projectId === undefined || r.kind !== 'proposed') return;
+              if (!beginOp('chapters:reparse:accept')) return;
+              const release = (): void => endOp('chapters:reparse:accept');
+              const chapterId = snapshot.chapters.selectedChapterId;
+              const sceneId = snapshot.chapters.selectedSceneId;
+              if (chapterId === undefined || sceneId === undefined) { release(); editorPatch({ reparse: { kind: 'error', message: '请先选择场景' } }); return; }
+              editorPatch({ reparse: { kind: 'accepting', proposalId: r.proposalId, range: r.range, replacement: r.replacement, baseHash: r.baseHash } });
+              // accept 再带 baseHash：Host 在 propose→accept 窗口内核对正文未变（脏文本保护）。
+              void unwrap(target.sceneReparseAccept(projectId, chapterId, sceneId, r.range, r.replacement, r.proposalId, r.baseHash)).then((result) => {
+                release();
+                if (!active) return;
+                const res = result as { scene?: SceneReadShape; layers?: string[] };
+                const content = res.scene?.content ?? editor.draft;
+                act.chaptersScene('ready', { scene: res.scene }, undefined);
+                editorPatch({ saving: false, dirty: false, original: content, draft: content, error: '', saveMessage: '', reparse: { kind: 'done', message: `已重解析并同步：${(res.layers ?? []).join(' / ')}` } });
+              }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+            };
+            const rejectReparse = (): void => {
+              const target = workspace;
+              const r = snapshot.chapters.editor.reparse;
+              if (!target || projectId === undefined || r.kind !== 'proposed') return;
+              if (!beginOp('chapters:reparse:reject')) return;
+              const release = (): void => endOp('chapters:reparse:reject');
+              void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!active) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+            };
+            const discardDraft = (): void => {
+              const pending = snapshot.chapters.editor.pendingNavigation;
+              editorPatch({ leaveConfirm: false, pendingNavigation: undefined, dirty: false, saveMessage: '', error: '' });
+              if (pending !== undefined) {
+                if (pending.sceneId !== undefined && pending.chapterId === snapshot.chapters.selectedChapterId) loadScene(pending.sceneId, pending.chapterId);
+                else selectChapter(pending.chapterId);
+              }
+            };
             return {
               selectChapter,
-              selectScene(sceneId) {
-                const chapterId = snapshot.chapters.selectedChapterId;
-                if (chapterId !== undefined) loadScene(sceneId, chapterId);
-              },
+              selectScene,
               retryChapter() {
                 const chapterId = snapshot.chapters.selectedChapterId;
                 if (chapterId !== undefined) selectChapter(chapterId);
@@ -1025,6 +1122,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
                 const chapterId = snapshot.chapters.selectedChapterId;
                 if (sceneId !== undefined && chapterId !== undefined) loadScene(sceneId, chapterId);
               },
+              startEdit() { editorPatch({ mode: 'edit' }); },
+              textChange(value) {
+                const editor = snapshot.chapters.editor;
+                editorPatch({ draft: value, dirty: value !== editor.original, saveMessage: '', error: '' });
+              },
+              save,
+              acceptReparse,
+              rejectReparse,
+              discardDraft,
+              cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); },
             };
           })(),
         };
