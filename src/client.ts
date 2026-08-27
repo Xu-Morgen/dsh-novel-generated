@@ -14,6 +14,7 @@ import {
   type ReviewNamespace,
   type QueueNamespace,
   type KnowledgeNamespace,
+  type RuleStyleNamespace,
   LAYERS,
   characterText,
   el as createElement,
@@ -25,6 +26,7 @@ import {
   reviewRemoteContribution,
   queueRemoteContribution,
   knowledgeRemoteContribution,
+  ruleStyleRemoteContribution,
 } from './client/shared.js';
 import {
   characterCreateInput as buildCharacterCreateInput,
@@ -68,6 +70,7 @@ import { chaptersPanel, computeEditRange, freshSceneEditor, type CandidatePanelS
 import { freshReview, reviewPanel, type ReviewAdjudicationOutcomeShape, type ReviewAuditRecordShape, type ReviewEditOps, type ReviewLayerState, type ReviewProjectionShape } from './client/layers/review.js';
 import { freshQueue, queuePanel, type QueueEditOps, type QueueLayerState, type QueueStartInputShape, type QueueStatusShape, type QueueTaskShape } from './client/layers/queue.js';
 import { freshKnowledge, knowledgePanel, type KnowledgeApplyOutcomeShape, type KnowledgeEditOps, type KnowledgeLayerState, type KnowledgeProjectionShape, type KnowledgeProposalShape, type KnowledgeProposeOutcomeShape, type KnowledgeViewId } from './client/layers/knowledge.js';
+import { freshRuleDraft, freshRuleStyle, freshStyleDraft, ruleStylePanel, type RuleDraftShape, type RuleShape, type RuleStyleEditOps, type RuleStyleLayerState, type RuleStyleProjectionShape, type StyleDraftShape, type StyleShape } from './client/layers/rule-style.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
@@ -197,6 +200,8 @@ export type WorkbenchActions = {
   queuePatch(patch: Partial<QueueLayerState>): void;
   /** I66 知情与揭示管理面（R14-1）：面板状态（投影/视图/选中/提案草稿/pending）。 */
   knowledgePatch(patch: Partial<KnowledgeLayerState>): void;
+  /** I67：规则与文风面板状态合并（R14-2）。 */
+  ruleStylePatch(patch: Partial<RuleStyleLayerState>): void;
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
@@ -354,9 +359,11 @@ function viewPanel(
   reviewNamespace: ReviewNamespace | undefined,
   queueNamespace: QueueNamespace | undefined,
   knowledgeNamespace: KnowledgeNamespace | undefined,
+  ruleStyleNamespace: RuleStyleNamespace | undefined,
   reviewState: ReviewLayerState,
   queueState: QueueLayerState,
   knowledgeState: KnowledgeLayerState,
+  ruleStyleState: RuleStyleLayerState,
   layers: LayerData,
   ops: WorkbenchOps,
   chapters: ChaptersLayerState,
@@ -389,6 +396,10 @@ function viewPanel(
   // I66：知情与揭示（连续性组）—— 事实/角色双视图 + 揭示/holder Gate 提案（R14-1）。
   if (activeView === 'knowledge') {
     return h('div', { 'data-novel-view-panel': 'knowledge' }, knowledgePanel(h, projectId, knowledgeNamespace, knowledgeState, ops.knowledge));
+  }
+  // I67：规则与文风（策划组）—— B1 规则 + B4 风格档案表单（R14-2）。
+  if (activeView === 'ruleStyle') {
+    return h('div', { 'data-novel-view-panel': 'ruleStyle' }, ruleStylePanel(h, projectId, ruleStyleNamespace, ruleStyleState, ops.ruleStyle));
   }
   return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
 }
@@ -424,10 +435,12 @@ interface WorkbenchOps {
   readonly queue: QueueEditOps;
   /** I66：知情与揭示（刷新/双视图/选中/提案草稿 + Gate 确认，R14-1）。 */
   readonly knowledge: KnowledgeEditOps;
+  /** I67：规则与文风（刷新/规则选中与新建/表单草稿/保存，R14-2）。 */
+  readonly ruleStyle: RuleStyleEditOps;
 }
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。 */
-function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
+function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, reviewNamespace: ReviewNamespace | undefined, queueNamespace: QueueNamespace | undefined, knowledgeNamespace: KnowledgeNamespace | undefined, ruleStyleNamespace: RuleStyleNamespace | undefined, ui: { open: boolean; collapsed: boolean; activeView: WorkbenchViewId; navWidth: number; navResizeStart(clientX: number): void; navResizeMove(clientX: number): void; navResizeEnd(): void; navResizeStep(delta: number): void; panelWidth: number; panelResizeStart(clientX: number): void; panelResizeMove(clientX: number): void; panelResizeEnd(): void; panelResizeStep(delta: number): void; collapse(): void; close(): void; activateView(view: WorkbenchViewId): void; selectProject(id: string): void; createProject(input: { projectId: string; name: string }): void; uploadFile(file: File): void; analyzeText(text: string): void; cancelAnalysis(): void; retryAnalysis(): void; requestBrowse(): void; cancelBrowse(): void; confirmLeave(): void; cancelLeave(): void }, layers: LayerData, ops: WorkbenchOps, chapters: ChaptersLayerState, reviewState: ReviewLayerState, queueState: QueueLayerState, knowledgeState: KnowledgeLayerState, ruleStyleState: RuleStyleLayerState, selectedProjectId?: string, selectedProjectName?: string, projects: Array<{ id: string; name: string }> = [], browsing = false, leaveConfirm = false, projectError?: string, upload?: UploadProgress, uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] }, onboardingState?: OnboardingState, onboardingNamespace?: OnboardingNamespace, decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void, applyOnboarding?: () => void, patchOnboarding?: (patch: Partial<OnboardingState>) => void, settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void }, creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void }): unknown {
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -491,7 +504,7 @@ function workbenchView(React: ReactFace, status: WorkspaceStatus, workspace: Wor
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, reviewState, queueState, knowledgeState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
+          viewPanel(h, ui.activeView, selectedProjectId, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, reviewState, queueState, knowledgeState, ruleStyleState, layers, ops, chapters, sourceEntry, review, settings, creationSettings),
         ),
       ),
     )
@@ -634,6 +647,8 @@ interface WorkbenchState {
   queue: QueueLayerState;
   /** I66：知情与揭示面板状态（投影/视图/选中/提案草稿/pending，R14-1）。 */
   knowledge: KnowledgeLayerState;
+  /** I67：规则与文风面板状态（投影/编辑草稿/风格草稿，R14-2）。 */
+  ruleStyle: RuleStyleLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -675,6 +690,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let reviewNamespace: ReviewNamespace | undefined;
       let queueNamespace: QueueNamespace | undefined;
       let knowledgeNamespace: KnowledgeNamespace | undefined;
+      let ruleStyleNamespace: RuleStyleNamespace | undefined;
       let currentProjectId: string | undefined;
       let active = true;
       let remoteDisposer: TypertDisposer | undefined;
@@ -686,6 +702,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       let reviewDisposer: TypertDisposer | undefined;
       let queueDisposer: TypertDisposer | undefined;
       let knowledgeDisposer: TypertDisposer | undefined;
+      let ruleStyleDisposer: TypertDisposer | undefined;
 
       // I59 请求去重（design §14.8 / R12-6）：同一操作键在 Remote 返回前至多提交
       // 一次（双击/连点至多一次 Remote）。键为「领域:动作」：层保存按层、项目打开
@@ -728,6 +745,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           review: freshReview(),
           queue: freshQueue(),
           knowledge: freshKnowledge(),
+          ruleStyle: freshRuleStyle(),
           selectedProjectId: undefined,
           selectedProjectName: undefined,
           browsing: false,
@@ -765,7 +783,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           fail: (d, message: string) => { d.status = { status: 'error', message }; },
           setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
           selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.onboarding = undefined; d.leaveConfirm = false; },
+          resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.onboarding = undefined; d.leaveConfirm = false; },
           browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
           cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
           showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -799,6 +817,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
           queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
           knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
+          ruleStylePatch: (d, patch: Partial<RuleStyleLayerState>) => { d.ruleStyle = { ...d.ruleStyle, ...patch }; },
           characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
           worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
           outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
@@ -1678,6 +1697,122 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               dismiss() { knowledgePatch({ status: 'idle', projection: undefined, message: undefined, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' }, pending: [], acting: false }); },
             };
           })(),
+          // ---- I67 规则与文风控制面（R14-2）：规则列表/详情表单 + 风格档案 ----
+          ruleStyle: (() => {
+            const ruleStylePatch = (patch: Partial<RuleStyleLayerState>): void => act.ruleStylePatch(patch);
+            const ruleDraftFrom = (rule: RuleShape): RuleDraftShape => ({
+              id: rule.id, scope: rule.scope, kind: rule.kind, statement: rule.statement,
+              priority: String(rule.priority), immutable: rule.immutable, active: rule.active,
+              examples: [...rule.examples],
+            });
+            const styleDraftFrom = (style: StyleShape | null): StyleDraftShape => style === null
+              ? freshStyleDraft()
+              : {
+                name: style.name, person: style.person, tense: style.tense, povScope: style.povScope,
+                tone: style.tone, proseStyle: style.proseStyle, chapterFormat: style.chapterFormat,
+                dialogueConventions: style.dialogueConventions, forbidden: [...style.forbidden],
+              };
+            return {
+              refresh(): void {
+                const target = ruleStyleNamespace;
+                if (!target || projectId === undefined) { ruleStylePatch({ status: 'error', message: '规则与文风服务不可用' }); return; }
+                if (!beginOp('ruleStyle:refresh')) return;
+                const release = (): void => endOp('ruleStyle:refresh');
+                ruleStylePatch({ status: 'loading', message: undefined });
+                void unwrap(target.list(projectId)).then((projection) => {
+                  release();
+                  if (!active) return;
+                  const result = projection as RuleStyleProjectionShape;
+                  ruleStylePatch({ status: 'ready', projection: result, styleDraft: styleDraftFrom(result.style), message: undefined });
+                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ status: 'error', message: (cause as Error).message }); });
+              },
+              selectRule(ruleId: string): void {
+                const target = ruleStyleNamespace;
+                const state = snapshot.ruleStyle;
+                if (!target || projectId === undefined || state.acting) return;
+                if (state.editingRuleId === ruleId) {
+                  ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined });
+                  return;
+                }
+                if (!beginOp(`ruleStyle:read:${ruleId}`)) return;
+                const release = (): void => endOp(`ruleStyle:read:${ruleId}`);
+                void unwrap(target.readRule(projectId, ruleId)).then((rule) => {
+                  release();
+                  if (!active) return;
+                  ruleStylePatch({ editingRuleId: ruleId, ruleDraft: ruleDraftFrom(rule as RuleShape), message: undefined });
+                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ message: (cause as Error).message }); });
+              },
+              newRule(): void {
+                const editing = snapshot.ruleStyle.editingRuleId === '__new__';
+                ruleStylePatch({ editingRuleId: editing ? undefined : '__new__', ruleDraft: editing ? undefined : freshRuleDraft(), message: undefined });
+              },
+              cancelRuleEdit(): void { ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined }); },
+              setRuleDraft(patch: Partial<RuleDraftShape>): void {
+                const draft = snapshot.ruleStyle.ruleDraft;
+                if (draft === undefined) return;
+                ruleStylePatch({ ruleDraft: { ...draft, ...patch }, message: undefined });
+              },
+              saveRule(): void {
+                const target = ruleStyleNamespace;
+                const state = snapshot.ruleStyle;
+                if (!target || projectId === undefined || state.ruleDraft === undefined || state.acting) return;
+                const draft = state.ruleDraft;
+                if (!beginOp(`ruleStyle:save:${state.editingRuleId ?? ''}`)) return;
+                const release = (): void => endOp(`ruleStyle:save:${state.editingRuleId ?? ''}`);
+                const payload = {
+                  scope: draft.scope, kind: draft.kind, statement: draft.statement.trim(),
+                  priority: Number(draft.priority), immutable: draft.immutable, active: draft.active,
+                  examples: [...draft.examples],
+                };
+                ruleStylePatch({ acting: true, message: undefined });
+                const call = state.editingRuleId === '__new__'
+                  ? target.createRule(projectId, { ...payload, id: draft.id.trim() })
+                  : target.updateRule(projectId, draft.id.trim(), payload);
+                void unwrap(call).then((rule) => {
+                  release();
+                  if (!active) return;
+                  const saved = rule as RuleShape;
+                  ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则「${saved.id}」（v${saved.version}）。` });
+                  // 刷新列表投影以反映同一 Host 真相（生成/检测消费同一存储）。
+                  void unwrap(target.list(projectId)).then((projection) => {
+                    if (!active) return;
+                    const result = projection as RuleStyleProjectionShape;
+                    ruleStylePatch({ projection: result, status: 'ready' });
+                  }, () => undefined);
+                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              setStyleDraft(patch: Partial<StyleDraftShape>): void {
+                ruleStylePatch({ styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
+              },
+              saveStyle(): void {
+                const target = ruleStyleNamespace;
+                const state = snapshot.ruleStyle;
+                if (!target || projectId === undefined || state.acting) return;
+                if (!beginOp('ruleStyle:saveStyle')) return;
+                const release = (): void => endOp('ruleStyle:saveStyle');
+                const draft = state.styleDraft;
+                const input = {
+                  name: draft.name.trim(), person: draft.person, tense: draft.tense, povScope: draft.povScope,
+                  tone: draft.tone.trim(), proseStyle: draft.proseStyle.trim(), chapterFormat: draft.chapterFormat.trim(),
+                  dialogueConventions: draft.dialogueConventions.trim(), forbidden: [...draft.forbidden],
+                };
+                ruleStylePatch({ acting: true, message: undefined });
+                void unwrap(target.saveStyle(projectId, input)).then((style) => {
+                  release();
+                  if (!active) return;
+                  const saved = style as StyleShape;
+                  ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（v${saved.version}，id ${saved.id}）。` });
+                  // 刷新投影：style 视图同步（含 version/id）。
+                  void unwrap(target.list(projectId)).then((projection) => {
+                    if (!active) return;
+                    const result = projection as RuleStyleProjectionShape;
+                    ruleStylePatch({ projection: result, status: 'ready', styleDraft: styleDraftFrom(result.style) });
+                  }, () => undefined);
+                }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+              },
+              dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
+            };
+          })(),
         };
       };
 
@@ -1869,7 +2004,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
             });
           }
-          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
+          return workbenchView(React, s.status, workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, ui, layers, makeOps(s), s.chapters, s.review, s.queue, s.knowledge, s.ruleStyle, s.selectedProjectId, s.selectedProjectName, s.projects, s.browsing, s.leaveConfirm, s.projectError, s.upload, s.uploadResult, s.onboarding, onboarding, decideLayer, applyOnboarding, patchOnboarding, {
             view: s.settingsView,
             draft: s.settingsDraft,
             namespace: llmConfig,
@@ -1958,6 +2093,12 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           knowledgeDisposer = dispose;
           knowledgeNamespace = ctx.get('remote.novelKnowledgeManager', false) as KnowledgeNamespace | undefined;
         }, (cause: Error) => { console.error('novel-creation-tool: knowledge Remote mount failed', cause); });
+        // I67：规则与文风控制面 Remote（R14-2）。挂载失败静默降级：规则与文风面板显示不可用。
+        void ctx.remote.$mount(ruleStyleRemoteContribution).then((dispose) => {
+          if (!active) { void dispose(); return; }
+          ruleStyleDisposer = dispose;
+          ruleStyleNamespace = ctx.get('remote.novelRuleStyleManager', false) as RuleStyleNamespace | undefined;
+        }, (cause: Error) => { console.error('novel-creation-tool: ruleStyle Remote mount failed', cause); });
         return () => {
           active = false;
           clearAnalysisPoll();
@@ -1972,6 +2113,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           reviewNamespace = undefined;
           queueNamespace = undefined;
           knowledgeNamespace = undefined;
+          ruleStyleNamespace = undefined;
           slotDisposer();
           if (remoteDisposer) void remoteDisposer();
           if (onboardingDisposer) void onboardingDisposer();
@@ -1982,6 +2124,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           if (reviewDisposer) void reviewDisposer();
           if (queueDisposer) void queueDisposer();
           if (knowledgeDisposer) void knowledgeDisposer();
+          if (ruleStyleDisposer) void ruleStyleDisposer();
         };
       });
     },

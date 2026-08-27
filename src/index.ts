@@ -36,6 +36,7 @@ import { createWritingAdjudicationService } from './host/writing-adjudication-se
 import { createReviewService } from './host/review-service.js';
 import { createQueueService } from './host/queue-service.js';
 import { createKnowledgeManagerService } from './host/knowledge-manager-service.js';
+import { createRuleStyleManagerService } from './host/rule-style-manager-service.js';
 import { createNextSceneContextBuilder } from './host/writing-context.js';
 import { createInspirationService } from './host/inspiration-service.js';
 import { createHostUploadService } from './host/upload-service.js';
@@ -387,6 +388,25 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     reject: (projectId: unknown, proposalId: unknown) => knowledgeManagerService.reject(String(projectId), String(proposalId)),
     pending: (projectId: unknown) => knowledgeManagerService.pending(String(projectId)),
   }, 'novelKnowledgeManager', 'novelKnowledgeManager'));
+  // I67 B1 规则与 B4 文风控制面（design §14.10「B1/B4 控制面」/ R14-2）：作者编辑
+  // 规则优先级/immutable 与风格人称/时态/POV/禁用表达表单。复用 I7/I10 领域服务
+  // （RuleRepository/StyleRepository 仍是 B1/B4 唯一写 owner，本服务只转发最小
+  // owned JSON）；非法枚举/越界优先级在 wire 层与服务端双重拒绝，immutable 规则
+  // 改写由 RuleRepository 拒绝（零写）。保存后生成与检测消费的正是同一批存储。
+  const ruleStyleManagerService = createRuleStyleManagerService({
+    rules: ruleService,
+    style: styleService,
+    projectsRoot,
+    onDispose: (dispose) => ctx.effect(() => dispose),
+  });
+  ctx.provide('novelRuleStyleManager', bindRemote({
+    list: (projectId: unknown) => ruleStyleManagerService.list(String(projectId)),
+    readRule: (projectId: unknown, ruleId: unknown) => ruleStyleManagerService.readRule(String(projectId), String(ruleId)),
+    createRule: (projectId: unknown, input: unknown) => ruleStyleManagerService.createRule(String(projectId), input as Parameters<typeof ruleStyleManagerService.createRule>[1]),
+    updateRule: (projectId: unknown, ruleId: unknown, patch: unknown) => ruleStyleManagerService.updateRule(String(projectId), String(ruleId), patch as Parameters<typeof ruleStyleManagerService.updateRule>[2]),
+    readStyle: (projectId: unknown) => ruleStyleManagerService.readStyle(String(projectId)),
+    saveStyle: (projectId: unknown, input: unknown) => ruleStyleManagerService.saveStyle(String(projectId), input as Parameters<typeof ruleStyleManagerService.saveStyle>[1]),
+  }, 'novelRuleStyleManager', 'novelRuleStyleManager'));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,
