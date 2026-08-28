@@ -79,6 +79,13 @@ export function createExtensionService(
     return provider;
   };
 
+  // I98：store 构造时注入按 layerId 解析 provider schema 的 resolver，写前/读后
+  // 校验落在 store 层（extension-service 侧复验保留，防御纵深）。
+  const storeFor = (projectId: string): ExtensionLayerStore => new ExtensionLayerStore(
+    projectDirectory(projectsRoot, projectId),
+    (layerId) => providerFor(layerId).schema,
+  );
+
   return Object.freeze({
     register: (extension: Extension) => registry.register(extension),
     armRelationshipRules: () => registry.armRelationshipRules(),
@@ -86,17 +93,16 @@ export function createExtensionService(
 
     async saveLayer(request: ExtensionLayerRequest) {
       validateProjectId(request.projectId);
-      const provider = providerFor(request.layerId);
-      const store = new ExtensionLayerStore(projectDirectory(projectsRoot, request.projectId));
+      providerFor(request.layerId);
+      const store = storeFor(request.projectId);
       await store.open();
-      return store.save(provider.layerId, provider.schema.parse(request.value));
+      return store.save(request.layerId, request.value);
     },
 
     async loadLayer(request: ExtensionLayerRequest) {
       validateProjectId(request.projectId);
-      const provider = providerFor(request.layerId);
-      const store = new ExtensionLayerStore(projectDirectory(projectsRoot, request.projectId));
-      return provider.schema.parse(await store.load(provider.layerId));
+      const store = storeFor(request.projectId);
+      return store.load(request.layerId);
     },
 
     serializeLayer(layerId: string, value: unknown) {

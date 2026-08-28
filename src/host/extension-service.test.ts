@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -126,4 +126,25 @@ describe('I32 Host Extension seams', () => {
     dispose?.();
     expect(() => service.seams()).toThrow(/disposed/);
   });
+
+  it('I98 rejects invalid layer content at the store write-before / read-after boundary (zero write)', async () => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i98-store-'));
+    try {
+      const service = createExtensionService(undefined, projectsRoot);
+      service.register({ id: 'economy-provider', kind: 'provider', layerId: 'economy', schema: economySchema });
+      // 写前校验：非法内容被拒且零写（文件不存在、load 也失败）。
+      await expect(service.saveLayer({ projectId: 'p', layerId: 'economy', value: { currency: 'crown', reserves: -1 } })).rejects.toThrow();
+      await expect(service.loadLayer({ projectId: 'p', layerId: 'economy' })).rejects.toThrow();
+      // 读后校验：绕过 save 直写非法 YAML → load 被 store 读后校验拒绝。
+      const storeDir = join(projectsRoot, 'p', 'extensions');
+      const { mkdir } = await import('node:fs/promises');
+      await mkdir(storeDir, { recursive: true });
+      await writeFile(join(storeDir, 'economy.yaml'), 'currency: crown\nreserves: -1\n', 'utf8');
+      await expect(service.loadLayer({ projectId: 'p', layerId: 'economy' })).rejects.toThrow();
+      // 合法内容行为不变。
+      await service.saveLayer({ projectId: 'p', layerId: 'economy', value: { currency: 'crown', reserves: 7 } });
+      expect(await service.loadLayer({ projectId: 'p', layerId: 'economy' })).toEqual({ currency: 'crown', reserves: 7 });
+    } finally { await rm(projectsRoot, { recursive: true, force: true }); }
+  });
+
 });
