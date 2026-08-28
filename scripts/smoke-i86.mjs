@@ -35,7 +35,8 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
 
 // Part 0 — 静态负向扫描：接线调用形状不再回归旧错误形态。
 {
-  const chapters = codeLines('src/client/ops/chapters.ts');
+  // I95：chapters ops 拆三片，候选调用点在 chapters-candidate.ts。
+  const chapters = [...codeLines('src/client/ops/chapters.ts'), ...codeLines('src/client/ops/chapters-candidate.ts'), ...codeLines('src/client/ops/chapters-editor.ts'), ...codeLines('src/client/ops/chapters-branch.ts')];
   const review = codeLines('src/client/ops/review.ts');
   const statistics = codeLines('src/client/ops/statistics.ts');
   const has = (lines, fragment) => lines.some((line) => line.includes(fragment));
