@@ -14,6 +14,7 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/client/test-harness.ts",
-    "src/client/test-harness/**"
+    "src/client/test-harness/**",
+    "src/client.ts"
   ]
 }
