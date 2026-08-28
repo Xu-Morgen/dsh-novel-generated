@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor } from '@deepseek-ai/dsh-typert-protocol';
 import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry';
 import { z } from 'zod';
 import { strictCodec, stringCodec, numberCodec, jsonCodec } from './common.js';
@@ -30,8 +30,13 @@ const worldviewRewriteResultSchema = z.object({ superseded: worldEntrySchema, re
 const canonCorrectionAcceptResultSchema = z.object({ confirmation: confirmationRecordSchema, event: z.unknown() });
 // I75：`param` 统一到 shared 接线层；`editorInvocation` 只保留 strictCodec 包装
 // （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
-const editorInvocation = (service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor =>
-  remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const editorInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], Out>(
+  service: string,
+  method: M,
+  parameters: P,
+  resultSchema: { parse(value: unknown): Out },
+) => remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
 const projectParameter = param('projectId', stringCodec);
 const entityParameter = param('entityId', stringCodec);
 const inputParameter = param('input');
@@ -45,10 +50,15 @@ const toSeqParameter = param('toSeq', numberCodec);
 const filterParameter = param('filter', undefined, true);
 const targetIdParameter = param('targetId', stringCodec);
 const proposalIdParameter = param('proposalId', stringCodec);
-export interface WorkspaceViewModel { readonly product: 'novel-creation-tool'; readonly version: '2.0.0'; readonly ready: true; readonly capabilities: readonly ['generate', 'rewrite', 'continue', 'inspire']; }
+// I91：capabilities 与 wire schema（z.array(z.enum(...)) 输出可变数组）对齐 ——
+// 原 readonly 四元组字面量使 Client `unwrap(viewModel())` 结果无法赋回该接口。
+export interface WorkspaceViewModel { readonly product: 'novel-creation-tool'; readonly version: '2.0.0'; readonly ready: true; readonly capabilities: readonly ('generate' | 'rewrite' | 'continue' | 'inspire')[]; }
 export const NOVEL_WORKSPACE_NAMESPACE = 'novelWorkspace';
 export function workspaceViewModel(): WorkspaceViewModel { return { product: 'novel-creation-tool', version: '2.0.0', ready: true, capabilities: ['generate', 'rewrite', 'continue', 'inspire'] }; }
-export const workspaceViewModelInvocation: InvocationDescriptor = { id: 'novel-creation-tool/novelWorkspace/viewModel', service: NOVEL_WORKSPACE_NAMESPACE, namespace: NOVEL_WORKSPACE_NAMESPACE, method: 'viewModel', invocation: { kind: 'direct' }, parameters: [], result: strictCodec('novel-creation-tool#workspaceViewModel', z.object({ product: z.literal('novel-creation-tool'), version: z.literal('2.0.0'), ready: z.literal(true), capabilities: z.array(z.enum(['generate', 'rewrite', 'continue', 'inspire'])) })) };
+// I91：viewModel descriptor 改经统一 `remoteInvocation` 构造（id/service/namespace/
+// method/invocation 逐字等价），删除 `: InvocationDescriptor` 标注 —— 保留
+// parameters/result 字面类型供 Client 派生 namespace。
+export const workspaceViewModelInvocation = remoteInvocation(NOVEL_WORKSPACE_NAMESPACE, 'viewModel', [], strictCodec('novel-creation-tool#workspaceViewModel', z.object({ product: z.literal('novel-creation-tool'), version: z.literal('2.0.0'), ready: z.literal(true), capabilities: z.array(z.enum(['generate', 'rewrite', 'continue', 'inspire'])) })));
 export const characterListInvocation = editorInvocation('novelWorkspace', 'characterList', [projectParameter], z.array(characterCoreSchema));
 export const characterReadInvocation = editorInvocation('novelWorkspace', 'characterRead', [projectParameter, entityParameter], characterCoreSchema);
 export const characterCreateInvocation = editorInvocation('novelWorkspace', 'characterCreate', [projectParameter, inputParameter], characterCoreSchema);
@@ -76,5 +86,6 @@ export const workspaceContribution: TypertContribution = { package: 'novel-creat
 // (`RemoteStore.register` → "Remote package ... is already registered").
 // I60 C5 只读方法（chapterList/chapterRead/sceneRead）经 editorInvocations 并入
 // 同一 workspace 挂载面（editorInvocations 已含 c5Invocations，不再重复展开）。
-export const workspaceRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-workspace', [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations]);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const workspaceRemoteContribution = remoteContribution('novel-creation-tool-workspace', [workspaceViewModelInvocation, ...editorInvocations, ...uploadInvocations, ...projectLifecycleInvocations]);
 export type { CharacterCore, CharacterCoreInput, CharacterCorePatch, WorldEntry, WorldEntryInput, Outline, OutlineBeatCard, OutlineInput, Relationship, RelationshipInput, WorldState, CanonEventView, CanonQuery, StateDiff, CanonCorrectionInput, ConfirmationRecord };

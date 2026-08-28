@@ -1,11 +1,13 @@
 import type { El } from './shared.js';
 import { saveButtonLabel } from './save-status.js';
+import type { NamespaceOf } from './remote-namespace.js';
+import { workbenchSettingsRemoteContribution } from '../remote.js';
+export { workbenchSettingsRemoteContribution };
 
 /**
  * 创作台通用设置页（额外页面）：每次续写的目标字数，以及当用户提供的内容不足以
  * 支撑目标字数时是否先询问用户补充。Host 侧持久化（workbench-settings.yaml）。
  */
-export { workbenchSettingsRemoteContribution } from '../remote.js';
 
 export interface WorkbenchSettingsViewShape {
   readonly wordTarget: number;
@@ -20,12 +22,12 @@ export interface WorkbenchSettingsDraftShape {
   error: string;
 }
 
-/** Mounted `remote.novelWorkbenchSettings` namespace surface. */
-export interface WorkbenchSettingsNamespace {
-  load(): Promise<unknown>;
-  save(input: { wordTarget: number; askWhenThin: boolean }): Promise<unknown>;
-  openProjectFolder(projectId: string): Promise<unknown>;
-}
+/**
+ * I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
+ * 参数/返回类型随 descriptor 流动，方法签名变更在 Client 消费处即报编译错
+ * （review v2.0 §3.1 / 计划 §18 I91）。
+ */
+export type WorkbenchSettingsNamespace = NamespaceOf<typeof workbenchSettingsRemoteContribution>;
 
 export const WORKBENCH_WORD_TARGET_MIN = 100;
 export const WORKBENCH_WORD_TARGET_MAX = 100_000;

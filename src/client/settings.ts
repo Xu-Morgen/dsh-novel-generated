@@ -1,5 +1,8 @@
 import type { El } from './shared.js';
 import { saveButtonLabel } from './save-status.js';
+import type { NamespaceOf } from './remote-namespace.js';
+import { llmConfigRemoteContribution } from '../remote.js';
+export { llmConfigRemoteContribution };
 
 /**
  * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并保存到本地
@@ -9,7 +12,6 @@ import { saveButtonLabel } from './save-status.js';
  * 控件与推荐默认值：maxTokens 固定档位（32768 推荐 / 65536 / 128k），思维链官方
  * 默认启用，思考强度官方默认 high（见 `src/core/schema/llm-config.ts`）。
  */
-export { llmConfigRemoteContribution } from '../remote.js';
 
 export interface LlmConfigViewShape {
   readonly providerId: string;
@@ -33,11 +35,12 @@ export interface LlmConfigDraftShape {
   error: string;
 }
 
-/** Mounted `remote.novelLlmConfig` namespace surface. */
-export interface LlmConfigNamespace {
-  load(): Promise<unknown>;
-  save(input: { baseUrl: string; model: string; apiKey: string; maxTokens: number; thinking: 'enabled' | 'disabled'; reasoningEffort: 'low' | 'high' | 'max' }): Promise<unknown>;
-}
+/**
+ * I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
+ * 参数/返回类型随 descriptor 流动，方法签名变更在 Client 消费处即报编译错
+ * （review v2.0 §3.1 / 计划 §18 I91）。
+ */
+export type LlmConfigNamespace = NamespaceOf<typeof llmConfigRemoteContribution>;
 
 /** maxTokens 固定档位（与 `LLM_MAX_TOKENS_OPTIONS` 一致）。 */
 export const LLM_MAX_TOKENS_OPTION_LABELS: ReadonlyArray<{ value: number; label: string }> = [

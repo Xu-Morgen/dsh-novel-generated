@@ -59,7 +59,8 @@ export interface QueueStatusShape {
 }
 
 export interface QueueStartInputShape {
-  readonly cardIds?: readonly string[];
+  // I91：与 wire `queueStartInputSchema` 对齐（z.array 输出可变数组；readonly 会拒绝写回）。
+  readonly cardIds?: string[];
   readonly wordBudget?: number | null;
   readonly maxRetries?: number;
   readonly stopOnSoftWarnings?: boolean;

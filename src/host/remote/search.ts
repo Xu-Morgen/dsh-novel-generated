@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -81,8 +81,12 @@ export const searchStatsWireSchema = z.object({
 export type SearchStatsShape = z.infer<typeof searchStatsWireSchema>;
 
 // I75：`param`/`searchInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const searchInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
-  remoteInvocation('novelSearch', method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const searchInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+) => remoteInvocation('novelSearch', method, parameters, resultSchema);
 
 const projectParameter = param('projectId', stringCodec);
 const queryParameter = param('query', stringCodec);
@@ -103,4 +107,5 @@ export const searchInvocations = [
   searchReferencesInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const searchRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-search', searchInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const searchRemoteContribution = remoteContribution('novel-creation-tool-search', searchInvocations);

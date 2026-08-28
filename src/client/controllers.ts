@@ -375,7 +375,9 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
     if (baseUrl === '' || model === '') { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
     if (draft.apiKey === '' && !hasKey) { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
     deps.dispatch((x) => x.settingsSettled({ saving: true, message: '', error: '' }));
-    void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey, maxTokens: draft.maxTokens, thinking: draft.thinking, reasoningEffort: draft.reasoningEffort })).then(
+    // I91：wire maxTokens 是固定档位枚举（32768/65536/131072，core/schema/llm-config）；
+    // draft 来自 UI select（LLM_MAX_TOKENS_OPTIONS 同源），此处收窄到 wire 枚举。
+    void unwrap(target.save({ baseUrl, model, apiKey: draft.apiKey, maxTokens: draft.maxTokens as 32768 | 65536 | 131072, thinking: draft.thinking, reasoningEffort: draft.reasoningEffort })).then(
       (result) => {
         release();
         if (!deps.isActive()) return;

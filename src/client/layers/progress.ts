@@ -93,7 +93,8 @@ export interface ProgressDirectionShape {
   readonly premise: string;
   readonly changes: {
     readonly logline?: string;
-    readonly themes?: readonly string[];
+    // I91：与 wire `directionSchema`（core/schema/inspiration）对齐（z.array 输出可变数组）。
+    readonly themes?: string[];
     readonly outlineNote: string;
     readonly progressNote: string;
   };

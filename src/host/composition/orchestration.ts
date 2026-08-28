@@ -14,6 +14,13 @@ import type { DeviationRecordInput, InspirationSelectInput } from '../progress-i
 import type { ImportPreviewInput } from '../import-export-service.js';
 import type { ArchiveMode } from '../../core/export/index.js';
 import { defineRemote } from '../remote/shared.js';
+import { knowledgeInvocations } from '../remote/knowledge.js';
+import { ruleStyleInvocations } from '../remote/rule-style.js';
+import { progressInvocations } from '../remote/progress.js';
+import { importExportInvocations } from '../remote/import-export.js';
+import { branchInvocations } from '../remote/branch.js';
+import { searchInvocations } from '../remote/search.js';
+import { statisticsInvocations } from '../remote/statistics.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
 /**
@@ -66,7 +73,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     // result schema 即 z.array(...)（host/remote/knowledge.ts），组合根不再整形
     // envelope；契约漂移不再被接线层掩盖（架构审查 §8#1）。
     { method: 'pending', call: (projectId: string) => knowledgeManagerService.pending(projectId) },
-  ]));
+  ], knowledgeInvocations));
   // I67 B1 规则与 B4 文风控制面（design §14.10「B1/B4 控制面」/ R14-2）：作者编辑
   // 规则优先级/immutable 与风格人称/时态/POV/禁用表达表单。复用 I7/I10 领域服务
   // （RuleRepository/StyleRepository 仍是 B1/B4 唯一写 owner，本服务只转发最小
@@ -85,7 +92,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'updateRule', call: (projectId: string, ruleId: string, patch: RulePatch) => ruleStyleManagerService.updateRule(projectId, ruleId, patch) },
     { method: 'readStyle', call: (projectId: string) => ruleStyleManagerService.readStyle(projectId) },
     { method: 'saveStyle', call: (projectId: string, input: Omit<StyleProfileInput, 'id'>) => ruleStyleManagerService.saveStyle(projectId, input) },
-  ]));
+  ], ruleStyleInvocations));
   // I68 C6 进度与灵感方向落地（design §14.10「C6 与灵感落地」/ R14-3）：进度/
   // 偏差投影 + 导航/完成状态 + 灵感 select→propose→apply + 刷新与审计记录。
   // 复用 I14/I15 outlineService（B5/C6 唯一写 owner）、I11 ConfirmationGate 与
@@ -108,7 +115,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'reject', call: (projectId: string, proposalId: string) => progressInspirationService.reject(projectId, proposalId) },
     { method: 'pending', call: (projectId: string) => progressInspirationService.pending(projectId) },
     { method: 'audit', call: (projectId: string) => progressInspirationService.audit(projectId) },
-  ]));
+  ], progressInvocations));
   // I69 导入导出与备份 UI（design §14.10「导入、导出与备份」/ R14-4）：受控
   // import/export Remote —— I39 可移植档案/纯文本导出下载、round-trip 备份恢复
   // （N-7 非空作品 fail closed + 空壳事务写盘）与 I37 确定性导入预览。复用
@@ -119,7 +126,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => projectPortabilityService.exportText(projectId, format) },
     { method: 'restore', call: (projectId: string, raw: string) => projectPortabilityService.restore(projectId, raw) },
     { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.importPreview(projectId, input) },
-  ]));
+  ], importExportInvocations));
   // I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：Host-owned
   // 分支/版本模型 —— 候选可保留为分支、比较并选择唯一 chosen。复用 TextRepository
   // （C5 唯一存储 owner；legacy 单版本文档兼容迁移 + fail closed 在 open 内完成）；
@@ -132,7 +139,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'save', call: (projectId: string, chapterId: string, sceneId: string, label: string) => branchService.saveBranch(projectId, chapterId, sceneId, label) },
     { method: 'choose', call: (projectId: string, chapterId: string, sceneId: string, branchId: string) => branchService.chooseBranch(projectId, chapterId, sceneId, branchId) },
     { method: 'diff', call: (projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string) => branchService.diffBranches(projectId, chapterId, sceneId, fromBranchId, toBranchId) },
-  ]));
+  ], branchInvocations));
   // I71 全局搜索与上下文追踪（design §14.10「搜索与上下文追踪」/ R14-6）：可重建
   // 搜索投影 + 实体交叉引用 + 结果跳转 + 生成注入解释（trace）。搜索索引是派生视图
   // （core/search，可 drop/rebuild，不成为第二真相）；POV 边界在查询时用 live C3
@@ -153,19 +160,21 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'stats', call: (projectId: string) => searchService.stats(projectId) },
     { method: 'search', call: (projectId: string, query: string, pov?: string) => searchService.search(projectId, query, pov) },
     { method: 'references', call: (projectId: string, key: string, pov?: string) => searchService.references(projectId, key, pov) },
-  ]));
+  ], searchInvocations));
 
   // I89 修复：wire 形状转换外移为显式命名适配器 —— sceneCards/tasks 的可选筛选
   // 位置参数（string/number）聚合为 domain filter 对象；不再内联在 defineRemote 块。
+  // I91：筛选位 wire codec 是 jsonCodec（z.unknown），descriptor 派生形参为
+  // `unknown | undefined`，适配器形参对齐为 unknown（String()/Number() 收敛不变）。
   const sceneCardsWireAdapter = (statisticsService: NovelStatisticsService) =>
-    (projectId: string, actId?: string, beatId?: string, status?: string, limit?: number): Promise<unknown> => statisticsService.sceneCards(projectId, {
+    (projectId: string, actId?: unknown, beatId?: unknown, status?: unknown, limit?: unknown): Promise<unknown> => statisticsService.sceneCards(projectId, {
       ...(actId !== undefined && actId !== null ? { actId: String(actId) } : {}),
       ...(beatId !== undefined && beatId !== null ? { beatId: String(beatId) } : {}),
       ...(status !== undefined && status !== null ? { status: String(status) as 'planned' | 'writing' | 'done' } : {}),
       ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
     } satisfies StatisticsSceneCardFilter);
   const tasksWireAdapter = (statisticsService: NovelStatisticsService) =>
-    (projectId: string, status?: string, limit?: number): Promise<unknown> => statisticsService.tasks(projectId, {
+    (projectId: string, status?: unknown, limit?: unknown): Promise<unknown> => statisticsService.tasks(projectId, {
       ...(status !== undefined && status !== null ? { status: String(status) as 'queued' | 'running' | 'candidate-ready' | 'failed' | 'cancelled' | 'completed' } : {}),
       ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
     } satisfies StatisticsTaskFilter);
@@ -190,7 +199,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'chapterDetail', call: (projectId: string, chapterId: string) => statisticsService.chapterDetail(projectId, chapterId) },
     { method: 'sceneCards', call: sceneCardsWireAdapter(statisticsService) },
     { method: 'tasks', call: tasksWireAdapter(statisticsService) },
-  ]));
+  ], statisticsInvocations));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
     stateService, canonService, confirmationService, projectService, uploadService, textService, controlledTextEditService,

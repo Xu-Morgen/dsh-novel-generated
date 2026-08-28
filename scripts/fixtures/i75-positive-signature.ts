@@ -19,7 +19,9 @@ interface SaveService {
 declare const service: SaveService;
 
 // 适配闭包形参与 domain 方法签名一致 → 必须编译通过。
-const spec: RemoteMethodSpec = {
+// I91 对齐：`RemoteMethodSpec` 默认形参改 `readonly unknown[]`（消灭 `any[]`），
+// 夹具显式给出调用形参元组保持断言意图（review v2.0 §3.1）。
+const spec: RemoteMethodSpec<[input: { mode: 'fast' }]> = {
   method: 'save',
   call: (input: { mode: 'fast' }) => service.save(input),
 };

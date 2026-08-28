@@ -80,7 +80,8 @@ walkSrc(resolve(repoRoot, 'src'));
     const copy = countIn(`src/host/remote/${f}`, 'const param = ');
     if (copy !== 0) fail(`src/host/remote/${f} still defines a local param() copy`);
   }
-  const paramFactoryCount = countIn('src/host/remote/shared.ts', 'export function param(');
+  // I91 对齐：`param` 泛型化后签名为 `export function param<...>(`，断言改为前缀匹配。
+  const paramFactoryCount = countIn('src/host/remote/shared.ts', 'export function param<');
   if (paramFactoryCount !== 1) fail('shared.ts must be the single param() factory source');
 
   // 1f) shared 接线层是泛型机制：代码中不得包含任何 novel-* 服务名（接线与领域解耦；
@@ -141,9 +142,10 @@ walkSrc(resolve(repoRoot, 'src'));
       "if (demoSearchInvocation.id !== 'novel-creation-tool/novelDemoSearch/search') throw new Error('demo descriptor id mismatch');",
       '',
       '// 3) 接线规格（index.ts 的 defineRemote spec）；shared.ts/common.ts/remote.ts 零改动。',
+      "// I91 对齐：defineRemote 新增第 5 参 descriptors（类型耦合面，仅类型），demo 传 descriptor。",
       "const adapter = defineRemote('novelDemoSearch', 'novelDemoSearch', demoSearch, [",
       "  { method: 'search', call: (projectId: string, query: string) => demoSearch.search(projectId, query) },",
-      ']);',
+      '], [demoSearchInvocation]);',
       "const binding = (adapter as unknown as { typertRemote?: { serviceKey?: string; namespace?: string } }).typertRemote;",
       "if (binding?.serviceKey !== 'novelDemoSearch' || binding?.namespace !== 'novelDemoSearch') throw new Error('demo binding mismatch');",
       '',

@@ -2,6 +2,7 @@
 // search 层编辑动作 = I71 全局搜索与上下文追踪 ops（R14-6）：搜索/引用/跳转/重建/删除派生索引，经 searchNamespace；正文命中经共享 chapters ops ref 跳转。
 
 import { unwrap } from '../shared.js';
+import type { RemoteResult } from '../remote-namespace.js';
 import type { SearchEditOps, SearchHitShape, SearchLayerState, SearchResultShape, SearchStatsShape } from '../layers/search.js';
 import type { WorkbenchViewId } from '../nav.js';
 import type { OpsContext } from './context.js';
@@ -19,7 +20,9 @@ export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOp
         const release = (): void => endOp(`search:${method}:${key}`);
         searchPatch({ acting: true, message: undefined });
         const pov = snapshot.search.pov.trim();
-        const call = method === 'search'
+        // I91：search/references 的 RemoteResult 载荷形状不同（query vs key），
+        // 统一收窄为 RemoteResult<unknown>（onResult 侧仍按 T 强转既有断言）。
+        const call: Promise<RemoteResult<unknown>> = method === 'search'
           ? target.search(projectId, key, pov === '' ? undefined : pov)
           : target.references(projectId, key, pov === '' ? undefined : pov);
         void unwrap(call).then((result) => {

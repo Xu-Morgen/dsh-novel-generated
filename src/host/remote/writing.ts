@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -110,8 +110,12 @@ const adjudicationOutcomeSchema = z.discriminatedUnion('status', [
 export type WritingAdjudicationOutcomeShape = z.infer<typeof adjudicationOutcomeSchema>;
 
 // I75：`param`/`writingInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const writingInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
-  remoteInvocation('novelWriting', method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const writingInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+) => remoteInvocation('novelWriting', method, parameters, resultSchema);
 
 export const writingProposeInvocation = writingInvocation('propose', [
   param('projectId', stringCodec),
@@ -129,4 +133,5 @@ export const writingAdjudicateInvocation = writingInvocation('adjudicate', [
 
 export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const writingRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const writingRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

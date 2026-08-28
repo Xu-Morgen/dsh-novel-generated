@@ -11,6 +11,12 @@ import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, Onboardin
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import { defineRemote } from '../remote/shared.js';
+import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js';
+import { timelineInvocations } from '../remote/timeline.js';
+import { onboardingInvocations } from '../remote/onboarding.js';
+import { writingInvocations } from '../remote/writing.js';
+import { reviewInvocations } from '../remote/review.js';
+import { queueInvocations } from '../remote/queue.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
 /**
@@ -54,13 +60,15 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
   // `begin` resolves settings once, then hands the resolved settings to the
   // background job so the client can poll `status`/`cancel` without a second
   // resolution path.
+  // I91：defineRemote 第 5 参传 descriptor（仅类型面）—— call 闭包与 descriptor
+  // 派生形状逐位对齐，方法签名变更在接线层即报编译错（review v2.0 §3.1）。
   ctx.provide('novelOnboardingAnalyzer', defineRemote('novelOnboardingAnalyzer', 'novelOnboardingAnalyzer', analyzerService, [
     { method: 'begin', call: async (input: OnboardingAnalysisStartInput, settings?: unknown) => analyzerService.begin(input, await resolveAnalyzerSettings(settings)) },
     { method: 'start', call: async (input: OnboardingAnalysisStartInput, settings?: unknown) => analyzerService.start(input, await resolveAnalyzerSettings(settings)) },
     { method: 'status', call: (onboardingSessionId: string) => analyzerService.status(onboardingSessionId) },
     { method: 'cancel', call: (onboardingSessionId: string) => analyzerService.cancel(onboardingSessionId) },
     { method: 'result', call: (onboardingSessionId: string) => analyzerService.result(onboardingSessionId) },
-  ]));
+  ], onboardingAnalyzerInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
   // adapts `getResult`/`regenerate` so the adjudication facade stays independent
   // of the analyzer's job lifecycle internals.
@@ -90,7 +98,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     // wire 层 nodeId 可选（string | undefined）；undefined/null 都归一为 null（恢复自动锚定）。
     { method: 'setCurrentNode', call: (projectId: string, nodeId: string | null | undefined) => timelineService.setCurrentNode(projectId, nodeId ?? null) },
     { method: 'save', call: (projectId: string, input: Timeline) => timelineService.save(projectId, input) },
-  ]));
+  ], timelineInvocations));
   // I89 跨域副作用显式钩子：B5 落地成功后自建时间线骨架。失败仅记录（时间线是
   // 可重建派生视图），绝不静默吞错、绝不阻断 onboarding 结果。
   const ensureTimelineAfterOnboarding = async (projectId: string): Promise<void> => {
@@ -115,7 +123,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
         return result;
       },
     },
-  ]));
+  ], onboardingInvocations));
   // I61 C5 正文编辑与可选 reparse（design §5.12 / §14.9 / R13-2）：I42 编辑服务 +
   // 真实 I25–I29 parser fan-out + 既有 Domain Service writers + I11 Gate。设置解析
   // 惰性执行（accept 时才需要），与 analyzer 共用同一 A2 generation settings owner。
@@ -179,7 +187,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'propose', call: (projectId: string, input: WritingProposeInput, settings?: unknown) => writingAdjudicationService.propose(projectId, input, settings) },
     { method: 'preview', call: (candidateId: string) => writingAdjudicationService.preview(candidateId) },
     { method: 'adjudicate', call: (candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown) => writingAdjudicationService.adjudicate(candidateId, decision, settings) },
-  ]));
+  ], writingInvocations));
   // I64 一致性审校中心（design §14.9 / R13-5）：统一投影规则/正史/知情/关系/风格
   // 五类问题及正文定位；复用 I21/I22/I24 探测器与 I20 判定（不新增第二裁决器）；
   // 软警告必须显式 continue / rewrite-requested 并记录到持久审计账本，硬冲突
@@ -207,7 +215,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     // envelope；契约漂移不再被接线层掩盖，网关 strict codec 在边界直接暴露
     // （架构审查 §8#1）。
     { method: 'records', call: (projectId: string) => reviewService.records(projectId) },
-  ]));
+  ], reviewInvocations));
   // I65 可恢复自动生成队列（design §14.9 / R13-6）：Host 持有按场景卡范围执行的
   // 生成队列，支持暂停/继续/取消、重试、预算与停止策略。队列只编排生成——候选经
   // I62（零写）产生并注册进 I63（registerRecoveredCandidate，作者在裁决面板
@@ -231,7 +239,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'retry', call: (projectId: string, taskId: string) => queueService.retry(projectId, taskId) },
     { method: 'cancelTask', call: (projectId: string, taskId: string) => queueService.cancelTask(projectId, taskId) },
     { method: 'recover', call: (projectId: string) => queueService.recover(projectId) },
-  ]));
+  ], queueInvocations));
   return {
     timelineService,
     controlledTextEditService,

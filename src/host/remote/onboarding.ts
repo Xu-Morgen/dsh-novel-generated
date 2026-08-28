@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -16,8 +16,13 @@ import { confirmationRecordSchema } from '../../core/schema/confirm.js';
  * minimal structured `partial-retryable` result.
  */
 // I75：`param`/`onboardingInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const onboardingInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec, service = 'novelOnboarding'): InvocationDescriptor =>
-  remoteInvocation(service, method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const onboardingInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+  service = 'novelOnboarding',
+) => remoteInvocation(service, method, parameters, resultSchema);
 
 export const onboardingAdjudicateInvocation = onboardingInvocation('adjudicate', [
   param('input', strictCodec('novel-creation-tool#onboardingAdjudicateInput', onboardingAdjudicateInputSchema)),
@@ -27,4 +32,5 @@ export const onboardingAcceptedLayersInvocation = onboardingInvocation('accepted
 export const onboardingFinalApplyInvocation = onboardingInvocation('finalApply', [param('input', strictCodec('novel-creation-tool#onboardingFinalApplyInput', onboardingFinalApplyInputSchema))], strictCodec('novel-creation-tool#onboardingFinalApply:result', onboardingApplyResultSchema));
 export const onboardingInvocations = [onboardingAdjudicateInvocation, onboardingAcceptedLayersInvocation, onboardingFinalApplyInvocation] as const;
 // Unique `package` per client-mounted contribution (see editor.ts note).
-export const onboardingRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-onboarding', onboardingInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const onboardingRemoteContribution = remoteContribution('novel-creation-tool-onboarding', onboardingInvocations);

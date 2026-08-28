@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -75,8 +75,12 @@ export const importPreviewOutcomeWireSchema = z.object({
 }).strict();
 
 // I75：`param`/`importExportInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const importExportInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
-  remoteInvocation('novelImportExport', method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const importExportInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+) => remoteInvocation('novelImportExport', method, parameters, resultSchema);
 
 const projectIdParam = param('projectId', strictCodec('novel-creation-tool#projectId', z.string().min(1).max(64)));
 
@@ -104,4 +108,5 @@ export const importExportInvocations = [
   importExportPreviewInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const importExportRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-import-export', importExportInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const importExportRemoteContribution = remoteContribution('novel-creation-tool-import-export', importExportInvocations);

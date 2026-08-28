@@ -81,7 +81,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         if (!beginOp(`branches:diff:${branchId}`)) return;
         const release = (): void => endOp(`branches:diff:${branchId}`);
         branchesPatch({ diff: { status: 'loading', lines: [] }, message: undefined });
-        void unwrap(target.diff(projectId, chapterId, sceneId, branchId)).then((result) => {
+        void unwrap(target.diff(projectId, chapterId, sceneId, branchId, undefined)).then((result) => {
           release();
           if (!isActive()) return;
           const diff = result as { from?: { label: string }; to?: { label: string }; lines?: BranchDiffLineShape[] };

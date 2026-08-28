@@ -37,6 +37,8 @@ import type { GenerationSettings } from '../../llm/port/index.js';
 import type { LlmConfigSaveInput } from '../../core/schema/llm-config.js';
 import type { WorkbenchSettingsSaveInput } from '../../core/schema/workbench-settings.js';
 import { defineRemote } from '../remote/shared.js';
+import { llmConfigInvocations } from '../remote/llm-config.js';
+import { workbenchSettingsInvocations } from '../remote/workbench-settings.js';
 import { NOVEL_PROBE_NAMESPACE, probeData } from '../../remote.js';
 import type { BaseServices, CompositionBase } from './types.js';
 
@@ -113,17 +115,19 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
   ctx.provide('novelInspiration', inspirationService);
   const uploadService = createHostUploadService(onFiberDispose);
   const llmConfigService = createLlmConfigService(undefined, config.settingsRoot);
+  // I91：defineRemote 第 5 参传 descriptor（仅类型面）—— call 闭包与 descriptor
+  // 派生形状逐位对齐，方法签名变更在接线层即报编译错（review v2.0 §3.1）。
   ctx.provide('novelLlmConfig', defineRemote('novelLlmConfig', 'novelLlmConfig', llmConfigService, [
     { method: 'load', call: () => llmConfigService.load() },
     { method: 'save', call: (input: LlmConfigSaveInput) => llmConfigService.save(input) },
-  ]));
+  ], llmConfigInvocations));
   // 创作台通用设置：目标字数 + 内容不足时是否询问 + 打开作品落地文件夹（Host 侧持久化）。
   const workbenchSettingsService = createWorkbenchSettingsService(config.settingsRoot, projectsRoot);
   ctx.provide('novelWorkbenchSettings', defineRemote('novelWorkbenchSettings', 'novelWorkbenchSettings', workbenchSettingsService, [
     { method: 'load', call: () => workbenchSettingsService.load() },
     { method: 'save', call: (input: WorkbenchSettingsSaveInput) => workbenchSettingsService.save(input) },
     { method: 'openProjectFolder', call: (projectId: string) => workbenchSettingsService.openProjectFolder(projectId) },
-  ]));
+  ], workbenchSettingsInvocations));
   // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
   // no generation settings of its own — so when the caller omits them, resolve
   // them from the plugin's persisted A2 config (I31 `novelSettings` owner).

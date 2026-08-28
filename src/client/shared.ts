@@ -1,160 +1,43 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+// I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
+// 消除手写 `Promise<unknown>` 接口，方法签名变更在 Client 消费处即报编译错
+// （review v2.0 §3.1 / 计划 §18 I91）。
+export type {
+  WorkspaceNamespace,
+  WritingNamespace,
+  ReviewNamespace,
+  QueueNamespace,
+  KnowledgeNamespace,
+  RuleStyleNamespace,
+  ProgressNamespace,
+  ImportExportNamespace,
+  BranchNamespace,
+  SearchNamespace,
+  StatisticsNamespace,
+  TimelineNamespace,
+  RemoteResult,
+} from './remote-namespace.js';
+import type {
+  WorkspaceNamespace,
+  WritingNamespace,
+  ReviewNamespace,
+  QueueNamespace,
+  KnowledgeNamespace,
+  RuleStyleNamespace,
+  ProgressNamespace,
+  ImportExportNamespace,
+  BranchNamespace,
+  SearchNamespace,
+  StatisticsNamespace,
+  TimelineNamespace,
+  RemoteResult,
+} from './remote-namespace.js';
 
 export type BundleRequire = (spec: string) => unknown;
 
 export interface ReactFace {
   createElement(tag: string, props: Record<string, unknown> | null, ...children: unknown[]): unknown;
-}
-
-export interface EditorRemote {
-  characterList(projectId: string): Promise<unknown[]>;
-  characterRead(projectId: string, entityId: string): Promise<unknown>;
-  characterCreate(projectId: string, input: unknown): Promise<unknown>;
-  characterUpdate(projectId: string, entityId: string, patch: unknown): Promise<unknown>;
-  worldviewList(projectId: string): Promise<unknown[]>;
-  worldviewRead(projectId: string, entityId: string): Promise<unknown>;
-  worldviewCreate(projectId: string, input: unknown): Promise<unknown>;
-  worldviewRewrite(projectId: string, entityId: string, input: unknown): Promise<unknown>;
-  outlineRead(projectId: string): Promise<unknown>;
-  outlineSave(projectId: string, input: unknown): Promise<unknown>;
-  outlineBeatCards(projectId: string): Promise<unknown[]>;
-  relationshipRead(projectId: string): Promise<unknown[]>;
-  relationshipSave(projectId: string, input: unknown): Promise<unknown>;
-  stateCurrent(projectId: string): Promise<unknown>;
-  stateSnapshots(projectId: string): Promise<unknown[]>;
-  stateRollback(projectId: string, seq: number): Promise<unknown>;
-  stateDiff(projectId: string, fromSeq: number, toSeq: number): Promise<unknown>;
-  canonQuery(projectId: string, filter?: unknown): Promise<unknown[]>;
-  canonCorrectionPropose(projectId: string, targetId: string, input: unknown): Promise<unknown>;
-  canonCorrectionAccept(projectId: string, proposalId: string): Promise<unknown>;
-  /** I60 C5 最小只读 Remote（design §5.12 / R13-1）：章节树 / 章节 / 场景读取。 */
-  chapterList(projectId: string): Promise<unknown[]>;
-  chapterRead(projectId: string, chapterId: string): Promise<unknown>;
-  sceneRead(projectId: string, chapterId: string, sceneId: string): Promise<unknown>;
-  /** I61 受控编辑（design §5.12 / R13-2）：固定范围逐字保存 + reparse propose/accept/reject。 */
-  sceneEdit(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string): Promise<unknown>;
-  sceneReparsePropose(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string): Promise<unknown>;
-  sceneReparseAccept(projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, proposalId: string, baseHash?: string): Promise<unknown>;
-  sceneReparseReject(projectId: string, proposalId: string): Promise<unknown>;
-  projectList(): Promise<unknown[]>;
-  projectCreate(input: unknown): Promise<unknown>;
-  projectOpen(projectId: string): Promise<unknown>;
-  uploadStart(input: unknown): Promise<unknown>;
-  uploadChunk(uploadId: string, index: number, base64: string): Promise<unknown>;
-  uploadFinalize(uploadId: string): Promise<unknown>;
-  uploadCancel(uploadId: string): Promise<unknown>;
-}
-
-/** The mounted `remote.novelWorkspace` namespace service surface. */
-export interface WorkspaceNamespace extends EditorRemote {
-  viewModel(): Promise<unknown>;
-}
-
-/** I63 候选审阅与裁决 Remote 面（design §14.9 / R13-4）：只提交受控命令。 */
-export interface WritingNamespace {
-  propose(projectId: string, input: unknown, settings?: unknown): Promise<unknown>;
-  preview(candidateId: string): Promise<unknown>;
-  adjudicate(candidateId: string, decision: string, settings?: unknown): Promise<unknown>;
-}
-
-/** I64 一致性审校中心 Remote 面（design §14.9 / R13-5）：只提交受控命令。 */
-export interface ReviewNamespace {
-  scan(projectId: string, settings?: unknown): Promise<unknown>;
-  adjudicate(projectId: string, input: { decision: 'continue' | 'rewrite-requested'; issueIds: string[] }): Promise<unknown>;
-  records(projectId: string): Promise<unknown>;
-}
-
-/** I65 可恢复自动生成队列 Remote 面（design §14.9 / R13-6）：只提交受控命令。 */
-export interface QueueNamespace {
-  status(projectId: string): Promise<unknown>;
-  start(projectId: string, input?: unknown): Promise<unknown>;
-  pause(projectId: string): Promise<unknown>;
-  resume(projectId: string): Promise<unknown>;
-  cancel(projectId: string): Promise<unknown>;
-  retry(projectId: string, taskId: string): Promise<unknown>;
-  cancelTask(projectId: string, taskId: string): Promise<unknown>;
-  recover(projectId: string): Promise<unknown>;
-}
-
-/** I66 C3 知情与揭示管理面 Remote（design §14.10 / R14-1）：只提交受控命令。 */
-export interface KnowledgeNamespace {
-  list(projectId: string): Promise<unknown>;
-  read(projectId: string, entryId: string): Promise<unknown>;
-  propose(projectId: string, input: unknown): Promise<unknown>;
-  accept(projectId: string, proposalId: string): Promise<unknown>;
-  reject(projectId: string, proposalId: string): Promise<unknown>;
-  pending(projectId: string): Promise<unknown>;
-}
-
-/** I67 B1/B4 控制面 Remote（design §14.10 / R14-2）：只提交受控命令，Host 是唯一校验 owner。 */
-export interface RuleStyleNamespace {
-  list(projectId: string): Promise<unknown>;
-  readRule(projectId: string, ruleId: string): Promise<unknown>;
-  createRule(projectId: string, input: unknown): Promise<unknown>;
-  updateRule(projectId: string, ruleId: string, patch: unknown): Promise<unknown>;
-  readStyle(projectId: string): Promise<unknown>;
-  saveStyle(projectId: string, input: unknown): Promise<unknown>;
-}
-
-/** I68 C6 进度与灵感落地 Remote（design §14.10 / R14-3）：只提交受控命令；灵感默认只读，经 Gate 确认才写 B5/C6。 */
-export interface ProgressNamespace {
-  projection(projectId: string): Promise<unknown>;
-  recordDeviation(projectId: string, input: unknown): Promise<unknown>;
-  reconcileDeviation(projectId: string, deviationId: string): Promise<unknown>;
-  inspire(projectId: string, prompt?: string): Promise<unknown>;
-  select(projectId: string, input: unknown): Promise<unknown>;
-  apply(projectId: string, proposalId: string): Promise<unknown>;
-  reject(projectId: string, proposalId: string): Promise<unknown>;
-  pending(projectId: string): Promise<unknown>;
-  audit(projectId: string): Promise<unknown>;
-}
-
-/** I69 导入导出与备份 Remote（design §14.10 / R14-4）：只提交受控命令/接收下载载荷，不持有 Host 路径。 */
-export interface ImportExportNamespace {
-  exportArchive(projectId: string, mode: string): Promise<unknown>;
-  exportText(projectId: string, format: string): Promise<unknown>;
-  restore(projectId: string, raw: string): Promise<unknown>;
-  importPreview(projectId: string, input: { fileName: string; format: string; text: string }): Promise<unknown>;
-}
-
-/** I70 C5 正文版本/分支 Remote（design §14.10「正文版本与分支」/ R14-5）：只提交受控命令，不持有版本真相。 */
-export interface BranchNamespace {
-  list(projectId: string, chapterId: string, sceneId: string): Promise<unknown>;
-  read(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<unknown>;
-  save(projectId: string, chapterId: string, sceneId: string, label: string): Promise<unknown>;
-  choose(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<unknown>;
-  diff(projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string): Promise<unknown>;
-}
-
-/** I71 全局搜索与上下文追踪 Remote（design §14.10「搜索与上下文追踪」/ R14-6）：只提交受控命令，不持有索引/路径真相。 */
-export interface SearchNamespace {
-  build(projectId: string): Promise<unknown>;
-  drop(projectId: string): Promise<unknown>;
-  stats(projectId: string): Promise<unknown>;
-  search(projectId: string, query: string, pov?: string): Promise<unknown>;
-  references(projectId: string, key: string, pov?: string): Promise<unknown>;
-}
-
-/** I72 写作进度 Remote（design §14.10「写作进度」/ R14-7）：只提交受控命令，不持有统计真相/文件路径。 */
-export interface StatisticsNamespace {
-  rebuild(projectId: string): Promise<unknown>;
-  drop(projectId: string): Promise<unknown>;
-  stats(projectId: string): Promise<unknown>;
-  overview(projectId: string): Promise<unknown>;
-  chapterDetail(projectId: string, chapterId: string): Promise<unknown>;
-  // I86：wire 契约为位置参数（descriptor 参数个数即真实客户端绑定器要求的实参个数，
-  // 缺省位显式传 undefined，对齐 host/remote/statistics.ts 的 jsonCodec 可选参数）。
-  sceneCards(projectId: string, actId?: string, beatId?: string, status?: string, limit?: number): Promise<unknown>;
-  tasks(projectId: string, status?: string, limit?: number): Promise<unknown>;
-}
-
-/** 方案 A 剧情时间线 Remote（design §8「相关角色对」）：只提交受控命令，Host 持有 timeline.yaml。 */
-export interface TimelineNamespace {
-  read(projectId: string): Promise<unknown>;
-  ensureFromOutline(projectId: string): Promise<unknown>;
-  setCurrentNode(projectId: string, nodeId: string | null): Promise<unknown>;
-  save(projectId: string, input: unknown): Promise<unknown>;
 }
 
 export interface WorkspaceSlots {
@@ -194,16 +77,28 @@ export const LAYERS = [
 ] as const;
 export type LayerId = (typeof LAYERS)[number]['id'];
 
-/** Unwrap a DSH RemoteResult envelope: resolve to `value`, reject on `!ok`. */
-export function unwrap(promise: Promise<unknown> | undefined): Promise<unknown> {
-  if (promise === undefined) return Promise.resolve(undefined);
-  return promise.then((result) => {
-    const envelope = result as { ok?: boolean; value?: unknown; error?: { message?: string } };
-    if (envelope !== null && typeof envelope === 'object' && 'ok' in envelope) {
-      if (envelope.ok === true) return envelope.value;
+/**
+ * Unwrap a DSH RemoteResult envelope: resolve to `value`, reject on `!ok`,
+ * pass through non-envelope results unchanged（I91 泛型化 —— 派生 namespace 的
+ * `Promise<RemoteResult<T>>` 解包为 `Promise<T>`，消费处不再需要 `as unknown as`）。
+ * 注意：`unwrap(promise: Promise<T>)` 的 `T` 是**已 resolve 值**的类型，
+ * 因此本类型直接对 `T` 判信封，不再经 `Promise<infer P>` 解一层。
+ */
+export type UnwrapValue<T> =
+  T extends { ok: true; value: infer V } ? V
+  : T extends { ok: false; error: unknown } ? never
+  : T;
+
+export function unwrap<T>(promise: Promise<T> | undefined): Promise<UnwrapValue<T>> {
+  if (promise === undefined) return Promise.resolve(undefined as never);
+  return promise.then((raw) => {
+    const result: unknown = raw;
+    if (result !== null && typeof result === 'object' && 'ok' in result) {
+      const envelope = result as { ok?: boolean; value?: unknown; error?: { message?: string } };
+      if (envelope.ok === true) return envelope.value as UnwrapValue<T>;
       throw new Error(envelope.error?.message ?? 'Remote call failed');
     }
-    return result;
+    return result as UnwrapValue<T>;
   });
 }
 

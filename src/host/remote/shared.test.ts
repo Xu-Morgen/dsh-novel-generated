@@ -30,12 +30,17 @@ const demoService: DemoService = {
   ping() { return { ok: true } as const; },
 };
 
+// I91：defineRemote 第 5 参传 descriptor（类型耦合面）—— methods 逐个与
+// descriptor 派生调用形状对齐；这里按下游方式同时消费 descriptor（注册解析）。
+const greetInvocation = remoteInvocation('novelDemo', 'greet', [param('projectId', stringCodec)], strictCodec('novel-creation-tool#demoGreet', z.object({ greeting: z.string() }).strict()));
+const pingInvocation = remoteInvocation('novelDemo', 'ping', [], strictCodec('novel-creation-tool#demoPing', z.object({ ok: z.literal(true) }).strict()));
+
 describe('I75 defineRemote 接线工厂', () => {
   it('构建带 typertRemote 绑定的适配对象并按 wire 方法名转发', async () => {
     const adapter = defineRemote('novelDemo', 'novelDemo', demoService, [
       { method: 'greet', call: (projectId: string) => demoService.greet(projectId) },
       { method: 'ping', call: () => demoService.ping() },
-    ]);
+    ], [greetInvocation, pingInvocation]);
     expect((adapter as unknown as { typertRemote?: unknown }).typertRemote).toMatchObject({
       service: adapter, serviceKey: 'novelDemo', namespace: 'novelDemo',
     });
@@ -58,7 +63,7 @@ describe('I75 defineRemote 接线工厂', () => {
     const invocation = remoteInvocation('novelDemo', 'greet', [param('projectId', stringCodec)], strictCodec('novel-creation-tool#demoGreet', z.object({ greeting: z.string() }).strict()));
     root.provide('novelDemo', defineRemote('novelDemo', 'novelDemo', demoService, [
       { method: 'greet', call: (projectId: string) => demoService.greet(projectId) },
-    ]));
+    ], [invocation]));
     // 与 remote.test.ts 同一注册方式：Typert registry 只接受 host face contribution。
     const disposer = root.typert.register({
       package: 'novel-creation-tool-demo', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },

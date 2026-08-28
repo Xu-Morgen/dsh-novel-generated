@@ -20,7 +20,9 @@ declare const changed: ChangedSaveService;
 
 // 接线层仍按旧 wire 形状声明 input —— 签名变更后这里必须报编译错
 // （{ mode: 'slow' } 不可赋值给 { mode: 'fast' }）。
-const spec: RemoteMethodSpec = {
+// I91 对齐：`RemoteMethodSpec` 默认形参改 `readonly unknown[]`（消灭 `any[]`），
+// 夹具显式给出调用形参元组保持断言意图（review v2.0 §3.1）。
+const spec: RemoteMethodSpec<[input: { mode: 'slow' }]> = {
   method: 'save',
   call: (input: { mode: 'slow' }) => changed.save(input),
 };

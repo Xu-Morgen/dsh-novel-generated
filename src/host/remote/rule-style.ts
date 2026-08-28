@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -58,8 +58,12 @@ export const ruleStyleProjectionWireSchema = z.object({
 }).strict();
 
 // I75：`param`/`ruleStyleInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const ruleStyleInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
-  remoteInvocation('novelRuleStyleManager', method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const ruleStyleInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+) => remoteInvocation('novelRuleStyleManager', method, parameters, resultSchema);
 
 export const ruleStyleListInvocation = ruleStyleInvocation('list', [
   param('projectId', stringCodec),
@@ -94,4 +98,5 @@ export const ruleStyleInvocations = [
   ruleStyleSaveStyleInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const ruleStyleRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-rule-style', ruleStyleInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const ruleStyleRemoteContribution = remoteContribution('novel-creation-tool-rule-style', ruleStyleInvocations);

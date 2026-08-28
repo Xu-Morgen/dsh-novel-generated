@@ -50,7 +50,10 @@ export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
           if (!target || projectId === undefined || current === undefined) return;
           if (!beginOp('timeline:setCurrent')) return;
           const release = (): void => endOp('timeline:setCurrent');
-          void unwrap(target.setCurrentNode(projectId, nodeId)).then((timeline) => {
+          // I91：wire nodeId 是 optional stringCodec（acceptsUndefined），真实客户端
+          // 绑定器对 null 做 strict parse 会拒绝 —— 「恢复自动锚定」以显式 undefined
+          // 上行（Host 适配闭包 `nodeId ?? null` 归一为 null 再调服务）。
+          void unwrap(target.setCurrentNode(projectId, nodeId === null ? undefined : nodeId)).then((timeline) => {
             release();
             if (!isActive()) return;
             timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saveMessage: nodeId === null ? '已恢复自动锚定' : '已设为当前时间点', error: '' });

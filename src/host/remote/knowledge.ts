@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
@@ -119,8 +119,12 @@ export const knowledgeRejectOutcomeWireSchema = z.object({
 export const knowledgePendingResultWireSchema = z.array(knowledgeProposalViewWireSchema);
 
 // I75：`param`/`knowledgeInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
-const knowledgeInvocation = (method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: TypertCodec): InvocationDescriptor =>
-  remoteInvocation('novelKnowledgeManager', method, parameters, resultSchema);
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const knowledgeInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
+  method: M,
+  parameters: P,
+  resultSchema: R,
+) => remoteInvocation('novelKnowledgeManager', method, parameters, resultSchema);
 
 export const knowledgeListInvocation = knowledgeInvocation('list', [
   param('projectId', stringCodec),
@@ -154,4 +158,5 @@ export const knowledgeInvocations = [
   knowledgePendingInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
-export const knowledgeRemoteContribution: TypertRemoteContribution = remoteContribution('novel-creation-tool-knowledge', knowledgeInvocations);
+// I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
+export const knowledgeRemoteContribution = remoteContribution('novel-creation-tool-knowledge', knowledgeInvocations);

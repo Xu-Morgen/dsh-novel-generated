@@ -1,5 +1,6 @@
 import type { El } from './shared.js';
 import { unwrap } from './shared.js';
+import type { NamespaceOf } from './remote-namespace.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from '../remote.js';
 
 /**
@@ -29,20 +30,15 @@ export interface OnboardingApplyResultShape {
   errors: string[];
 }
 
-/** Mounted `remote.novelOnboarding` namespace surface. */
-export interface OnboardingNamespace {
-  adjudicate(input: { projectId: string; onboardingSessionId: string; sourceHash: string; layer: OnboardingLayerId; decision: OnboardingDecision; editedValue?: unknown; feedback?: string }, settings?: unknown): Promise<unknown>;
-  acceptedLayers(onboardingSessionId: string): Promise<unknown>;
-  finalApply(input: { projectId: string; onboardingSessionId: string; sourceHash: string }): Promise<unknown>;
-}
+/**
+ * I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
+ * 参数/返回类型随 descriptor 流动，方法签名变更在 Client 消费处即报编译错
+ * （review v2.0 §3.1 / 计划 §18 I91）。
+ */
+export type OnboardingNamespace = NamespaceOf<typeof onboardingRemoteContribution>;
 
-/** Mounted `remote.novelOnboardingAnalyzer` namespace surface (I57 session-first). */
-export interface OnboardingAnalyzerNamespace {
-  begin(input: { projectId: string; sourceHash: string; text: string }, settings?: unknown): Promise<unknown>;
-  status(onboardingSessionId: string): Promise<unknown>;
-  cancel(onboardingSessionId: string): Promise<unknown>;
-  result(onboardingSessionId: string): Promise<unknown>;
-}
+/** Mounted `remote.novelOnboardingAnalyzer` namespace surface (I57 session-first)。 */
+export type OnboardingAnalyzerNamespace = NamespaceOf<typeof onboardingAnalyzerRemoteContribution>;
 
 export const ONBOARDING_LAYERS: readonly { id: OnboardingLayerId; label: string }[] = [
   { id: 'characters', label: '角色（B3）' },
@@ -89,7 +85,8 @@ export interface OnboardingState {
 
 /** I56 裁决附带载荷：edit 必须携带用户编辑后的整层候选值；regenerate 可带反馈。 */
 export interface OnboardingAdjudicationExtra {
-  editedValue?: unknown;
+  /** I91：类型随 wire adjudicate 入参的 editedValue（z.json 输出 JSONType）派生。 */
+  editedValue?: NonNullable<Parameters<OnboardingNamespace['adjudicate']>[0]['editedValue']>;
   feedback?: string;
 }
 
@@ -234,7 +231,8 @@ export function onboardingReview(
   const confirmEdit = (layer: OnboardingLayerId): void => {
     const text = (state.editTexts?.[layer] ?? '').trim();
     if (!text) { patch({ error: '「修改后接受」的候选值不能为空' }); return; }
-    let value: unknown;
+    // I91：editedValue 的 wire 类型（z.json 输出）随 descriptor 派生；JSON.parse 结果与之兼容。
+    let value: NonNullable<Parameters<OnboardingNamespace['adjudicate']>[0]['editedValue']>;
     try { value = JSON.parse(text); } catch { patch({ error: '编辑的候选值不是合法 JSON，请修正后重试' }); return; }
     decide(layer, 'edit', { editedValue: value });
   };
@@ -384,7 +382,8 @@ export function analysisPanel(
 
 /** 触发 Host session-first `begin`，返回会话 id（I57/R12-4）。 */
 export async function beginAnalysis(namespace: OnboardingAnalyzerNamespace, state: { projectId: string; sourceHash: string; text: string }): Promise<string> {
-  const begun = await unwrap(namespace.begin({ projectId: state.projectId, sourceHash: state.sourceHash, text: state.text }, undefined)) as unknown as { onboardingSessionId?: string };
+  // I91：派生 namespace 已携带 result 类型，unwrap 直接得到 begin 结果，无需强转。
+  const begun = await unwrap(namespace.begin({ projectId: state.projectId, sourceHash: state.sourceHash, text: state.text }, undefined));
   if (!begun?.onboardingSessionId) throw new Error('分析未返回会话 id');
   return begun.onboardingSessionId;
 }
@@ -405,7 +404,8 @@ export async function adjudicateOne(
   decision: OnboardingDecision,
   extra?: OnboardingAdjudicationExtra,
 ): Promise<OnboardingAdjudicationRecord> {
-  const input: { projectId: string; onboardingSessionId: string; sourceHash: string; layer: OnboardingLayerId; decision: OnboardingDecision; editedValue?: unknown; feedback?: string } = {
+  // I91：wire 入参形状随 descriptor 派生（editedValue 的 z.json 输出类型随契约流动）。
+  const input: Parameters<OnboardingNamespace['adjudicate']>[0] = {
     projectId: state.projectId,
     onboardingSessionId: state.onboardingSessionId,
     sourceHash: state.sourceHash,
@@ -420,12 +420,16 @@ export async function adjudicateOne(
     const feedback = extra.feedback.trim();
     if (feedback.length > 0) input.feedback = feedback;
   }
-  return unwrap(namespace.adjudicate(input, undefined)) as unknown as OnboardingAdjudicationRecord;
+  // I91：派生 namespace 已携带 result 类型（ConfirmationRecord ⊇ 本模块
+  // OnboardingAdjudicationRecord 结构），unwrap 直接得到记录，无需强转。
+  return unwrap(namespace.adjudicate(input, undefined));
 }
 
 /** 触发 Host final apply 并解析为结构化结果。 */
 export async function applyAccepted(namespace: OnboardingNamespace, state: OnboardingState): Promise<OnboardingApplyResultShape> {
-  return unwrap(namespace.finalApply({ projectId: state.projectId, onboardingSessionId: state.onboardingSessionId, sourceHash: state.sourceHash })) as unknown as OnboardingApplyResultShape;
+  // I91：派生 namespace 已携带 result 类型（与 OnboardingApplyResultShape 同构），
+  // unwrap 直接得到结构化结果，无需强转。
+  return unwrap(namespace.finalApply({ projectId: state.projectId, onboardingSessionId: state.onboardingSessionId, sourceHash: state.sourceHash }));
 }
 
 export { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution };

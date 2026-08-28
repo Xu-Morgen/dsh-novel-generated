@@ -1,4 +1,4 @@
-import type { InvocationDescriptor, InvocationParameterDescriptor } from '@deepseek-ai/dsh-typert-protocol';
+import type { InvocationParameterDescriptor } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteInvocation } from './shared.js';
@@ -124,8 +124,15 @@ const baseHashParameter = param('baseHash', stringCodec, true);
 const proposalIdParameter = param('proposalId', stringCodec);
 const rangeParameter = param('range', strictCodec('novel-creation-tool#editRange', editRangeSchema));
 
-const c5Invocation = (service: string, method: string, parameters: readonly InvocationParameterDescriptor[], resultSchema: { parse(value: unknown): unknown }): InvocationDescriptor =>
-  remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
+// I75：`param` 统一到 shared 接线层；`c5Invocation` 只保留 strictCodec 包装
+// （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
+// I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
+const c5Invocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], Out>(
+  service: string,
+  method: M,
+  parameters: P,
+  resultSchema: { parse(value: unknown): Out },
+) => remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
 
 export const chapterListInvocation = c5Invocation('novelWorkspace', 'chapterList', [projectParameter], z.array(chapterListItemSchema));
 export const chapterReadInvocation = c5Invocation('novelWorkspace', 'chapterRead', [projectParameter, chapterParameter], chapterReadResultSchema);
