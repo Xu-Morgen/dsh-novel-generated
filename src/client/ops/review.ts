@@ -3,12 +3,13 @@
 
 import { unwrap } from '../shared.js';
 import type { ReviewAdjudicationOutcomeShape, ReviewAuditRecordShape, ReviewEditOps, ReviewLayerState, ReviewProjectionShape } from '../layers/review.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type ReviewPort = Pick<OpsPorts, 'reviewNamespace'>;
 
-export function createReviewOps(ctx: OpsContext): ReviewEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const reviewNamespace = ctx.reviewNamespace;
+export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const reviewNamespace = port.reviewNamespace;
       const reviewPatch = (patch: Partial<ReviewLayerState>): void => act.reviewPatch(patch);
       const toggleFilter = (kind: 'categories' | 'severities' | 'statuses', value: string): void => {
         const filter = snapshot.review.filter;

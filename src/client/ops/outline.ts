@@ -4,12 +4,13 @@
 import { unwrap } from '../shared.js';
 import { outlineInput as buildOutlineInput } from '../layers/outline.js';
 import type { OutlineBeatShape, OutlineDetailBeatShape, OutlineEditOps, OutlineShape } from '../layers/outline.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type OutlinePort = Pick<OpsPorts, 'workspace'>;
 
-export function createOutlineOps(ctx: OpsContext): OutlineEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createOutlineOps(runtime: OpsRuntime, port: OutlinePort): OutlineEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       mutate: (update) => act.outlineMutate(update),
       selectAct: (id) => act.outlineDraft({ selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }),

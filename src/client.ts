@@ -183,27 +183,32 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       // I82：逐层编辑动作（makeOps 1300 行）迁至 src/client/ops/（按层工厂）；
       // 此处只构建 OpsContext 并交给组合根 createWorkbenchOps。渲染期闭包语义
       // 不变：snapshot 是当前渲染快照，act 是 inject 捕获的 baked actions。
-      const makeOps = (snapshot: WorkbenchState): WorkbenchOps => createWorkbenchOps({
-        snapshot,
-        act: capturedActions as WorkbenchActions,
-        projectId: currentProjectId,
-        isActive: () => active,
-        beginOp,
-        endOp,
-        queuePoll,
-        workspace: serviceBag.workspace,
-        writing: serviceBag.writing,
-        reviewNamespace: serviceBag.reviewNamespace,
-        queueNamespace: serviceBag.queueNamespace,
-        knowledgeNamespace: serviceBag.knowledgeNamespace,
-        ruleStyleNamespace: serviceBag.ruleStyleNamespace,
-        progressNamespace: serviceBag.progressNamespace,
-        importExportNamespace: serviceBag.importExportNamespace,
-        branchNamespace: serviceBag.branchNamespace,
-        searchNamespace: serviceBag.searchNamespace,
-        statisticsNamespace: serviceBag.statisticsNamespace,
-        timelineNamespace: serviceBag.timelineNamespace,
-      });
+      // I101：OpsRuntime + 窄 port 拆分（组合根按域 Pick 传参，见 ops/index.ts）。
+      const makeOps = (snapshot: WorkbenchState): WorkbenchOps => createWorkbenchOps(
+        {
+          snapshot,
+          act: capturedActions as WorkbenchActions,
+          projectId: currentProjectId,
+          isActive: () => active,
+          beginOp,
+          endOp,
+          queuePoll,
+        },
+        {
+          workspace: serviceBag.workspace,
+          writing: serviceBag.writing,
+          reviewNamespace: serviceBag.reviewNamespace,
+          queueNamespace: serviceBag.queueNamespace,
+          knowledgeNamespace: serviceBag.knowledgeNamespace,
+          ruleStyleNamespace: serviceBag.ruleStyleNamespace,
+          progressNamespace: serviceBag.progressNamespace,
+          importExportNamespace: serviceBag.importExportNamespace,
+          branchNamespace: serviceBag.branchNamespace,
+          searchNamespace: serviceBag.searchNamespace,
+          statisticsNamespace: serviceBag.statisticsNamespace,
+          timelineNamespace: serviceBag.timelineNamespace,
+        },
+      );
 
       // I46 视觉体系：包内 <style> 注入并归属 Fiber，卸载即回收（R10-3 / D13）。
       ctx.effect(() => {

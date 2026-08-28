@@ -204,10 +204,11 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'sceneCards', call: sceneCardsWireAdapter(statisticsService) },
     { method: 'tasks', call: tasksWireAdapter(statisticsService) },
   ], statisticsInvocations));
-  const workspaceService = createWorkspaceEditorService(
-    characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService, projectService, uploadService, textService, controlledTextEditService,
-  );
+  const workspaceService = createWorkspaceEditorService({
+    characters: characterService, worldview: worldviewService, outline: outlineService, relationship: relationshipService,
+    state: stateService, canon: canonService, confirmation: confirmationService, projects: projectService,
+    upload: uploadService, text: textService, textEdit: controlledTextEditService,
+  });
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).
   // novelWorkspace 是直通面：workspace-service 本身即 wire 方法实现，无需适配闭包。

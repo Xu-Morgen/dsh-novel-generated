@@ -4,17 +4,20 @@
 // 三片之间互相引用的内部函数经 ChaptersInternal 晚绑定，避免循环 import。
 
 import type { ChaptersEditOps } from '../layers/chapters.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
 import { createEditorOps } from './chapters-editor.js';
 import { createBranchOps } from './chapters-branch.js';
 import { createCandidateOps } from './chapters-candidate.js';
 import type { ChaptersInternal } from './chapters-internal.js';
 
-export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEditOps }): ChaptersEditOps {
+/** chapters 层窄 port：editor（workspace）+ candidate（workspace/writing）+ branch（branchNamespace）。 */
+export type ChaptersPort = Pick<OpsPorts, 'workspace' | 'writing' | 'branchNamespace'>;
+
+export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref: { current?: ChaptersEditOps }): ChaptersEditOps {
   const internal: ChaptersInternal = { loadScene: () => undefined, branchesLoad: () => undefined, selectChapter: () => undefined };
-  const editor = createEditorOps(ctx, internal);
-  const branch = createBranchOps(ctx, internal);
-  const candidate = createCandidateOps(ctx, internal);
+  const editor = createEditorOps(runtime, { workspace: ports.workspace }, internal);
+  const branch = createBranchOps(runtime, { branchNamespace: ports.branchNamespace }, internal);
+  const candidate = createCandidateOps(runtime, { workspace: ports.workspace, writing: ports.writing }, internal);
   // 晚绑定接线：三片在各自闭包内通过 internal 调用彼此的内部函数。
   internal.loadScene = editor.loadScene;
   internal.branchesLoad = branch.branchesLoad;

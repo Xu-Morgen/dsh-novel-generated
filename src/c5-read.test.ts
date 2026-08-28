@@ -32,9 +32,10 @@ const scene = (id: string, content: string, summary = `${id} summary`) => ({
 const dummy = { list: async () => [], read: async () => ({}), create: async () => ({}), update: async () => ({}) } as never;
 
 function makeService(projectsRoot: string) {
-  return createWorkspaceEditorService(
-    dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, createTextService(projectsRoot), dummy,
-  );
+  return createWorkspaceEditorService({
+    characters: dummy, worldview: dummy, outline: dummy, relationship: dummy, state: dummy, canon: dummy,
+    confirmation: dummy, projects: dummy, upload: dummy, text: createTextService(projectsRoot), textEdit: dummy,
+  });
 }
 
 describe('I60 C5 章节/场景只读 Remote', () => {

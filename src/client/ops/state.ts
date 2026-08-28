@@ -3,12 +3,13 @@
 
 import { unwrap } from '../shared.js';
 import type { StateDiffShape, StateEditOps, StateSnapshotShape } from '../layers/state.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type StatePort = Pick<OpsPorts, 'workspace'>;
 
-export function createStateOps(ctx: OpsContext): StateEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createStateOps(runtime: OpsRuntime, port: StatePort): StateEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       select: (seq) => { const e = snapshot.stateEditor; let fromSeq = e.fromSeq; let toSeq = e.toSeq; if (fromSeq === undefined) fromSeq = seq; else if (toSeq === undefined && seq !== fromSeq) toSeq = seq; else { fromSeq = seq; toSeq = undefined; } act.stateDraft({ selectedSeq: seq, fromSeq, toSeq, diff: undefined }); },
       showDiff: () => {

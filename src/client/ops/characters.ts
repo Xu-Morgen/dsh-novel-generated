@@ -4,12 +4,13 @@
 import { slug, unwrap } from '../shared.js';
 import { characterCreateInput as buildCharacterCreateInput } from '../layers/characters.js';
 import type { CharacterEditOps, CharacterShape } from '../layers/characters.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type CharactersPort = Pick<OpsPorts, 'workspace'>;
 
-export function createCharactersOps(ctx: OpsContext): CharacterEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createCharactersOps(runtime: OpsRuntime, port: CharactersPort): CharacterEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '', saving: false, saveMessage: '' }),
       newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },

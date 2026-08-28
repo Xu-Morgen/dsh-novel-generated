@@ -32,7 +32,7 @@ describe('I36 C2/C4 read-only and confirmation contract', () => {
       propose: async (_projectId: string, input: any) => { calls.push(`propose:${input.kind}`); return { ...input, status: 'pending', version: 1 }; },
       accept: async () => { calls.push('accept'); return { id: 'proposal-1', kind: 'canon-supersede', status: 'accepted', version: 1, payload: { targetId: 'event-1', correction: { id: 'correction-1', storyTime: 'day 1', summary: 'fixed', detail: '', participants: [], location: '', consequences: [], affectedLayers: [] } } }; },
     } as any;
-    const service = createWorkspaceEditorService(characters, worldview, outline, relationship, state, canon, confirmation, characters, characters, characters, characters);
+    const service = createWorkspaceEditorService({ characters, worldview, outline, relationship, state, canon, confirmation, projects: characters, upload: characters, text: characters, textEdit: characters });
     await service.stateRollback('book', 2);
     await service.canonCorrectionPropose('book', 'event-1', { id: 'correction-1', storyTime: 'day 1', summary: 'fixed', detail: '', participants: [], location: '', consequences: [], affectedLayers: [] });
     await service.canonCorrectionAccept('book', 'proposal-1');

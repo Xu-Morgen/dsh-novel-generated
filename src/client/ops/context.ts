@@ -3,8 +3,10 @@ import type { QueuePollHandle } from '../queue-poll.js';
 import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
 
 /**
- * I82 逐层编辑动作（ops）共享上下文（架构审查 §5.1 / §9 #5 拆分：makeOps 1300 行
- * 按层拆为 src/client/ops/ 各层工厂，本接口是它们唯一的依赖面）。
+ * I82 逐层编辑动作（ops）共享运行时（架构审查 §5.1 / §9 #5 拆分：makeOps 1300 行
+ * 按层拆为 src/client/ops/ 各层工厂）。I101（计划 §18 I101）把完整 OpsContext 拆为
+ * `OpsRuntime`（共享运行时）+ `OpsPorts`（各域窄 port 的命名空间包）：每个工厂
+ * 只接收自己声明的窄 port（Pick<OpsPorts, ...>），依赖面显式可查。
  *
  * 语义不变式：
  * - `snapshot` 是渲染期 store 快照（陈旧的渲染闭包语义：各 ops 工厂在渲染时创建，
@@ -18,7 +20,7 @@ import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
  * - `queuePoll` 是 Fiber 级队列轮询控制器（I88）：ops 只发 start/stop 命令，
  *   不持有任何 timer。
  */
-export interface OpsContext {
+export interface OpsRuntime {
   snapshot: WorkbenchState;
   act: WorkbenchActions;
   projectId: string | undefined;
@@ -26,6 +28,10 @@ export interface OpsContext {
   beginOp(key: string): boolean;
   endOp(key: string): void;
   queuePoll: QueuePollHandle;
+}
+
+/** 各域窄 port 的命名空间包；ops 工厂只 Pick 自己声明的键（I101 OpsContext 窄化）。 */
+export interface OpsPorts {
   workspace: WorkspaceNamespace | undefined;
   writing: WritingNamespace | undefined;
   reviewNamespace: ReviewNamespace | undefined;

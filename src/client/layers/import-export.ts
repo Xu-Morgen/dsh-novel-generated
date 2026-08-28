@@ -32,11 +32,14 @@ export type ImportExportRestoreResultShape =
   | { readonly status: 'imported'; readonly written: readonly string[]; readonly conflicts: readonly string[] }
   | { readonly status: 'blocked'; readonly reason: 'non-empty-project'; readonly layers: readonly string[] };
 
+/** I101：导入导出面板子工作流独立 busy（exportArchive/exportText/restore/preview 互不阻塞）。 */
+export type ImportExportBusy = Partial<Record<'exportArchive' | 'exportText' | 'restore' | 'preview', boolean>>;
+
 export interface ImportExportLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error';
   readonly message?: string;
   readonly error?: string;
-  readonly acting: boolean;
+  readonly busy: ImportExportBusy;
   readonly exportMode: 'full-project' | 'shareable-template';
   readonly textFormat: 'txt' | 'md';
   readonly importFormat: 'txt' | 'md';
@@ -67,7 +70,7 @@ export interface ImportExportEditOps {
 }
 
 export function freshImportExport(): ImportExportLayerState {
-  return { status: 'idle', acting: false, exportMode: 'full-project', textFormat: 'txt', importFormat: 'txt', importText: '' };
+  return { status: 'idle', busy: {}, exportMode: 'full-project', textFormat: 'txt', importFormat: 'txt', importText: '' };
 }
 
 export const IMPORT_EXPORT_MODE_LABELS: Readonly<Record<string, string>> = {
@@ -106,7 +109,7 @@ function readFileText(file: File): Promise<string> {
  */
 export function importExportPanel(h: El, projectId: string, namespace: ImportExportNamespace | undefined, state: ImportExportLayerState, ops: ImportExportEditOps): unknown {
   const available = namespace !== undefined && projectId !== undefined;
-  const busy = state.acting || state.status === 'loading';
+  const busy = state.busy.exportArchive === true || state.busy.exportText === true || state.busy.restore === true || state.busy.preview === true || state.status === 'loading';
   const restoreBlocked = state.restoreResult?.status === 'blocked';
   const restoreImported = state.restoreResult?.status === 'imported';
 
@@ -132,8 +135,8 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
           h('option', { value: 'md' }, 'Markdown（正文 + 设定）')),
       ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-export-archive': '', disabled: !available || busy, onClick: () => ops.exportArchive() }, state.acting ? '导出中…' : '导出项目包（下载 .portable.json）'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-export-text': '', disabled: !available || busy, onClick: () => ops.exportText() }, state.acting ? '导出中…' : '导出纯文本'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-export-archive': '', disabled: !available || busy, onClick: () => ops.exportArchive() }, state.busy.exportArchive === true ? '导出中…' : '导出项目包（下载 .portable.json）'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-export-text': '', disabled: !available || busy, onClick: () => ops.exportText() }, state.busy.exportText === true ? '导出中…' : '导出纯文本'),
       ),
       state.exportMode === 'shareable-template'
         ? h('p', { className: 'nv-settings__hint', 'data-novel-ie-shareable-note': '' }, '可分享模板排除 C5 正文文本，其余十层照常包含，适合分享设定模板。')
@@ -154,7 +157,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
         } }),
       ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-restore': '', disabled: !available || busy || state.restoreFileName === undefined, onClick: () => ops.restore() }, state.acting ? '恢复中…' : '恢复到当前作品'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-restore': '', disabled: !available || busy || state.restoreFileName === undefined, onClick: () => ops.restore() }, state.busy.restore === true ? '恢复中…' : '恢复到当前作品'),
       ),
       restoreBlocked ? h('div', { className: 'nv-import-export__blocked', 'data-novel-ie-restore-blocked': '', role: 'alert', 'aria-live': 'assertive' },
         h('p', { 'data-novel-ie-restore-blocked-text': '' }, `恢复被阻断（N-7）：当前作品已有内容，不允许静默合并/覆盖。已存在层：${(state.restoreResult as { layers: readonly string[] }).layers.join('、')}。`),
@@ -189,7 +192,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
         h('textarea', { className: 'nv-field__input', 'data-novel-ie-import-text': '', rows: 5, value: state.importText, onChange: (event: { target: { value: string } }) => ops.setImportText(event.target.value), placeholder: '粘贴章节草稿或设定文本…' }),
       ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-import-preview': '', disabled: !available || busy || state.importText.trim() === '', onClick: () => ops.previewImport() }, state.acting ? '处理中…' : '预览导入分块'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-import-preview': '', disabled: !available || busy || state.importText.trim() === '', onClick: () => ops.previewImport() }, state.busy.preview === true ? '处理中…' : '预览导入分块'),
       ),
       state.preview === undefined ? null
         : h('div', { className: 'nv-import-export__preview', 'data-novel-ie-preview': '' },

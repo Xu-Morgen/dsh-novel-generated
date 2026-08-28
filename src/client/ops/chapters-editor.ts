@@ -1,7 +1,8 @@
 import { unwrap } from '../shared.js';
 import { sha256Hex } from '../sha256.js';
 import { computeEditRange, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from '../layers/chapters.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type EditorPort = Pick<OpsPorts, 'workspace'>;
 import type { ChaptersInternal } from './chapters-internal.js';
 
 /**
@@ -10,10 +11,10 @@ import type { ChaptersInternal } from './chapters-internal.js';
  * `ChaptersInternal` 晚绑定（loadScene 调 branchesLoad；discardDraft 调
  * selectChapter），组合根负责接线。
  */
-export function createEditorOps(ctx: OpsContext, internal: ChaptersInternal) {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal: ChaptersInternal) {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   const editorPatch = (patch: Partial<SceneEditorState>): void => act.sceneEditor(patch);
   const reparseLocked = (state: SceneEditorState): boolean => state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
   const hashText = sha256Hex;

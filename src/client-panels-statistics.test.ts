@@ -223,4 +223,39 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
     expect(statisticsMessage(render)).toContain('已删除派生统计');
     expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
   });
+
+  it('I101：并行子工作流互不阻塞——概览加载中仅概览按钮忙碌，刷新状态仍可发起', async () => {
+    let releaseOverview: (() => void) | undefined;
+    const overviewGate = new Promise<void>((resolve) => { releaseOverview = resolve; });
+    const seen: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        statistics: {
+          stats: async () => { seen.push('stats'); return { ok: true, value: STATS }; },
+          overview: async () => { seen.push('overview'); await overviewGate; return { ok: true, value: OVERVIEW }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'statistics')?.props?.onClick as () => void)();
+    await flush();
+    // 发起概览（挂起中）→ 概览按钮自身忙碌。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    const overviewButton = collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-refresh'] === '');
+    const statsButton = collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-stats'] === '');
+    expect(overviewButton?.props?.disabled).toBe(true);
+    // 旧实现（单一 acting 互锁）下 stats 按钮同样被禁用；I101 后不再互锁。
+    expect(statsButton?.props?.disabled).toBeFalsy();
+    // 概览挂起期间刷新状态仍可发起并完成（不被互锁）。
+    (statsButton?.props?.onClick as () => void)();
+    await flush();
+    expect(seen).toContain('overview');
+    expect(seen).toContain('stats');
+    releaseOverview?.();
+    await flush();
+  });
 })

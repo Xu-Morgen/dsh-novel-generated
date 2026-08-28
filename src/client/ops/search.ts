@@ -5,13 +5,14 @@ import { unwrap } from '../shared.js';
 import type { RemoteResult } from '../remote-namespace.js';
 import type { SearchEditOps, SearchHitShape, SearchLayerState, SearchResultShape, SearchStatsShape } from '../layers/search.js';
 import type { WorkbenchViewId } from '../nav.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type SearchPort = Pick<OpsPorts, 'searchNamespace'>;
 import type { ChaptersEditOps } from '../layers/chapters.js';
 
-export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOps }): SearchEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const searchNamespace = ctx.searchNamespace;
+export function createSearchOps(runtime: OpsRuntime, port: SearchPort, ref: { current?: ChaptersEditOps }): SearchEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const searchNamespace = port.searchNamespace;
       const searchPatch = (patch: Partial<SearchLayerState>): void => act.searchPatch(patch);
       const run = <T>(method: 'search' | 'references', key: string, onResult: (result: T) => void): void => {
         const target = searchNamespace;

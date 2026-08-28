@@ -37,7 +37,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     } as any;
     const outline = { read: async () => ({}), save: async () => ({}), beatCards: async () => [] } as any;
     const relationship = { read: async () => [], save: async () => ({}) } as any;
-    const service = createWorkspaceEditorService(characters, worldview, outline, relationship, characters, characters, characters, characters, characters, characters, characters);
+    const service = createWorkspaceEditorService({ characters, worldview, outline, relationship, state: characters, canon: characters, confirmation: characters, projects: characters, upload: characters, text: characters, textEdit: characters });
     await service.characterList('book');
     await service.characterRead('book', 'mara');
     await service.characterCreate('book', {} as any);

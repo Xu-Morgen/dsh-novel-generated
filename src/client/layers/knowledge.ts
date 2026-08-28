@@ -95,8 +95,11 @@ export interface KnowledgeLayerState {
   readonly draft: { readonly holders: readonly string[]; readonly status: '' | 'partially-revealed' | 'revealed'; readonly revealAt: string };
   /** 待确认提案（propose/accept/reject 后随投影刷新；重载一致）。 */
   readonly pending: readonly KnowledgeProposalShape[];
-  readonly acting: boolean;
+  readonly busy: KnowledgeBusy;
 }
+
+/** I101：知识面板子工作流独立 busy（propose / accept+reject 互不阻塞）。 */
+export type KnowledgeBusy = Partial<Record<'propose' | 'accept', boolean>>;
 
 export interface KnowledgeEditOps {
   refresh(): void;
@@ -113,7 +116,7 @@ export interface KnowledgeEditOps {
 }
 
 export function freshKnowledge(): KnowledgeLayerState {
-  return { status: 'idle', view: 'facts', draft: { holders: [], status: '', revealAt: '' }, pending: [], acting: false };
+  return { status: 'idle', view: 'facts', draft: { holders: [], status: '', revealAt: '' }, pending: [], busy: {} };
 }
 
 export const KNOWLEDGE_KIND_LABELS: Readonly<Record<string, string>> = {
@@ -162,7 +165,7 @@ function characterCard(h: El, character: KnowledgeCharacterShape, factsById: Rea
  */
 export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNamespace | undefined, state: KnowledgeLayerState, ops: KnowledgeEditOps): unknown {
   const available = knowledge !== undefined && projectId !== undefined;
-  const busy = state.acting || state.status === 'loading';
+  const busy = (state.busy.propose === true || state.busy.accept === true) || state.status === 'loading';
   let body: unknown;
   if (!available) {
     body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-unavailable': '' }, '知情与揭示服务不可用（novelKnowledgeManager Remote 未挂载）。');
@@ -231,8 +234,8 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
                 ),
               ),
               h('div', { className: 'nv-editor__actions' },
-                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-propose': 'reveal', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('reveal') }, state.acting ? '提交中…' : '发起揭示提案'),
-                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-propose': 'holder-add', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('holder-add') }, state.acting ? '提交中…' : '发起 holder 变更提案'),
+                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-propose': 'reveal', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('reveal') }, state.busy.propose === true ? '提交中…' : '发起揭示提案'),
+                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-propose': 'holder-add', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('holder-add') }, state.busy.propose === true ? '提交中…' : '发起 holder 变更提案'),
               ),
             ),
           ))
@@ -254,7 +257,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
                 proposal.status === undefined ? '' : `；目标状态：${KNOWLEDGE_STATUS_LABELS[proposal.status] ?? proposal.status}`,
                 proposal.revealAt === undefined ? '' : `；时机：${proposal.revealAt}`),
               h('div', { className: 'nv-editor__actions' },
-                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-accept': proposal.proposalId, disabled: busy, onClick: () => ops.accept(proposal.proposalId) }, state.acting ? '应用中…' : '确认应用'),
+                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-accept': proposal.proposalId, disabled: busy, onClick: () => ops.accept(proposal.proposalId) }, state.busy.accept === true ? '应用中…' : '确认应用'),
                 h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-reject': proposal.proposalId, disabled: busy, onClick: () => ops.reject(proposal.proposalId) }, '拒绝'),
               ),
             );

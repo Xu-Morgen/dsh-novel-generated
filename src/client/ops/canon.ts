@@ -4,12 +4,13 @@
 import { unwrap } from '../shared.js';
 import { canonCorrectionInput as buildCanonCorrectionInput } from '../layers/canon.js';
 import type { CanonEditOps } from '../layers/canon.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type CanonPort = Pick<OpsPorts, 'workspace'>;
 
-export function createCanonOps(ctx: OpsContext): CanonEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createCanonOps(runtime: OpsRuntime, port: CanonPort): CanonEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       select: (event) => act.canonDraft({ selectedId: event.id, proposalId: undefined, draft: { storyTime: event.storyTime, summary: event.summary, detail: event.detail ?? '' }, dirty: false, error: '', saving: false, saveMessage: '' }),
       mutate: (update) => act.canonDraft({ draft: update(snapshot.canonEditor.draft), dirty: true }),

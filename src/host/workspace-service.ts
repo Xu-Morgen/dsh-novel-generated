@@ -63,8 +63,25 @@ export interface WorkspaceEditorService {
   uploadCancel(uploadId: string): Promise<void>;
 }
 
+/** I101：workspace-service 收敛（review v2.0 §5 / 计划 §18 I101）——11 位置依赖
+ *  收敛为命名 deps 对象；域服务仍是唯一层写 owner。 */
+export interface WorkspaceEditorDeps {
+  readonly characters: NovelCharacterService;
+  readonly worldview: NovelWorldviewService;
+  readonly outline: NovelOutlineService;
+  readonly relationship: NovelRelationshipService;
+  readonly state: NovelStateService;
+  readonly canon: NovelCanonService;
+  readonly confirmation: NovelConfirmationService;
+  readonly projects: NovelProjectService;
+  readonly upload: NovelHostUploadService;
+  readonly text: NovelTextService;
+  readonly textEdit: NovelTextEditService;
+}
+
 /** Host adapter; domain services remain the only layer write owners. */
-export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline: NovelOutlineService, relationship: NovelRelationshipService, state: NovelStateService, canon: NovelCanonService, confirmation: NovelConfirmationService, projects: NovelProjectService, upload: NovelHostUploadService, text: NovelTextService, textEdit: NovelTextEditService): WorkspaceEditorService {
+export function createWorkspaceEditorService(deps: WorkspaceEditorDeps): WorkspaceEditorService {
+  const { characters, worldview, outline, relationship, state, canon, confirmation, projects, upload, text, textEdit } = deps;
   return {
     viewModel: workspaceViewModel,
     characterList: (id) => characters.list(id), characterRead: (id, entity) => characters.read(id, entity), characterCreate: (id, input) => characters.create(id, input), characterUpdate: (id, entity, patch) => characters.update(id, entity, patch),

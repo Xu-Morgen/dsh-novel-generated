@@ -4,12 +4,13 @@
 import { unwrap } from '../shared.js';
 import { freshRuleDraft, freshStyleDraft } from '../layers/rule-style.js';
 import type { RuleDraftShape, RuleShape, RuleStyleEditOps, RuleStyleLayerState, RuleStyleProjectionShape, StyleDraftShape, StyleShape } from '../layers/rule-style.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type RuleStylePort = Pick<OpsPorts, 'ruleStyleNamespace'>;
 
-export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const ruleStyleNamespace = ctx.ruleStyleNamespace;
+export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): RuleStyleEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const ruleStyleNamespace = port.ruleStyleNamespace;
       const ruleStylePatch = (patch: Partial<RuleStyleLayerState>): void => act.ruleStylePatch(patch);
       const ruleDraftFrom = (rule: RuleShape): RuleDraftShape => ({
         id: rule.id, scope: rule.scope, kind: rule.kind, statement: rule.statement,

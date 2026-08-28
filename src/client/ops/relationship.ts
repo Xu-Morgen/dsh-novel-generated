@@ -5,12 +5,13 @@ import { slug, unwrap } from '../shared.js';
 import { relationshipInput as buildRelationshipInput } from '../layers/relationship.js';
 import type { RelationshipEditOps, RelationshipShape } from '../layers/relationship.js';
 import { freshRelationshipEditor } from '../store/index.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type RelationshipPort = Pick<OpsPorts, 'workspace'>;
 
-export function createRelationshipOps(ctx: OpsContext): RelationshipEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createRelationshipOps(runtime: OpsRuntime, port: RelationshipPort): RelationshipEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       select: (entry) => act.relationshipDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
       newDraft: () => act.relationshipDraft({ selectedId: undefined, draft: freshRelationshipEditor().draft, dirty: false, error: '', saving: false, saveMessage: '' }),

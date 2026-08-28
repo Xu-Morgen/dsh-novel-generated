@@ -112,6 +112,10 @@ export interface ChapterDetailShape {
   };
 }
 
+/** I101：子工作流独立 busy（review v2.0 §5 / 计划 §18 I101）——概览/详情/筛选/
+ * 任务/重建/删除各自独立，互不阻塞（不再共用一个 acting 互锁）。 */
+export type StatisticsBusy = Partial<Record<'rebuild' | 'drop' | 'overview' | 'stats' | 'detail' | 'cards' | 'tasks', boolean>>;
+
 export interface StatisticsLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error';
   readonly message?: string;
@@ -125,7 +129,7 @@ export interface StatisticsLayerState {
   readonly sceneCards?: SceneCardsResultShape;
   readonly taskStatus: string;
   readonly tasks?: TasksResultShape;
-  readonly acting: boolean;
+  readonly busy: StatisticsBusy;
 }
 
 export interface StatisticsEditOps {
@@ -144,7 +148,7 @@ export interface StatisticsEditOps {
 }
 
 export function freshStatistics(): StatisticsLayerState {
-  return { status: 'idle', chapterId: '', cardActId: '', cardBeatId: '', cardStatus: '', taskStatus: '', acting: false };
+  return { status: 'idle', chapterId: '', cardActId: '', cardBeatId: '', cardStatus: '', taskStatus: '', busy: {} };
 }
 
 export const STATISTICS_TASK_STATUS_LABELS: Readonly<Record<string, string>> = {
@@ -212,7 +216,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
                     `第 ${chapter.index} 章 ${chapter.title}（${chapter.pov}）· ${chapter.units} 字 / ${chapter.sceneCount} 场景`),
                   h('button', {
                     type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-statistics-chapter-select': chapter.chapterId,
-                    disabled: state.acting, onClick: () => ops.selectChapter(chapter.chapterId),
+                    disabled: state.busy.detail === true, onClick: () => ops.selectChapter(chapter.chapterId),
                   }, state.chapterId === chapter.chapterId ? '已选' : '详情'),
                 ))),
           ),
@@ -227,17 +231,17 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
           h('div', { className: 'nv-statistics__filters' },
             h('label', { className: 'nv-field nv-statistics__filter' },
               h('span', { className: 'nv-field__label' }, '幕'),
-              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-act': '', value: state.cardActId, disabled: state.acting, onChange: (event: { target: { value: string } }) => ops.setCardAct(event.target.value) },
+              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-act': '', value: state.cardActId, disabled: state.busy.cards === true, onChange: (event: { target: { value: string } }) => ops.setCardAct(event.target.value) },
                 h('option', { value: '' }, '全部'),
                 overview.acts.map((act) => h('option', { key: act.id, value: act.id }, `第 ${act.index + 1} 幕 ${act.title}`)))),
             h('label', { className: 'nv-field nv-statistics__filter' },
               h('span', { className: 'nv-field__label' }, '节'),
-              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-beat': '', value: state.cardBeatId, disabled: state.acting, onChange: (event: { target: { value: string } }) => ops.setCardBeat(event.target.value) },
+              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-beat': '', value: state.cardBeatId, disabled: state.busy.cards === true, onChange: (event: { target: { value: string } }) => ops.setCardBeat(event.target.value) },
                 h('option', { value: '' }, '全部'),
                 (overview.acts.find((act) => act.id === state.cardActId)?.beats ?? overview.acts.flatMap((act) => act.beats)).map((beat) => h('option', { key: beat.id, value: beat.id }, beat.title)))),
             h('label', { className: 'nv-field nv-statistics__filter' },
               h('span', { className: 'nv-field__label' }, '状态'),
-              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-status': '', value: state.cardStatus, disabled: state.acting, onChange: (event: { target: { value: string } }) => ops.setCardStatus(event.target.value) },
+              h('select', { className: 'nv-field__input', 'data-novel-statistics-card-status': '', value: state.cardStatus, disabled: state.busy.cards === true, onChange: (event: { target: { value: string } }) => ops.setCardStatus(event.target.value) },
                 h('option', { value: '' }, '全部'),
                 Object.entries(STATISTICS_CARD_STATUS_LABELS).map(([value, label]) => h('option', { key: value, value }, label)))),
           ),
@@ -255,7 +259,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
           h('div', { className: 'nv-statistics__filters' },
             h('label', { className: 'nv-field nv-statistics__filter' },
               h('span', { className: 'nv-field__label' }, '状态'),
-              h('select', { className: 'nv-field__input', 'data-novel-statistics-task-status': '', value: state.taskStatus, disabled: state.acting, onChange: (event: { target: { value: string } }) => ops.setTaskStatus(event.target.value) },
+              h('select', { className: 'nv-field__input', 'data-novel-statistics-task-status': '', value: state.taskStatus, disabled: state.busy.tasks === true, onChange: (event: { target: { value: string } }) => ops.setTaskStatus(event.target.value) },
                 h('option', { value: '' }, '全部'),
                 Object.entries(STATISTICS_TASK_STATUS_LABELS).map(([value, label]) => h('option', { key: value, value }, label)))),
           ),
@@ -276,10 +280,10 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
     available ? [
       statsLine,
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-statistics-rebuild': '', disabled: state.acting, onClick: () => ops.rebuild() }, '重建统计'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-drop': '', disabled: state.acting || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除统计'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-refresh': '', disabled: state.acting, onClick: () => ops.refreshOverview() }, '刷新概览'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-stats': '', disabled: state.acting, onClick: () => ops.refreshStats() }, '刷新状态'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-statistics-rebuild': '', disabled: state.busy.rebuild === true, onClick: () => ops.rebuild() }, '重建统计'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-drop': '', disabled: state.busy.drop === true || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除统计'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-refresh': '', disabled: state.busy.overview === true, onClick: () => ops.refreshOverview() }, '刷新概览'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-stats': '', disabled: state.busy.stats === true, onClick: () => ops.refreshStats() }, '刷新状态'),
       ),
       overviewBlock,
       state.message === undefined ? null : h('p', { className: 'nv-statistics__message', 'data-novel-statistics-message': '', role: 'status', 'aria-live': 'polite' }, state.message),

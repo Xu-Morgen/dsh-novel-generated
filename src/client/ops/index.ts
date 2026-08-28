@@ -2,7 +2,7 @@ import type { ChaptersEditOps } from '../layers/chapters.js';
 import type { WorkbenchOps } from '../store/types.js';
 import { createCanonOps } from './canon.js';
 import { createCharactersOps } from './characters.js';
-import { createChaptersOps } from './chapters.js';
+import { createChaptersOps, type ChaptersPort } from './chapters.js';
 import { createImportExportOps } from './import-export.js';
 import { createKnowledgeOps } from './knowledge.js';
 import { createOutlineOps } from './outline.js';
@@ -16,32 +16,36 @@ import { createStateOps } from './state.js';
 import { createStatisticsOps } from './statistics.js';
 import { createTimelineOps } from './timeline.js';
 import { createWorldviewOps } from './worldview.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
 
 /**
  * I82 makeOps 组合根（架构审查 §5.1 / §9 #5）：逐层编辑动作全部由各层工厂构建，
  * 本模块只做编排。跨层共享点只有 search 的正文跳转 —— `chaptersRef` 先于 chapters
  * 创建，chapters 落地后把自身 ops 写入 ref，search 的 `jumpTo` 经 ref 复用
  * `openScene`（与 I71 原 `chaptersOpsRef` 语义一致）。
+ *
+ * I101（计划 §18 I101）：每个工厂只接收 OpsRuntime + 自己声明的窄 port
+ * （Pick<OpsPorts, ...>），不再传递完整 OpsContext。
  */
-export function createWorkbenchOps(ctx: OpsContext): WorkbenchOps {
+export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): WorkbenchOps {
   const chaptersRef: { current?: ChaptersEditOps } = {};
+  const chaptersPort: ChaptersPort = { workspace: ports.workspace, writing: ports.writing, branchNamespace: ports.branchNamespace };
   return {
-    characters: createCharactersOps(ctx),
-    worldview: createWorldviewOps(ctx),
-    outline: createOutlineOps(ctx),
-    relationship: createRelationshipOps(ctx),
-    state: createStateOps(ctx),
-    canon: createCanonOps(ctx),
-    chapters: createChaptersOps(ctx, chaptersRef),
-    review: createReviewOps(ctx),
-    queue: createQueueOps(ctx),
-    knowledge: createKnowledgeOps(ctx),
-    ruleStyle: createRuleStyleOps(ctx),
-    progress: createProgressOps(ctx),
-    importExport: createImportExportOps(ctx),
-    search: createSearchOps(ctx, chaptersRef),
-    statistics: createStatisticsOps(ctx),
-    timeline: createTimelineOps(ctx),
+    characters: createCharactersOps(runtime, { workspace: ports.workspace }),
+    worldview: createWorldviewOps(runtime, { workspace: ports.workspace }),
+    outline: createOutlineOps(runtime, { workspace: ports.workspace }),
+    relationship: createRelationshipOps(runtime, { workspace: ports.workspace }),
+    state: createStateOps(runtime, { workspace: ports.workspace }),
+    canon: createCanonOps(runtime, { workspace: ports.workspace }),
+    chapters: createChaptersOps(runtime, chaptersPort, chaptersRef),
+    review: createReviewOps(runtime, { reviewNamespace: ports.reviewNamespace }),
+    queue: createQueueOps(runtime, { workspace: ports.workspace, queueNamespace: ports.queueNamespace }),
+    knowledge: createKnowledgeOps(runtime, { workspace: ports.workspace, knowledgeNamespace: ports.knowledgeNamespace }),
+    ruleStyle: createRuleStyleOps(runtime, { ruleStyleNamespace: ports.ruleStyleNamespace }),
+    progress: createProgressOps(runtime, { progressNamespace: ports.progressNamespace }),
+    importExport: createImportExportOps(runtime, { importExportNamespace: ports.importExportNamespace }),
+    search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, chaptersRef),
+    statistics: createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace }),
+    timeline: createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace }),
   };
 }

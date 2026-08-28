@@ -1,7 +1,8 @@
 import { unwrap } from '../shared.js';
 import type { CandidatePanelState, CandidateReviewShape, ChaptersEditOps } from '../layers/chapters.js';
 import type { WritingAdjudicationOutcome } from '../store/types.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type CandidatePort = Pick<OpsPorts, 'workspace' | 'writing'>;
 import type { ChaptersInternal } from './chapters-internal.js';
 
 /**
@@ -9,11 +10,11 @@ import type { ChaptersInternal } from './chapters-internal.js';
  * 原 210-293 行）：I63 生成后候选提议/预览/裁决（R13-4）。跨片依赖经
  * `ChaptersInternal` 晚绑定（reloadChapters 调 selectChapter）。
  */
-export function createCandidateOps(ctx: OpsContext, internal: ChaptersInternal) {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
-  const writing = ctx.writing;
+export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, internal: ChaptersInternal) {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
+  const writing = port.writing;
   const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
   // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
   const reloadChapters = (): void => {

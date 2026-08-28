@@ -104,7 +104,7 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   const projectsRoot = mkdtempSync(join(tmpdir(), 'novel-i60-smoke-'));
   try {
     const dummy = { list: async () => [], read: async () => ({}), create: async () => ({}), update: async () => ({}) };
-    const makeService = () => createWorkspaceEditorService(dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, createTextService(projectsRoot), dummy);
+    const makeService = () => createWorkspaceEditorService({ characters: dummy, worldview: dummy, outline: dummy, relationship: dummy, state: dummy, canon: dummy, confirmation: dummy, projects: dummy, upload: dummy, text: createTextService(projectsRoot), textEdit: dummy });
     const repositoryOf = async (projectId) => {
       const repository = new TextRepository(join(projectsRoot, projectId));
       await repository.open();

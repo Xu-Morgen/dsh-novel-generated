@@ -1,6 +1,7 @@
 import { unwrap } from '../shared.js';
 import type { BranchDiffLineShape, BranchPanelState, BranchSummaryShape, ChaptersEditOps } from '../layers/chapters.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type BranchPort = Pick<OpsPorts, 'branchNamespace'>;
 import type { ChaptersInternal } from './chapters-internal.js';
 
 /**
@@ -8,10 +9,10 @@ import type { ChaptersInternal } from './chapters-internal.js';
  * 原 21-91 行）：I70 分支列表装载/命名存档/选用/对比。跨片依赖经
  * `ChaptersInternal` 晚绑定（branchChoose 切换后经 loadScene 重载场景）。
  */
-export function createBranchOps(ctx: OpsContext, internal: ChaptersInternal) {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const branchNamespace = ctx.branchNamespace;
+export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal: ChaptersInternal) {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const branchNamespace = port.branchNamespace;
   const branchesPatch = (patch: Partial<BranchPanelState>): void => act.chaptersBranches(patch);
   // 注意：branchesLoad 必须显式接收 chapterId/sceneId —— makeOps 渲染闭包
   // 快照里 selected* 尚未更新（与 loadScene 同一陈旧闭包缺陷）。

@@ -90,9 +90,12 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   const client = read('src/client.ts');
   const panels = read('src/client/panels/index.ts');
   const viewPanelSig = panels.slice(panels.indexOf('export function viewPanel('), panels.indexOf('): unknown {', panels.indexOf('export function viewPanel(')));
-  const workbenchViewSig = client.slice(client.indexOf('function workbenchView('), client.indexOf('): unknown {', client.indexOf('function workbenchView(')));
+  const presenter = read('src/client/presenter.ts');
+  const workbenchViewSig = presenter.slice(presenter.indexOf('export function workbenchView('), presenter.indexOf('): unknown {', presenter.indexOf('export function workbenchView(')));
+  const workbenchViewProps = presenter.slice(presenter.indexOf('export interface WorkbenchViewProps'), presenter.indexOf('export function workbenchView('));
   if (!viewPanelSig.includes('ns: WorkbenchNamespaces') || !viewPanelSig.includes('states: WorkbenchViewStates')) fail('viewPanel 未经 ns/states 打包形参');
-  if (!workbenchViewSig.includes('ns: WorkbenchNamespaces') || !workbenchViewSig.includes('states: WorkbenchViewStates')) fail('workbenchView 未经 ns/states 打包形参');
+  if (!workbenchViewSig.includes('props: WorkbenchViewProps')) fail('workbenchView 未经 props 打包形参');
+  if (!workbenchViewProps.includes('ns: WorkbenchNamespaces') || !workbenchViewProps.includes('states: WorkbenchViewStates')) fail('workbenchView props 未打包 ns/states');
   // 形参数量护栏：viewPanel 顶层形参 < 15（原 33）；workbenchView < 25（原 42）。
   const countTopParams = (sig) => {
     let depth = 0; let count = 1;

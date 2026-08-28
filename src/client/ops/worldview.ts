@@ -4,12 +4,13 @@
 import { slug, unwrap } from '../shared.js';
 import { worldviewInput as buildWorldviewInput } from '../layers/worldview.js';
 import type { WorldEditOps, WorldShape } from '../layers/worldview.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type WorldviewPort = Pick<OpsPorts, 'workspace'>;
 
-export function createWorldviewOps(ctx: OpsContext): WorldEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
+export function createWorldviewOps(runtime: OpsRuntime, port: WorldviewPort): WorldEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
   return {
       select: (entry) => act.worldDraft({ selectedId: entry.id, draft: { ...entry }, dirty: false, error: '', saving: false, saveMessage: '' }),
       newDraft: () => { const draft: WorldShape = { id: '', kind: 'concept', title: '', content: '', keywords: [], triggerMode: 'constant', weight: 0, parent: null, mutable: true, status: 'active', supersededBy: null }; act.worldDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },

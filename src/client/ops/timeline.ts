@@ -3,12 +3,13 @@
 
 import { unwrap } from '../shared.js';
 import type { TimelineEditOps, TimelineLayerState, TimelineShape } from '../layers/timeline.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type TimelinePort = Pick<OpsPorts, 'timelineNamespace'>;
 
-export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const timelineNamespace = ctx.timelineNamespace;
+export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): TimelineEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const timelineNamespace = port.timelineNamespace;
       const timelinePatch = (patch: Partial<TimelineLayerState>): void => act.timelinePatch(patch);
       const load = (): void => {
         const target = timelineNamespace;

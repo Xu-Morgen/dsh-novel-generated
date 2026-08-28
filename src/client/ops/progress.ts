@@ -3,12 +3,13 @@
 
 import { unwrap } from '../shared.js';
 import type { ProgressApplyOutcomeShape, ProgressAuditRecordShape, ProgressDirectionShape, ProgressEditOps, ProgressLayerState, ProgressPendingProposalShape, ProgressProjectionShape, ProgressSelectOutcomeShape } from '../layers/progress.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type ProgressPort = Pick<OpsPorts, 'progressNamespace'>;
 
-export function createProgressOps(ctx: OpsContext): ProgressEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const progressNamespace = ctx.progressNamespace;
+export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): ProgressEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const progressNamespace = port.progressNamespace;
       const progressPatch = (patch: Partial<ProgressLayerState>): void => act.progressPatch(patch);
       const refresh = (): void => {
         const target = progressNamespace;

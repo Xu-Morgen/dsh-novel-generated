@@ -3,32 +3,38 @@
 
 import { unwrap } from '../shared.js';
 import type { StatisticsNamespace } from '../shared.js';
-import type { ChapterDetailShape, SceneCardsResultShape, StatisticsEditOps, StatisticsLayerState, StatisticsOverviewShape, StatisticsStatsShape, TasksResultShape } from '../layers/statistics.js';
-import type { OpsContext } from './context.js';
+import type { ChapterDetailShape, SceneCardsResultShape, StatisticsBusy, StatisticsEditOps, StatisticsLayerState, StatisticsOverviewShape, StatisticsStatsShape, TasksResultShape } from '../layers/statistics.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type StatisticsPort = Pick<OpsPorts, 'statisticsNamespace'>;
 
-export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
-  const { act, snapshot, beginOp, endOp, isActive } = ctx;
-  const projectId = ctx.projectId;
-  const statisticsNamespace = ctx.statisticsNamespace;
+export function createStatisticsOps(runtime: OpsRuntime, port: StatisticsPort): StatisticsEditOps {
+  const { act, snapshot, beginOp, endOp, isActive } = runtime;
+  const projectId = runtime.projectId;
+  const statisticsNamespace = port.statisticsNamespace;
       const statisticsPatch = (patch: Partial<StatisticsLayerState>): void => act.statisticsPatch(patch);
-      const run = <T>(key: string, call: (target: StatisticsNamespace, projectId: string) => Promise<unknown>, onResult: (result: T) => void): void => {
+      // I101：busy 按子工作流键独立置位/清除，并行子工作流互不阻塞。
+      const busyPatch = (busyKey: keyof StatisticsBusy, value: boolean): void =>
+        statisticsPatch({ busy: { ...snapshot.statistics.busy, [busyKey]: value } });
+      const run = <T>(key: string, busyKey: keyof StatisticsBusy, call: (target: StatisticsNamespace, projectId: string) => Promise<unknown>, onResult: (result: T) => void): void => {
         const target = statisticsNamespace;
         if (!target || projectId === undefined) { statisticsPatch({ status: 'error', message: '统计服务不可用' }); return; }
         if (!beginOp(key)) return;
         const release = (): void => endOp(key);
-        statisticsPatch({ acting: true, message: undefined });
+        busyPatch(busyKey, true);
+        statisticsPatch({ message: undefined });
         void unwrap(call(target, projectId)).then((result) => {
           release();
           if (!isActive()) return;
           onResult(result as T);
-          statisticsPatch({ acting: false, status: 'ready' });
-        }, (cause: Error) => { release(); if (!isActive()) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+          busyPatch(busyKey, false);
+          statisticsPatch({ status: 'ready' });
+        }, (cause: Error) => { release(); if (!isActive()) return; busyPatch(busyKey, false); statisticsPatch({ status: 'error', message: (cause as Error).message }); });
       };
       const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
         // I86：wire 契约为位置参数 [projectId, actId, beatId, status, limit]（descriptor
         // 参数个数即 binder 要求的实参个数）；未选筛选位显式传 undefined（jsonCodec
         // 可选参数在真实客户端绑定器下放行并丢弃，Host 侧接受缺省位）。
-        run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, (ns, pid) => ns.sceneCards(
+        run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, 'cards', (ns, pid) => ns.sceneCards(
           pid,
           filters.actId === '' ? undefined : filters.actId,
           filters.beatId === '' ? undefined : filters.beatId,
@@ -37,10 +43,10 @@ export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
         ), (result) => statisticsPatch({ sceneCards: result }));
       };
       const loadTasks = (status: string): void => {
-        run<TasksResultShape>(`statistics:tasks:${status}`, (ns, pid) => ns.tasks(pid, status === '' ? undefined : status, undefined), (result) => statisticsPatch({ tasks: result }));
+        run<TasksResultShape>(`statistics:tasks:${status}`, 'tasks', (ns, pid) => ns.tasks(pid, status === '' ? undefined : status, undefined), (result) => statisticsPatch({ tasks: result }));
       };
       const loadOverview = (): void => {
-        run<StatisticsOverviewShape>('statistics:overview', (ns, pid) => ns.overview(pid), (result) => statisticsPatch({ overview: result }));
+        run<StatisticsOverviewShape>('statistics:overview', 'overview', (ns, pid) => ns.overview(pid), (result) => statisticsPatch({ overview: result }));
       };
       return {
         setCardAct(value: string) { statisticsPatch({ cardActId: value, cardBeatId: '' }); loadCards({ actId: value, beatId: '', status: snapshot.statistics.cardStatus }); },
@@ -50,14 +56,14 @@ export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
         selectChapter(value: string) {
           statisticsPatch({ chapterId: value });
           if (value === '') { statisticsPatch({ chapterDetail: undefined }); return; }
-          run<ChapterDetailShape>(`statistics:chapterDetail:${value}`, (ns, pid) => ns.chapterDetail(pid, value), (result) => statisticsPatch({ chapterDetail: result }));
+          run<ChapterDetailShape>(`statistics:chapterDetail:${value}`, 'detail', (ns, pid) => ns.chapterDetail(pid, value), (result) => statisticsPatch({ chapterDetail: result }));
         },
         refreshOverview() { loadOverview(); },
         refreshStats() {
-          run<StatisticsStatsShape>('statistics:stats', (ns, pid) => ns.stats(pid), (result) => statisticsPatch({ stats: result }));
+          run<StatisticsStatsShape>('statistics:stats', 'stats', (ns, pid) => ns.stats(pid), (result) => statisticsPatch({ stats: result }));
         },
         rebuild(): void {
-          run<StatisticsStatsShape>('statistics:rebuild', (ns, pid) => ns.rebuild(pid), (stats) => {
+          run<StatisticsStatsShape>('statistics:rebuild', 'rebuild', (ns, pid) => ns.rebuild(pid), (stats) => {
             statisticsPatch({ stats });
             loadOverview();
             loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: snapshot.statistics.cardStatus });
@@ -66,10 +72,10 @@ export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
           });
         },
         drop(): void {
-          run<StatisticsStatsShape>('statistics:drop', (ns, pid) => ns.drop(pid), (stats) => {
+          run<StatisticsStatsShape>('statistics:drop', 'drop', (ns, pid) => ns.drop(pid), (stats) => {
             statisticsPatch({ stats, overview: undefined, sceneCards: undefined, tasks: undefined, chapterDetail: undefined, message: '已删除派生统计（可随时重建，不写任何结构层）。' });
           });
         },
-        dismiss() { statisticsPatch({ status: 'idle', message: undefined, stats: undefined, overview: undefined, chapterId: '', chapterDetail: undefined, cardActId: '', cardBeatId: '', cardStatus: '', sceneCards: undefined, taskStatus: '', tasks: undefined, acting: false }); },
+        dismiss() { statisticsPatch({ status: 'idle', message: undefined, stats: undefined, overview: undefined, chapterId: '', chapterDetail: undefined, cardActId: '', cardBeatId: '', cardStatus: '', sceneCards: undefined, taskStatus: '', tasks: undefined, busy: {} }); },
       };
 }

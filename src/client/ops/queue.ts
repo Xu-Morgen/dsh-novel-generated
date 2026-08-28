@@ -3,15 +3,16 @@
 
 import { unwrap } from '../shared.js';
 import type { QueueEditOps, QueueLayerState, QueueStartInputShape, QueueStatusShape, QueueTaskShape } from '../layers/queue.js';
-import type { OpsContext } from './context.js';
+import type { OpsPorts, OpsRuntime } from './context.js';
+type QueuePort = Pick<OpsPorts, 'workspace' | 'queueNamespace'>;
 
 export { QUEUE_POLL_INTERVAL_MS } from '../queue-poll.js';
 
-export function createQueueOps(ctx: OpsContext): QueueEditOps {
-  const { act, snapshot, beginOp, endOp, isActive, queuePoll } = ctx;
-  const projectId = ctx.projectId;
-  const workspace = ctx.workspace;
-  const queueNamespace = ctx.queueNamespace;
+export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditOps {
+  const { act, snapshot, beginOp, endOp, isActive, queuePoll } = runtime;
+  const projectId = runtime.projectId;
+  const workspace = port.workspace;
+  const queueNamespace = port.queueNamespace;
       const queuePatch = (patch: Partial<QueueLayerState>): void => act.queuePatch(patch);
       const loadCards = (): void => {
         const target = workspace;
