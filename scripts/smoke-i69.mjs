@@ -49,7 +49,7 @@ const fail = (msg) => { throw new Error(`I69 smoke: ${msg}`); };
   const nav = read('src/client/nav.ts');
   const panel = read('src/client/layers/import-export.ts');
   const shared = read('src/client/shared.ts');
-  if (!index.includes("ctx.provide('novelImportExport'") || !index.includes('createImportExportService')) {
+  if (!index.includes("ctx.provide('novelImportExport'") || !index.includes('createNovelPortabilityService')) {
     fail('index.ts missing novelImportExport wiring');
   }
   if (!remoteTs.includes('...importExportInvocations') || !remoteTs.includes('importExportRemoteContribution')) {

@@ -1,7 +1,7 @@
 import { createKnowledgeManagerService } from '../knowledge-manager-service.js';
 import { createRuleStyleManagerService } from '../rule-style-manager-service.js';
 import { createProgressInspirationService } from '../progress-inspiration-service.js';
-import { createImportExportService as createProjectPortabilityService } from '../import-export-service.js';
+import { createNovelPortabilityService } from '../import-export-service.js';
 import { createBranchService } from '../branch-service.js';
 import { createSearchService } from '../search-service.js';
 import { createStatisticsService, type StatisticsSceneCardFilter, type StatisticsTaskFilter, type NovelStatisticsService } from '../statistics-service.js';
@@ -13,6 +13,7 @@ import type { StyleProfileInput } from '../../core/schema/style.js';
 import type { DeviationRecordInput, InspirationSelectInput } from '../progress-inspiration-service.js';
 import type { ImportPreviewInput } from '../import-export-service.js';
 import type { ArchiveMode } from '../../core/export/index.js';
+import { provideDeprecatedPortabilityAliases } from './portability-compat.js';
 import { defineRemote } from '../remote/shared.js';
 import { knowledgeInvocations } from '../remote/knowledge.js';
 import { ruleStyleInvocations } from '../remote/rule-style.js';
@@ -120,13 +121,16 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
   // import/export Remote —— I39 可移植档案/纯文本导出下载、round-trip 备份恢复
   // （N-7 非空作品 fail closed + 空壳事务写盘）与 I37 确定性导入预览。复用
   // `core/export` 与 `import` 既有 owner；Client 只接收下载载荷/命令，不持有路径。
-  const projectPortabilityService = createProjectPortabilityService(base.projectsRoot);
+  // I100：三服务（novelImport/novelImportExport/novelExport）统一为单一公开服务
+  // `novelImportExport`；旧名经兼容转发层 deprecated 转发（review §8#17）。
+  const projectPortabilityService = createNovelPortabilityService(base.projectsRoot);
   ctx.provide('novelImportExport', defineRemote('novelImportExport', 'novelImportExport', projectPortabilityService, [
     { method: 'exportArchive', call: (projectId: string, mode: ArchiveMode) => projectPortabilityService.exportArchive(projectId, mode) },
     { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => projectPortabilityService.exportText(projectId, format) },
     { method: 'restore', call: (projectId: string, raw: string) => projectPortabilityService.restore(projectId, raw) },
     { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.importPreview(projectId, input) },
   ], importExportInvocations));
+  provideDeprecatedPortabilityAliases(ctx, projectPortabilityService);
   // I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：Host-owned
   // 分支/版本模型 —— 候选可保留为分支、比较并选择唯一 chosen。复用 TextRepository
   // （C5 唯一存储 owner；legacy 单版本文档兼容迁移 + fail closed 在 open 内完成）；

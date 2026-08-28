@@ -1,4 +1,9 @@
 import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { createHostImportService, type NovelHostImportService } from './import-service.js';
+import { createExportService, type NovelExportService } from './export-service.js';
+import { ConfirmationGate } from '../core/confirm/index.js';
+import type { ImportOptions, ImportSplitter, ImportedText, PendingImportCandidate } from '../import/index.js';
+import type { ImportResult, PortableImportOptions } from '../core/export/index.js';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
@@ -167,6 +172,47 @@ export function createImportExportService(
   };
 
   return Object.freeze({ exportArchive, exportText, restore, importPreview });
+}
+
+/**
+ * I100 统一公开服务（review v2.0 §8#17 / 计划 §18 I100）：导入/导出/可移植性
+ * 三面合一——`novelImport`（文件导入 read/review）、`novelExport`（可移植档案
+ * export/serialize/parse/plainText/import/proposeConflict）与 `novelImportExport`
+ * （受控 wire 面 exportArchive/exportText/restore/importPreview）统一为单一公开
+ * 服务 `novelImportExport`。旧两个服务名保留 deprecated 转发（见
+ * composition/portability-compat.ts），退役路径见
+ * docs/import-export-service-migration.md。
+ */
+export interface NovelPortabilityService extends NovelImportExportService {
+  /** 文件导入面（原 novelImport）。 */
+  read(filePath: string, options: ImportOptions): Promise<ImportedText>;
+  review(filePath: string, options: ImportOptions, splitter: ImportSplitter): Promise<{ readonly source: ImportedText; readonly candidates: readonly PendingImportCandidate[] }>;
+  /** 可移植档案面（原 novelExport）。 */
+  export(projectDirectory: string, mode?: ArchiveMode): Promise<PortableArchive>;
+  serialize(archive: PortableArchive): string;
+  parse(raw: string): PortableArchive;
+  plainText(projectDirectory: string): Promise<Record<string, string>>;
+  import(archive: PortableArchive, targetDirectory: string, options?: PortableImportOptions): Promise<ImportResult>;
+  proposeConflict(gate: ConfirmationGate, proposalId: string, archive: PortableArchive, conflicts: readonly string[]): Promise<unknown>;
+}
+
+export function createNovelPortabilityService(
+  projectsRoot: string = join(homedir(), '.dsh', 'novel-projects'),
+): NovelPortabilityService {
+  const wire = createImportExportService(projectsRoot);
+  const importer = createHostImportService();
+  const exporter = createExportService();
+  return Object.freeze({
+    ...wire,
+    read: importer.read,
+    review: importer.review,
+    export: exporter.export,
+    serialize: exporter.serialize,
+    parse: exporter.parse,
+    plainText: exporter.plainText,
+    import: exporter.import,
+    proposeConflict: exporter.proposeConflict,
+  });
 }
 
 /** 返回目标作品中已有非空内容的层路径（与 I39 档案层清单同源，空壳不算非空）。 */

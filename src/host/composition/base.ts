@@ -22,9 +22,7 @@ import { createRelationshipParserService } from '../relationship-parser-service.
 import { createKnowledgeParserService } from '../knowledge-parser-service.js';
 import { createWorldviewParserService } from '../worldview-parser-service.js';
 import { createExtensionService } from '../extension-service.js';
-import { createHostImportService as createFileImportService } from '../import-service.js';
 import { createSplitAgentService } from '../split-agent-service.js';
-import { createExportService as createPortableArchiveService } from '../export-service.js';
 import { createClassifierService } from '../classifier-service.js';
 import { createLocalizedEditService as createRangeEditService } from '../edit-service.js';
 import { createChapterWritingService } from '../chapter-writing-service.js';
@@ -102,11 +100,7 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
   ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, onFiberDispose));
   ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, onFiberDispose));
   ctx.provide('novelWorldviewParser', createWorldviewParserService(llm, onFiberDispose));
-  const fileImportService = createFileImportService();
-  ctx.provide('novelImport', fileImportService);
   ctx.provide('novelSplitAgent', createSplitAgentService(llm, onFiberDispose));
-  const portableArchiveService = createPortableArchiveService();
-  ctx.provide('novelExport', portableArchiveService);
   ctx.provide('novelClassifier', createClassifierService(llm, projectsRoot, onFiberDispose));
   const rangeEditService = createRangeEditService(llm, projectsRoot, onFiberDispose);
   ctx.provide('novelLocalizedEdit', rangeEditService);
