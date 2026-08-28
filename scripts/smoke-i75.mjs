@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawnCaptured } from './spawn-captured.mjs';
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,9 +98,9 @@ walkSrc(resolve(repoRoot, 'src'));
 // Part 2 — 类型安全恢复负向/正向 tsc 夹具。
 {
   const tscArgs = ['exec', 'tsc', '--noEmit', '--strict', '--skipLibCheck', '--module', 'nodenext', '--moduleResolution', 'nodenext', '--target', 'es2022', '--types', 'node'];
-  const positive = spawnSync('pnpm', [...tscArgs, 'scripts/fixtures/i75-positive-signature.ts'], { cwd: repoRoot, encoding: 'utf8' });
-  if (positive.status !== 0) fail(`positive tsc fixture must compile (exit ${positive.status}):\n${positive.stderr || positive.stdout}`);
-  const negative = spawnSync('pnpm', [...tscArgs, 'scripts/fixtures/i75-negative-signature.ts'], { cwd: repoRoot, encoding: 'utf8' });
+  const positive = spawnCaptured('pnpm', [...tscArgs, 'scripts/fixtures/i75-positive-signature.ts'], { cwd: repoRoot, encoding: 'utf8' });
+  if (positive.status !== 0) fail(`positive tsc fixture must compile (exit ${positive.status}; ${positive.error?.message ?? 'no spawn error'}):\n${positive.stderr || positive.stdout}`);
+  const negative = spawnCaptured('pnpm', [...tscArgs, 'scripts/fixtures/i75-negative-signature.ts'], { cwd: repoRoot, encoding: 'utf8' });
   if (negative.status === 0) fail('negative tsc fixture must FAIL to compile (domain signature change must error at the wiring layer)');
   if (!(negative.stderr || negative.stdout).includes('i75-negative-signature')) {
     fail(`negative fixture failure must be located in i75-negative-signature.ts:\n${(negative.stderr || negative.stdout).slice(0, 800)}`);
@@ -145,7 +145,7 @@ walkSrc(resolve(repoRoot, 'src'));
       "console.log('I75 demo new-method cross-section: service + descriptor + wiring spec only, shared machinery untouched OK');",
       '',
     ].join('\n'));
-    const run = spawnSync('pnpm', ['exec', 'tsx', demoFile], { cwd: repoRoot, encoding: 'utf8' });
+    const run = spawnCaptured('pnpm', ['exec', 'tsx', demoFile], { cwd: repoRoot, encoding: 'utf8' });
     if (run.status !== 0) fail(`demo new-method cross-section must run (exit ${run.status}):\n${run.stderr || run.stdout}`);
     if (!run.stdout.includes('shared machinery untouched')) fail('demo did not reach its success assertion');
   } finally {

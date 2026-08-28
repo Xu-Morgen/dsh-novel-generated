@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawnCaptured } from './spawn-captured.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -273,7 +273,7 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   if (before === after) fail('characterCoreSchema rename fixture not applicable (unexpected current field state)');
   try {
     writeFileSync(schemaFile, original.replace('  personality: z.string(),', '  personalityZZZ: z.string(),'));
-    const run = spawnSync('pnpm', ['exec', 'tsc', '--noEmit'], { cwd: repoRoot, encoding: 'utf8' });
+    const run = spawnCaptured('pnpm', ['exec', 'tsc', '--noEmit'], { cwd: repoRoot, encoding: 'utf8' });
     const output = `${run.stdout ?? ''}\n${run.stderr ?? ''}`;
     const errorFiles = new Set();
     for (const line of output.split('\n')) {

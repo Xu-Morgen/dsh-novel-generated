@@ -24,12 +24,12 @@ import { createRelationshipParserService } from './host/relationship-parser-serv
 import { createKnowledgeParserService } from './host/knowledge-parser-service.js';
 import { createWorldviewParserService } from './host/worldview-parser-service.js';
 import { createExtensionService } from './host/extension-service.js';
-import { createHostImportService } from './host/import-service.js';
+import { createHostImportService as createFileImportService } from './host/import-service.js';
 import { createSplitAgentService } from './host/split-agent-service.js';
-import { createExportService } from './host/export-service.js';
+import { createExportService as createPortableArchiveService } from './host/export-service.js';
 import { createClassifierService } from './host/classifier-service.js';
-import { createLocalizedEditService } from './host/edit-service.js';
-import { createTextEditService } from './host/text-edit-service.js';
+import { createLocalizedEditService as createRangeEditService } from './host/edit-service.js';
+import { createTextEditService as createControlledTextEditService } from './host/text-edit-service.js';
 import { createWritingCandidateService } from './host/candidate-service.js';
 import { createChapterWritingService } from './host/chapter-writing-service.js';
 import { createWritingAdjudicationService, type WritingProposeInput } from './host/writing-adjudication-service.js';
@@ -39,7 +39,7 @@ import { createKnowledgeManagerService } from './host/knowledge-manager-service.
 import type { KnowledgeChangeInput } from './core/knowledge/actions.js';
 import { createRuleStyleManagerService } from './host/rule-style-manager-service.js';
 import { createProgressInspirationService, type DeviationRecordInput, type InspirationSelectInput } from './host/progress-inspiration-service.js';
-import { createImportExportService, type ImportPreviewInput } from './host/import-export-service.js';
+import { createImportExportService as createProjectPortabilityService, type ImportPreviewInput } from './host/import-export-service.js';
 import { createBranchService } from './host/branch-service.js';
 import { createSearchService } from './host/search-service.js';
 import { createStatisticsService, type StatisticsSceneCardFilter, type StatisticsTaskFilter } from './host/statistics-service.js';
@@ -201,11 +201,14 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ctx.provide('novelRelationshipParser', createRelationshipParserService(llm, onFiberDispose));
   ctx.provide('novelKnowledgeParser', createKnowledgeParserService(llm, onFiberDispose));
   ctx.provide('novelWorldviewParser', createWorldviewParserService(llm, onFiberDispose));
-  ctx.provide('novelImport', createHostImportService());
+  const fileImportService = createFileImportService();
+  ctx.provide('novelImport', fileImportService);
   ctx.provide('novelSplitAgent', createSplitAgentService(llm, onFiberDispose));
-  ctx.provide('novelExport', createExportService());
+  const portableArchiveService = createPortableArchiveService();
+  ctx.provide('novelExport', portableArchiveService);
   ctx.provide('novelClassifier', createClassifierService(llm, projectsRoot, onFiberDispose));
-  ctx.provide('novelLocalizedEdit', createLocalizedEditService(llm, projectsRoot, onFiberDispose));
+  const rangeEditService = createRangeEditService(llm, projectsRoot, onFiberDispose);
+  ctx.provide('novelLocalizedEdit', rangeEditService);
   ctx.provide('novelChapterWriting', createChapterWritingService(llm, projectsRoot, onFiberDispose));
   const inspirationService = createInspirationService(llm, onFiberDispose);
   ctx.provide('novelInspiration', inspirationService);
@@ -222,7 +225,10 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     { method: 'save', call: (input: WorkbenchSettingsSaveInput) => workbenchSettingsService.save(input) },
     { method: 'openProjectFolder', call: (projectId: string) => workbenchSettingsService.openProjectFolder(projectId) },
   ]));
-  const analyzerService = createOnboardingAnalyzerService(llm, onFiberDispose);
+  const logger = ctx.logger(name);
+  const analyzerService = createOnboardingAnalyzerService(llm, onFiberDispose, (error, onboardingSessionId) => {
+    logger.error('Background onboarding analysis %s failed: %o', onboardingSessionId, error);
+  });
   // The wire marks `settings` optional (`acceptsUndefined`), and the Client has
   // no generation settings of its own — so when the caller omits them, resolve
   // them from the plugin's persisted A2 config (I31 `novelSettings` owner).
@@ -311,7 +317,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // I61 C5 正文编辑与可选 reparse（design §5.12 / §14.9 / R13-2）：I42 编辑服务 +
   // 真实 I25–I29 parser fan-out + 既有 Domain Service writers + I11 Gate。设置解析
   // 惰性执行（accept 时才需要），与 analyzer 共用同一 A2 generation settings owner。
-  const textEditService = createTextEditService({
+  const controlledTextEditService = createControlledTextEditService({
     llm,
     projectsRoot,
     state: stateService,
@@ -323,7 +329,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });
-  ctx.provide('novelTextEdit', textEditService);
+  ctx.provide('novelTextEdit', controlledTextEditService);
   // I62 统一写作候选命令（design §14.9 / R13-3）：生成/续写/按场景卡写作/局部重写
   // 共用同一 Host 候选命令，只产生绑定 project/chapter/scene/sourceHash 的候选，
   // 不预先接受或写任何层；取消/错误/过期语义在 core/candidate 冻结。候选不持久化
@@ -492,12 +498,12 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   // import/export Remote —— I39 可移植档案/纯文本导出下载、round-trip 备份恢复
   // （N-7 非空作品 fail closed + 空壳事务写盘）与 I37 确定性导入预览。复用
   // `core/export` 与 `import` 既有 owner；Client 只接收下载载荷/命令，不持有路径。
-  const importExportService = createImportExportService(projectsRoot);
-  ctx.provide('novelImportExport', defineRemote('novelImportExport', 'novelImportExport', importExportService, [
-    { method: 'exportArchive', call: (projectId: string, mode: ArchiveMode) => importExportService.exportArchive(projectId, mode) },
-    { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => importExportService.exportText(projectId, format) },
-    { method: 'restore', call: (projectId: string, raw: string) => importExportService.restore(projectId, raw) },
-    { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => importExportService.importPreview(projectId, input) },
+  const projectPortabilityService = createProjectPortabilityService(projectsRoot);
+  ctx.provide('novelImportExport', defineRemote('novelImportExport', 'novelImportExport', projectPortabilityService, [
+    { method: 'exportArchive', call: (projectId: string, mode: ArchiveMode) => projectPortabilityService.exportArchive(projectId, mode) },
+    { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => projectPortabilityService.exportText(projectId, format) },
+    { method: 'restore', call: (projectId: string, raw: string) => projectPortabilityService.restore(projectId, raw) },
+    { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.importPreview(projectId, input) },
   ]));
   // I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：Host-owned
   // 分支/版本模型 —— 候选可保留为分支、比较并选择唯一 chosen。复用 TextRepository
@@ -571,7 +577,7 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
   ]));
   const workspaceService = createWorkspaceEditorService(
     characterService, worldviewService, outlineService, relationshipService,
-    stateService, canonService, confirmationService, projectService, uploadService, textService, textEditService,
+    stateService, canonService, confirmationService, projectService, uploadService, textService, controlledTextEditService,
   );
   // The DSH gateway dispatches strict descriptors only to services carrying the
   // `typertRemote` binding; attach it before providing (design §0.1.2).

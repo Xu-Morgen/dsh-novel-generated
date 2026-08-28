@@ -1,4 +1,4 @@
-import { PromptTemplateSchema, InstructPresetSchema, type InstructPreset, type PromptTemplate } from '../../core/settings-index/index.js';
+import { PromptTemplateSchema, InstructPresetSchema, type InstructPreset, type PromptTemplate } from '../../core/schema/prompt-template.js';
 
 /** One already-serialized named context block available to an A2 prompt template. */
 export interface PromptSection {

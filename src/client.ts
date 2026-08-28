@@ -44,6 +44,7 @@ import { workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, 
 import { WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 import { scheduleFocus } from './client/focus.js';
+import { sha256Hex } from './client/sha256.js';
 // I83：视图分发（viewPanel + 面板注册表）迁至 client/panels/，mount 生命周期
 // 迁至 client/mount.ts（架构审查 §4.1 / §9 #5）；client.ts 只保留装配与渲染外壳。
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './client/panels/index.js';
@@ -849,9 +850,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               const projectId = currentProjectId;
               const normalized = text.trim();
               if (!projectId || normalized.length === 0) return;
-              void crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)).then((digest) => {
-                const bytes = new Uint8Array(digest);
-                const hash = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+              void sha256Hex(normalized).then((hash) => {
                 startAnalysis(projectId, hash, normalized);
               });
             },

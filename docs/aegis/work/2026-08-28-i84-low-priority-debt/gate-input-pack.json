@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "I84/R16/D21"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-28-i84-low-priority-debt/impact-statement-draft.json",
+  "compatPlan": "保留公开服务名 novelImport/novelImportExport/novelExport/novelOutlineProgress/novelTextEdit/novelLocalizedEdit",
+  "retirementPlan": "duplicate text/SHA/DOCX carriers retired; no fallback; smoke asserts absence",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-final-fresh-gates.json",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-focused-review.json",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-verify-i84.json",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-verify-stage-15.json",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-workspace-integrity.json"
+  ]
+}

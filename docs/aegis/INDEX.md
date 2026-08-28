@@ -143,3 +143,21 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-24 | artifact | docs/aegis/work/2026-08-24-stage10-project-onboarding/resume-state-hint.json | 2026-08-24-stage10-project-onboarding resume state hint |
 | 2026-08-24 | plan | docs/aegis/plans/2026-08-24-stage10-project-onboarding-implementation.md | Stage 10 作品启动与六层初始化实施计划 |
 | 2026-08-27 | plan | docs/aegis/plans/2026-08-27-architecture-debt-elimination.md | Stage 15 架构债务消除实施计划（I75–I84） |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/10-intent.md | I84 低优先级债务清零 intent |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/20-checkpoint.md | I84 低优先级债务清零 checkpoint |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/90-evidence.md | I84 低优先级债务清零 evidence |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/99-reflection.md | I84 低优先级债务清零 reflection |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/task-intent-draft.json | I84 低优先级债务清零 task intent draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/baseline-read-set-hint.json | I84 低优先级债务清零 baseline read-set hint |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/baseline-usage-draft.json | I84 低优先级债务清零 baseline usage draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/impact-statement-draft.json | I84 低优先级债务清零 impact statement draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/todo-checkpoint-draft.json | I84 低优先级债务清零 todo checkpoint draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/drift-check-draft.json | I84 低优先级债务清零 drift check draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/resume-state-hint.json | 2026-08-28-i84-low-priority-debt resume state hint |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-focused-review.json | 2026-08-28-i84-low-priority-debt evidence focused-review |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-verify-i84.json | 2026-08-28-i84-low-priority-debt evidence verify-i84 |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-verify-stage-15.json | 2026-08-28-i84-low-priority-debt evidence verify-stage-15 |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-final-fresh-gates.json | 2026-08-28-i84-low-priority-debt evidence final-fresh-gates |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/gate-input-pack.json | 2026-08-28-i84-low-priority-debt gate input pack |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/proof-bundle.md | 2026-08-28-i84-low-priority-debt proof bundle |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-workspace-integrity.json | 2026-08-28-i84-low-priority-debt evidence workspace-integrity |

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-28-i84-low-priority-debt",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-28-i84-low-priority-debt/todo-checkpoint-draft.json",
+  "resumeInstruction": "若需复核，先读 proof-bundle 与 git show --stat HEAD；当前目标已达完成候选",
+  "knownPartialWork": [
+    "审查差异并创建唯一 I84 commit"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/10-intent.md",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/20-checkpoint.md",
+    "docs/aegis/work/2026-08-28-i84-low-priority-debt/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Repository clean until post-amend status is read"
+  ]
+}

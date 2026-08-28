@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-28-i84-low-priority-debt",
+  "requiredBaselineRefs": [
+    "AGENTS.md v2.3",
+    "docs/novel-creation-tool-design.md v2.3 §0.1/§14.12/D21-D22",
+    "docs/novel-creation-tool-requirements.md v2.3 R16",
+    "docs/novel-creation-tool-development-plan.md v2.3 I84/§17",
+    "docs/novel-creation-tool-architecture-review.md v1.0 §5.4/§8/§9",
+    "docs/aegis/plans/2026-08-27-architecture-debt-elimination.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "AGENTS.md v2.3",
+    "docs/novel-creation-tool-design.md v2.3 §0.1/§14.12/D21-D22",
+    "docs/novel-creation-tool-requirements.md v2.3 R16",
+    "docs/novel-creation-tool-development-plan.md v2.3 I84/§17",
+    "docs/novel-creation-tool-architecture-review.md v1.0 §5.4/§8/§9",
+    "docs/aegis/plans/2026-08-27-architecture-debt-elimination.md"
+  ],
+  "citedInPlanRefs": [
+    "docs/aegis/plans/2026-08-27-architecture-debt-elimination.md"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

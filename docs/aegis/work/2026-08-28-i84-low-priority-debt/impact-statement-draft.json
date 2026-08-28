@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "core",
+    "llm",
+    "host",
+    "client"
+  ],
+  "owners": [
+    "现有 canonical owners；仅抽取共享纯模块，不新增领域 owner"
+  ],
+  "invariants": [
+    "公开 Remote/wire、领域行为、Host/Client 真相边界、样本与阈值不变"
+  ],
+  "compatBoundary": "保留公开服务名 novelImport/novelImportExport/novelExport/novelOutlineProgress/novelTextEdit/novelLocalizedEdit",
+  "nonGoals": [
+    "不新增功能；不破坏性改名；不修改样本/金标/阈值；不跨 I84"
+  ]
+}

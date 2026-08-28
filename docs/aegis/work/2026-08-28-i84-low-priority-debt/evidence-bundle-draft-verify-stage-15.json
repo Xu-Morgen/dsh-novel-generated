@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-stage-15",
+  "type": "command",
+  "source": "pnpm run verify:stage-15",
+  "summary": "exit 0 after sandbox-safe file-descriptor capture repair; verify:i75 through verify:i84 all passed, each with 116 files/723 tests, builds, stage smokes and held-out regressions",
+  "verifier": "DSH pwsh foreground run"
+}

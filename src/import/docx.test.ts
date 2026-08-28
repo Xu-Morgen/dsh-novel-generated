@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { zipSync, strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { readDocxText, DOCX_LIMITS } from './docx.js';
+import { readDocxText, DOCX_LIMITS } from '../core/docx/index.js';
 import { createUploadStore } from '../core/upload/index.js';
 
 /** Build a real OOXML ZIP package for the mature reader tests. */

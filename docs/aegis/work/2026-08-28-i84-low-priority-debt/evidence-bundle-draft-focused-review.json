@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "focused-review",
+  "type": "test-review",
+  "source": "vitest focused suites + subagent spec/quality reviews",
+  "summary": "47 focused tests and 32 post-review tests passed; spec compliance and code-quality re-reviews approved after carrier retirement fixes",
+  "verifier": "coordinator + independent reviewers"
+}

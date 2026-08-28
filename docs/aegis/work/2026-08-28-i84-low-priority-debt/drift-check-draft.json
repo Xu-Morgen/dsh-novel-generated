@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-28-i84-low-priority-debt",
+  "taskIntentRef": "docs/aegis/work/2026-08-28-i84-low-priority-debt/task-intent-draft.json",
+  "baselineRefs": [
+    "I84/R16/D21"
+  ],
+  "scopeStatus": "I84 product/source changes plus Stage 15 smoke fixture portability repair required by the mandated cumulative gate",
+  "compatStatus": "public Remote/wire/service names and shapes unchanged; all regressions green",
+  "retirementStatus": "duplicate text/SHA/DOCX carriers retired; no fallback; smoke asserts absence",
+  "newRiskSignals": [
+    "Vitest warns about two pre-existing unawaited I75 test assertions; tests pass and no I84 behavior impact"
+  ],
+  "decision": "continue"
+}

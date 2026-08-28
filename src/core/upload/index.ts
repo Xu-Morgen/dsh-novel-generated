@@ -2,7 +2,8 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readDocxText } from '../../import/docx.js';
+import { readDocxText } from '../docx/index.js';
+import { chunkText, normalizeText } from '../text/pipeline.js';
 import {
   uploadChunkInputSchema,
   uploadStartInputSchema,
@@ -31,35 +32,6 @@ interface UploadSession {
   /** 已接受的块索引集合（用于拒绝乱序/重复）。 */
   readonly received: Set<number>;
   readonly path: string;
-}
-
-function normalizeText(input: string): string {
-  const normalized = input.replace(/^\uFEFF/, '').normalize('NFC').replace(/\r\n?/g, '\n');
-  return normalized.split('\n').map((line) => line.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-export function chunkText(text: string, size: number): { index: number; text: string; startOffset: number; endOffset: number }[] {
-  const chunks: { index: number; text: string; startOffset: number; endOffset: number }[] = [];
-  let cursor = 0;
-  let index = 0;
-  while (cursor < text.length) {
-    const limit = Math.min(cursor + size, text.length);
-    let end = limit;
-    if (limit < text.length) {
-      const boundary = text.lastIndexOf('\n\n', limit);
-      if (boundary > cursor + Math.floor(size / 2)) end = boundary;
-    }
-    const value = text.slice(cursor, end).trim();
-    if (value) {
-      const startOffset = cursor + text.slice(cursor, end).search(/\S/);
-      const endOffset = startOffset + value.length;
-      chunks.push({ index, text: value, startOffset, endOffset });
-      index += 1;
-    }
-    cursor = end;
-    while (cursor < text.length && /\s/.test(text[cursor])) cursor += 1;
-  }
-  return chunks;
 }
 
 export interface NovelUploadStore {

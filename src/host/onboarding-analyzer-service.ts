@@ -3,7 +3,7 @@ import {
   assertFreeText,
   layerHash,
 } from '../core/onboarding/analyzer.js';
-import { chunkText } from '../core/upload/index.js';
+import { chunkText } from '../core/text/pipeline.js';
 import { asLlmBackend } from '../llm/port/index.js';
 import { analyzeOnboardingText, regenerateOnboardingLayer } from '../llm/analyze/onboarding.js';
 import type {
@@ -56,6 +56,9 @@ interface Job {
 export function createOnboardingAnalyzerService(
   llm: unknown,
   onDispose?: (dispose: () => void) => void,
+  onBackgroundError: (error: unknown, onboardingSessionId: string) => void = (error, onboardingSessionId) => {
+    console.error(`Onboarding analysis ${onboardingSessionId} failed`, error);
+  },
 ): NovelOnboardingAnalyzerService {
   const backend = asLlmBackend(llm);
   const jobs = new Map<string, Job>();
@@ -116,7 +119,9 @@ export function createOnboardingAnalyzerService(
       const current = startJob(input);
       // Background run: the job state machine owns the outcome; errors are
       // captured into `status`/`result`, never thrown to the caller.
-      void runJob(current, settings).catch(() => undefined);
+      void runJob(current, settings).catch((error) => {
+        if (!current.controller.signal.aborted) onBackgroundError(error, current.onboardingSessionId);
+      });
       return { onboardingSessionId: current.onboardingSessionId };
     },
     async start(input: OnboardingAnalysisStartInput, settings: unknown, signal?: AbortSignal) {

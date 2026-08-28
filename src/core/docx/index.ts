@@ -2,35 +2,14 @@ import { Unzip, UnzipInflate, UnzipPassThrough } from 'fflate';
 import type { AsyncFlateStreamHandler } from 'fflate';
 
 /**
- * Mature ZIP/XML DOCX reader (design §14.7.2 / D18, requirement R11-2 / N-3).
- *
- * Replaces the hand-written minimal ZIP parser (I37) with a maintained decompression
- * library (`fflate`). The adapter is the single owner of every safety invariant for
- * decoding an uploaded DOCX package, enforced before any bytes are returned:
- *
- * - a local-file-header magic check (ZIP not honored as DOCX otherwise);
- * - a bounded entry count;
- * - path-traversal / absolute / unsupported entry-name rejection;
- * - per-entry decompression caps;
- * - an aggregate decompression cap (zip-bomb protection);
- * - a compression-ratio cap (compressed tiny vs. expanded huge);
- * - strict XML decoding of `word/document.xml` only (no other OOXML surface read).
- *
- * The final product is normalized text; the adapter never hands raw bytes back to
- * the caller and never persists anything.
+ * Canonical pure ZIP/XML DOCX reader (design §14.7.2 / D18, R11-2 / N-3).
+ * It is the single owner of package safety limits and returns text without I/O.
  */
-
-/** All numeric caps are host-owned constants; no caller override (design §14.7.2). */
 export const DOCX_LIMITS = Object.freeze({
-  /** Compressed package byte cap (design default 10 MiB). */
   maxCompressedBytes: 10 * 1024 * 1024,
-  /** Maximum number of entries in the ZIP central directory. */
   maxEntries: 4096,
-  /** Maximum inflated size of a single entry. */
   maxEntryUncompressedBytes: 64 * 1024 * 1024,
-  /** Maximum total inflated bytes across all entries (zip-bomb guard). */
   maxTotalUncompressedBytes: 256 * 1024 * 1024,
-  /** Compressed:uncompressed ratio above which an entry is treated as a bomb. */
   maxCompressionRatio: 1000,
 });
 
@@ -38,7 +17,6 @@ function fail(message: string): never {
   throw new Error(`DOCX rejected: ${message}`);
 }
 
-/** A zip entry name must be a safe relative path without traversal or drive syntax. */
 function assertSafeEntryName(name: string): void {
   const normalized = name.replaceAll('\\', '/');
   if (
@@ -47,12 +25,9 @@ function assertSafeEntryName(name: string): void {
     normalized.split('/').some((part) => part === '..') ||
     /^[a-zA-Z]:/.test(normalized) ||
     normalized.includes('\u0000')
-  ) {
-    fail(`unsafe zip entry name: ${name}`);
-  }
+  ) fail(`unsafe zip entry name: ${name}`);
 }
 
-/** Collect the (name -> inflate-limits) view of a DOCX package stream. */
 function collectEntries(buffer: Uint8Array): Map<string, Uint8Array> {
   if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4b) fail('not a docx package');
   if (buffer.length > DOCX_LIMITS.maxCompressedBytes) fail('compressed package exceeds size limit');
@@ -60,7 +35,6 @@ function collectEntries(buffer: Uint8Array): Map<string, Uint8Array> {
   const entries = new Map<string, Uint8Array>();
   let entryCount = 0;
   let totalUncompressed = 0;
-
   const unzip = new Unzip((file) => {
     entryCount += 1;
     if (entryCount > DOCX_LIMITS.maxEntries) {
@@ -73,9 +47,8 @@ function collectEntries(buffer: Uint8Array): Map<string, Uint8Array> {
     }
     const compressed = file.size ?? 0;
     const original = file.originalSize ?? 0;
-    if (original > 0 && compressed > 0) {
-      const ratio = original / compressed;
-      if (ratio > DOCX_LIMITS.maxCompressionRatio) fail(`entry ${file.name} exceeds compression ratio limit`);
+    if (original > 0 && compressed > 0 && original / compressed > DOCX_LIMITS.maxCompressionRatio) {
+      fail(`entry ${file.name} exceeds compression ratio limit`);
     }
     const chunks: Uint8Array[] = [];
     let length = 0;
@@ -104,7 +77,6 @@ function collectEntries(buffer: Uint8Array): Map<string, Uint8Array> {
   return entries;
 }
 
-/** Strip OOXML run markup into plain text, preserving tabs and paragraph breaks. */
 function xmlText(xml: string): string {
   return xml
     .replace(/<w:tab\s*\/?\s*>/g, '\t')
@@ -119,10 +91,7 @@ function xmlText(xml: string): string {
     .replace(/&apos;/g, "'");
 }
 
-/**
- * Decode a real DOCX ZIP package into normalized text. Only `word/document.xml`
- * is read and decoded; every other entry is parsed for safety limits but ignored.
- */
+/** Decode `word/document.xml`; all package entries are still checked for safety. */
 export function readDocxText(buffer: Uint8Array): string {
   const entries = collectEntries(buffer);
   const document = entries.get('word/document.xml');

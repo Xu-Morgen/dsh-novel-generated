@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i84",
+  "type": "command",
+  "source": "pnpm run verify:i84",
+  "summary": "exit 0: typecheck, 116 files/723 tests, build, smoke:i84, Stage 11-14 smoke, held-out sample regressions 0.1/0.9/0.9",
+  "verifier": "DSH pwsh job pwsh-1"
+}

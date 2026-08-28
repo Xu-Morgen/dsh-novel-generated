@@ -78,7 +78,7 @@ async function makeService(projectsRoot: string, seen: string[], full = false) {
     resolveSettings: async () => settings,
   });
   const dummy = { list: async () => [], read: async () => ({}), create: async () => ({}), update: async () => ({}) } as never;
-  return createWorkspaceEditorService(dummy, dummy, dummy, dummy, state, canon, confirmation, undefined, undefined, text, textEdit);
+  return createWorkspaceEditorService(dummy, dummy, dummy, dummy, state, canon, confirmation, dummy, dummy, text, textEdit);
 }
 
 describe('I61 C5 受控编辑 Remote（workspace 消费者夹具）', () => {

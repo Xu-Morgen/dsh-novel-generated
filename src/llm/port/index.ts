@@ -1,22 +1,7 @@
-import { z } from 'zod';
+import { GenerationSettingsSchema, type GenerationSettings } from '../../core/schema/generation-settings.js';
 
-/** A host-safe model reference. Secrets are resolved by DSH, never carried here. */
-export const GenerationSettingsSchema = z.object({
-  modelRef: z.string().min(1),
-  credentialRef: z.string().min(1),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTokens: z.number().int().positive().optional(),
-  stopSequences: z.array(z.string().min(1)).optional(),
-  /**
-   * 思维链控制（DeepSeek Thinking Mode）：`off` = 不发送 reasoningEffort（DSH
-   * pi-ai 对 deepseek 格式的适配会在无 effort 时发送 `thinking:{type:'disabled'}`）；
-   * `low|high|max` = 发送 `reasoningEffort`（pi-ai 对 deepseek 发送
-   * `thinking:{type:'enabled'}`，且当端点支持时附带 `reasoning_effort`）。
-   */
-  reasoning: z.enum(['off', 'low', 'high', 'max']).optional(),
-}).strict();
-
-export type GenerationSettings = z.infer<typeof GenerationSettingsSchema>;
+// Compatibility surface: existing llm/port consumers retain their public imports.
+export { GenerationSettingsSchema, type GenerationSettings } from '../../core/schema/generation-settings.js';
 
 /** Resolve and validate only controlled references; raw keys/endpoints are forbidden. */
 export function resolveGenerationSettings(input: unknown): GenerationSettings {

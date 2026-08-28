@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-28-i84-low-priority-debt",
+  "currentTodo": "汇总验收证据、commit 与交接块",
+  "completedTodos": [
+    "审查差异并创建唯一 I84 commit"
+  ],
+  "activeSlice": "final user handoff",
+  "evidenceRefs": [
+    "single scoped I84 commit created after final verify:i84 and verify:stage-15"
+  ],
+  "blockedOn": null,
+  "nextStep": "read back final commit/status, close goal, report handoff",
+  "updatedAt": "2026-08-28"
+}

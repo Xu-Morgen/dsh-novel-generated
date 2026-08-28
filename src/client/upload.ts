@@ -1,5 +1,6 @@
 import type { El, WorkspaceNamespace } from './shared.js';
 import { unwrap } from './shared.js';
+import { sha256Hex } from './sha256.js';
 
 /**
  * I51 受控 DOCX 上传 UI 助销器（design §14.7.2 / N-3 / R11-2）。
@@ -34,15 +35,6 @@ function readFileBytes(file: File): Promise<ArrayBuffer> {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
-}
-
-async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
-  // SubtleCrypto is a browser builtin; it hashes, it does not parse the DOCX.
-  const digest = await crypto.subtle.digest('SHA-256', buffer);
-  const bytes = new Uint8Array(digest);
-  let hex = '';
-  for (const byte of bytes) hex += byte.toString(16).padStart(2, '0');
-  return hex;
 }
 
 /**

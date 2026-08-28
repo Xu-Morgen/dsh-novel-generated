@@ -101,12 +101,24 @@ describe('I52 onboarding analyzer Host service', () => {
   });
 
   it('I57 result throws for unfinished / failed / cancelled / unknown sessions', async () => {
-    const service = createOnboardingAnalyzerService(undefined);
+    const service = createOnboardingAnalyzerService(undefined, undefined, () => undefined);
     expect(() => service.result('does-not-exist')).toThrow(/Unknown onboarding session/);
     // Unavailable backend → the background job fails closed and result surfaces it.
     const begun = service.begin({ projectId: 'demo', sourceHash, text: '米拉是一名测绘师。' }, settings);
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(service.status(begun.onboardingSessionId)).toBe('failed');
+    expect(() => service.result(begun.onboardingSessionId)).toThrow();
+  });
+
+  it('I84 reports a failed background job without changing status/result semantics', async () => {
+    const reported: Array<{ error: unknown; sessionId: string }> = [];
+    const service = createOnboardingAnalyzerService(undefined, undefined, (error, sessionId) => reported.push({ error, sessionId }));
+    const begun = service.begin({ projectId: 'demo', sourceHash, text: '米拉是一名测绘师。' }, settings);
+    for (let attempt = 0; attempt < 20 && reported.length === 0; attempt += 1) await Promise.resolve();
+    expect(service.status(begun.onboardingSessionId)).toBe('failed');
+    expect(reported).toHaveLength(1);
+    expect(reported[0].sessionId).toBe(begun.onboardingSessionId);
+    expect(reported[0].error).toBeInstanceOf(Error);
     expect(() => service.result(begun.onboardingSessionId)).toThrow();
   });
 

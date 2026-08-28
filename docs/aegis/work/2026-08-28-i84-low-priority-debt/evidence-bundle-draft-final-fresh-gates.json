@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-fresh-gates",
+  "type": "command",
+  "source": "pnpm run verify:i84 && pnpm run verify:stage-15",
+  "summary": "final post-review exit 0: both mandated gates green; 116 files/723 tests per full run, build, 26-entry client whitelist, I75-I84 smokes, Stage 11-14 and held-out 0.1/0.9/0.9",
+  "verifier": "DSH pwsh foreground final run"
+}

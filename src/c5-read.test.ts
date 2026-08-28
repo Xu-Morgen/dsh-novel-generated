@@ -33,7 +33,7 @@ const dummy = { list: async () => [], read: async () => ({}), create: async () =
 
 function makeService(projectsRoot: string) {
   return createWorkspaceEditorService(
-    dummy, dummy, dummy, dummy, dummy, dummy, dummy, undefined, undefined, createTextService(projectsRoot),
+    dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, dummy, createTextService(projectsRoot), dummy,
   );
 }
 

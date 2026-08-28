@@ -64,57 +64,46 @@ export interface WorkspaceEditorService {
 }
 
 /** Host adapter; domain services remain the only layer write owners. */
-export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline?: NovelOutlineService, relationship?: NovelRelationshipService, state?: NovelStateService, canon?: NovelCanonService, confirmation?: NovelConfirmationService, projects?: NovelProjectService, upload?: NovelHostUploadService, text?: NovelTextService, textEdit?: NovelTextEditService): WorkspaceEditorService {
-  if (!outline || !relationship) throw new Error('B5/C1 Host services are required');
-  // I60：C5 只读走 I6 `novelText` owner；open 幂等（目录已存在时只登记 repository）。
-  const requireText = (): NovelTextService => {
-    if (!text) throw new Error('C5 Host service is required');
-    return text;
-  };
-  // I61：受控编辑走 I42/I11 `novelTextEdit` owner（文本写仍归 I6 TextRepository）。
-  const requireTextEdit = (): NovelTextEditService => {
-    if (!textEdit) throw new Error('C5 edit Host service is required');
-    return textEdit;
-  };
+export function createWorkspaceEditorService(characters: NovelCharacterService, worldview: NovelWorldviewService, outline: NovelOutlineService, relationship: NovelRelationshipService, state: NovelStateService, canon: NovelCanonService, confirmation: NovelConfirmationService, projects: NovelProjectService, upload: NovelHostUploadService, text: NovelTextService, textEdit: NovelTextEditService): WorkspaceEditorService {
   return {
     viewModel: workspaceViewModel,
     characterList: (id) => characters.list(id), characterRead: (id, entity) => characters.read(id, entity), characterCreate: (id, input) => characters.create(id, input), characterUpdate: (id, entity, patch) => characters.update(id, entity, patch),
     worldviewList: (id) => worldview.list(id), worldviewRead: (id, entity) => worldview.read(id, entity), worldviewCreate: (id, input) => worldview.create(id, input), worldviewRewrite: (id, entity, input) => worldview.rewrite(id, entity, input),
     outlineRead: (id) => outline.read(id), outlineSave: (id, input) => outline.save(id, input), outlineBeatCards: (id) => outline.beatCards(id), relationshipRead: (id) => relationship.read(id), relationshipSave: (id, input) => relationship.save(id, input),
-    stateCurrent: (id) => { if (!state) throw new Error('C2 Host service is required'); return state.current(id); }, stateSnapshots: (id) => { if (!state) throw new Error('C2 Host service is required'); return state.snapshots(id); }, stateRollback: (id, seq) => { if (!state) throw new Error('C2 Host service is required'); return state.rollback(id, seq); }, stateDiff: (id, from, to) => { if (!state) throw new Error('C2 Host service is required'); return state.diff(id, from, to); },
-    canonQuery: (id, filter) => { if (!canon) throw new Error('C4 Host service is required'); return canon.query(id, filter); },
-    canonCorrectionPropose: (id, targetId, input) => { if (!confirmation) throw new Error('Confirmation Host service is required'); return confirmation.propose(id, { id: input.id, kind: 'canon-supersede', payload: { targetId, correction: input } }); },
-    canonCorrectionAccept: async (id, proposalId) => { if (!confirmation || !canon) throw new Error('C4 and Confirmation Host services are required'); const record = await confirmation.accept(id, proposalId); if (record.kind !== 'canon-supersede') throw new Error('Invalid canon correction proposal kind'); const payload = record.payload as { targetId?: string; correction?: CanonCorrectionInput }; if (!payload.targetId || !payload.correction) throw new Error('Invalid canon correction proposal payload'); const existing = canon.query(id).find((event) => event.id === payload.correction?.id); return { confirmation: record, event: existing ?? await canon.supersede(id, payload.targetId, payload.correction) }; },
+    stateCurrent: (id) => state.current(id), stateSnapshots: (id) => state.snapshots(id), stateRollback: (id, seq) => state.rollback(id, seq), stateDiff: (id, from, to) => state.diff(id, from, to),
+    canonQuery: (id, filter) => canon.query(id, filter),
+    canonCorrectionPropose: (id, targetId, input) => confirmation.propose(id, { id: input.id, kind: 'canon-supersede', payload: { targetId, correction: input } }),
+    canonCorrectionAccept: async (id, proposalId) => { const record = await confirmation.accept(id, proposalId); if (record.kind !== 'canon-supersede') throw new Error('Invalid canon correction proposal kind'); const payload = record.payload as { targetId?: string; correction?: CanonCorrectionInput }; if (!payload.targetId || !payload.correction) throw new Error('Invalid canon correction proposal payload'); const existing = canon.query(id).find((event) => event.id === payload.correction?.id); return { confirmation: record, event: existing ?? await canon.supersede(id, payload.targetId, payload.correction) }; },
     // I60：只读投影 —— 跨项目拒绝由「按 projectId 隔离的 repository + Unknown chapter」
     // 保证（项目 B 读项目 A 的章节 id 必然不存在）；未知场景引用显式抛错。
-    chapterList: async (id) => { const t = requireText(); await t.open(id); return projectChapterList(await t.listChapters(id)); },
-    chapterRead: async (id, chapterId) => { const t = requireText(); await t.open(id); return toChapterReadResult(await t.readChapter(id, chapterId)); },
-    sceneRead: async (id, chapterId, sceneId) => { const t = requireText(); await t.open(id); const chapter = await t.readChapter(id, chapterId); const scene = chapter.scenes.find((item) => item.id === sceneId); if (!scene) throw new Error(`Unknown scene: ${sceneId}`); return toSceneReadResult(chapter, scene); },
+    chapterList: async (id) => { await text.open(id); return projectChapterList(await text.listChapters(id)); },
+    chapterRead: async (id, chapterId) => { await text.open(id); return toChapterReadResult(await text.readChapter(id, chapterId)); },
+    sceneRead: async (id, chapterId, sceneId) => { await text.open(id); const chapter = await text.readChapter(id, chapterId); const scene = chapter.scenes.find((item) => item.id === sceneId); if (!scene) throw new Error(`Unknown scene: ${sceneId}`); return toSceneReadResult(chapter, scene); },
     // I61 受控编辑（R13-2）：文本写与 Gate 归 novelTextEdit；投影仍走最小 owned JSON。
     // sceneEdit 只写 C5；reparse 三方法经 I11 提案→accept/reject（未确认/拒绝零写）。
     // 写回后统一经 textService 重读并投影，保证 Client 只见合法 SceneReadShape。
     sceneEdit: async (id, chapterId, sceneId, range, replacement, baseHash) => {
-      const e = requireTextEdit(); await e.open(id);
-      const result = await e.edit(id, chapterId, sceneId, range, replacement, baseHash);
-      const t = requireText(); const chapter = await t.readChapter(id, chapterId);
+      await textEdit.open(id);
+      const result = await textEdit.edit(id, chapterId, sceneId, range, replacement, baseHash);
+      const chapter = await text.readChapter(id, chapterId);
       const scene = chapter.scenes.find((item) => item.id === sceneId);
       if (!scene) throw new Error(`Unknown scene: ${sceneId}`);
       return Object.freeze({ scene: toSceneReadResult(chapter, scene).scene, evidence: result.evidence });
     },
     sceneReparsePropose: async (id, chapterId, sceneId, range, replacement, baseHash) => {
-      const e = requireTextEdit(); await e.open(id);
-      return e.reparsePropose(id, chapterId, sceneId, range, replacement, baseHash);
+      await textEdit.open(id);
+      return textEdit.reparsePropose(id, chapterId, sceneId, range, replacement, baseHash);
     },
     sceneReparseAccept: async (id, chapterId, sceneId, range, replacement, proposalId, baseHash) => {
-      const e = requireTextEdit(); await e.open(id);
-      const result = await e.reparseAccept(id, chapterId, sceneId, range, replacement, proposalId, baseHash);
-      const t = requireText(); const chapter = await t.readChapter(id, chapterId);
+      await textEdit.open(id);
+      const result = await textEdit.reparseAccept(id, chapterId, sceneId, range, replacement, proposalId, baseHash);
+      const chapter = await text.readChapter(id, chapterId);
       const scene = chapter.scenes.find((item) => item.id === sceneId);
       if (!scene) throw new Error(`Unknown scene: ${sceneId}`);
       return Object.freeze({ status: result.status, scene: toSceneReadResult(chapter, scene).scene, layers: result.layers });
     },
-    sceneReparseReject: async (id, proposalId) => { const e = requireTextEdit(); await e.open(id); return e.reparseReject(id, proposalId); },
-    projectList: () => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.listProjects(); }, projectCreate: (input) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.createProject(input); }, projectOpen: (id) => { if (!projects) throw new Error('Project lifecycle Host service is required'); return projects.openProject(id); },
-    uploadStart: (input) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadStart(input); }, uploadChunk: (uploadId, index, base64) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadChunk(uploadId, index, base64); }, uploadFinalize: (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); return upload.uploadFinalize(uploadId); }, uploadCancel: async (uploadId) => { if (!upload) throw new Error('Upload Host service is required'); await upload.uploadCancel(uploadId); },
+    sceneReparseReject: async (id, proposalId) => { await textEdit.open(id); return textEdit.reparseReject(id, proposalId); },
+    projectList: () => projects.listProjects(), projectCreate: (input) => projects.createProject(input), projectOpen: (id) => projects.openProject(id),
+    uploadStart: (input) => upload.uploadStart(input), uploadChunk: (uploadId, index, base64) => upload.uploadChunk(uploadId, index, base64), uploadFinalize: (uploadId) => upload.uploadFinalize(uploadId), uploadCancel: async (uploadId) => { await upload.uploadCancel(uploadId); },
   };
 }

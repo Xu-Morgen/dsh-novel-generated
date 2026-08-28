@@ -5,6 +5,8 @@ import { unwrap } from '../shared.js';
 import type { QueueEditOps, QueueLayerState, QueueStartInputShape, QueueStatusShape, QueueTaskShape } from '../layers/queue.js';
 import type { OpsContext } from './context.js';
 
+export const QUEUE_POLL_INTERVAL_MS = 2_000;
+
 export function createQueueOps(ctx: OpsContext): QueueEditOps {
   const { act, snapshot, beginOp, endOp, active } = ctx;
   const projectId = ctx.projectId;
@@ -24,7 +26,7 @@ export function createQueueOps(ctx: OpsContext): QueueEditOps {
           const next = projection as QueueStatusShape;
           queuePatch({ projection: next });
           if (next.runState === 'running' || next.runState === 'paused') {
-            queuePollTimer = setTimeout(pollQueueStatus, 2000);
+            queuePollTimer = setTimeout(pollQueueStatus, QUEUE_POLL_INTERVAL_MS);
           } else {
             clearQueuePoll();
           }

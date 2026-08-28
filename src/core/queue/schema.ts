@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { entityIdSchema } from '../schema/base.js';
+import { GenerationSettingsSchema } from '../schema/generation-settings.js';
 
 /**
  * I65 可恢复自动生成队列 —— 纯 zod wire 合同（design §14.9 / R13-6）。
@@ -32,14 +33,7 @@ export const queueTaskStatusSchema = z.enum(['queued', 'running', 'candidate-rea
 export type QueueTaskStatus = z.infer<typeof queueTaskStatusSchema>;
 
 /** 生成设置的最小持久化投影（modelRef/credentialRef 是引用名，非密钥；I65 恢复用）。 */
-export const queueSettingsSchema = z.object({
-  modelRef: z.string().min(1),
-  credentialRef: z.string().min(1),
-  temperature: z.number().min(0).max(2).optional(),
-  maxTokens: z.number().int().positive().optional(),
-  stopSequences: z.array(z.string().min(1)).optional(),
-  reasoning: z.enum(['off', 'low', 'high', 'max']).optional(),
-}).strict();
+export const queueSettingsSchema = GenerationSettingsSchema;
 export type QueueSettings = z.infer<typeof queueSettingsSchema>;
 
 /** OutlineNavigation 的持久化 wire 形状（队列自有投影，不复制领域 truth）。 */

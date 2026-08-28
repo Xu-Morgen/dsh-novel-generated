@@ -16,6 +16,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/canon.ts',
   'src/core/schema/characters.ts',
   'src/core/schema/confirm.ts',
+  'src/core/schema/generation-settings.ts',
   'src/core/schema/inspiration.ts',
   'src/core/schema/knowledge.ts',
   'src/core/schema/llm-config.ts',

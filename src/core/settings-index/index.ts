@@ -4,7 +4,11 @@ import { join, resolve } from 'node:path';
 import { z } from 'zod';
 
 import { readYaml, writeYaml } from '../io/yaml.js';
-import { GenerationSettingsSchema, type GenerationSettings } from '../../llm/port/index.js';
+import { GenerationSettingsSchema, type GenerationSettings } from '../schema/generation-settings.js';
+import { a2IdSchema, PromptTemplateSchema, InstructPresetSchema, type InstructPreset, type PromptTemplate } from '../schema/prompt-template.js';
+
+// Compatibility surface for existing settings-index consumers.
+export { PromptTemplateSchema, InstructPresetSchema, type InstructPreset, type PromptTemplate } from '../schema/prompt-template.js';
 
 /** The Host-only persistence filename for A2 mechanism configuration (design §5.2). */
 export const A2_SETTINGS_FILE = 'a2-settings.yaml';
@@ -12,7 +16,6 @@ export const A2_SETTINGS_FILE = 'a2-settings.yaml';
 /** Default Host location when no `settingsRoot` is configured (mirrors settings-service). */
 export const DEFAULT_SETTINGS_ROOT = join(homedir(), '.dsh', 'novel-settings');
 
-const id = z.string().min(1).regex(/^[a-z][a-z0-9-]*$/, 'ID must be lowercase kebab-case');
 const modelRef = z.string().regex(/^[^/\s]+\/[^/\s]+$/, 'modelRef must use provider/model format');
 
 /** Controlled sampling settings accepted by the DSH Host LLM adapter. */
@@ -29,49 +32,19 @@ export type SamplingConfig = z.infer<typeof SamplingConfigSchema>;
  * credential/settings reference, never a raw secret or endpoint (design §0.1.2).
  */
 export const BackendRouteSchema = z.object({
-  id,
+  id: a2IdSchema,
   modelRef,
   secretRef: z.string().regex(/^[A-Z_][A-Z0-9_]*$/, 'secretRef must be a DSH credential environment reference'),
   sampling: SamplingConfigSchema.default({}),
 }).strict();
 export type BackendRoute = z.infer<typeof BackendRouteSchema>;
 
-/** A prompt shell whose named sections have a deterministic declared order. */
-export const PromptTemplateSchema = z.object({
-  id,
-  backendRef: id,
-  roleHeaders: z.object({ system: z.string().min(1), user: z.string().min(1), assistant: z.string().min(1) }).strict(),
-  sectionOrder: z.array(z.string().min(1)).min(1),
-  stopSequences: z.array(z.string().min(1)),
-}).strict().superRefine((value, ctx) => {
-  if (new Set(value.sectionOrder).size !== value.sectionOrder.length) {
-    ctx.addIssue({ code: 'custom', message: 'Prompt template sectionOrder must not contain duplicates', path: ['sectionOrder'] });
-  }
-});
-export type PromptTemplate = z.infer<typeof PromptTemplateSchema>;
-
-/** Optional Instruct/Jailbreak framing bound to exactly one configured backend. */
-export const InstructPresetSchema = z.object({
-  id,
-  backendRef: id,
-  systemPrompt: z.string(),
-  jailbreak: z.string().optional(),
-  activationRegex: z.string().optional(),
-}).strict().superRefine((value, ctx) => {
-  if (value.activationRegex !== undefined) {
-    try { new RegExp(value.activationRegex); } catch {
-      ctx.addIssue({ code: 'custom', message: 'Instruct preset activationRegex is invalid', path: ['activationRegex'] });
-    }
-  }
-});
-export type InstructPreset = z.infer<typeof InstructPresetSchema>;
-
 export const A2SettingsSchema = z.object({
   version: z.literal(1),
   backends: z.array(BackendRouteSchema).min(1),
   templates: z.array(PromptTemplateSchema).min(1),
   presets: z.array(InstructPresetSchema),
-  active: z.object({ backendId: id, templateId: id, presetId: id.optional() }).strict(),
+  active: z.object({ backendId: a2IdSchema, templateId: a2IdSchema, presetId: a2IdSchema.optional() }).strict(),
 }).strict().superRefine((value, ctx) => {
   assertUnique(value.backends, 'backend', ctx);
   assertUnique(value.templates, 'template', ctx);

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "workspace-integrity",
+  "type": "workspace-check",
+  "source": "aegis-workspace.py bundle/check + docs/aegis/INDEX.md scan",
+  "summary": "I84 proof bundle assembled and all 17 I84 records indexed; global check exit 1 only for pre-existing unindexed I12/I19/I21/I24/I25/I28/I29/I44/I45 work markdown outside I84 scope",
+  "verifier": "DSH helper and coordinator"
+}

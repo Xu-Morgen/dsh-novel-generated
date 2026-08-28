@@ -1,18 +1,16 @@
 import { readFile, lstat, realpath } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
-import { readDocxText } from './docx.js';
+import { readDocxText } from '../core/docx/index.js';
+import { chunkText, normalizeText, textChunkSchema, type ImportedChunk } from '../core/text/pipeline.js';
+
+export type { ImportedChunk } from '../core/text/pipeline.js';
 
 export const importFormatSchema = z.enum(['txt', 'md', 'docx']);
 export type ImportFormat = z.infer<typeof importFormatSchema>;
 
-export const importedChunkSchema = z.object({
-  index: z.number().int().nonnegative(),
-  text: z.string().min(1),
-  startOffset: z.number().int().nonnegative(),
-  endOffset: z.number().int().positive(),
-}).strict();
-export type ImportedChunk = z.infer<typeof importedChunkSchema>;
+/** Compatibility export; canonical shape owner is core/text/pipeline. */
+export const importedChunkSchema = textChunkSchema;
 
 export const pendingImportCandidateSchema = z.object({
   id: z.string().min(1),
@@ -53,35 +51,6 @@ function assertInside(root: string, target: string): void {
   if (isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) fail('path escapes import root');
 }
 
-function normalizeText(input: string): string {
-  const normalized = input.replace(/^\uFEFF/, '').normalize('NFC').replace(/\r\n?/g, '\n');
-  return normalized.split('\n').map((line) => line.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function chunkText(text: string, size: number): ImportedChunk[] {
-  const chunks: ImportedChunk[] = [];
-  let cursor = 0;
-  let index = 0;
-  while (cursor < text.length) {
-    const limit = Math.min(cursor + size, text.length);
-    let end = limit;
-    if (limit < text.length) {
-      const boundary = text.lastIndexOf('\n\n', limit);
-      if (boundary > cursor + Math.floor(size / 2)) end = boundary;
-    }
-    const value = text.slice(cursor, end).trim();
-    if (value) {
-      const startOffset = cursor + text.slice(cursor, end).search(/\S/);
-      const endOffset = startOffset + value.length;
-      chunks.push(importedChunkSchema.parse({ index, text: value, startOffset, endOffset }));
-      index += 1;
-    }
-    cursor = end;
-    while (cursor < text.length && /\s/.test(text[cursor])) cursor += 1;
-  }
-  return chunks;
-}
-
 /**
  * I69 文本化导入入口：对已解码文本跑 I37 同一套规范化 + 确定性分块（零写）。
  * 供作品设置「导入预览」Remote 复用文件导入的同一 normalize/chunk 不变式，
@@ -96,7 +65,7 @@ export function normalizeTextInput(
   if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) fail('chunkSize must be positive');
   const text = normalizeText(raw);
   if (!text) fail('normalized text is empty');
-  return Object.freeze({ format, text, chunks: chunkText(text, chunkSize) });
+  return Object.freeze({ format, text, chunks: chunkText(text, chunkSize).map((chunk) => importedChunkSchema.parse(chunk)) });
 }
 
 /**
@@ -133,7 +102,7 @@ export async function readImportedText(filePath: string, options: ImportOptions)
   }
   const text = normalizeText(raw);
   if (!text) fail('normalized text is empty');
-  return Object.freeze({ format, sourcePath: target, text, chunks: chunkText(text, chunkSize) });
+  return Object.freeze({ format, sourcePath: target, text, chunks: chunkText(text, chunkSize).map((chunk) => importedChunkSchema.parse(chunk)) });
 }
 
 /** Run a fake or future splitter while preserving pending-only candidate semantics. */

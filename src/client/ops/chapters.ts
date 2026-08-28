@@ -2,6 +2,7 @@
 // chapters 层编辑动作 = I60/I61 C5 正文工作台 ops（R13-1/R13-2）：只读导航 + 受控编辑 + I63 候选裁决 + I70 版本/分支。
 
 import { unwrap } from '../shared.js';
+import { sha256Hex } from '../sha256.js';
 import type { BranchNamespace } from '../shared.js';
 import { computeEditRange } from '../layers/chapters.js';
 import type { BranchDiffLineShape, BranchPanelState, BranchSummaryShape, CandidatePanelState, CandidateReviewShape, ChapterReadShape, ChaptersEditOps, SceneEditorState, SceneReadShape } from '../layers/chapters.js';
@@ -16,10 +17,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
   const branchNamespace = ctx.branchNamespace;
       const editorPatch = (patch: Partial<SceneEditorState>): void => act.sceneEditor(patch);
       const reparseLocked = (state: SceneEditorState): boolean => state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
-      const hashText = async (text: string): Promise<string> => {
-        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-        return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-      };
+      const hashText = sha256Hex;
       // ---- I70 版本/分支面板（R14-5）：列表装载 / 命名存档 / 选用 / 对比 ----
       const branchesPatch = (patch: Partial<BranchPanelState>): void => act.chaptersBranches(patch);
       // 注意：branchesLoad 必须显式接收 chapterId/sceneId —— makeOps 渲染闭包
