@@ -21,7 +21,7 @@ import type { NovelInspirationService, InspirationResult } from '../host/inspira
 import type { NovelConfirmationService } from '../host/confirmation-service.js';
 import type { NovelWritingAdjudicationService, WritingAdjudicationOutcome } from '../host/writing-adjudication-service.js';
 import type { WritingCandidate } from '../core/candidate/index.js';
-import { createNextSceneContextBuilder, type NovelAgentContext, type NovelCreationSettingsView } from '../host/writing-context.js';
+import type { NextSceneContextProvider, NovelAgentContext, NovelCreationSettingsView } from '../host/writing-context.js';
 
 /**
  * 小说创作 Agent 工具层（对话驱动写作，design §14.8 之后新增的对话创作入口）。
@@ -63,6 +63,13 @@ export interface NovelAgentDeps {
   readonly writing: NovelWritingAdjudicationService;
   readonly inspiration: NovelInspirationService;
   readonly confirmation: NovelConfirmationService;
+  /**
+   * I87：下一场景上下文装配（review v2.0 §3.2 双 owner 消除）——由组合根注入的
+   * **同一** `NextSceneContextProvider` 实例（与 GUI 写作裁决路径共享，含 timeline
+   * 过滤）；本模块不再自建第二套 builder，`novel_context` 展示与 `novel_continue`
+   * prompt 基于同一上下文，杜绝「未来」关系泄漏。
+   */
+  readonly context: NextSceneContextProvider;
   /** 解析当前活动生成设置（modelRef/credentialRef/maxTokens/思维链）。 */
   readonly resolveSettings: () => Promise<GenerationSettings>;
   /** 创作台通用设置：目标字数 + 内容不足时是否询问。 */
@@ -98,8 +105,8 @@ export interface NovelAgentService {
 
 export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService {
   const opened = new Set<string>();
-  // 共享下一场景上下文装配（与 GUI 写作裁决服务同一 builder，AGENTS §2 不复制）。
-  const contextBuilder = createNextSceneContextBuilder(deps);
+  // I87：上下文装配由组合根注入的同一 NextSceneContextProvider 提供（与写作裁决
+  // 路径共享实例，review v2.0 §3.2 双 owner 消除）；本模块不再自建第二套 builder。
 
   async function openProject(projectId: string): Promise<ProjectOpenResult> {
     validateProjectId(projectId);
@@ -147,7 +154,7 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
     },
     async context(projectId) {
       await openProject(projectId);
-      return contextBuilder.context(projectId);
+      return deps.context.context(projectId);
     },
     async proposeContinue(projectId, signal) {
       await openProject(projectId);

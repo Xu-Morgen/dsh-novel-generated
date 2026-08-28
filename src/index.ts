@@ -599,6 +599,9 @@ export function apply(ctx: Context, config: NovelCreationConfig = {}): void {
     knowledge: knowledgeService,
     text: textService,
     writing: writingAdjudicationService,
+    // I87：复用生产候选路径的同一 NextSceneContextProvider（含 timeline 过滤），
+    // agent 不再自建第二套 builder（review v2.0 §3.2 双 owner 消除）。
+    context: nextSceneContext,
     inspiration: inspirationService,
     confirmation: confirmationService,
     resolveSettings: resolveGenerationSettings,

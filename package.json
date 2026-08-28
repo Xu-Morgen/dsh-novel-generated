@@ -234,6 +234,8 @@
     "verify:stage-16": "pnpm run verify:i85",
     "smoke:i86": "node scripts/smoke-i86.mjs",
     "verify:i86": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i86 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
+    "smoke:i87": "node scripts/smoke-i87.mjs",
+    "verify:i87": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i87 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "smoke:i103": "node scripts/smoke-i103.mjs",
     "verify:i103": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i103",
     "smoke:i104": "node scripts/smoke-i104.mjs",

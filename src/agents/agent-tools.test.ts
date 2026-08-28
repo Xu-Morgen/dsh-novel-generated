@@ -19,7 +19,7 @@ import { createInspirationService } from '../host/inspiration-service.js';
 import { createConsistencyDetectionService } from '../host/consistency-detection-service.js';
 import { createKnowledgeLeakDetectionService } from '../host/knowledge-leak-detection-service.js';
 import { createRelationshipStyleDetectionService } from '../host/relationship-style-detection-service.js';
-import { createNextSceneContextBuilder } from '../host/writing-context.js';
+import { createNextSceneContextBuilder, type NextSceneContextProvider } from '../host/writing-context.js';
 import { createWritingAdjudicationService } from '../host/writing-adjudication-service.js';
 import { INITIAL_STATE } from '../core/schema/project-lifecycle.js';
 import { createNovelAgentService, registerNovelAgentTools, type NovelAgentDeps } from './agent-tools.js';
@@ -57,7 +57,10 @@ interface Setup {
   seen: string[];
 }
 
-async function setup(creation?: { wordTarget?: number; askWhenThin?: boolean }): Promise<Setup> {
+async function setup(
+  creation?: { wordTarget?: number; askWhenThin?: boolean },
+  wrapContext?: (real: NextSceneContextProvider) => NextSceneContextProvider,
+): Promise<Setup> {
   const root = await mkdtemp(join(tmpdir(), 'novel-agent-tools-'));
   const seen: string[] = [];
   const characters = createCharacterService(root);
@@ -74,10 +77,13 @@ async function setup(creation?: { wordTarget?: number; askWhenThin?: boolean }):
   const text = createTextService(root);
   const inspiration = createInspirationService(fakeLlm());
   const llm = fakeLlm(seen);
-  const context = createNextSceneContextBuilder({
+  // I87：上下文 provider 由组合根注入（与写作裁决路径同一实例，见一致性测试）；
+  // 测试默认把同一 builder 实例传给两个 owner，镜像生产装配。
+  const realContext = createNextSceneContextBuilder({
     outline, characters, worldview, relationship, state, canon, style, rules, knowledge, text,
     workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
   });
+  const context = wrapContext === undefined ? realContext : wrapContext(realContext);
   const writing = createWritingAdjudicationService({
     llm,
     projectsRoot: root,
@@ -91,6 +97,7 @@ async function setup(creation?: { wordTarget?: number; askWhenThin?: boolean }):
   const deps: NovelAgentDeps = {
     project, characters, worldview, outline, relationship, state, canon,
     style, rules, knowledge, text, writing, inspiration, confirmation,
+    context,
     resolveSettings: async () => settings,
     workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
   };
@@ -270,6 +277,33 @@ describe('novel agent tools（对话创作入口）', () => {
       // 端到端：存在 rewritten 条目时，续写候选不再抛「World entry hit must be active」。
       const { candidate } = await agent.proposeContinue('demo');
       expect(candidate.text).toBe('米拉在码头找到铜钥匙。');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('I87：novel_context 与 novel_continue 基于同一 NextSceneContextProvider 实例（双 owner 消除）', async () => {
+    // 双 owner 语义分叉（review v2.0 §3.2）：agent 自建 context builder 时可能暴露
+    // 「未来」关系（无 timeline 过滤）。修复后 provider 由组合根注入——同一实例同时
+    // 服务 novel_context 展示与 novel_continue 的 prompt 装配（写作裁决服务内部）。
+    // wrapContext 用 spy 包装真实 builder 并交给两个 owner：断言两条路径命中同一
+    // provider 实例（代理委托真实装配，语义不变）。
+    const usedBy: string[] = [];
+    const { agent, deps, root } = await setup(undefined, (real) => ({
+      async context(projectId) {
+        usedBy.push(projectId);
+        return real.context(projectId);
+      },
+    }));
+    try {
+      await seedProject(deps, 'demo');
+      // novel_context：经注入的 provider 展示。
+      const shown = await agent.context('demo');
+      expect(shown.card.id).toBe('detail-1');
+      // novel_continue：prompt 装配（写作裁决服务 propose → candidate production）
+      // 复用同一 provider —— 与 novel_context 的展示基于同一上下文。
+      await agent.proposeContinue('demo');
+      expect(usedBy.filter((projectId) => projectId === 'demo').length).toBeGreaterThanOrEqual(2);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
