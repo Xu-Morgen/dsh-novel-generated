@@ -147,4 +147,19 @@ describe('I32 Host Extension seams', () => {
     } finally { await rm(projectsRoot, { recursive: true, force: true }); }
   });
 
+  it('I99 ignores post-registration mutation of the original definition (immutable projection)', () => {
+    const service = createExtensionService(undefined);
+    const definition: { id: string; kind: string; layerId: string; schema: z.ZodType<unknown> } =
+      { id: 'economy-provider', kind: 'provider', layerId: 'economy', schema: economySchema };
+    service.register(definition as never);
+    // 注册后突变原对象：不变量（id/kind/layerId）必须仍按注册时快照生效。
+    definition.kind = 'validator';
+    definition.layerId = 'hacked-layer';
+    const seams = service.seams();
+    expect(seams.providers).toHaveLength(1);
+    expect(seams.providers[0].id).toBe('economy-provider');
+    expect(seams.providers[0].kind).toBe('provider');
+    expect(seams.providers[0].layerId).toBe('economy');
+    expect(seams.validators).toHaveLength(0);
+  });
 });

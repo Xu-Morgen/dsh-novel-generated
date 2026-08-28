@@ -127,7 +127,11 @@ export class ExtensionRegistry {
     const id = extensionIdSchema.parse(extension.id);
     if (this.registrations.has(id)) throw new Error(`Duplicate extension id: ${id}`);
     if ('layerId' in extension) this.assertLayerSeamAvailable(extension.kind, extension.layerId);
-    this.registrations.set(id, { definition: extension, armed: extension.kind !== 'relationship-rule' });
+    // I99（review v2.0 §8#5 / 计划 §18 I99）：注册时顶层浅拷贝并冻结，保存不可变
+    // 快照——注册后对原对象突变（id/kind/layerId 等不变量字段）不再能绕过注册时
+    // 的校验；schema/函数等引用原样保留（只冻结投影顶层，不深拷 zod/函数）。
+    const snapshot = Object.freeze({ ...extension });
+    this.registrations.set(id, { definition: snapshot, armed: extension.kind !== 'relationship-rule' });
 
     let released = false;
     const release = () => {
