@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/novel-creation-tool-design.md v2.4 §0.1/D20/D23/§14.13",
+    "docs/novel-creation-tool-requirements.md v2.4 H0-11..13/R17",
+    "docs/novel-creation-tool-development-plan.md v2.4 I85 lines 826-838"
+  ],
+  "whyRelevant": "These files own the immutable host baseline, acceptance criteria, scope fence, and rollback rule.",
+  "missingAuthority": []
+}

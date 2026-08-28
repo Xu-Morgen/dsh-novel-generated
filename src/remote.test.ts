@@ -16,7 +16,7 @@ import {
  * out-of-tree plugin exposes one Remote method, `novelProbe/probe`, through the
  * public Typert registry (`ctx.typert.register`). This is NOT dynamic
  * `harness.handle`/`host.call` and NOT an internal builder — it is the
- * version-locked public contract (@deepseek-ai/dsh-typert-*@0.1.0-rc.7).
+ * version-locked public contract (@deepseek-ai/dsh-typert-*@0.1.1-rc.2, I85).
  */
 describe('I2 public Remote probe', () => {
   it('registers the contribution and resolves the endpoint, then disposes', async () => {

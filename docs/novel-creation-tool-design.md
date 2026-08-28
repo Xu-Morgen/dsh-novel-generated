@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v2.4
-> 状态：v2.4 当前设计权威；I1–I84 已完成，I85 为已批准待执行的 DSH family 兼容升级迭代；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v2.4 当前设计权威；**I1–I85 全部完成**（I85 为 DSH family `0.1.1-rc.2` 兼容升级，唯一项目 pin 已切换）；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -61,7 +61,7 @@
 ### 0.1.3 包、构建、发现与 Host–Client 兼容性门
 
 - 生产安装与发现严格引用 §0.1.1 的唯一合同，不在本节另立依赖、patch、bundle 或仓库 composition 规则。
-- **运行时观测与项目 pin 必须分离**：当前已安装 DSH 运行时观测为 `0.1.1-rc.2`，Cordis 为 `4.0.1`；项目根 `package.json`、selected-profile 示例与权威 lockfile 当前仍固定 DSH family `0.1.0-rc.7`。I85 完成前，`0.1.1-rc.2` 只能称为运行时观测版本，不能称为可复现项目依赖基线；`0.1.0-rc.7` 仍是项目 pin。I85 必须在同一干净迭代内更新 manifest/profile/lockfile，并通过真实 selected-profile base+web+plugin boot、完整 Client gate 与生命周期验证后，才能把唯一项目 pin 切换为 `0.1.1-rc.2`。任何后续升级仍必须进入专门兼容性迭代。
+- **运行时观测与项目 pin 必须分离（I85 已完成切换）**：I85 把唯一可复现项目 DSH family pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`——manifest（根 `package.json`）、selected-profile 示例与权威 lockfile 现全部精确固定 `0.1.1-rc.2`（Cordis 保持已验证 `4.0.1` 兼容线），并通过真实 selected-profile base+web+plugin boot、完整 Client gate 与生命周期验证。`0.1.1-rc.2` 现为唯一项目 pin，不再是运行时观测版本。任何后续升级仍必须进入专门兼容性迭代。
 - **I1（Host-only 地基）**：package manifest 必须通过 I1 建立并验证的项目 DSH 基线公共入口暴露 Host；Host 构建必须能被实际安装并由所选 profile 启动。I1 严格为 Host-only，**不尝试 Client gate**，不得预建 Client seam、伪 RPC、Client probe、产品 UI 或独立 UI fallback。
 - **I2（专用兼容性门迭代）**：I2 是唯一获准在门禁通过前产生 Client 代码的例外，但只可构建证明普通 out-of-tree plugin 公共合同所必需的**最小、非产品 Client probe**。该 probe 仅用于证明公共 client bundling/装载、按 §0.1.1 完成 selected profile boot、向一个经核验 Slot 注册以及 Fiber dispose 后完整卸载；不得加入任何产品 UI、领域行为、产品 Host–Client seam、独立 HTML、独立 SPA 或其他 standalone 路径。
 - **I2 通过条件与停止线**：I2 必须针对 I1 的项目依赖基线证明普通 out-of-tree plugin 可用且受支持的**公共 Remote 合同与公共 client bundling/装载合同**，并留下真实 package build、selected profile boot、单一 Slot 注册/卸载 smoke 的可执行证据。不得以动态插件的 `harness.handle` / `host.call`（动态 RPC）代替证明，也不得采用未发布或 internal 的 builder/`clientBundle` API 作为 fallback。若该公开、受支持的 out-of-tree 合同不能被证明，I2 判失败并停止，**不得开始任何产品 Client 工作**。
@@ -901,7 +901,7 @@ project/
 | D20 | 创作台侧区落点与兼容门 | 替换 `sidebar`/`details` 单槽 / 居中浮窗继续存在 / DSH additive 侧区 Slot 优先、否则 `shell.overlay` 右侧停靠侧板 | ✅ 已定（I54）：I54 执行前先核验所选 DSH 版本及最新公开 Slot 合同；若新版已有 additive 侧区内容 Slot，停止并先通知用户升级、更新项目兼容基线后再实现；若仍无，则使用 `shell.overlay` list Slot 渲染贴右、全高、非模态停靠侧板。I54 执行时 `0.1.0-rc.7` 的 live Slot tree，以及 `0.1.1-rc.2` 发布包 `dsh-client-ui-slots`、`dsh-client-ui-sidebar`、`dsh-client-ui-layout`、`dsh-client-ui-workspace` 的静态合同核验，均未发现该公共 Slot，故当前目标为右侧停靠侧板（发布参考：https://github.com/deepseek-ai/DeepSeek-Harness/releases/tag/dsh-v0.1.1-rc.2）。禁止接管 `sidebar`/`details` 单槽，禁止保留居中浮窗与停靠侧板双路径。 |
 | D21 | 架构债务治理策略 | 不立项（继续功能优先）/ 一次巨型重构 / 按架构审查 §9 性价比排序的分阶段重构 | ✅ 已定（v2.3，Stage 15 立项）：新增 Stage 15（I75–I84）分阶段重构；纯机械重构优先（共享 Remote 接线层、llm 公共基座、core 文件拆分），结构性拆分一次一个切片（两个 god service、client.ts）；重构只消除复制与接线债务，不改变领域契约与公开 Remote 形状；每个迭代以「既有验收回归全绿 + 本迭代负向扫描断言」为完成条件，禁止夹带新功能。 |
 | D22 | 契约单一来源方式 | 继续手写多重复声明 / 引入独立 codegen 工具链 / 复用 core schema 派生 + 启用 `contracts/` 形状本体 | ✅ 已定（v2.3，I77–I78）：wire schema 从 core schema 派生（沿用 timeline/editor 直接复用先例）；`contracts/` 存形状本体并加一致性断言；Client 投影 shape 用可打包纯 zod 直用；**不引入独立 codegen 工具链**（避免第二构建面）。 |
-| D23 | DSH `0.1.1-rc.2` 基线切换方式 | 直接改文档声称已升级 / 回写已完成 I54 / 新增专门兼容迭代 | ✅ 已定（v2.4，Stage 16 / I85）：先诚实记录“当前运行时观测 `0.1.1-rc.2`、项目 pin 仍为 `0.1.0-rc.7`”双状态；I85 一次性更新 DSH family manifest/profile/lockfile 并重跑完整 Host+Client+Remote+Tools+LLM 兼容门，全部通过后才切换唯一项目 pin。不得改写 I54 历史，不保留 rc.7 运行时 fallback，不触碰作品 source of truth。 |
+| D23 | DSH `0.1.1-rc.2` 基线切换方式 | 直接改文档声称已升级 / 回写已完成 I54 / 新增专门兼容迭代 | ✅ 已定并完成（v2.4，Stage 16 / I85）：先诚实记录“当前运行时观测 `0.1.1-rc.2`、项目 pin 仍为 `0.1.0-rc.7`”双状态；I85 一次性更新 DSH family manifest/profile/lockfile 并重跑完整 Host+Client+Remote+Tools+LLM 兼容门，全部通过后切换唯一项目 pin（现为 `0.1.1-rc.2`）。未改写 I54 历史，不保留 rc.7 运行时 fallback，未触碰作品 source of truth。 |
 
 ---
 
@@ -1065,13 +1065,30 @@ project/
 
 ### 14.13 DSH family `0.1.1-rc.2` 兼容升级（Stage 16，I85，v2.4）
 
-> 定位：I1–I84 完成后，消除当前运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的版本漂移。该阶段只升级并验证宿主公共合同，不新增产品功能、不改变领域或公开 Remote/wire 契约。
+> 定位：I1–I84 完成后，消除当前运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的版本漂移。该阶段只升级并验证宿主公共合同，不新增产品功能、不改变领域或公开 Remote/wire 契约。**I85 已完成（2026-08-28）：唯一项目 DSH family pin 已切换为 `0.1.1-rc.2`，`verify:i85` / `verify:stage-16` 全绿。**
 
 - **基线切换（D23）**：同步 `package.json` 的 DSH family 直接依赖、`examples/selected-profile.package.json` 与 `pnpm-lock.yaml` 至精确 `0.1.1-rc.2`；DSH family 必须同版本，不允许 rc.7/rc.2 混装或运行时 fallback。Cordis 继续为已验证的 `4.0.1` 兼容线。
 - **完整兼容门**：一次性临时 `DSH_HOME` 中安装真实 `@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app` + `novel-creation-tool`，证明 bundle 单 owner、Host boot/stop/restart、Client ModuleLoader 装载、`shell.overlay` mount/unmount、Typert Remote 往返、Tools 真实注册/非法参数拒绝以及 `ctx.llm` 请求/finish/cancel 合同。
 - **已知修复边界**：补齐两处 Vitest 未 `await` 的 `resolves`；Tools 参数必须在执行前按 JSON Schema fail closed；`stopSequences` 按 `0.1.1-rc.2` provider 能力显式处理，不再提供与实际路由不一致的静默承诺。不得借机改 prompt、样本、gold、阈值或领域生成语义。
 - **安全与回退**：升级失败时回退 manifest/profile/lockfile 与兼容测试代码到 I84 commit；不迁移、不删除、不改写任何作品 source of truth。兼容旧作品属于数据合同，不等于保留 rc.7 宿主路径。
-- **完成线**：`verify:i85` 与 `verify:stage-16` 全绿，既有 `pnpm test`、build、held-out、安装→升级→卸载生命周期回归全绿；随后四份权威文档与 README 才可把唯一项目 DSH family pin 声明为 `0.1.1-rc.2`。
+- **完成线**：`verify:i85` 与 `verify:stage-16` 全绿（✅ I85 已达成），既有 `pnpm test`、build、held-out、安装→升级→卸载生命周期回归全绿；四份权威文档与 README 已把唯一项目 DSH family pin 声明为 `0.1.1-rc.2`。
+
+---
+
+### 14.14 后续迭代立项（backlog，v2.5 立项输入）
+
+> 定位：v2.4 期间按「专业作者视角评审」产出、经作者逐项裁决的后续迭代立项输入（对应 `requirements.md` R18）。**未排期**：当前唯一待执行迭代是 I85（DSH family `0.1.1-rc.2` 兼容门）；R18 各行须在 I85 完成后经正常立项流程加入计划。本节不改变 §0.1 宿主基线、公开 Remote/wire 契约与既有 13 层模型。
+
+- **产品方向定调（作者裁决）**：导入大纲 → AI 按大纲推导细纲 → 自动生成首版正文 → 作者仅微调 → 发布。据此「继续写作首页」「富文本/专注编辑器」「笔记素材库」「DOCX 编译」明确不立项；交付以 Markdown 为准。
+- **R18-1 场景/章节管理**：完整 CRUD/排序/元数据编辑，复用既有 C5 Domain Service，GUI 补齐组织能力（新建/重命名/删除/排序章节与场景、摘要与 notes、场景↔细纲卡绑定、候选落点选择）。
+- **R18-2 生成变更逐层预览**：接受候选/重解析前展示 C1/C2/C3/C4/B2 逐层结构化 diff（旧值→新值），接受后回扫确认；不改变候选/裁决合同。
+- **R18-3 审校→定位→修复闭环**：审校问题定位到章节/场景/文本范围，可直接发起修复候选，接受后自动回扫并标记 resolved；硬冲突仍阻止接受。
+- **R18-4 单章三种可选润色**：正文区「语言润色 / 压缩精简 / 扩写细节」三种可选操作（迭代启动时确认），候选先审后落。
+- **R18-5 自动引用联动**：角色/关系单调线性、知情事实单调新增，引用由系统自动维护，作者不手填 ID；新增「自动更新审查页」（标记错误更新）与「对话让 LLM 修正内部库」回路；移除时间线/大纲/关系面板的 `listField` ID 输入。
+- **R18-6 长稿导入→大纲循环工作流**：已有长稿先拆大纲，循环 = 细纲 → 首版正文 → 作者微调保存 → 下一章基于细纲 + 修订后正文继续；不静默合并结构层，导入候选仍走 ConfirmationGate。
+- **R18-7 / R18-8 / R18-9**：术语替换、上下文跳转链接、操作模式分层三项 UI 迭代，迭代计划见开发计划 阶段 17（I92 / I93 / I94）。
+- **R18-10 场景版本聚合视图（方案 B，作者裁决 P1.7）**：在既有 `scene.branches` 之上做「章节→场景→版本」聚合投影，任意场景切换/对比；不做全书快照与修订线，不改 C5 版本 Schema。
+- **明确不做（作者裁决）**：笔记素材库（P1.6，N-10）、继续写作首页（P0.1，N-11）、富文本/专注编辑器（P0.3，N-12）、DOCX 编译（P1.11，N-13）、P2 系列（N-14）。
 
 ---
 

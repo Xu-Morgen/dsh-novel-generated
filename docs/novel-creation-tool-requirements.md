@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I85**：I1–I84 已完成；I85 DSH family `0.1.1-rc.2` 兼容升级已批准、待执行。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- 当前迭代身份只有本文件定义的 **I1–I85**：**I1–I85 全部完成**；I85 DSH family `0.1.1-rc.2` 兼容升级已完成，唯一可复现项目 DSH family pin 已切换为 `0.1.1-rc.2`。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R17 产品能力的通过抵消；I2 或 I85 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -74,9 +74,9 @@
 | H0-8 | **I2 仅为 gate-only Client probe**：只证明公共 client bundle、公共 Remote、selected-profile boot、单一 Slot 注册与 Fiber 卸载；probe 必须非产品、不得演化为工作区。 | 真实 package build + selected-profile boot + 单一 Slot mount/unmount smoke；产品术语、领域读取/写入和多 Slot 均为负向失败。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
 | H0-9 | **公共合同停止线**：I2 必须证明受支持的普通 out-of-tree plugin 公共 Remote 与 client bundling/装载合同。不得使用动态 `harness.handle`/`host.call`，不得以内置或未发布 builder/`clientBundle` API fallback。证明失败即 I2 失败，禁止开始 I33–I36 及任何产品 Client 工作。 | 依赖/API allowlist 与 forbidden-symbol 扫描；公开 contract 集成 smoke；缺公共合同夹具必须 fail closed，且产品 Client 构建任务保持阻塞。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
 | H0-10 | 禁止 standalone UI：无独立 HTML、`createRoot()` 自挂载、独立 SPA/Vite server 或第二主路径；禁止浏览器直连 LLM、直接文件访问、长期 key/secret。 | repository 与 Client bundle 负向扫描；核心能力只能在现有 DSH GUI/Host 中启动。 | I1, I2, I33 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i33`; `pnpm run verify:stage-0`; `pnpm run verify:stage-6` |
-| H0-11 | 工具链 pin：Node.js **22+**、pnpm、TypeScript strict、ESM；项目 manifest 固定 DSH family/Cordis 兼容范围，lockfile 固定精确解析版本。当前运行时观测 `0.1.1-rc.2` 与项目 pin `0.1.0-rc.7` 必须保持明确区分，直到 I85 验证完成后才切换唯一项目 pin。 | engines/packageManager/type/module/tsconfig/lockfile 静态断言；DSH family 直接依赖、selected profile 与 lockfile 同版本；Node 低版本、npm lock、CJS 输出、混装版本夹具失败。 | I1, I85 | `pnpm run verify:i1`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| H0-11 | 工具链 pin：Node.js **22+**、pnpm、TypeScript strict、ESM；项目 manifest 固定 DSH family/Cordis 兼容范围，lockfile 固定精确解析版本。唯一项目 DSH family pin 已由 I85 切换为 `0.1.1-rc.2`（此前为 `0.1.0-rc.7`）。 | engines/packageManager/type/module/tsconfig/lockfile 静态断言；DSH family 直接依赖、selected profile 与 lockfile 同版本；Node 低版本、npm lock、CJS 输出、混装版本夹具失败。 | I1, I85 | `pnpm run verify:i1`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
 | H0-12 | 必须具备可重复的 install/build/selected-profile boot/stop/restart 验证；stop 后消失，restart 后恰好恢复一次。宿主升级还必须在真实 base+web+plugin 组合中重跑完整 Client gate。 | 干净安装、Host build、首次 boot、Client mount、Remote 往返、stop、同进程 restart、DSH 重启后 boot 的脚本日志与断言。 | I1, I2, I85 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
-| H0-13 | DSH family 升级必须是单一专门兼容迭代：manifest、selected profile 与 lockfile 原子切换至同一精确版本；不得保留旧宿主 fallback，不得用运行时观测冒充已验证项目基线。 | `0.1.1-rc.2` 同版本断言；rc.7 残留/混装负向扫描；真实 base+web+plugin selected-profile boot；完整 Client/Remote/Tools/LLM 合同与生命周期门。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| H0-13 | DSH family 升级必须是单一专门兼容迭代：manifest、selected profile 与 lockfile 原子切换至同一精确版本；不得保留旧宿主 fallback，不得用运行时观测冒充已验证项目基线。I85 已按此完成：唯一项目 pin 现为 `0.1.1-rc.2`。 | `0.1.1-rc.2` 同版本断言；rc.7 残留/混装负向扫描；真实 base+web+plugin selected-profile boot；完整 Client/Remote/Tools/LLM 合同与生命周期门。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
 
 ---
 
@@ -300,6 +300,8 @@
 ## R17. DSH family `0.1.1-rc.2` 兼容升级（Stage 16）
 
 > 定位：消除当前已安装运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的漂移。升级只验证并切换宿主公共合同，不新增产品功能，不改变领域语义、公开 Remote/wire 形状或作品数据。
+>
+> ✅ **I85 已完成（2026-08-28）**：唯一项目 DSH family pin 已切换为 `0.1.1-rc.2`，完整 base+web+plugin、Client/Remote/Tools/LLM 与生命周期门全绿（`verify:i85` / `verify:stage-16`）。
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
@@ -451,6 +453,27 @@
 
 ---
 
+## R18. 后续迭代立项输入（backlog，未排期）
+
+> 定位：v2.4 期间按「专业作者视角评审」产出、并经作者逐项裁决的后续迭代立项输入（AGENTS.md §2「超范围想法记 backlog」的落地）。本表**不是当前执行范围**：当前唯一待执行迭代仍是 I85（DSH family `0.1.1-rc.2` 兼容门）；R18 各行须在 I85 完成后经正常立项流程（填 DoD 卡、分配迭代号、加入计划）才进入执行。任何行都不改变 §0.1 宿主基线、公开 Remote/wire 契约形状与既有 13 层模型。
+>
+> 产品方向定调（作者裁决，v2.4）：**导入大纲 → AI 按大纲推导细纲 → 自动生成首版正文 → 作者仅对生成内容微调 → 发布**。据此「继续写作首页」「富文本/专注编辑器」「笔记素材库」「DOCX 编译」明确不立项（见 N-10–N-13）；正文编辑保持轻量，交付以 Markdown 为准。
+
+| ID | 需求 | 定位与验收要点 | 作者裁决 | 状态 |
+|---|---|---|---|---|
+| R18-1 | 场景/章节管理：完整 CRUD（新建/重命名/删除/排序章节与场景）、章节标题/POV/状态、场景摘要与 notes 编辑、场景↔细纲场景卡绑定、生成候选落点选择。 | 作者可在 GUI 组织章节与场景，不依赖对话命令；落盘仍走既有 C5 契约（`createChapter`/`appendScene` 等），不引入富文本编辑器。 | P0.2 | 未排期 |
+| R18-2 | 生成变更逐层预览（diff 展示）：接受生成候选或重解析前，展示 C1/C2/C3/C4/B2 将发生的逐层结构化变更（旧值→新值），接受后自动回扫确认。 | 作者在确认前能「看见」结构层会被怎么改；不改变既有候选/裁决合同形状，不隐式写层。 | P0.4 | 未排期 |
+| R18-3 | 审校→定位→修复闭环：审校问题卡一键定位到章节/场景/文本范围；从问题卡直接发起修复候选（rewrite 语义）；接受后自动回扫并标记 resolved。硬冲突仍阻止接受。 | 审校不再是「只看不做」；修复候选复用既有 candidate 合同与 ConfirmationGate。 | P0.5 | 未排期 |
+| R18-4 | 单章三种可选润色：正文区提供三种可选润色操作，只作用于当前章节，产出候选先审阅后落盘。 | 三种润色建议为「语言润色 / 压缩精简 / 扩写细节」，迭代启动时与作者最终确认；硬约束校验仍生效。 | P1.10 | 未排期 |
+| R18-5 | 自动引用联动：角色/关系/知情引用由系统自动维护，作者不手填 ID；角色与关系单调线性变化、知情事实单调新增；自动更新在审查页可见，作者可标记错误更新并发起对话让 LLM 修正内部库。 | 移除时间线/大纲/关系面板的手填 ID 入口（现有 `listField` ID 输入）；新增「自动更新审查页」与 LLM 修正回路；C1.knownTo / C3 知情边界语义不变。 | P1.9 | 未排期 |
+| R18-6 | 长稿导入→大纲循环工作流：已有长稿先拆为大纲；循环 = AI 按大纲推导细纲 → 生成首版正文 → 作者微调保存 → 下一章基于细纲 + 作者修订后的正文继续。 | 把「已有非空作品合并导入」（原 N-7 后置）收敛为「先拆大纲再循环创作」，不静默合并结构层；导入拆大纲的候选仍走 ConfirmationGate。 | P1.8 | 未排期 |
+| R18-7 | 术语替换：工程术语（ConfirmationGate / C1–C6 / Remote / entryId / 派生索引等）全部替换为作者可理解语言，技术徽标只保留在高级视图。 | 开发计划 阶段 17（I92）；UI 文案是唯一变更面，不改变契约与数据。 | UI.3 | 未排期 |
+| R18-8 | 上下文跳转链接：角色/关系/知情/审校问题/时间线节点/搜索命中/场景卡之间稳定双向跳转，返回保留上下文。 | 开发计划 阶段 17（I93）；链接信息不落盘进 Markdown 正文，作者回传后重新分析再链接，最终 txt 导出无链接可直接发布。 | UI.4 | 未排期 |
+| R18-9 | 操作模式分层：正文区按「写作 / AI 候选 / 版本比较 / 场景资料」分模式展示，同一时间只展开一个辅助面板。 | 开发计划 阶段 17（I94）；解决正文区下方候选/版本/追踪/校验信息堆叠过长。 | UI.5 | 未排期 |
+| R18-10 | 场景版本聚合视图：把全部场景的版本历史汇总为「章节→场景→版本」树，任意场景可切换/对比；不做全书快照与修订线。 | 作者选定方案 B（P1.7 裁决）；在既有 `scene.branches` 与 `novelBranches` 之上加聚合投影，不改 C5 版本 Schema。 | P1.7-B | 未排期 |
+
+---
+
 ## Deferred / 非目标
 
 | ID | 项目 | 约束与理由 |
@@ -464,11 +487,16 @@
 | N-7 | 已有非空作品合并导入 | Stage 10 仅初始化新建/空作品；不静默合并或覆盖已有六层。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
 | N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
 | N-9 | 重构改变领域契约与产品能力 | Stage 15（I75–I84）重构只消除复制与接线债务：不改变任何领域契约、公开 Remote/wire 形状、LLM 样本/gold/阈值与产品功能；公开服务改名属破坏性变更，另行立项走兼容迁移。 |
+| N-10 | 作者笔记/批注/素材库 | P1.6 作者裁决：不在本项目考虑范围。产品只做「按大纲/细纲/关系/时间线/人物/知情自动创作 + 微调发布」，不承载资料收集。 |
+| N-11 | 继续写作首页 / 恢复现场 | P0.1 作者裁决：非必须，不立项。 |
+| N-12 | 富文本/专注写作编辑器 | P0.3 作者裁决：正文编辑非重要内容，保持轻量 textarea 编辑（微调即发布），不立项。 |
+| N-13 | 正式 DOCX 交稿编译 | P1.11 作者裁决：Markdown 交付可接受，DOCX 编译不做。 |
+| N-14 | P2 系列（C2 items/factions/globalFlags 扩展、语义向量检索、写作计划/截止日/日更节奏） | 作者裁决：P2 全部暂不考虑；items/factions/globalFlags 与向量检索分别维持 N-8/N-2 的后置定位。 |
 
 ---
 
 ## 结论
 
-**直接结论：I1–I84 已完成：v2.0–v2.2 交付 Host/Client 产品闭环、作品启动、侧板化、正文写作、能力可达性与剧情时间线；v2.3 Stage 15（I75–I84）完成架构债务消除并保持领域与公开契约不变。v2.4 新增 Stage 16 / I85（R17），专门把 DSH family 可复现项目 pin 从 `0.1.0-rc.7` 升级到当前运行时 `0.1.1-rc.2` 并补齐完整 base+web+plugin 兼容门。I85 完成前，`0.1.1-rc.2` 只是运行时观测版本，唯一项目 pin 仍为 `0.1.0-rc.7`。**
+**直接结论：I1–I85 已完成：v2.0–v2.2 交付 Host/Client 产品闭环、作品启动、侧板化、正文写作、能力可达性与剧情时间线；v2.3 Stage 15（I75–I84）完成架构债务消除并保持领域与公开契约不变；v2.4 Stage 16 / I85（R17）完成 DSH family 兼容升级——唯一可复现项目 DSH family pin 已从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，manifest/profile/lockfile 同版本，完整 base+web+plugin 与 Client/Remote/Tools/LLM 兼容门全绿。`0.1.1-rc.2` 现为唯一项目 pin，不再只是运行时观测版本。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

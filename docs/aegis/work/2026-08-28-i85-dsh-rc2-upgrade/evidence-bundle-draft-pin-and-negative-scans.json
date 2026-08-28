@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "pin-and-negative-scans",
+  "type": "static",
+  "source": "manifest.test.ts / client-contract.test.ts / smoke-i85 Part 0 / smoke-i54",
+  "summary": "manifest/profile/lockfile all exact 0.1.1-rc.2; lockfile + manifest rc.7-residue negative scans pass; typert packages moved to production dependency face per published .d.ts consumer need (deliverable 1 conditional)",
+  "verifier": "coordinator"
+}

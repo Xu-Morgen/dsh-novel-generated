@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I85",
+  "taskIntentRef": "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/novel-creation-tool-development-plan.md I85 826-838"
+  ],
+  "scopeStatus": "I85 deliverables 1-5 done; stage smoke repairs (i33-36) are verification-harness fixes surfaced by acceptance 5, not product changes",
+  "compatStatus": "rc.2 contract held: no domain schema/public wire/prompt/sample/project-data changes; defineTool is the DSH-sanctioned fail-closed mechanism; stop forwarded per 0.1.1-rc.2 GenerateOptions with pi-ai UNSUPPORTED_OPTION explicit",
+  "retirementStatus": "rc.7 executable pins retired (delete-first); rc.7 text kept only as historical provenance in docs",
+  "newRiskSignals": [],
+  "decision": "continue"
+}

@@ -32,9 +32,9 @@ describe('I31 Host settings service', () => {
       const first = await service.generate({ sections: [{ id: 'outline', text: 'OUTLINE' }, { id: 'state', text: 'STATE' }], userPrompt: '继续。' });
       expect(first.prompt).toContain('STATE\n\nOUTLINE');
       expect(seen[0]).toMatchObject({ provider: 'dsh', model: 'draft-model', temperature: 0.2 });
-      // The DSH `llm.stream` contract rejects `GenerateOptions.stop`; the A2
-      // template's stopSequences are never forwarded.
-      expect(seen[0]).not.toHaveProperty('stop');
+      // I85（R17-4）：0.1.1-rc.2 的 `GenerateOptions` 声明 `stop`，模板的
+      // stopSequences 显式转发（deepseek 适配器支持；pi-ai 适配器显式拒绝）。
+      expect(seen[0]).toMatchObject({ stop: ['<END>'] });
       expect(resolved).toEqual(['DRAFT_API_KEY']);
 
       await service.save({ ...config, active: { backendId: 'final', templateId: 'revision', presetId: 'final-preset' } });

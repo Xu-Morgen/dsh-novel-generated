@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "verify-i85",
+  "type": "command",
+  "source": "pnpm run verify:i85",
+  "summary": "typecheck + 736/736 tests + build + smoke:i85 (rc2 negative scan, real base+web+plugin CLI boot/HTTP/stop/restart/uninstall, in-process service boot/stop/restart, Client ModuleLoader materialization) + smoke:i54 + smoke:samples held-out (I43 median=0.1, I44 9/10, I45 0.9) all exit 0",
+  "verifier": "coordinator"
+}

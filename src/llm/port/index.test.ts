@@ -35,9 +35,10 @@ describe('I17 Host-only LLM port', () => {
       provider: 'route', model: 'default', temperature: 0.4,
       messages: [{ role: 'user', content: [{ type: 'text', text: 'continue' }], source: { kind: 'plugin', plugin: 'novel-creation-tool' } }],
     });
-    // The current DSH `llm.stream` contract rejects `GenerateOptions.stop`;
-    // `stopSequences` must never be forwarded, and undefined knobs are omitted.
-    expect(options).not.toHaveProperty('stop');
+    // I85（R17-4）：0.1.1-rc.2 的 `GenerateOptions` 声明 `stop`，已配置的
+    // stopSequences 显式转发（deepseek 适配器映射为 OpenAI stop；pi-ai 适配器
+    // 对非空 stop 显式拒绝，见 dsh-rc2-compat.test.ts），不再静默丢弃。
+    expect(options).toMatchObject({ stop: ['<END>'] });
     expect(options).not.toHaveProperty('maxTokens');
   });
 

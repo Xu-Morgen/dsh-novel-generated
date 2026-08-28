@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "manifest/profile/lockfile, Host and Client compatibility tests, verification scripts"
+  ],
+  "owners": [
+    "I85 compatibility gate; production domain owners remain unchanged"
+  ],
+  "invariants": [
+    "ordinary persistent Cordis plugin, one bundle insertion owner, Host owns truth, Fiber disposal removes side effects"
+  ],
+  "compatBoundary": "No domain schema, public Service/Remote/wire, prompt/sample/gold/threshold, or project data changes; no rc.7 fallback.",
+  "nonGoals": [
+    "No product features or unrelated dependency upgrades."
+  ]
+}

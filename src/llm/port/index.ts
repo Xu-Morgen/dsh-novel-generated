@@ -51,6 +51,9 @@ interface DshGenerateOptions {
   messages: readonly [{ id: string; role: 'user'; content: readonly [{ type: 'text'; text: string }]; source: { kind: 'plugin'; plugin: string } }];
   temperature?: number;
   maxTokens?: number;
+  /** Stop sequences (I85/R17-4): the 0.1.1-rc.2 `GenerateOptions` declares `stop`;
+   *  adapters map it to the provider stop field (deepseek) or reject it explicitly. */
+  stop?: string[];
   /** Thinking effort passed through to the DSH pi-ai adapter (deepseek format). */
   reasoningEffort?: 'low' | 'high' | 'max';
   signal?: AbortSignal;
@@ -102,9 +105,11 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
   return Object.freeze({
     async *stream(request: GenerationRequest): AsyncIterable<LlmChunk> {
       const { provider, model } = splitModelRef(request.settings.modelRef);
-      // The current DSH `llm.stream` contract rejects `GenerateOptions.stop`,
-      // so `stopSequences` is deliberately not forwarded; only defined sampling
-      // knobs are included (undefined members are omitted).
+      // I85（R17-4）：`0.1.1-rc.2` 的 `GenerateOptions` 公开声明 `stop`，端口按
+      // provider 能力显式处理——`dsh-llm-deepseek` 把 `stop` 映射为 OpenAI stop，
+      // `dsh-llm-pi-ai` 对非空 stop 以 `UNSUPPORTED_OPTION` 显式拒绝（见
+      // llm-pi-ai/lib/index.js）。端口始终转发已配置的 stopSequences：拒绝由运行时
+      // 以显式 error/aborted finish 浮出，绝不静默丢弃。undefined 采样旋钮照旧省略。
       const options: DshGenerateOptions = {
         provider,
         model,
@@ -116,9 +121,9 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
         }],
         ...(request.settings.temperature === undefined ? {} : { temperature: request.settings.temperature }),
         ...(request.settings.maxTokens === undefined ? {} : { maxTokens: request.settings.maxTokens }),
+        ...(request.settings.stopSequences === undefined || request.settings.stopSequences.length === 0 ? {} : { stop: request.settings.stopSequences }),
         // `off`/未配置 → 不发送 effort（pi-ai deepseek 分支会发送 thinking disabled）；
-        // 显式档位 → 发送 effort 启用思维链。DSH `llm.stream` 不支持 `stop`，故
-        // stopSequences 永不转发（见 I52 修复）。
+        // 显式档位 → 发送 effort 启用思维链。
         ...(request.settings.reasoning === undefined || request.settings.reasoning === 'off' ? {} : { reasoningEffort: request.settings.reasoning }),
         signal: request.signal,
       };

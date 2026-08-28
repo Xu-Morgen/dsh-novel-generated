@@ -31,7 +31,7 @@ const demoService: DemoService = {
 };
 
 describe('I75 defineRemote 接线工厂', () => {
-  it('构建带 typertRemote 绑定的适配对象并按 wire 方法名转发', () => {
+  it('构建带 typertRemote 绑定的适配对象并按 wire 方法名转发', async () => {
     const adapter = defineRemote('novelDemo', 'novelDemo', demoService, [
       { method: 'greet', call: (projectId: string) => demoService.greet(projectId) },
       { method: 'ping', call: () => demoService.ping() },
@@ -40,7 +40,7 @@ describe('I75 defineRemote 接线工厂', () => {
       service: adapter, serviceKey: 'novelDemo', namespace: 'novelDemo',
     });
     // 消费者夹具：下游（gateway）按 wire 方法名调用适配对象。
-    expect(adapter.greet('demo')).resolves.toEqual({ greeting: 'hi demo' });
+    await expect(adapter.greet('demo')).resolves.toEqual({ greeting: 'hi demo' });
     expect(adapter.ping()).toEqual({ ok: true });
   });
 
@@ -68,7 +68,7 @@ describe('I75 defineRemote 接线工厂', () => {
     const descriptor = root.typert.local.get('novelDemo/greet');
     expect(descriptor).toBeDefined();
     const service = root.get('novelDemo') as { greet(projectId: string): Promise<unknown> };
-    expect(service.greet('demo')).resolves.toEqual({ greeting: 'hi demo' });
+    await expect(service.greet('demo')).resolves.toEqual({ greeting: 'hi demo' });
 
     disposer();
     await root.fiber.dispose();

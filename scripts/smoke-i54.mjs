@@ -5,17 +5,18 @@ import { fileURLToPath } from 'node:url';
 /**
  * I54 DSH Slot 兼容门 + 右侧停靠侧板 smoke（design D20 / §14.8；R12-1）。
  *
- * Slot 版本门证据（执行 I54 时重新核验，非项目 pin 之外的运行时观测）：
- * - 项目 pin：selected-profile 与 devDependency 均锁定 DSH family `0.1.0-rc.7`。
- * - 当前已安装环境观测：`@deepseek-ai/dsh-client-ui-slots@0.1.0-rc.7`；其 `SlotMap`
- *   为空接口（纯类型增广层），无 additive 侧区内容 Slot。
- * - 本机运行 DSH（`dsh-app-boot/dsh-web-app@0.1.0-rc.8`）的 live Slot tree
- *   （Inspect `Slots.listSubTree`）：root → { sidebar(single), conversation(single),
- *   details(single), shell.overlay(list) }，无 additive 侧区内容 Slot。
- * - npm 最新版 `0.1.1-rc.2`（`next` tag）静态合同：`dsh-client-ui-layout` 只声明
- *   sidebar/conversation/details（均 single，替换整列）+ `shell.overlay`（list，唯一
- *   additive 帧级浮层）；`dsh-client-ui-sidebar`/`dsh-client-ui-workspace` 只声明列内
- *   single/list 座。均无 additive 侧区内容 Slot。
+ * Slot 版本门证据（I85 起读取当前项目 pin 与已安装包，不再硬编码历史观测）：
+ * - 项目 pin：selected-profile 与 devDependency 均锁定 DSH family `0.1.1-rc.2`
+ *   （I85 把唯一可复现项目基线从 `0.1.0-rc.7` 原子切换而来，D23）。
+ * - 已安装 `@deepseek-ai/dsh-client-ui-slots@0.1.1-rc.2`；其 `SlotMap`
+ *   仍为空接口（纯类型增广层），无 additive 侧区内容 Slot。
+ * - live Slot tree（selected-profile boot，Inspect `Slots.listSubTree`）：
+ *   root → { sidebar(single), conversation(single), details(single),
+ *   shell.overlay(list) }，无 additive 侧区内容 Slot。
+ * - `0.1.1-rc.2` 静态合同：`dsh-client-ui-layout` 只声明 sidebar/conversation/
+ *   details（均 single，替换整列）+ `shell.overlay`（list，唯一 additive 帧级浮层）；
+ *   `dsh-client-ui-sidebar`/`dsh-client-ui-workspace` 只声明列内 single/list 座。
+ *   均无 additive 侧区内容 Slot。
  *
  * 结论：无公共侧区 Slot → 只实现 `shell.overlay` 右侧停靠侧板，不升级 DSH、不写 fallback。
  * 退休清单（居中浮窗 → 停靠侧板）：`min-width/max-width/min-height/max-height:80vh`
@@ -28,23 +29,25 @@ const repoRoot = resolve(root, '..');
 const read = (p) => readFileSync(resolve(repoRoot, p), 'utf8');
 const fail = (msg) => { throw new Error(`I54 smoke: ${msg}`); };
 
-// Part 1 — 项目 pin 与已安装包版本（Slot 版本门）。
+// Part 1 — 项目 pin 与已安装包版本（Slot 版本门）。pin 从当前 manifest 读取，
+// 使该门永远跟随 I85 确立的唯一 DSH family 项目基线，而不是某个历史观测。
 {
   const pkg = JSON.parse(read('package.json'));
-  if (pkg.devDependencies?.['@deepseek-ai/dsh-client-ui-slots'] !== '0.1.0-rc.7') {
-    fail('devDependency @deepseek-ai/dsh-client-ui-slots pin must be 0.1.0-rc.7');
+  const familyPin = pkg.devDependencies?.['@deepseek-ai/dsh-client-ui-slots'];
+  if (typeof familyPin !== 'string' || !/^0\.1\.1-rc\.2$/.test(familyPin)) {
+    fail('devDependency @deepseek-ai/dsh-client-ui-slots must be pinned exactly at the DSH family baseline (0.1.1-rc.2 after I85)');
   }
   const profile = JSON.parse(read('examples/selected-profile.package.json'));
-  if (profile.dependencies?.['@deepseek-ai/dsh-base'] !== '0.1.0-rc.7'
-    || profile.dependencies?.['@deepseek-ai/dsh-web-app'] !== '0.1.0-rc.7') {
-    fail('selected-profile DSH family pin must be 0.1.0-rc.7');
+  if (profile.dependencies?.['@deepseek-ai/dsh-base'] !== familyPin
+    || profile.dependencies?.['@deepseek-ai/dsh-web-app'] !== familyPin) {
+    fail('selected-profile DSH family pin must equal the manifest family pin');
   }
 
   const installedPath = resolve(repoRoot, 'node_modules', '@deepseek-ai', 'dsh-client-ui-slots', 'package.json');
   if (!existsSync(installedPath)) fail('@deepseek-ai/dsh-client-ui-slots not installed');
   const installed = JSON.parse(readFileSync(installedPath, 'utf8'));
-  if (installed.version !== '0.1.0-rc.7') {
-    fail(`installed dsh-client-ui-slots version ${installed.version} != pin 0.1.0-rc.7`);
+  if (installed.version !== familyPin) {
+    fail(`installed dsh-client-ui-slots version ${installed.version} != pin ${familyPin}`);
   }
 
   // 已安装类型层 `SlotMap` 必须为空（additive 侧区内容 Slot 不存在于本层）。

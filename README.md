@@ -35,7 +35,7 @@ AI 长篇小说创作器是一个运行在 **DeepSeek Harness（DSH）** 中的 
 | --- | --- |
 | Node.js | `>= 22` |
 | pnpm | `11.22.0`（见 `package.json` 的 `packageManager` 字段） |
-| DeepSeek Harness（DSH） | `0.1.0-rc.7`（当前观测安装证据，见设计 §0.1.3） |
+| DeepSeek Harness（DSH） | `0.1.1-rc.2`（I85 起的唯一可复现项目 pin，见设计 §0.1.3） |
 
 > 若未安装 pnpm，可先执行 `corepack enable`（Node 22 自带 corepack）或 `npm install -g pnpm@11.22.0`。
 
@@ -101,8 +101,8 @@ DSH 的 profile 位于 `${DSH_HOME:-$HOME/.dsh}/profiles/<profile-name>/`。每�
   "name": "dsh-profile-我的profile",
   "private": true,
   "dependencies": {
-    "@deepseek-ai/dsh-base": "0.1.0-rc.7",
-    "@deepseek-ai/dsh-web-app": "0.1.0-rc.7",
+    "@deepseek-ai/dsh-base": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-web-app": "0.1.1-rc.2",
     "novel-creation-tool": "file:../novel-creation-tool"   // 你的本地 clone 路径
   },
   "dsh": {

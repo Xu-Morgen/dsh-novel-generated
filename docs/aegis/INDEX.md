@@ -161,3 +161,17 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/gate-input-pack.json | 2026-08-28-i84-low-priority-debt gate input pack |
 | 2026-08-28 | work | docs/aegis/work/2026-08-28-i84-low-priority-debt/proof-bundle.md | 2026-08-28-i84-low-priority-debt proof bundle |
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i84-low-priority-debt/evidence-bundle-draft-workspace-integrity.json | 2026-08-28-i84-low-priority-debt evidence workspace-integrity |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/10-intent.md | I85 DSH 0.1.1-rc.2 baseline upgrade intent |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/20-checkpoint.md | I85 DSH 0.1.1-rc.2 baseline upgrade checkpoint |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/90-evidence.md | I85 DSH 0.1.1-rc.2 baseline upgrade evidence |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/99-reflection.md | I85 DSH 0.1.1-rc.2 baseline upgrade reflection |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/task-intent-draft.json | I85 DSH 0.1.1-rc.2 baseline upgrade task intent draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/baseline-read-set-hint.json | I85 DSH 0.1.1-rc.2 baseline upgrade baseline read-set hint |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/baseline-usage-draft.json | I85 DSH 0.1.1-rc.2 baseline upgrade baseline usage draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/impact-statement-draft.json | I85 DSH 0.1.1-rc.2 baseline upgrade impact statement draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/todo-checkpoint-draft.json | I85 DSH 0.1.1-rc.2 baseline upgrade todo checkpoint draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/drift-check-draft.json | I85 DSH 0.1.1-rc.2 baseline upgrade drift check draft |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/resume-state-hint.json | 2026-08-28-i85-dsh-rc2-upgrade resume state hint |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-verify-i85.json | 2026-08-28-i85-dsh-rc2-upgrade evidence verify-i85 |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-stage-key-regressions.json | 2026-08-28-i85-dsh-rc2-upgrade evidence stage-key-regressions |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-pin-and-negative-scans.json | 2026-08-28-i85-dsh-rc2-upgrade evidence pin-and-negative-scans |

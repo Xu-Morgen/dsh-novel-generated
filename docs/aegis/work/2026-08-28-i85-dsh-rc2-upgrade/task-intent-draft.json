@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Atomically upgrade the reproducible DSH family baseline to 0.1.1-rc.2 and prove the complete compatibility gate.",
+  "goal": "Make 0.1.1-rc.2 the sole project DSH family pin only after base+web+plugin, Client, Remote, Tools, LLM, and lifecycle evidence passes.",
+  "successEvidence": [
+    "verify:i85 and verify:stage-16 pass; exact pins and negative scans pass; no domain/wire/sample/project-data drift; one clean I85 commit."
+  ],
+  "stopCondition": "done when all I85 acceptance gates and commit closeout pass; blocked on unavailable public contract or repeated same external failure; needs-verification on partial evidence; scope-exceeded on domain/public-contract changes.",
+  "nonGoals": [
+    "No product features or unrelated dependency upgrades."
+  ],
+  "scope": "package/profile/lockfile sync, I85 compatibility smoke and tests, two awaited resolves fixes, I54 gate refresh, acceptance evidence and commit.",
+  "changeKinds": [
+    "baseline-compatibility"
+  ],
+  "riskHints": [
+    "Host upgrade can expose public contract drift; mixed rc.7/rc.2 or fallback is forbidden."
+  ]
+}

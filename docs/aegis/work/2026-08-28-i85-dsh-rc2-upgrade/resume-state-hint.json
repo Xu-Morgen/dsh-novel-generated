@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I85",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/todo-checkpoint-draft.json",
+  "resumeInstruction": "If interrupted before commit: re-run git status/diff self-check, verify no rc.7 residue in executable baseline, then stage the I85 file set and commit.",
+  "knownPartialWork": [
+    "Read baseline and capture TaskStartSnapshot",
+    "Inventory rc.7 references and rc.2 public contracts",
+    "Implement I85 baseline sync and compat gates",
+    "Run verify:i85 and stage key regressions (all green)"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/10-intent.md",
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/20-checkpoint.md",
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": []
+}

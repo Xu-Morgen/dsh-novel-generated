@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "I85",
+  "currentTodo": "Commit clean I85 commit and report",
+  "completedTodos": [
+    "Read baseline and capture TaskStartSnapshot",
+    "Inventory rc.7 references and rc.2 public contracts",
+    "Implement I85 baseline sync and compat gates",
+    "Run verify:i85 and stage key regressions (all green)"
+  ],
+  "activeSlice": "Commit and closeout",
+  "evidenceRefs": [
+    "verify:i85 exit 0 (typecheck + 736/736 + build + smoke:i85/i54 + held-out)",
+    "Stage key regressions exit 0: verify:i1/i33/i45/i54/i84; smoke:i34/35/36 repaired"
+  ],
+  "blockedOn": null,
+  "nextStep": "Stage I85-owned paths, one clean commit, read back HEAD.",
+  "updatedAt": "2026-08-28"
+}

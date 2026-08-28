@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "stage-key-regressions",
+  "type": "command",
+  "source": "verify:i1 / verify:i33 + smoke:i34..i36 / verify:i45 / verify:i54 / verify:i84",
+  "summary": "Stage 0 (i1), Stage 6 (i33 + i34/35/36 smoke incl. pre-existing Windows path + stale I46 anchor repairs), Stage 8 (i45), Stage 11 (i54), Stage 15 (i84) all exit 0; full suite 736/736 stable across reruns",
+  "verifier": "coordinator"
+}

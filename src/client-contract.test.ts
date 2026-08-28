@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
  * plugin may rely on, and fail closed when it is absent:
  *
  *   - Client bundling: `dsh.client` manifest + `./client` export + the
- *     `@deepseek-ai/dsh-client-*`/typert packages pinned at 0.1.0-rc.7.
+ *     `@deepseek-ai/dsh-client-*`/typert packages pinned at 0.1.1-rc.2 (I85).
  *   - Negative scan: no dynamic RPC (`harness.handle`/`host.call`), no internal
  *     builder (`clientBundle`), no standalone UI (`createRoot`, HTML, vite), and
  *     no browser-side LLM/file/secret imports in any source file.
@@ -21,7 +21,7 @@ const read = (path: string): string => readFileSync(resolve(root, path), 'utf8')
 const pkg = JSON.parse(read('package.json'));
 const lock = read('pnpm-lock.yaml');
 
-/** The public DSH family contract this probe references, pinned exactly. */
+/** The public DSH family contract this probe references, pinned exactly (I85: 0.1.1-rc.2). */
 const PINNED_DSH_PACKAGES = [
   '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-typert-protocol',
@@ -62,16 +62,16 @@ describe('I2 client manifest contract', () => {
     expect(pkg.files?.some((entry: unknown) => entry === 'lib' || entry === 'lib/' || entry === 'lib/client.js')).toBe(true);
   });
 
-  it('pins the referenced public DSH client/typert packages at 0.1.0-rc.7', () => {
-    const deps = pkg.devDependencies ?? {};
+  it('pins the referenced public DSH client/typert packages at 0.1.1-rc.2', () => {
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
     for (const name of PINNED_DSH_PACKAGES) {
-      expect(deps[name]).toBe('0.1.0-rc.7');
+      expect(deps[name]).toBe('0.1.1-rc.2');
     }
   });
 
-  it('lockfile locks the exact 0.1.0-rc.7 resolutions', () => {
+  it('lockfile locks the exact 0.1.1-rc.2 resolutions', () => {
     for (const name of PINNED_DSH_PACKAGES) {
-      expect(lock).toContain(`${name}@0.1.0-rc.7`);
+      expect(lock).toContain(`${name}@0.1.1-rc.2`);
     }
   });
 });

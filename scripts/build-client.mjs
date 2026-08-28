@@ -9,8 +9,8 @@ import { build } from 'esbuild';
  * browser half `lib/client.js` from `src/client.ts` using esbuild — a public,
  * published bundler — NOT an internal DSH builder and NOT `clientBundle`.
  *
- * The output follows the public `@deepseek-ai/dsh-client-modules@0.1.0-rc.7`
- * wire contract: a classic script that calls
+ * The output follows the public `@deepseek-ai/dsh-client-modules@0.1.1-rc.2`
+ * wire contract (I85 baseline): a classic script that calls
  * `window.__ModuleLoader__.load({ id, factory })` with a closure factory that
  * returns the client plugin entry. `react` stays external — the DSH client
  * module table resolves it at runtime, so the bundle carries no React copy.
