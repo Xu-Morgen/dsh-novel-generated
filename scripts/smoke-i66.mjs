@@ -56,7 +56,6 @@ const fail = (msg) => { throw new Error(`I66 smoke: ${msg}`); };
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
-  const client = read('src/client.ts');
   // 复用 I18/I11：只经 KnowledgeRepository（saveAll）+ ConfirmationGate + 既有不变量。
   for (const reuse of ['knowledge.saveAll', 'confirmation.propose', 'confirmation.accept', 'confirmation.reject', 'validateKnowledgeChange', 'nextKnowledgeDocument', 'isKnowledgeChangeSatisfied']) {
     if (!service.includes(reuse)) fail(`knowledge manager must reuse ${reuse}`);
@@ -78,8 +77,10 @@ const fail = (msg) => { throw new Error(`I66 smoke: ${msg}`); };
   if (!nav.includes("view: 'knowledge'") || !nav.includes("view === 'knowledge'")) {
     fail('nav.ts missing the knowledge view / stable-view handling');
   }
+  // I90：per-Remote 声明式规格随 registry 迁至 mount-registry.ts（review v2.0 §3.5）。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('knowledgeRemoteContribution') || !client.includes("'remote.novelKnowledgeManager'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('knowledgeRemoteContribution') || !mountRegistry.includes("'remote.novelKnowledgeManager'")) {
     fail('client mount wiring missing knowledge Remote mount');
   }
 }

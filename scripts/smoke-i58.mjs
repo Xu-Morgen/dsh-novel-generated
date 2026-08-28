@@ -68,7 +68,8 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
     if (!nav.includes(`label: '${label}'`)) fail(`nav model missing group label: ${label}`);
   }
   if (!nav.includes('resolveWorkbenchView')) fail('nav model missing resolveWorkbenchView');
-  if (!client.includes('function groupNav(')) fail('client.ts missing grouped nav renderer');
+  // I90：分组导航渲染器随 Overlay 渲染面迁至 presenter.ts（review v2.0 §3.5）。
+  if (!read('src/client/presenter.ts').includes('function groupNav(')) fail('presenter.ts missing grouped nav renderer');
   // I83：per-view dispatcher 迁至面板注册表（viewPanel + PANEL_REGISTRY）。
   if (!read('src/client/panels/index.ts').includes('export function viewPanel(')) fail('panels/index.ts missing per-view dispatcher');
   if (client.includes('创作台层级')) fail('client.ts still references the retired flat-nav aria-label');

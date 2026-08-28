@@ -52,7 +52,6 @@ const fail = (msg) => { throw new Error(`I67 smoke: ${msg}`); };
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
-  const client = read('src/client.ts');
   const panel = read('src/client/layers/rule-style.ts');
   const wire = read('src/host/remote/rule-style.ts');
   // 复用 I7/I10：管理面只转发领域服务，不复制 repository / 不直接写文件。
@@ -75,8 +74,10 @@ const fail = (msg) => { throw new Error(`I67 smoke: ${msg}`); };
   if (!nav.includes("view: 'ruleStyle'") || !nav.includes("view === 'ruleStyle'")) {
     fail('nav.ts missing the ruleStyle view / stable-view handling');
   }
+  // I90：per-Remote 声明式规格随 registry 迁至 mount-registry.ts（review v2.0 §3.5）。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('ruleStyleRemoteContribution') || !client.includes("'remote.novelRuleStyleManager'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('ruleStyleRemoteContribution') || !mountRegistry.includes("'remote.novelRuleStyleManager'")) {
     fail('client mount wiring missing ruleStyle Remote mount');
   }
   // Client 无领域 fallback：面板不导入 core schema / zod，不复制领域校验。

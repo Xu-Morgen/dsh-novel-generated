@@ -53,7 +53,6 @@ const fail = (msg) => { throw new Error(`I68 smoke: ${msg}`); };
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
-  const client = read('src/client.ts');
   const panel = read('src/client/layers/progress.ts');
   const shared = read('src/client/shared.ts');
   const service = read('src/host/progress-inspiration-service.ts');
@@ -72,8 +71,10 @@ const fail = (msg) => { throw new Error(`I68 smoke: ${msg}`); };
   if (!nav.includes("view: 'progress'") || !nav.includes("view === 'progress'")) {
     fail('nav.ts missing the progress view / stable-view handling');
   }
+  // I90：per-Remote 声明式规格随 registry 迁至 mount-registry.ts（review v2.0 §3.5）。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('progressRemoteContribution') || !client.includes("'remote.novelOutlineProgress'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('progressRemoteContribution') || !mountRegistry.includes("'remote.novelOutlineProgress'")) {
     fail('client mount wiring missing progress Remote mount');
   }
   if (!shared.includes('ProgressNamespace')) fail('shared.ts missing ProgressNamespace');

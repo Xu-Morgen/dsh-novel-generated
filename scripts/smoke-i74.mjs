@@ -36,7 +36,6 @@ const fail = (msg) => { throw new Error(`I74 smoke: ${msg}`); };
 {
   const nav = read('src/client/nav.ts');
   const layer = read('src/client/layers/timeline.ts');
-  const client = read('src/client.ts');
   const shared = read('src/client/shared.ts');
   if (!nav.includes("view: 'timeline'") || !nav.includes("view === 'timeline'")) {
     fail('nav.ts missing the timeline view / stable-view handling');
@@ -44,9 +43,10 @@ const fail = (msg) => { throw new Error(`I74 smoke: ${msg}`); };
   for (const anchor of ['data-novel-timeline-node', 'data-novel-timeline-refresh', 'data-novel-timeline-ensure', 'data-novel-timeline-set-current', 'data-novel-timeline-save']) {
     if (!layer.includes(anchor)) fail(`timeline layer missing ${anchor}`);
   }
-  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂；I90 起 per-Remote 声明式规格在 mount-registry.ts。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('timelineRemoteContribution') || !client.includes("'remote.novelTimeline'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('timelineRemoteContribution') || !mountRegistry.includes("'remote.novelTimeline'")) {
     fail('client mount wiring missing timeline Remote mount');
   }
   if (!shared.includes('TimelineNamespace')) fail('shared.ts missing TimelineNamespace');

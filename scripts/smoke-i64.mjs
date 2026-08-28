@@ -57,7 +57,6 @@ const fail = (msg) => { throw new Error(`I64 smoke: ${msg}`); };
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
-  const client = read('src/client.ts');
   // 复用既有探测器（经服务依赖注入，不复制 detector 内部）。
   for (const reuse of ['detectRuleAndCanon', 'detectKnowledgeLeak', 'detectRelationshipAndStyle', 'detectForbiddenExpressions', 'projectSceneIssues', 'ReviewAuditJournal']) {
     if (!service.includes(reuse)) fail(`review service must reuse ${reuse}`);
@@ -79,12 +78,14 @@ const fail = (msg) => { throw new Error(`I64 smoke: ${msg}`); };
     fail('remote.ts missing reviewInvocations registration');
   }
   // Client：nav 新增审校中心稳定视图；I83 起 Remote 挂载经 mount.ts 参数化工厂
-  // （client.ts 持声明式规格，mount.ts 是 `$mount` 唯一实现）。
+  // （I90 起 per-Remote 声明式规格在 mount-registry.ts，mount.ts 是 `$mount` 唯一实现）。
   if (!nav.includes("view: 'review'") || !nav.includes("view === 'review'")) {
     fail('nav.ts missing the review view / stable-view handling');
   }
+  // I90：per-Remote 声明式规格随 registry 迁至 mount-registry.ts（review v2.0 §3.5）。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('reviewRemoteContribution') || !client.includes("'remote.novelReview'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('reviewRemoteContribution') || !mountRegistry.includes("'remote.novelReview'")) {
     fail('client mount wiring missing review Remote mount');
   }
 }

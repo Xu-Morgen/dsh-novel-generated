@@ -81,15 +81,17 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
     'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
     'src/client/styles/tokens.ts'].map((p) => read(p)).join('\n');
   const client = read('src/client.ts');
+  // I90：焦点/键盘/Esc 渲染锚点随 workbenchView 迁至 presenter.ts（review v2.0 §3.5）。
+  const presenter = read('src/client/presenter.ts');
   for (const fn of ['safeDocument', 'focusSelector', 'scheduleFocus']) {
     if (!focus.includes(fn)) fail(`src/client/focus.ts missing ${fn}`);
   }
   for (const fn of ['renderSaveStatus', 'saveButtonLabel', 'saveStatusLine', 'SaveStatusKind']) {
     if (!saveStatus.includes(fn)) fail(`src/client/save-status.ts missing ${fn}`);
   }
-  if (!client.includes('data-novel-focus-scope')) fail('client.ts missing focus-scope anchor');
-  if (!client.includes('data-novel-focus-target')) fail('client.ts missing focus-target anchor');
-  if (!client.includes('onKeyDown')) fail('client.ts missing keydown/Esc handler');
+  if (!presenter.includes('data-novel-focus-scope')) fail('presenter.ts missing focus-scope anchor');
+  if (!presenter.includes('data-novel-focus-target')) fail('presenter.ts missing focus-target anchor');
+  if (!presenter.includes('onKeyDown')) fail('presenter.ts missing keydown/Esc handler');
   if (!client.includes('const inflight = new Set<string>')) fail('client.ts missing inflight dedup');
   if (!styles.includes('.nv-workbench :focus-visible')) fail('styles missing :focus-visible ring');
   const mediaN = styles.match(/@media \(max-width: \$\{RESPONSIVE_BREAKPOINT_NAV\}px\)/);

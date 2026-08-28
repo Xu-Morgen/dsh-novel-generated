@@ -63,7 +63,6 @@ const fail = (msg) => { throw new Error(`I71 smoke: ${msg}`); };
 {
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
-  const client = read('src/client.ts');
   const shared = read('src/client/shared.ts');
   const nav = read('src/client/nav.ts');
   const searchLayer = read('src/client/layers/search.ts');
@@ -76,9 +75,10 @@ const fail = (msg) => { throw new Error(`I71 smoke: ${msg}`); };
   if (!remoteTs.includes('...searchInvocations') || !remoteTs.includes('searchRemoteContribution')) {
     fail('remote.ts missing searchInvocations registration');
   }
-  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂；I90 起 per-Remote 声明式规格在 mount-registry.ts。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('searchRemoteContribution') || !client.includes("'remote.novelSearch'")) {
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('searchRemoteContribution') || !mountRegistry.includes("'remote.novelSearch'")) {
     fail('client mount wiring missing search Remote mount');
   }
   if (!shared.includes('SearchNamespace')) fail('shared.ts missing SearchNamespace');

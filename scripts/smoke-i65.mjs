@@ -59,7 +59,6 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
   const writing = read('src/host/writing-adjudication-service.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
-  const client = read('src/client.ts');
   // 复用 I62/I63：注册进裁决服务 + 消费 preview 的 I20 判定（停止策略）。
   for (const reuse of ['registerRecoveredCandidate', 'preview', 'resolveSettings', 'stableSceneId', 'countProseUnits', 'beatCards', 'navigate']) {
     if (!service.includes(reuse)) fail(`queue service must reuse ${reuse}`);
@@ -90,9 +89,10 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
   if (!index.includes("ctx.provide('novelQueue'") || !index.includes('createQueueService')) fail('index.ts missing novelQueue wiring');
   if (!remoteTs.includes('...queueInvocations') || !remoteTs.includes('queueRemoteContribution')) fail('remote.ts missing queueInvocations registration');
   if (!nav.includes("view: 'queue'") || !nav.includes("view === 'queue'")) fail('nav.ts missing the queue view / stable-view handling');
-  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂；I90 起 per-Remote 声明式规格在 mount-registry.ts。
+  const mountRegistry = read('src/client/mount-registry.ts');
   const mount = read('src/client/mount.ts');
-  if (!mount.includes('export function mountRemote') || !client.includes('queueRemoteContribution') || !client.includes("'remote.novelQueue'")) fail('client mount wiring missing queue Remote mount');
+  if (!mount.includes('export function mountRemote') || !mountRegistry.includes('queueRemoteContribution') || !mountRegistry.includes("'remote.novelQueue'")) fail('client mount wiring missing queue Remote mount');
 }
 
 // Part 3 — Host 行为（lib 构建产物）：fake backend 消费者夹具。
