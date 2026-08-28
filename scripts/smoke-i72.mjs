@@ -64,8 +64,10 @@ const fail = (msg) => { throw new Error(`I72 smoke: ${msg}`); };
   if (!remoteTs.includes('...statisticsInvocations') || !remoteTs.includes('statisticsRemoteContribution')) {
     fail('remote.ts missing statisticsInvocations registration');
   }
-  if (!client.includes('statisticsRemoteContribution') || !client.includes("'remote.novelStatistics'")) {
-    fail('client.ts missing statistics Remote mount');
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('statisticsRemoteContribution') || !client.includes("'remote.novelStatistics'")) {
+    fail('client mount wiring missing statistics Remote mount');
   }
   if (!shared.includes('StatisticsNamespace')) fail('shared.ts missing StatisticsNamespace');
   if (!nav.includes("view: 'statistics'") || !nav.includes("'statistics'")) fail('nav.ts missing statistics view');

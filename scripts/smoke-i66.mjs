@@ -74,12 +74,13 @@ const fail = (msg) => { throw new Error(`I66 smoke: ${msg}`); };
   if (!remoteTs.includes('...knowledgeInvocations') || !remoteTs.includes('knowledgeRemoteContribution')) {
     fail('remote.ts missing knowledgeInvocations registration');
   }
-  // Client：nav 新增知情稳定视图；client.ts 挂载 knowledgeRemoteContribution。
+  // Client：nav 新增知情稳定视图；I83 起 Remote 挂载经 mount.ts 参数化工厂。
   if (!nav.includes("view: 'knowledge'") || !nav.includes("view === 'knowledge'")) {
     fail('nav.ts missing the knowledge view / stable-view handling');
   }
-  if (!client.includes('knowledgeRemoteContribution') || !client.includes("'remote.novelKnowledgeManager'")) {
-    fail('client.ts missing knowledge Remote mount');
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('knowledgeRemoteContribution') || !client.includes("'remote.novelKnowledgeManager'")) {
+    fail('client mount wiring missing knowledge Remote mount');
   }
 }
 

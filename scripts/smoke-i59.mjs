@@ -75,7 +75,11 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 {
   const focus = read('src/client/focus.ts');
   const saveStatus = read('src/client/save-status.ts');
-  const styles = read('src/client/styles.ts');
+  // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
+  const styles = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
+    'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
+    'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
+    'src/client/styles/tokens.ts'].map((p) => read(p)).join('\n');
   const client = read('src/client.ts');
   for (const fn of ['safeDocument', 'focusSelector', 'scheduleFocus']) {
     if (!focus.includes(fn)) fail(`src/client/focus.ts missing ${fn}`);

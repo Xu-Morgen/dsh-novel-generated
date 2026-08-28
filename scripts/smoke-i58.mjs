@@ -59,13 +59,18 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 {
   const nav = read('src/client/nav.ts');
   const client = read('src/client.ts');
-  const styles = read('src/client/styles.ts');
+  // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
+  const styles = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
+    'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
+    'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
+    'src/client/styles/tokens.ts'].map((p) => read(p)).join('\n');
   for (const label of ['写作', '策划', '连续性', '作品设置']) {
     if (!nav.includes(`label: '${label}'`)) fail(`nav model missing group label: ${label}`);
   }
   if (!nav.includes('resolveWorkbenchView')) fail('nav model missing resolveWorkbenchView');
   if (!client.includes('function groupNav(')) fail('client.ts missing grouped nav renderer');
-  if (!client.includes('function viewPanel(')) fail('client.ts missing per-view dispatcher');
+  // I83：per-view dispatcher 迁至面板注册表（viewPanel + PANEL_REGISTRY）。
+  if (!read('src/client/panels/index.ts').includes('export function viewPanel(')) fail('panels/index.ts missing per-view dispatcher');
   if (client.includes('创作台层级')) fail('client.ts still references the retired flat-nav aria-label');
   for (const required of ['.nv-workbench__nav-group', '.nv-workbench__nav-group-label', '.nv-workbench__nav-item-badge']) {
     if (!styles.includes(required)) fail(`styles missing I58 class: ${required}`);

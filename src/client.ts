@@ -19,7 +19,6 @@ import {
   type SearchNamespace,
   type StatisticsNamespace,
   type TimelineNamespace,
-  LAYERS,
   el as createElement,
   slug,
   unwrap,
@@ -36,31 +35,19 @@ import {
   statisticsRemoteContribution,
   timelineRemoteContribution,
 } from './client/shared.js';
-import { characterLayer as renderCharacterLayer } from './client/layers/characters.js';
-import { worldviewLayer as renderWorldviewLayer } from './client/layers/worldview.js';
-import { relationshipLayer as renderRelationshipLayer } from './client/layers/relationship.js';
-import { stateLayer as renderStateLayer } from './client/layers/state.js';
-import { canonLayer as renderCanonLayer } from './client/layers/canon.js';
-import { outlineLayer as renderOutlineLayer } from './client/layers/outline.js';
-import { chaptersPanel } from './client/layers/chapters.js';
-import { reviewPanel } from './client/layers/review.js';
-import { queuePanel } from './client/layers/queue.js';
-import { knowledgePanel } from './client/layers/knowledge.js';
-import { ruleStylePanel } from './client/layers/rule-style.js';
-import { progressPanel } from './client/layers/progress.js';
-import { importExportPanel } from './client/layers/import-export.js';
-import { searchPanel } from './client/layers/search.js';
-import { statisticsPanel } from './client/layers/statistics.js';
-import { timelinePanel } from './client/layers/timeline.js';
 import { reloadProject, type ProjectOpenLayers } from './client/project-session.js';
 import { uploadDocx, type UploadProgress } from './client/upload.js';
 import { analysisPanel, ANALYSIS_POLL_INTERVAL_MS, analysisResult, applyAccepted, beginAnalysis, onboardingReview, ONBOARDING_LAYERS, adjudicateOne, type OnboardingAdjudicationExtra, type OnboardingAnalysisState, type OnboardingAnalyzerNamespace, type OnboardingDecision, type OnboardingLayerId, type OnboardingNamespace, type OnboardingState } from './client/onboarding.js';
 import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from './client/onboarding.js';
-import { llmSettingsPanel, llmConfigRemoteContribution, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
-import { workbenchSettingsPanel, workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
+import { llmConfigRemoteContribution, llmSettingsPanel, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from './client/settings.js';
+import { workbenchSettingsRemoteContribution, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from './client/workbench-settings.js';
 import { WORKBENCH_STYLES } from './client/styles.js';
 import { DEFAULT_VIEW, NAV_GROUPS, isStableView, resolveWorkbenchView, type WorkbenchViewId } from './client/nav.js';
 import { scheduleFocus } from './client/focus.js';
+// I83：视图分发（viewPanel + 面板注册表）迁至 client/panels/，mount 生命周期
+// 迁至 client/mount.ts（架构审查 §4.1 / §9 #5）；client.ts 只保留装配与渲染外壳。
+import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './client/panels/index.js';
+import { mountRemote } from './client/mount.js';
 import {
   createWorkbenchStore,
   type DefineStore,
@@ -157,131 +144,13 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
   );
 }
 
-/** 单层空态占位（仅兜底，I49 起六层均有真实面板）。 */
-function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
-  return h('section', {
-    className: 'nv-workbench__empty',
-    'data-novel-layer-panel': layer.id,
-    'data-novel-layer-state': 'empty',
-  },
-    h('h3', { className: 'nv-workbench__empty-title' }, layer.title),
-    h('p', { className: 'nv-workbench__empty-hint' }, layer.hint),
-  );
-}
-
 /**
- * I48 B5 大纲结构化编辑器（design §5.7 / R10-5）。替换裸 JSON 文本框：幕→节→
- * 细纲场景卡的三级层级编辑。所有读写只经 Host `outlineRead`/`outlineSave`/
- * `outlineBeatCards`，Client 不拥有领域校验（design §0.1.2）。
- */
-
-/** 内容区：按激活层渲染真表单（I47/I48/I49），仅兜底空态。 */
-function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, ops: WorkbenchOps): unknown {
-  const layer = LAYERS.find((item) => item.id === activeLayer) ?? LAYERS[0];
-  if (layer.id === 'characters') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderCharacterLayer(h, projectId, workspace, layers.characters, layers.characterEditor, ops.characters));
-  }
-  if (layer.id === 'worldview') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderWorldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, ops.worldview));
-  }
-  if (layer.id === 'outline') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline));
-  }
-  if (layer.id === 'relationship') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      // 关系 from/to 以 B3 角色 id 持久化；显示时 join 角色名（改名不换 id，见
-      // CharacterRepository.update），未知 id 回退显示 id 本身。
-      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship));
-  }
-  if (layer.id === 'state') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderStateLayer(h, projectId, workspace, layers.state, layers.stateEditor, ops.state));
-  }
-  if (layer.id === 'canon') {
-    return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderCanonLayer(h, projectId, workspace, layers.canon, layers.canonEditor, ops.canon));
-  }
-  return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' }, emptyState(h, layer));
-}
-
-/**
- * I58 视图分发（design §14.8 / R12-5）：按稳定 activeView 渲染对应面板，
- * 每个内容区携带 `data-novel-view-panel` data 锚点。非层视图（LLM 设置 /
+ * I58 视图分发迁至 src/client/panels/（I83）：viewPanel 按稳定 activeView 渲染
+ * 对应面板，每个内容区携带 `data-novel-view-panel` data 锚点；非层视图（LLM 设置 /
  * 创作设置 / 六层初始化审阅 / I60 正文）与层视图互斥，由单一视图状态决定。
- */
-/**
  * I82 形参收敛（架构审查 §5.1）：13 个 Remote namespace 打包为 `ns`、10 个面板
  * state + 层数据打包为 `states`，签名由 33 形参收敛到 10。
  */
-function viewPanel(
-  h: El,
-  activeView: WorkbenchViewId,
-  projectId: string,
-  ns: WorkbenchNamespaces,
-  states: WorkbenchViewStates,
-  ops: WorkbenchOps,
-  sourceEntry: unknown,
-  review: unknown,
-  settings: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void } | undefined,
-  creationSettings: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void } | undefined,
-): unknown {
-  const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace } = ns;
-  const { layers, chapters, review: reviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
-  if (activeView === 'settings') {
-    return h('div', { 'data-novel-view-panel': 'settings' }, settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null);
-  }
-  if (activeView === 'creationSettings') {
-    return h('div', { 'data-novel-view-panel': 'creationSettings' }, creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null);
-  }
-  if (activeView === 'onboarding') {
-    return h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '', 'data-novel-view-panel': 'onboarding' }, sourceEntry, review);
-  }
-  // I60：正文视图（写作组 C5）—— 章节树/场景列表/正文只读面板（R13-1）+ I63 候选审阅。
-  if (activeView === 'chapters') {
-    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, branchNamespace, chapters, ops.chapters));
-  }
-  // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
-  if (activeView === 'review') {
-    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review));
-  }
-  // I65：生成队列（写作组）—— 场景卡范围/配置 + 暂停/继续/取消 + 任务列表（R13-6）。
-  if (activeView === 'queue') {
-    return h('div', { 'data-novel-view-panel': 'queue' }, queuePanel(h, projectId, queueNamespace, workspace, queueState, ops.queue));
-  }
-  // I66：知情与揭示（连续性组）—— 事实/角色双视图 + 揭示/holder Gate 提案（R14-1）。
-  if (activeView === 'knowledge') {
-    return h('div', { 'data-novel-view-panel': 'knowledge' }, knowledgePanel(h, projectId, knowledgeNamespace, knowledgeState, ops.knowledge));
-  }
-  // I67：规则与文风（策划组）—— B1 规则 + B4 风格档案表单（R14-2）。
-  if (activeView === 'ruleStyle') {
-    return h('div', { 'data-novel-view-panel': 'ruleStyle' }, ruleStylePanel(h, projectId, ruleStyleNamespace, ruleStyleState, ops.ruleStyle));
-  }
-  // I68：进度与灵感（写作组）—— C6 执行态进度/偏差 + 灵感方向 Gate 落地（R14-3）。
-  if (activeView === 'progress') {
-    return h('div', { 'data-novel-view-panel': 'progress' }, progressPanel(h, projectId, progressNamespace, progressState, ops.progress));
-  }
-  // I69：导入导出与备份（作品设置组）—— 项目包/纯文本导出 + round-trip 恢复 + 导入预览（R14-4）。
-  if (activeView === 'importExport') {
-    return h('div', { 'data-novel-view-panel': 'importExport' }, importExportPanel(h, projectId, importExportNamespace, importExportState, ops.importExport));
-  }
-  // I71：全局搜索与上下文追踪（写作组）—— 跨六层关键词检索 + 实体引用 + 结果跳转 + 索引重建/删除（R14-6）。
-  if (activeView === 'search') {
-    return h('div', { 'data-novel-view-panel': 'search' }, searchPanel(h, projectId, searchNamespace, searchState, ops.search));
-  }
-  // I72：写作进度面板（写作组）—— 可重建派生统计：章节字数/目标完成度/场景卡状态/POV 分布/任务历史（R14-7）。
-  if (activeView === 'statistics') {
-    return h('div', { 'data-novel-view-panel': 'statistics' }, statisticsPanel(h, projectId, statisticsNamespace, statisticsState, ops.statistics));
-  }
-  // 方案 A：剧情时间线（策划组）—— 从 B5 自建有序剧情时间轴；节点可安排揭示
-  // 信息与关系建立时机，手动选择当前节点并编辑保存（design §8 相关角色对）。
-  if (activeView === 'timeline') {
-    return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline));
-  }
-  return h('div', { 'data-novel-view-panel': activeView }, contentArea(h, projectId, workspace, activeView, layers, ops));
-}
 
 /** 面板主体：品牌头栏 + 任务分组导航 + 视图内容区（写作/策划/连续性/作品设置，I58）。
  *  I82 形参收敛（架构审查 §5.1）：13 个 Remote namespace 打包为 `ns`、10 个面板
@@ -306,8 +175,8 @@ function workbenchView(
   decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void,
   applyOnboarding?: () => void,
   patchOnboarding?: (patch: Partial<OnboardingState>) => void,
-  settings?: { view: LlmConfigViewShape | undefined; draft: LlmConfigDraftShape; namespace: LlmConfigNamespace | undefined; mutate(patch: Partial<LlmConfigDraftShape>): void; save(): void },
-  creationSettings?: { view: WorkbenchSettingsViewShape | undefined; draft: WorkbenchSettingsDraftShape; namespace: WorkbenchSettingsNamespace | undefined; mutate(patch: Partial<WorkbenchSettingsDraftShape>): void; save(): void; projectId: string | undefined; openFolder(): void },
+  settings?: LlmSettingsPanelProps,
+  creationSettings?: WorkbenchSettingsPanelProps,
 ): unknown {
   const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, onboardingNamespace } = ns;
   const { layers, chapters, review: reviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
@@ -1035,116 +904,60 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           { name: 'shell.overlay', id: 'novel-creation-tool-workspace', order: 0, label: '创作台', store: () => storeHandle, inject: (actions: WorkbenchActions) => { if (!active) return {}; const guarded = lifecycleActions(actions); capturedActions = guarded; for (const fn of pending.splice(0)) fn(guarded); return {}; } },
           Overlay as unknown as () => unknown,
         );
-        // Self-mount the namespace, then resolve it through `ctx.get` instead of
-        // `inject`: injecting `remote.novelWorkspace` here would deadlock, because
-        // that service only exists after `$mount` completes.
-        void ctx.remote.$mount(workspaceRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          remoteDisposer = dispose;
-          workspace = ctx.get('remote.novelWorkspace', false) as WorkspaceNamespace | undefined;
-          if (!workspace) { dispatch((x) => x.fail('创作台远程服务不可用')); return; }
-          return unwrap(workspace.viewModel()).then(
-            (model) => {
-              const target = workspace;
-              dispatch((x) => x.ready(model as WorkspaceViewModel));
-              if (target === undefined) return;
-              void unwrap(target.projectList()).then(
-                (projects) => dispatch((x) => x.setProjects(projects as unknown[])),
-                () => dispatch((x) => x.fail('作品列表读取失败')),
-              );
-            },
-            () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
-          );
-        }, () => { dispatch((x) => x.fail('创作台远程服务不可用')); });
-        // I53: mount the analyzer + adjudication namespaces for the six-layer
-        // review. Start analysis after a source text is available (upload or
-        // free text), then review/adjudicate/apply through their Remotes.
-        void ctx.remote.$mount(onboardingAnalyzerRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          analyzerDisposer = dispose;
-          analyzer = ctx.get('remote.novelOnboardingAnalyzer', false) as OnboardingAnalyzerNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: analyzer Remote mount failed', cause); });
-        void ctx.remote.$mount(onboardingRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          onboardingDisposer = dispose;
-          onboarding = ctx.get('remote.novelOnboarding', false) as OnboardingNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: onboarding Remote mount failed', cause); });
-        void ctx.remote.$mount(llmConfigRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          llmConfigDisposer = dispose;
-          llmConfig = ctx.get('remote.novelLlmConfig', false) as LlmConfigNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: llm config Remote mount failed', cause); });
-        void ctx.remote.$mount(workbenchSettingsRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          workbenchSettingsDisposer = dispose;
-          workbenchSettings = ctx.get('remote.novelWorkbenchSettings', false) as WorkbenchSettingsNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: workbench settings Remote mount failed', cause); });
+        // I83：16 个结构相同的 `$mount` 块收敛为参数化工厂（架构审查 §4.1 /
+        // §9 #5；client/mount.ts 是唯一实现）。Self-mount 每个 namespace 后经
+        // `ctx.get` 解析（而非 `inject`：inject 会死锁，因为该服务在 `$mount`
+        // 完成后才存在）。workspace 是唯一装载后处理（viewModel + 作品列表）与
+        // 显式失败处理（dispatch fail 全屏错误）的特例。
+        const mountCtx = { remote: ctx.remote, get: (name: string, silent?: boolean) => ctx.get(name, silent), isActive: () => active };
+        mountRemote<WorkspaceNamespace>(mountCtx, {
+          contribution: workspaceRemoteContribution,
+          serviceKey: 'remote.novelWorkspace',
+          label: 'workspace',
+          bind: (disposer, service) => { remoteDisposer = disposer; workspace = service; },
+          after: (service) => {
+            if (service === undefined) { dispatch((x) => x.fail('创作台远程服务不可用')); return; }
+            void unwrap(service.viewModel()).then(
+              (model) => {
+                dispatch((x) => x.ready(model as WorkspaceViewModel));
+                void unwrap(service.projectList()).then(
+                  (projects) => dispatch((x) => x.setProjects(projects as unknown[])),
+                  () => dispatch((x) => x.fail('作品列表读取失败')),
+                );
+              },
+              () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
+            );
+          },
+          onError: () => { dispatch((x) => x.fail('创作台远程服务不可用')); },
+        });
+        // I53: 六层初始化审阅的 analyzer + adjudication namespaces。挂载失败静默
+        // 降级：审阅面板显示不可用。
+        mountRemote<OnboardingAnalyzerNamespace>(mountCtx, { contribution: onboardingAnalyzerRemoteContribution, serviceKey: 'remote.novelOnboardingAnalyzer', label: 'analyzer', bind: (disposer, service) => { analyzerDisposer = disposer; analyzer = service; } });
+        mountRemote<OnboardingNamespace>(mountCtx, { contribution: onboardingRemoteContribution, serviceKey: 'remote.novelOnboarding', label: 'onboarding', bind: (disposer, service) => { onboardingDisposer = disposer; onboarding = service; } });
+        mountRemote<LlmConfigNamespace>(mountCtx, { contribution: llmConfigRemoteContribution, serviceKey: 'remote.novelLlmConfig', label: 'llm config', bind: (disposer, service) => { llmConfigDisposer = disposer; llmConfig = service; } });
+        mountRemote<WorkbenchSettingsNamespace>(mountCtx, { contribution: workbenchSettingsRemoteContribution, serviceKey: 'remote.novelWorkbenchSettings', label: 'workbench settings', bind: (disposer, service) => { workbenchSettingsDisposer = disposer; workbenchSettings = service; } });
         // I63：候选审阅与裁决 Remote（R13-4）。挂载失败静默降级：审阅面板显示不可用。
-        void ctx.remote.$mount(writingRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          writingDisposer = dispose;
-          writing = ctx.get('remote.novelWriting', false) as WritingNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: writing Remote mount failed', cause); });
+        mountRemote<WritingNamespace>(mountCtx, { contribution: writingRemoteContribution, serviceKey: 'remote.novelWriting', label: 'writing', bind: (disposer, service) => { writingDisposer = disposer; writing = service; } });
         // I64：一致性审校中心 Remote（R13-5）。挂载失败静默降级：审校面板显示不可用。
-        void ctx.remote.$mount(reviewRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          reviewDisposer = dispose;
-          reviewNamespace = ctx.get('remote.novelReview', false) as ReviewNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: review Remote mount failed', cause); });
+        mountRemote<ReviewNamespace>(mountCtx, { contribution: reviewRemoteContribution, serviceKey: 'remote.novelReview', label: 'review', bind: (disposer, service) => { reviewDisposer = disposer; reviewNamespace = service; } });
         // I65：可恢复自动生成队列 Remote（R13-6）。挂载失败静默降级：队列面板显示不可用。
-        void ctx.remote.$mount(queueRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          queueDisposer = dispose;
-          queueNamespace = ctx.get('remote.novelQueue', false) as QueueNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: queue Remote mount failed', cause); });
+        mountRemote<QueueNamespace>(mountCtx, { contribution: queueRemoteContribution, serviceKey: 'remote.novelQueue', label: 'queue', bind: (disposer, service) => { queueDisposer = disposer; queueNamespace = service; } });
         // I66：知情与揭示管理面 Remote（R14-1）。挂载失败静默降级：知情面板显示不可用。
-        void ctx.remote.$mount(knowledgeRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          knowledgeDisposer = dispose;
-          knowledgeNamespace = ctx.get('remote.novelKnowledgeManager', false) as KnowledgeNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: knowledge Remote mount failed', cause); });
+        mountRemote<KnowledgeNamespace>(mountCtx, { contribution: knowledgeRemoteContribution, serviceKey: 'remote.novelKnowledgeManager', label: 'knowledge', bind: (disposer, service) => { knowledgeDisposer = disposer; knowledgeNamespace = service; } });
         // I67：规则与文风控制面 Remote（R14-2）。挂载失败静默降级：规则与文风面板显示不可用。
-        void ctx.remote.$mount(ruleStyleRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          ruleStyleDisposer = dispose;
-          ruleStyleNamespace = ctx.get('remote.novelRuleStyleManager', false) as RuleStyleNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: ruleStyle Remote mount failed', cause); });
+        mountRemote<RuleStyleNamespace>(mountCtx, { contribution: ruleStyleRemoteContribution, serviceKey: 'remote.novelRuleStyleManager', label: 'ruleStyle', bind: (disposer, service) => { ruleStyleDisposer = disposer; ruleStyleNamespace = service; } });
         // I68：进度与灵感 Remote（R14-3）。挂载失败静默降级：进度与灵感面板显示不可用。
-        void ctx.remote.$mount(progressRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          progressDisposer = dispose;
-          progressNamespace = ctx.get('remote.novelOutlineProgress', false) as ProgressNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: progress Remote mount failed', cause); });
+        mountRemote<ProgressNamespace>(mountCtx, { contribution: progressRemoteContribution, serviceKey: 'remote.novelOutlineProgress', label: 'progress', bind: (disposer, service) => { progressDisposer = disposer; progressNamespace = service; } });
         // I69：导入导出与备份 Remote（R14-4）。挂载失败静默降级：面板显示不可用。
-        void ctx.remote.$mount(importExportRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          importExportDisposer = dispose;
-          importExportNamespace = ctx.get('remote.novelImportExport', false) as ImportExportNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: importExport Remote mount failed', cause); });
+        mountRemote<ImportExportNamespace>(mountCtx, { contribution: importExportRemoteContribution, serviceKey: 'remote.novelImportExport', label: 'importExport', bind: (disposer, service) => { importExportDisposer = disposer; importExportNamespace = service; } });
         // I70：C5 正文版本与分支 Remote（R14-5）。挂载失败静默降级：分支面板显示不可用。
-        void ctx.remote.$mount(branchRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          branchDisposer = dispose;
-          branchNamespace = ctx.get('remote.novelBranches', false) as BranchNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: branches Remote mount failed', cause); });
+        mountRemote<BranchNamespace>(mountCtx, { contribution: branchRemoteContribution, serviceKey: 'remote.novelBranches', label: 'branches', bind: (disposer, service) => { branchDisposer = disposer; branchNamespace = service; } });
         // I71：全局搜索与上下文追踪 Remote（R14-6）。挂载失败静默降级：搜索面板显示不可用。
-        void ctx.remote.$mount(searchRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          searchDisposer = dispose;
-          searchNamespace = ctx.get('remote.novelSearch', false) as SearchNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: search Remote mount failed', cause); });
+        mountRemote<SearchNamespace>(mountCtx, { contribution: searchRemoteContribution, serviceKey: 'remote.novelSearch', label: 'search', bind: (disposer, service) => { searchDisposer = disposer; searchNamespace = service; } });
         // I72：写作进度面板 Remote（R14-7）。挂载失败静默降级：进度面板显示不可用。
-        void ctx.remote.$mount(statisticsRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          statisticsDisposer = dispose;
-          statisticsNamespace = ctx.get('remote.novelStatistics', false) as StatisticsNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: statistics Remote mount failed', cause); });
+        mountRemote<StatisticsNamespace>(mountCtx, { contribution: statisticsRemoteContribution, serviceKey: 'remote.novelStatistics', label: 'statistics', bind: (disposer, service) => { statisticsDisposer = disposer; statisticsNamespace = service; } });
         // 方案 A：剧情时间线 Remote（design §8 相关角色对）。挂载失败静默降级：时间线面板显示不可用。
-        void ctx.remote.$mount(timelineRemoteContribution).then((dispose) => {
-          if (!active) { void dispose(); return; }
-          timelineDisposer = dispose;
-          timelineNamespace = ctx.get('remote.novelTimeline', false) as TimelineNamespace | undefined;
-        }, (cause: Error) => { console.error('novel-creation-tool: timeline Remote mount failed', cause); });
+        mountRemote<TimelineNamespace>(mountCtx, { contribution: timelineRemoteContribution, serviceKey: 'remote.novelTimeline', label: 'timeline', bind: (disposer, service) => { timelineDisposer = disposer; timelineNamespace = service; } });
         return () => {
           active = false;
           clearAnalysisPoll();

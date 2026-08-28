@@ -59,8 +59,10 @@ const fail = (msg) => { throw new Error(`I69 smoke: ${msg}`); };
   if (!nav.includes("view: 'importExport'") || !nav.includes("view === 'importExport'")) {
     fail('nav.ts missing the importExport view / stable-view handling');
   }
-  if (!client.includes('importExportRemoteContribution') || !client.includes("'remote.novelImportExport'")) {
-    fail('client.ts missing importExport Remote mount');
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('importExportRemoteContribution') || !client.includes("'remote.novelImportExport'")) {
+    fail('client mount wiring missing importExport Remote mount');
   }
   if (!shared.includes('ImportExportNamespace')) fail('shared.ts missing ImportExportNamespace');
   // Client 无领域 fallback：面板不导入 core schema / zod，不复制领域校验。

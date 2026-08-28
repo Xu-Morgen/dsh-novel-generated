@@ -77,8 +77,10 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
   if (!remoteTs.includes('...branchInvocations') || !remoteTs.includes('branchRemoteContribution')) {
     fail('remote.ts missing branchInvocations registration');
   }
-  if (!client.includes('branchRemoteContribution') || !client.includes("'remote.novelBranches'")) {
-    fail('client.ts missing branch Remote mount');
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('branchRemoteContribution') || !client.includes("'remote.novelBranches'")) {
+    fail('client mount wiring missing branch Remote mount');
   }
   if (!shared.includes('BranchNamespace')) fail('shared.ts missing BranchNamespace');
   // 分支面板（Client）无领域 fallback：不导入 core schema / zod。

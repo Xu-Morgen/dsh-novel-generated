@@ -58,7 +58,11 @@ const fail = (msg) => { throw new Error(`I56 smoke: ${msg}`); };
 
 // Part 2 — 样式源码：面板 / 状态徽标 / eligibility 类存在。
 {
-  const styles = readFileSync(resolve(repoRoot, 'src', 'client', 'styles.ts'), 'utf8');
+  // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
+  const styles = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
+    'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
+    'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
+    'src/client/styles/tokens.ts'].map((p) => readFileSync(resolve(repoRoot, p), 'utf8')).join('\n');
   for (const required of [
     '.nv-onboarding__status', '.nv-onboarding__panel', '.nv-onboarding__panel-actions',
     '.nv-onboarding__panel-confirm', '.nv-onboarding__panel-cancel', '.nv-onboarding__eligibility',

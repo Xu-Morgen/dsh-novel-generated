@@ -65,8 +65,13 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 {
   const nav = read('src/client/nav.ts');
   const chapters = read('src/client/layers/chapters.ts');
-  const styles = read('src/client/styles.ts');
+  // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
+  const styles = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
+    'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
+    'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
+    'src/client/styles/tokens.ts'].map((p) => read(p)).join('\n');
   const client = read('src/client.ts');
+  const panels = read('src/client/panels/index.ts');
   const hostRemote = read('src/host/remote/text.ts');
   if (!nav.includes("view: 'chapters'")) fail('nav model missing chapters view');
   if (!nav.includes("badge: 'C5'")) fail('nav model missing C5 badge');
@@ -76,7 +81,8 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   for (const cls of ['.nv-chapters', '.nv-chapters__pane', '.nv-chapters__prose', '.nv-chapters__empty']) {
     if (!styles.includes(cls)) fail(`styles missing ${cls}`);
   }
-  if (!client.includes("activeView === 'chapters'")) fail('client.ts missing chapters view dispatch');
+  // I83：正文视图分发迁至面板注册表（PANEL_REGISTRY chapters 条目）。
+  if (!panels.includes('chapters:') || !panels.includes('chaptersPanel(')) fail('panels registry missing chapters view dispatch');
   // I82：正文 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。
   const chaptersOps = read('src/client/ops/chapters.ts');
   if (!chaptersOps.includes("chaptersRead('ready'")) fail('ops/chapters.ts missing chapters read ops');

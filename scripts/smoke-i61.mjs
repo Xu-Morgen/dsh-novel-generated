@@ -81,7 +81,12 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
     || !editService.includes('parseB2WorldviewFromNarrative')) fail('text-edit-service must reuse the five existing I25–I29 parsers');
   if (!index.includes("ctx.provide('novelTextEdit'") || !index.includes('createTextEditService')) fail('index.ts missing novelTextEdit wiring');
   if (!chapters.includes('computeEditRange') || !chapters.includes('data-novel-scene-save')) fail('chapters layer missing editor UI/diff');
-  if (!read('src/client/styles.ts').includes('.nv-chapters__editor')) fail('styles missing editor styles');
+  // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
+  const stylesSource = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
+    'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
+    'src/client/styles/onboarding.ts', 'src/client/styles/panels.ts', 'src/client/styles/responsive.ts',
+    'src/client/styles/tokens.ts'].map((p) => read(p)).join('\n');
+  if (!stylesSource.includes('.nv-chapters__editor')) fail('styles missing editor styles');
 }
 
 // Part 3 — Host 行为（lib 构建产物）：验收矩阵。

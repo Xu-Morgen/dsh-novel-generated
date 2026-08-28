@@ -90,7 +90,9 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
   if (!index.includes("ctx.provide('novelQueue'") || !index.includes('createQueueService')) fail('index.ts missing novelQueue wiring');
   if (!remoteTs.includes('...queueInvocations') || !remoteTs.includes('queueRemoteContribution')) fail('remote.ts missing queueInvocations registration');
   if (!nav.includes("view: 'queue'") || !nav.includes("view === 'queue'")) fail('nav.ts missing the queue view / stable-view handling');
-  if (!client.includes('queueRemoteContribution') || !client.includes("'remote.novelQueue'")) fail('client.ts missing queue Remote mount');
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('queueRemoteContribution') || !client.includes("'remote.novelQueue'")) fail('client mount wiring missing queue Remote mount');
 }
 
 // Part 3 — Host 行为（lib 构建产物）：fake backend 消费者夹具。

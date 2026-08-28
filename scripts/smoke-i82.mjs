@@ -84,10 +84,12 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   console.log('I82 Part 2: 三接口重复声明归零 OK（WorkbenchActions/WorkbenchState 单源；ProjectSessionActions=Pick 派生）');
 }
 
-// Part 3 — viewPanel / workbenchView 形参收敛。
+// Part 3 — viewPanel / workbenchView 形参收敛（I83：viewPanel 迁至 panels 注册表，
+// 打包形参契约随迁，client.ts 仍以打包形式调用）。
 {
   const client = read('src/client.ts');
-  const viewPanelSig = client.slice(client.indexOf('function viewPanel('), client.indexOf('): unknown {', client.indexOf('function viewPanel(')));
+  const panels = read('src/client/panels/index.ts');
+  const viewPanelSig = panels.slice(panels.indexOf('export function viewPanel('), panels.indexOf('): unknown {', panels.indexOf('export function viewPanel(')));
   const workbenchViewSig = client.slice(client.indexOf('function workbenchView('), client.indexOf('): unknown {', client.indexOf('function workbenchView(')));
   if (!viewPanelSig.includes('ns: WorkbenchNamespaces') || !viewPanelSig.includes('states: WorkbenchViewStates')) fail('viewPanel 未经 ns/states 打包形参');
   if (!workbenchViewSig.includes('ns: WorkbenchNamespaces') || !workbenchViewSig.includes('states: WorkbenchViewStates')) fail('workbenchView 未经 ns/states 打包形参');
@@ -112,9 +114,9 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   console.log(`I82 Part 3: 形参收敛 OK（viewPanel 33→${vp}，workbenchView 42→${wv}）`);
 }
 
-// Part 4 — 兼容面与构建产物存在性。
+// Part 4 — 兼容面与构建产物存在性（I83：panels/mount 亦入 lib bundle）。
 {
-  for (const file of ['lib/client.js', 'lib/client/store/index.js', 'lib/client/ops/index.js']) {
+  for (const file of ['lib/client.js', 'lib/client/store/index.js', 'lib/client/ops/index.js', 'lib/client/panels/index.js', 'lib/client/mount.js']) {
     if (!existsSync(resolve(repoRoot, file))) fail(`${file} missing — run \`pnpm build\` first`);
   }
   const libClient = read('lib/client.js');

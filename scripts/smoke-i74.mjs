@@ -44,8 +44,10 @@ const fail = (msg) => { throw new Error(`I74 smoke: ${msg}`); };
   for (const anchor of ['data-novel-timeline-node', 'data-novel-timeline-refresh', 'data-novel-timeline-ensure', 'data-novel-timeline-set-current', 'data-novel-timeline-save']) {
     if (!layer.includes(anchor)) fail(`timeline layer missing ${anchor}`);
   }
-  if (!client.includes('timelineRemoteContribution') || !client.includes("'remote.novelTimeline'")) {
-    fail('client.ts missing timeline Remote mount');
+  // I83 起 Remote 挂载经 mount.ts 参数化工厂（client.ts 持声明式规格）。
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('timelineRemoteContribution') || !client.includes("'remote.novelTimeline'")) {
+    fail('client mount wiring missing timeline Remote mount');
   }
   if (!shared.includes('TimelineNamespace')) fail('shared.ts missing TimelineNamespace');
 }

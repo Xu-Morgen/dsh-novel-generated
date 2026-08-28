@@ -68,12 +68,13 @@ const fail = (msg) => { throw new Error(`I68 smoke: ${msg}`); };
   for (const reuse of ['deps.outline.readProgress', 'deps.outline.recordDeviation', 'deps.outline.save', 'deps.confirmation.propose', 'deps.confirmation.accept', 'deps.inspiration.apply']) {
     if (!service.includes(reuse)) fail(`progress service must reuse ${reuse}`);
   }
-  // Client：nav 新增 progress 稳定视图；client.ts 挂载 progressRemoteContribution；shared 暴露 ProgressNamespace。
+  // Client：nav 新增 progress 稳定视图；I83 起 Remote 挂载经 mount.ts 参数化工厂。
   if (!nav.includes("view: 'progress'") || !nav.includes("view === 'progress'")) {
     fail('nav.ts missing the progress view / stable-view handling');
   }
-  if (!client.includes('progressRemoteContribution') || !client.includes("'remote.novelOutlineProgress'")) {
-    fail('client.ts missing progress Remote mount');
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('progressRemoteContribution') || !client.includes("'remote.novelOutlineProgress'")) {
+    fail('client mount wiring missing progress Remote mount');
   }
   if (!shared.includes('ProgressNamespace')) fail('shared.ts missing ProgressNamespace');
   // Client 无领域 fallback：面板不导入 core schema / zod，不复制领域校验。

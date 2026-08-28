@@ -71,12 +71,13 @@ const fail = (msg) => { throw new Error(`I67 smoke: ${msg}`); };
   if (!remoteTs.includes('...ruleStyleInvocations') || !remoteTs.includes('ruleStyleRemoteContribution')) {
     fail('remote.ts missing ruleStyleInvocations registration');
   }
-  // Client：nav 新增 ruleStyle 稳定视图；client.ts 挂载 ruleStyleRemoteContribution。
+  // Client：nav 新增 ruleStyle 稳定视图；I83 起 Remote 挂载经 mount.ts 参数化工厂。
   if (!nav.includes("view: 'ruleStyle'") || !nav.includes("view === 'ruleStyle'")) {
     fail('nav.ts missing the ruleStyle view / stable-view handling');
   }
-  if (!client.includes('ruleStyleRemoteContribution') || !client.includes("'remote.novelRuleStyleManager'")) {
-    fail('client.ts missing ruleStyle Remote mount');
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('ruleStyleRemoteContribution') || !client.includes("'remote.novelRuleStyleManager'")) {
+    fail('client mount wiring missing ruleStyle Remote mount');
   }
   // Client 无领域 fallback：面板不导入 core schema / zod，不复制领域校验。
   if (panel.includes('../core/') || panel.includes('zod')) {

@@ -78,12 +78,14 @@ const fail = (msg) => { throw new Error(`I64 smoke: ${msg}`); };
   if (!remoteTs.includes('...reviewInvocations') || !remoteTs.includes('reviewRemoteContribution')) {
     fail('remote.ts missing reviewInvocations registration');
   }
-  // Client：nav 新增审校中心稳定视图；client.ts 挂载 reviewRemoteContribution。
+  // Client：nav 新增审校中心稳定视图；I83 起 Remote 挂载经 mount.ts 参数化工厂
+  // （client.ts 持声明式规格，mount.ts 是 `$mount` 唯一实现）。
   if (!nav.includes("view: 'review'") || !nav.includes("view === 'review'")) {
     fail('nav.ts missing the review view / stable-view handling');
   }
-  if (!client.includes('reviewRemoteContribution') || !client.includes("'remote.novelReview'")) {
-    fail('client.ts missing review Remote mount');
+  const mount = read('src/client/mount.ts');
+  if (!mount.includes('export function mountRemote') || !client.includes('reviewRemoteContribution') || !client.includes("'remote.novelReview'")) {
+    fail('client mount wiring missing review Remote mount');
   }
 }
 
