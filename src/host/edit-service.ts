@@ -8,20 +8,31 @@ import { createGenerationService } from './generation-service.js';
 import type { GenerationCandidate, GenerationSettings } from '../llm/port/index.js';
 import type { ConfirmationRecord } from '../core/schema/confirm.js';
 import { ConfirmationGate } from '../core/confirm/index.js';
+import type { LifecycleOutputs, LifecycleParsers, LifecycleWriters } from '../core/lifecycle/index.js';
+import type { C2StateParserOutput } from '../llm/parse/state.js';
+import type { C1RelationshipParserOutput } from '../llm/parse/relationship.js';
+import type { C3KnowledgeParserOutput } from '../llm/parse/knowledge.js';
+import type { C4CanonParserOutput } from '../llm/parse/canon.js';
+import type { B2WorldviewParserOutput } from '../llm/parse/worldview.js';
 
 export interface LocalizedEditResult { readonly scene: Scene; readonly evidence: EditFingerprint; }
 export interface RewriteResult { readonly candidate: GenerationCandidate; readonly applied: boolean; readonly original: string; readonly scene?: Scene; }
+
+/** I61 reparse 的 parser/writer 合同（I96：按层类型化，不再被擦成 unknown）。 */
+export type ReparseParsers = LifecycleParsers<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput>;
+export type ReparseWriters = LifecycleWriters<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput>;
+
 export interface ReparseRequest {
   readonly id: string; readonly projectId: string; readonly chapterId: string; readonly sceneId: string; readonly range: EditRange; readonly replacement: string;
-  readonly parsers: { readonly c2: () => Promise<unknown>; readonly c1: () => Promise<unknown>; readonly c3: () => Promise<unknown>; readonly c4: () => Promise<unknown>; readonly b2: () => Promise<unknown> };
-  readonly writers: { readonly c2: (output: unknown) => Promise<void>; readonly c1: (output: unknown) => Promise<void>; readonly c3: (output: unknown) => Promise<void>; readonly c4: (output: unknown) => Promise<void>; readonly b2: (output: unknown) => Promise<void> };
+  readonly parsers: ReparseParsers;
+  readonly writers: ReparseWriters;
 }
 export interface NovelLocalizedEditService {
   open(projectId: string): Promise<void>;
   edit(projectId: string, chapterId: string, sceneId: string, range: EditRange, replacement: string): Promise<LocalizedEditResult>;
   rewrite(projectId: string, chapterId: string, sceneId: string, range: EditRange, prompt: string, settings: GenerationSettings, decision: 'accept' | 'reject', signal?: AbortSignal): Promise<RewriteResult>;
   proposeReparse(request: ReparseRequest): Promise<ConfirmationRecord>;
-  applyAcceptedReparse(request: ReparseRequest): Promise<{ readonly status: 'written'; readonly scene: Scene; readonly outputs: Readonly<Record<'c2' | 'c1' | 'c3' | 'c4' | 'b2', unknown>> }>;
+  applyAcceptedReparse(request: ReparseRequest): Promise<{ readonly status: 'written'; readonly scene: Scene; readonly outputs: LifecycleOutputs<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput> }>;
 }
 
 /** I42 Host owner: C5 remains the only text writer; reparsing is explicit Gate-first fan-out (§9, R9-2). */

@@ -83,29 +83,34 @@ export class LifecycleJournal {
   }
 }
 
-export interface LifecycleParsers<T> {
-  readonly c2: () => Promise<T>;
-  readonly c1: () => Promise<T>;
-  readonly c3: () => Promise<T>;
-  readonly c4: () => Promise<T>;
-  readonly b2: () => Promise<T>;
-}
+/**
+ * I30 lifecycle 泛型按层参数化（review v2.0 §8#1 / 计划 §18 I96）：五个解析/写回
+ * 阶段各自的 parser 输出类型独立流动（LifecycleOutputs 按层映射），parser/writer
+ * 形状漂移在接线层即报编译错，不再被统一 T 擦成 unknown。writers/parsers 用映射
+ * 类型按 stage 索引，`writers[stage](outputs[stage])` 保持相关联合类型检查。
+ */
+export type LifecycleOutputs<TC2, TC1, TC3, TC4, TB2> = {
+  readonly c2: TC2;
+  readonly c1: TC1;
+  readonly c3: TC3;
+  readonly c4: TC4;
+  readonly b2: TB2;
+};
 
-export interface LifecycleWriters<T> {
-  readonly c2: (output: T) => Promise<void>;
-  readonly c1: (output: T) => Promise<void>;
-  readonly c3: (output: T) => Promise<void>;
-  readonly c4: (output: T) => Promise<void>;
-  /** B2 writes must preserve I11 confirmation-first semantics. */
-  readonly b2: (output: T) => Promise<void>;
-}
+export type LifecycleParsers<TC2, TC1, TC3, TC4, TB2> = {
+  [K in LifecycleStage]: () => Promise<LifecycleOutputs<TC2, TC1, TC3, TC4, TB2>[K]>;
+};
 
-export type LifecycleResult<T> =
+export type LifecycleWriters<TC2, TC1, TC3, TC4, TB2> = {
+  [K in LifecycleStage]: (output: LifecycleOutputs<TC2, TC1, TC3, TC4, TB2>[K]) => Promise<void>;
+};
+
+export type LifecycleResult<TC2, TC1, TC3, TC4, TB2> =
   | { readonly status: 'generation-rejected'; readonly afterGeneration: ConsistencyAdjudication }
   | { readonly status: 'decision-rejected'; readonly afterGeneration: ConsistencyAdjudication }
   | { readonly status: 'prewrite-rejected'; readonly afterGeneration: ConsistencyAdjudication; readonly beforeWriteback: ConsistencyAdjudication }
-  | { readonly status: 'written'; readonly afterGeneration: ConsistencyAdjudication; readonly beforeWriteback: ConsistencyAdjudication; readonly outputs: Readonly<Record<LifecycleStage, T>> }
-  | { readonly status: 'pending-compensation'; readonly afterGeneration: ConsistencyAdjudication; readonly beforeWriteback: ConsistencyAdjudication; readonly outputs: Readonly<Record<LifecycleStage, T>>; readonly failedStage: LifecycleStage };
+  | { readonly status: 'written'; readonly afterGeneration: ConsistencyAdjudication; readonly beforeWriteback: ConsistencyAdjudication; readonly outputs: LifecycleOutputs<TC2, TC1, TC3, TC4, TB2> }
+  | { readonly status: 'pending-compensation'; readonly afterGeneration: ConsistencyAdjudication; readonly beforeWriteback: ConsistencyAdjudication; readonly outputs: LifecycleOutputs<TC2, TC1, TC3, TC4, TB2>; readonly failedStage: LifecycleStage };
 
 /**
  * Execute the I30 accepted-prose lifecycle. Recognition may fan out only after
@@ -113,15 +118,15 @@ export type LifecycleResult<T> =
  * C2→C1→C3→C4→B2 order. §9 validation gates run before decision and before
  * the first write. The journal makes any non-atomic failure explicitly pending.
  */
-export async function executeLifecycle<T>(input: {
+export async function executeLifecycle<TC2, TC1, TC3, TC4, TB2>(input: {
   readonly id: string;
   readonly decision: LifecycleDecision;
   readonly afterGenerationViolations: unknown;
   readonly beforeWritebackViolations: unknown;
-  readonly parsers: LifecycleParsers<T>;
-  readonly writers: LifecycleWriters<T>;
+  readonly parsers: LifecycleParsers<TC2, TC1, TC3, TC4, TB2>;
+  readonly writers: LifecycleWriters<TC2, TC1, TC3, TC4, TB2>;
   readonly journal: LifecycleJournal;
-}): Promise<LifecycleResult<T>> {
+}): Promise<LifecycleResult<TC2, TC1, TC3, TC4, TB2>> {
   const decision = lifecycleDecisionSchema.parse(input.decision);
   const afterGeneration = adjudicateViolations(input.afterGenerationViolations);
   if (afterGeneration.status === 'reject') return { status: 'generation-rejected', afterGeneration };
@@ -135,7 +140,7 @@ export async function executeLifecycle<T>(input: {
   await input.journal.start(input.id);
   for (const stage of lifecycleStageSchema.options) {
     try {
-      await input.writers[stage](outputs[stage]);
+      await writeStage(input.writers, outputs, stage);
       await input.journal.advance(input.id, stage);
     } catch (error) {
       await input.journal.compensate(input.id, stage, error);
@@ -144,4 +149,13 @@ export async function executeLifecycle<T>(input: {
   }
   await input.journal.complete(input.id);
   return { status: 'written', afterGeneration, beforeWriteback, outputs };
+}
+
+/** 按 stage 泛型键写回：mapped-type 索引保持 writers/outputs 相关联合类型检查。 */
+async function writeStage<TC2, TC1, TC3, TC4, TB2, K extends LifecycleStage>(
+  writers: LifecycleWriters<TC2, TC1, TC3, TC4, TB2>,
+  outputs: LifecycleOutputs<TC2, TC1, TC3, TC4, TB2>,
+  stage: K,
+): Promise<void> {
+  await writers[stage](outputs[stage]);
 }

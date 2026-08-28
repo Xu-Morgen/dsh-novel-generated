@@ -252,6 +252,8 @@
     "verify:i94": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i94 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "smoke:i95": "node scripts/smoke-i95.mjs",
     "verify:i95": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i95 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
+    "smoke:i96": "node scripts/smoke-i96.mjs",
+    "verify:i96": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i96 && pnpm run smoke:stage-11-14 && pnpm run smoke:samples",
     "verify:stage-17": "pnpm run verify:i86 && pnpm run verify:i87 && pnpm run verify:i88 && pnpm run verify:i89 && pnpm run verify:i90 && pnpm run verify:i91 && pnpm run verify:i92 && pnpm run verify:i93 && pnpm run verify:i94 && pnpm run verify:i95 && pnpm run verify:i96 && pnpm run verify:i97 && pnpm run verify:i98 && pnpm run verify:i99 && pnpm run verify:i100 && pnpm run verify:i101 && pnpm run verify:i102",
     "smoke:i103": "node scripts/smoke-i103.mjs",
     "verify:i103": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i103",

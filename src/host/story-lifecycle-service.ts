@@ -37,15 +37,15 @@ export interface StoryLifecycleRequest {
   /** Findings over parsed operations, collected before the first layer write. */
   readonly beforeWritebackViolations: unknown;
   readonly parserInputs: StoryLifecycleParserInputs;
-  /** Existing canonical layer owners supply these Host-only persistence calls. */
-  readonly writers: LifecycleWriters<unknown>;
+  /** Existing canonical layer owners supply these Host-only persistence calls（I96 按层类型化）。 */
+  readonly writers: LifecycleWriters<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput>;
   readonly signal?: AbortSignal;
 }
 
 /** Host-only public result of one I30 saga; it never serializes live store objects. */
 export interface StoryLifecycleExecution {
   readonly candidate: GenerationCandidate;
-  readonly result: LifecycleResult<unknown>;
+  readonly result: LifecycleResult<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput>;
 }
 
 export interface NovelStoryLifecycleService {
@@ -68,7 +68,7 @@ export function createStoryLifecycleService(
     async run(request: StoryLifecycleRequest) {
       const candidate = await generation.generate(request.prompt, request.settings, request.signal);
       const prose = candidate.text;
-      const result = await executeLifecycle<unknown>({
+      const result = await executeLifecycle({
         id: request.id,
         decision: request.decision,
         afterGenerationViolations: request.afterGenerationViolations,

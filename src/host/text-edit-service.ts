@@ -189,11 +189,12 @@ export function createTextEditService(deps: TextEditDeps): NovelTextEditService 
       } catch {
         // propose 阶段不解析、不写层、不解析设置：占位闭包只满足 I42 契约
         // （I42 proposeReparse 仅消费 id/projectId/chapterId/sceneId/range/replacement）。
-        const noop = async (): Promise<undefined> => undefined;
+        const noopParse = async (): Promise<{ ops: never[] }> => ({ ops: [] });
+        const noopWrite = async (): Promise<void> => undefined;
         const request: ReparseRequest = {
           id: proposalId, projectId, chapterId, sceneId, range, replacement,
-          parsers: { c2: noop, c1: noop, c3: noop, c4: noop, b2: noop },
-          writers: { c2: noop, c1: noop, c3: noop, c4: noop, b2: noop },
+          parsers: { c2: noopParse, c1: noopParse, c3: noopParse, c4: noopParse, b2: noopParse },
+          writers: { c2: noopWrite, c1: noopWrite, c3: noopWrite, c4: noopWrite, b2: noopWrite },
         };
         record = await editService.proposeReparse(request);
       }

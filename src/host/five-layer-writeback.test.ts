@@ -112,7 +112,7 @@ describe('I79 共享五层写回器（five-layer-writeback）', () => {
     })).rejects.toThrow(/Low-confidence or supersede C4 operations require ConfirmationGate/);
     // 高置信 supersede 也必须被拒（C4 只允许 append）。
     await expect(writers.c4({
-      ops: [{ op: 'supersede', targetId: 'evt-1', correction: { id: 'evt-2', storyTime: 'dawn', kind: 'correction', summary: '修正', detail: '修正细节', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: [] }, confidence: 'high' }],
+      ops: [{ op: 'supersede', targetId: 'evt-1', correction: { id: 'evt-2', storyTime: 'dawn', summary: '修正', detail: '修正细节', participants: ['mira'], location: 'harbor', consequences: [], affectedLayers: [] }, confidence: 'high' }],
     })).rejects.toThrow(/supersede/);
 
     // 零写：无 Gate 记录、无状态/正史变更。

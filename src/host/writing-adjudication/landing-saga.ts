@@ -160,7 +160,7 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     // 4. I30 受控写回：journal 记录 C2→C1→C3→C4→B2 进度，部分失败显式 pending-compensation。
     const journal = await LifecycleJournal.open(projectDirectory(deps.projectsRoot, projectId));
     entry.attempts += 1;
-    const result = await executeLifecycle<unknown>({
+    const result = await executeLifecycle({
       id: `w-${candidate.id}-${entry.attempts}`,
       decision: 'accept',
       afterGenerationViolations: violations,

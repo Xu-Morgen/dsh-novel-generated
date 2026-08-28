@@ -51,35 +51,35 @@ export interface FiveLayerWritebackOptions {
 /**
  * 构建五层写回器。`proposalId` 用于派生 B2 Gate 提案 id（`${proposalId}-b2`），
  * 同一批写回重入必须复用同一 proposalId（Gate 拒绝重复提案 id）。
+ *
+ * I96（review v2.0 §8#1 / 计划 §18 I96）：返回类型按层参数化（五层 parser
+ * 输出类型独立流动），writer 参数不再 `as` 断言、不再被擦成 unknown——
+ * parser/writer 形状漂移在接线层即报编译错。
  */
 export function buildFiveLayerWriters(
   deps: FiveLayerWritebackDeps,
   projectId: string,
   proposalId: string,
   options: FiveLayerWritebackOptions = {},
-): LifecycleWriters<unknown> {
+): LifecycleWriters<C2StateParserOutput, C1RelationshipParserOutput, C3KnowledgeParserOutput, C4CanonParserOutput, B2WorldviewParserOutput> {
   const lowConfidence = (ops: readonly { confidence?: unknown }[]): boolean =>
     ops.some((operation) => operation.confidence === 'low');
   return {
-    c2: async (output) => {
-      const parsed = output as C2StateParserOutput;
+    c2: async (parsed) => {
       if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C2 operations require ConfirmationGate');
       await deps.state.transaction(projectId, (draft) => applyC2StateOperationsToDraft(draft as StateDraft, parsed.ops));
     },
-    c1: async (output) => {
-      const parsed = output as C1RelationshipParserOutput;
+    c1: async (parsed) => {
       if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C1 operations require ConfirmationGate');
       const next = materializeC1RelationshipOperations(await deps.relationship.read(projectId), parsed.ops);
       await deps.relationship.saveAll(projectId, next);
     },
-    c3: async (output) => {
-      const parsed = output as C3KnowledgeParserOutput;
+    c3: async (parsed) => {
       if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C3 operations require ConfirmationGate');
       const next = materializeC3KnowledgeOperations(await deps.knowledge.read(projectId), parsed.ops);
       await deps.knowledge.saveAll(projectId, next.entries, next.states);
     },
-    c4: async (output) => {
-      const parsed = output as C4CanonParserOutput;
+    c4: async (parsed) => {
       if (parsed.ops.some((operation) => operation.confidence === 'low' || operation.op === 'supersede')) {
         throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
       }
@@ -88,8 +88,7 @@ export function buildFiveLayerWriters(
         await deps.canon.append(projectId, operation.event);
       }
     },
-    b2: async (output) => {
-      const parsed = output as B2WorldviewParserOutput;
+    b2: async (parsed) => {
       if (options.skipEmptyB2Proposal === true && parsed.ops.length === 0) return;
       // B2 改写 confirmation-first：先经 I11 Gate 提出并接受，再经既有改写服务落盘。
       const b2ProposalId = `${proposalId}-b2`;
