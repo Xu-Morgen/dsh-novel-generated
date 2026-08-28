@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -149,5 +149,26 @@ describe('I61 C5 受控编辑 Remote（workspace 消费者夹具）', () => {
     expect(accepted.layers).toEqual(['c2', 'c1', 'c3', 'c4', 'b2']);
     expect(accepted.scene.content).toBe('prefix parsed-v2 suffix');
     expect(seen).toHaveLength(5);
+  });
+
+  it('I94：镜像写入失败不谎报——主写成功即成功，失败进 outbox 待重试', async () => {
+    const root = await temporaryRoot();
+    const repository = new TextRepository(join(root, 'book'));
+    // 占位 docs 为普通文件 → 镜像写入（mkdir/writeFile）必失败；JSON 真相不受影响。
+    await mkdir(join(root, 'book'), { recursive: true });
+    await writeFile(join(root, 'book', 'docs'), 'i am a file, not a directory', 'utf8');
+    await repository.open();
+    const chapter = await repository.createChapter({ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+    expect(chapter.id).toBe('chapter-1');
+    // 主写成功：调用不抛错，JSON 真相可读。
+    expect((await repository.readChapter('chapter-1')).title).toBe('第一章');
+    // 镜像失败被显式记录（outbox），且指向该章节。
+    const pending = repository.pendingMirrors();
+    expect(pending.some((entry) => entry.chapterId === 'chapter-1')).toBe(true);
+    // 待重试：修复 docs 占位后 flush 成功，outbox 清空。
+    await rm(join(root, 'book', 'docs'), { force: true });
+    const flushed = await repository.flushPendingMirrors();
+    expect(flushed).toBe(1);
+    expect(repository.pendingMirrors()).toHaveLength(0);
   });
 });

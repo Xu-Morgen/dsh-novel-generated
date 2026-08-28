@@ -34,12 +34,25 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
 
 // Part 1 — 构建产物。
 {
-  for (const file of ['lib/core/text/index.js', 'lib/core/text/diff.js', 'lib/host/branch-service.js', 'lib/host/remote/branch.js']) {
+  for (const file of ['lib/core/text/index.js', 'lib/core/text/codec.js', 'lib/core/text/repository.js', 'lib/core/text/write-queue.js', 'lib/core/text/diff.js', 'lib/host/branch-service.js', 'lib/host/remote/branch.js']) {
     if (!existsSync(resolve(repoRoot, file))) fail(`${file} missing — run \`pnpm build\` first`);
   }
-  const text = read('lib/core/text/index.js');
-  for (const symbol of ['commitSceneVersion', 'chooseSceneBranch', 'parseChapterDocument', 'migrateLegacyChapter', 'branchIdFor', 'listSceneBranches', 'readSceneBranch']) {
-    if (!text.includes(symbol)) fail(`lib core/text missing ${symbol}`);
+  // I94 拆分后（review v2.0 §8#7）：index 为兼容 barrel，符号归属 codec/repository/write-queue。
+  const textIndex = read('lib/core/text/index.js');
+  for (const symbol of ['TextRepository', 'ChapterWriteQueue', 'renderChapterMarkdown', 'parseChapterDocument']) {
+    if (!textIndex.includes(symbol)) fail(`lib core/text/index.js missing ${symbol}`);
+  }
+  const textCodec = read('lib/core/text/codec.js');
+  for (const symbol of ['parseChapterDocument', 'migrateLegacyChapter', 'branchIdFor', 'renderChapterMarkdown']) {
+    if (!textCodec.includes(symbol)) fail(`lib core/text/codec.js missing ${symbol}`);
+  }
+  const textRepository = read('lib/core/text/repository.js');
+  for (const symbol of ['commitSceneVersion', 'chooseSceneBranch', 'listSceneBranches', 'readSceneBranch']) {
+    if (!textRepository.includes(symbol)) fail(`lib core/text/repository.js missing ${symbol}`);
+  }
+  const textWriteQueue = read('lib/core/text/write-queue.js');
+  for (const symbol of ['migrateLegacyDocuments', 'commitChapter', 'pendingMirrors']) {
+    if (!textWriteQueue.includes(symbol)) fail(`lib core/text/write-queue.js missing ${symbol}`);
   }
   const diff = read('lib/core/text/diff.js');
   for (const symbol of ['diffTextLines', 'same', 'del', 'add']) {
@@ -58,7 +71,7 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
 // Part 2 — 源码：Schema/迁移/装配 + Client 无领域 fallback + I63 接缝。
 {
   const schema = read('src/core/schema/text.ts');
-  const textSource = read('src/core/text/index.ts');
+  const textSource = read('src/core/text/index.ts') + read('src/core/text/codec.ts') + read('src/core/text/repository.ts') + read('src/core/text/write-queue.ts');
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const shared = read('src/client/shared.ts');
