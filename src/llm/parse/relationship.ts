@@ -10,6 +10,14 @@ const relationshipInputSchema = relationshipSchema.omit({ version: true });
 const relationshipFieldSchema = z.enum(['type', 'affinity', 'trust', 'status', 'milestones', 'knownTo']);
 
 /** C1 creation content supplied by the parser; repository-owned version remains implicit. */
+/**
+ * I102 prompt 示例单点化（计划 §18 I102，review v2.0 §6）：本常量是 prompt 中的
+ * schema 描述示例，与下方 zod schema 双写；字段名/枚举随 schema 修改时必须同步
+ * 本常量（smoke-i102 做骨架键一致性断言）。
+ */
+export const C1_PROMPT_EXAMPLE =
+    '{"ops":[{"op":"create","relationship":{"id":"string","from":"id","to":"id","type":"kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate","affinity":"-100..100 integer","trust":"0..100 integer","status":"string","milestones":["正史事件 id"],"knownTo":["id"]},"confidence":"low|medium|high"}|{"op":"modify","targetId":"existing relationship id","field":"type|affinity|trust|status|milestones|knownTo","action":"set","value":"field value","confidence":"low|medium|high"}]}';
+
 export const c1RelationshipCreateSchema = relationshipInputSchema;
 export type C1RelationshipCreate = z.infer<typeof c1RelationshipCreateSchema>;
 
@@ -76,7 +84,7 @@ export function buildC1RelationshipParserPrompt(input: C1RelationshipParserInput
     '你是小说关系解析器。比较已接受正文与给定当前关系，只识别需要新增或变更的关系。',
     '不得输出状态、知情、正史、世界观、大纲、风格或正文改写；不得解释、不得使用 Markdown。knownTo 只表示关系公开性，不表示角色知情。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"create","relationship":{"id":"string","from":"id","to":"id","type":"kin|romantic|friendship|rivalry|enmity|allegiance|mentor|subordinate","affinity":"-100..100 integer","trust":"0..100 integer","status":"string","milestones":["正史事件 id"],"knownTo":["id"]},"confidence":"low|medium|high"}|{"op":"modify","targetId":"existing relationship id","field":"type|affinity|trust|status|milestones|knownTo","action":"set","value":"field value","confidence":"low|medium|high"}]}',
+    C1_PROMPT_EXAMPLE,
     'create 必须提供完整新关系；modify 只能修改现有关系的 type、affinity、trust、status、milestones 或 knownTo，不能修改 id、from 或 to。没有变更输出 {"ops":[]}。',
     `当前关系：${JSON.stringify(input.current)}`,
     `已接受正文：${input.prose}`,

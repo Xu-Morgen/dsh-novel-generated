@@ -49,16 +49,18 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
     'src/core/search/index.ts': read('src/core/search/index.ts').split('\n').length,
     'src/core/search/builders.ts': read('src/core/search/builders.ts').split('\n').length,
     'src/core/schema/onboarding.ts': read('src/core/schema/onboarding.ts').split('\n').length,
+    'src/core/schema/onboarding-binding.ts': read('src/core/schema/onboarding-binding.ts').split('\n').length,
+    'src/core/schema/onboarding-analysis.ts': read('src/core/schema/onboarding-analysis.ts').split('\n').length,
+    'src/core/schema/onboarding-adjudication.ts': read('src/core/schema/onboarding-adjudication.ts').split('\n').length,
   };
   // 每个切片（含保留逻辑的根）必须显著小于原文件：护栏 = 原行数 × 0.75。
   for (const [file, count] of Object.entries(lines)) {
-    if (file === 'src/core/statistics/index.ts') {
-      if (count >= 60) fail(`statistics 兼容 index ${count} 行（应为纯 re-export 的薄面）`);
+    if (file === 'src/core/statistics/index.ts' || file === 'src/core/schema/onboarding.ts') {
+      if (count >= 120) fail(`${file} ${count} 行（应为薄兼容 index）`);
       continue;
     }
-    // schema/onboarding.ts 只做 omit 组合消重（其余 I52/I53 会话/裁决 schema 不动），
-    // 护栏放宽为原行数 × 0.88（267 < 284）；复制源归零由 Part 2 的 omit 派生断言保证。
-    const factor = file === 'src/core/schema/onboarding.ts' ? 0.88 : 0.75;
+    // I102 拆分后：binding/analysis/adjudication 三片各自显著小于原 323 行（护栏 0.75）。
+    const factor = 0.75;
     const base = original[file] ?? Math.max(...Object.values(original));
     if (count >= base * factor) fail(`${file} 行数 ${count} 未显著小于原体积（护栏 ${Math.floor(base * factor)}）`);
   }
@@ -67,7 +69,7 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
 
 // Part 2 — 复制源归零：六层候选 schema 全部由 core 叶子 schema `.omit(...)` 派生。
 {
-  const onboardingSchema = read('src/core/schema/onboarding.ts');
+  const onboardingSchema = read('src/core/schema/onboarding-analysis.ts');
   const derivations = [
     ['onboardingCharacterSchema = characterCoreSchema.omit', 'B3 角色'],
     ['onboardingWorldviewSchema = worldEntrySchema.omit', 'B2 世界观'],
@@ -77,21 +79,32 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
     ['onboardingCanonSchema = canonEventSchema.omit', 'C4 正史'],
   ];
   for (const [derivation, label] of derivations) {
-    if (!codeLines('src/core/schema/onboarding.ts').some((line) => line.includes(derivation))) {
+    if (!codeLines('src/core/schema/onboarding-analysis.ts').some((line) => line.includes(derivation))) {
       fail(`${label} 候选 schema 未由 omit 组合派生（${derivation}）`);
     }
   }
   // 手写逐字段重列的残留哨兵：候选 schema 区不再出现逐字段 z.object 定义。
   const handWrittenMarkers = ['kind: characterKindSchema', 'triggerMode: triggerModeSchema', 'structure: outlineStructureSchema', 'type: relationshipTypeSchema', 'scene: sceneStateSchema', 'kind: canonKindSchema'];
   for (const marker of handWrittenMarkers) {
-    if (codeLines('src/core/schema/onboarding.ts').some((line) => line.includes(marker))) {
-      fail(`onboarding.ts 残留手写逐字段重列哨兵：${marker}`);
+    if (codeLines('src/core/schema/onboarding-analysis.ts').some((line) => line.includes(marker))) {
+      fail(`onboarding-analysis.ts 残留手写逐字段重列哨兵：${marker}`);
     }
   }
   // 派生只去掉 Host-owned/账本字段：六处 omit 的 key 必须恰好是这些字段。
   const omitCalls = [...onboardingSchema.matchAll(/\.omit\(\{([^}]+)\}\)/g)].map((m) => m[1].replace(/\s/g, ''));
   assert.deepEqual([...omitCalls].sort(), ['seq:true,immutable:true,supersedes:true', 'version:true,status:true,supersededBy:true', 'version:true', 'version:true', 'version:true', 'version:true,seq:true'].sort(), 'omit 键集必须恰好覆盖 Host-owned/账本字段（不得多删少删）');
-  console.log('I81 Part 2: schema omit 组合派生（六层复制源归零，omit 键集精确）OK');
+  // I102：projectId/session/sourceHash 与六层 enum 单一定义（onboarding-binding.ts），
+  // analysis/adjudication 只经 extend 组合，不再重列。
+  const binding = read('src/core/schema/onboarding-binding.ts');
+  const adjudication = read('src/core/schema/onboarding-adjudication.ts');
+  if (!binding.includes('export const onboardingProjectIdSchema = entityIdSchema')) fail('projectId 未复用 entityIdSchema');
+  if (!binding.includes('export const onboardingLayerSchema = z.enum')) fail('六层 enum 未单点化');
+  if (codeLines('src/core/schema/onboarding-analysis.ts').some((line) => line.includes("z.enum(['characters'"))) fail('analysis 片重列六层 enum');
+  if (codeLines('src/core/schema/onboarding-adjudication.ts').some((line) => line.includes("z.enum(['characters'"))) fail('adjudication 片重列六层 enum');
+  for (const marker of ['projectId: z.string().min(1).max(64)', "onboardingSessionId: z.string().min(1)", 'sourceHash: z.string().regex(/^[0-9a-f]{64}$/)']) {
+    if (adjudication.includes(marker)) fail(`adjudication 片重列绑定字段：${marker}`);
+  }
+  console.log('I81 Part 2: schema omit 组合派生（六层复制源归零，omit 键集精确）+ I102 绑定单点化 OK');
 }
 
 // Part 3 — 职责归位：实现符号定义唯一且落在对应切片。

@@ -1,267 +1,77 @@
-import { z } from 'zod';
-import { confidenceSchema } from './base.js';
-import { characterCoreSchema } from './characters.js';
-import { worldEntrySchema } from './worldview.js';
-import { outlineSchema } from './outline.js';
-import { relationshipSchema } from './relationship.js';
-import { worldStateSchema } from './state.js';
-import { canonEventSchema } from './canon.js';
-
 /**
- * I52 six-layer initialization analyzer contract (design §14.8 / R11-3).
- *
- * One analysis run turns normalized input chunks (from a controlled DOCX
- * upload or free text) into a *candidate package* for exactly six layers —
- * B3 characters, B2 worldview, B5 outline, C1 relationship, C2 state, C4 canon.
- * The package is bound to `projectId` / `onboardingSessionId` / `sourceHash`
- * by the Host service (`onboarding.ts`), never by the schema itself.
- *
- * Hard boundaries enforced at this schema layer:
- * - Every candidate reuses an existing Domain Schema minus Host-owned
- *   persistence fields (version / seq / status / supersededBy / immutable),
- *   then adds `confidence`, `source` evidence references and `warnings`.
- * - B3 `relationships` / `knowledgeIds` / `arc.keyBeats` are FORBIDDEN: the
- *   analyzer must leave them empty (R11-3).
- * - C2 is the input-end / story-start snapshot: only `scene` + `characters`,
- *   each character limited to the current C2 subset.
- * - C4 is only text-explicit events and may be empty.
- * - No C3 / items / factions / globalFlags fields may appear anywhere.
- * 
- * The evidence map is shared across layers and reduced per-layer: candidates
- * reference `evidenceIds`, so regenerating one layer cannot mutate the other
- * five (their serialized candidates hash is invariant).
+ * I52/I53 onboarding 合同兼容入口（I102 拆分，计划 §18 I102）：绑定基座
+ * （onboarding-binding.ts）、analysis 合同（onboarding-analysis.ts）与
+ * adjudication 合同（onboarding-adjudication.ts）经本 index 统一重导出，
+ * 外部调用方符号入口不变。
  */
-
-// confidenceSchema 为全仓唯一 canonical 定义（见 ./base.js，I76 收敛；review §9 #2），
-// 本层从 core 叶子直引，避免 core→llm 反向依赖（review §8#4）。
-export type CandidateConfidence = z.infer<typeof confidenceSchema>;
-
-/** Shared evidence atom: a quoted excerpt plus its source chunk index. */
-export const evidenceAtomSchema = z.object({
-  sourceChunkIndex: z.number().int().nonnegative(),
-  quote: z.string().trim().min(1),
-}).strict();
-export type EvidenceAtom = z.infer<typeof evidenceAtomSchema>;
-
-/** The shared evidence map keyed by evidence id, reduced per layer. */
-export const evidenceMapSchema = z.record(z.string().min(1), evidenceAtomSchema);
-export type EvidenceMap = z.infer<typeof evidenceMapSchema>;
-
-/**
- * B3 character candidate: CharacterCore minus version, with C1/C3/C2 arcs emptied.
- * I81 组合（架构审查 §4.2）：由 `characterCoreSchema.omit(...)` 派生，消除手写逐字段
- * 重列 —— 字段单一来源在 characters.ts，本层只表达「去掉 Host-owned version」。
- */
-export const onboardingCharacterSchema = characterCoreSchema.omit({ version: true });
-export type OnboardingCharacter = z.infer<typeof onboardingCharacterSchema>;
-
-/** B2 worldview candidate: WorldEntry minus version/status/supersededBy（I81 omit 组合）。 */
-export const onboardingWorldviewSchema = worldEntrySchema.omit({ version: true, status: true, supersededBy: true });
-export type OnboardingWorldview = z.infer<typeof onboardingWorldviewSchema>;
-
-/** B5 outline candidate: Outline minus version（I81 omit 组合）。 */
-export const onboardingOutlineSchema = outlineSchema.omit({ version: true });
-export type OnboardingOutline = z.infer<typeof onboardingOutlineSchema>;
-
-/** C1 relationship candidate: Relationship minus version（I81 omit 组合）。 */
-export const onboardingRelationshipSchema = relationshipSchema.omit({ version: true });
-export type OnboardingRelationship = z.infer<typeof onboardingRelationshipSchema>;
-
-/** C2 state candidate: the input-end story-start snapshot, scene+characters only（I81 omit 组合）。 */
-export const onboardingStateSchema = worldStateSchema.omit({ version: true, seq: true });
-export type OnboardingState = z.infer<typeof onboardingStateSchema>;
-
-/** C4 canon candidate: CanonEvent minus seq/immutable/supersedes; text-explicit events only（I81 omit 组合）。 */
-export const onboardingCanonSchema = canonEventSchema.omit({ seq: true, immutable: true, supersedes: true });
-export type OnboardingCanon = z.infer<typeof onboardingCanonSchema>;
-
-/** A per-layer candidate list with its own evidence references and warnings. */
-export const layerCandidatesSchema = <T extends z.ZodTypeAny>(value: T) => z.object({
-  candidates: z.array(value),
-  confidence: confidenceSchema,
-  warnings: z.array(z.string()),
-  evidenceIds: z.array(z.string().min(1)),
-}).strict();
-
-export const onboardingCharacterLayerSchema = layerCandidatesSchema(onboardingCharacterSchema);
-export const onboardingWorldviewLayerSchema = layerCandidatesSchema(onboardingWorldviewSchema);
-export const onboardingOutlineLayerSchema = layerCandidatesSchema(onboardingOutlineSchema);
-export const onboardingRelationshipLayerSchema = layerCandidatesSchema(onboardingRelationshipSchema);
-export const onboardingStateLayerSchema = layerCandidatesSchema(onboardingStateSchema);
-export const onboardingCanonLayerSchema = layerCandidatesSchema(onboardingCanonSchema);
-
-/** The six-layer candidate package (model output before reduce/binding). */
-export const onboardingLayersSchema = z.object({
-  characters: onboardingCharacterLayerSchema,
-  worldview: onboardingWorldviewLayerSchema,
-  outline: onboardingOutlineLayerSchema,
-  relationship: onboardingRelationshipLayerSchema,
-  state: onboardingStateLayerSchema,
-  canon: onboardingCanonLayerSchema,
-}).strict();
-export type OnboardingLayers = z.infer<typeof onboardingLayersSchema>;
-
-/** Raw model envelope: a shared evidence map plus the six layers. */
-export const onboardingAnalysisOutputSchema = z.object({
-  evidence: evidenceMapSchema,
-  layers: onboardingLayersSchema,
-}).strict();
-export type OnboardingAnalysisOutput = z.infer<typeof onboardingAnalysisOutputSchema>;
-
-/**
- * Host-bound analysis result: the reduced candidate package plus the immutable
- * binding triple that every later operation must match exactly.
- */
-export const onboardingSessionSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-}).strict();
-export type OnboardingSession = z.infer<typeof onboardingSessionSchema>;
-
-export const onboardingAnalysisResultSchema = onboardingSessionSchema.extend({
-  evidence: evidenceMapSchema,
-  layers: onboardingLayersSchema,
-}).strict();
-export type OnboardingAnalysisResult = z.infer<typeof onboardingAnalysisResultSchema>;
-
-/** Analysis lifecycle status for the Host-owned job. */
-export const onboardingAnalysisStatusSchema = z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']);
-export type OnboardingAnalysisStatus = z.infer<typeof onboardingAnalysisStatusSchema>;
-
-export type OnboardingLayerKey = keyof OnboardingLayers;
-export const ONBOARDING_LAYER_KEYS: readonly OnboardingLayerKey[] = ['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'];
-
-/** Free-text / chunked input bound to a session before the LLM is entered. */
-export const onboardingAnalysisInputSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-  chunks: z.array(z.object({
-    index: z.number().int().nonnegative(),
-    text: z.string().trim().min(1),
-    startOffset: z.number().int().nonnegative(),
-    endOffset: z.number().int().positive(),
-  }).strict()).min(1),
-}).strict();
-export type OnboardingAnalysisInput = z.infer<typeof onboardingAnalysisInputSchema>;
-
-/** Client-visible start contract: the caller supplies binding + text, Host owns the session. */
-export const onboardingAnalysisStartInputSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-  text: z.string().min(1),
-}).strict();
-export type OnboardingAnalysisStartInput = z.infer<typeof onboardingAnalysisStartInputSchema>;
-
-/**
- * I57 session-first `begin` result: the Host creates the job and returns the
- * session id immediately so the client can show busy/progress, poll `status`
- * and `cancel` mid-flight (R12-4). The candidate package itself is fetched
- * through `result(onboardingSessionId)` once `status` reports `succeeded`.
- */
-export const onboardingAnalysisBeginResultSchema = z.object({
-  onboardingSessionId: z.string().min(1),
-}).strict();
-export type OnboardingAnalysisBeginResult = z.infer<typeof onboardingAnalysisBeginResultSchema>;
-
-/* --------------------------------------------------------------------------
- * I53 six-layer review / per-layer adjudication / idempotent landing
- * (design §14.7.4 / R11-4).
- *
- * The Gate remains the opaque I11 proposal→accept/reject primitive: it records
- * the final three-state decision and never executes a domain side effect. What
- * I53 adds is a *convention on the opaque proposal `payload`* plus a Host facade
- * that maps each of the four user verdicts onto that state machine:
- *
- *   - 直接接受 (accept)        → keep the current proposal, resolve it to `accepted`.
- *   - 手动修改后接受 (edit)    → reject the current proposal, then propose a
- *                                  successor carrying `replacesId` + `mode:'edited'`.
- *   - 整层打回重生成 (regenerate)→ reject current, then `replacesId` + `mode:'regenerated'`
- *                                  (the successor value comes from the analyzer, not the user).
- *   - 显式跳过 (skip)          → reject current, build NO successor.
- *
- * `pending` never equals skip, and `finalApply` refuses to run while any layer
- * still has an active pending proposal. `replacesId` + `mode` live inside the
- * proposal payload so the Gate schema itself is unchanged (R11-4: I11 three
- * states are not modified).
- */
-
-/** How a successor proposal came to replace its predecessor. */
-export const onboardingProposalModeSchema = z.enum(['edited', 'regenerated']);
-export type OnboardingProposalMode = z.infer<typeof onboardingProposalModeSchema>;
-
-/** The provenance of one candidate value inside a Gate proposal payload. */
-export const onboardingCandidateProvenanceSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-  layer: z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon']),
-  schemaVersion: z.number().int().positive(),
-}).strict();
-export type OnboardingCandidateProvenance = z.infer<typeof onboardingCandidateProvenanceSchema>;
-
-/** Gate proposal payload for one layer: the bound candidate value plus lineage. */
-export const onboardingLayerProposalPayloadSchema = z.object({
-  version: z.number().int().positive(),
-  provenance: onboardingCandidateProvenanceSchema,
-  /** The raw per-layer candidate value (the serialized `OnboardingLayers[layer]`). */
-  value: z.json(),
-}).strict();
-export type OnboardingLayerProposalPayload = z.infer<typeof onboardingLayerProposalPayloadSchema>;
-
-/**
- * Sufficient evidence of an accepted layer: the exact candidate the user (or
- * edit/regenerate) authorized, bound to the immutable binding triple, so a
- * later `finalApply` retry can re-fingerprint and compare instead of re-running.
- */
-export const onboardingAcceptedLayerSchema = z.object({
-  layer: z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon']),
-  proposalId: z.string().min(1),
-  confidence: confidenceSchema,
-  candidates: z.array(z.json()),
-}).strict();
-export type OnboardingAcceptedLayer = z.infer<typeof onboardingAcceptedLayerSchema>;
-
-/** Per-layer adjudication verb, bundled for the client from an existing session. */
-export const onboardingLayerDecisionRequirementSchema = z.enum(['accept', 'edit', 'regenerate', 'skip']);
-export type OnboardingLayerDecision = z.infer<typeof onboardingLayerDecisionRequirementSchema>;
-
-/** Client → Host: a decision for one layer, plus an optional edited candidate value. */
-export const onboardingAdjudicateInputSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-  layer: z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon']),
-  decision: onboardingLayerDecisionRequirementSchema,
-  /** The user-validated candidate value, REQUIRED for `decision === 'edit'` (I56 / R12-3). */
-  editedValue: z.json().optional(),
-  /** Optional free-text feedback forwarded on `regenerate` (single-layer re-run). */
-  feedback: z.string().max(4000).optional(),
-}).strict().superRefine((input, ctx) => {
-  // 「修改后接受」必须提交真实 editedValue，Host 不得回退写原候选（R12-3）。
-  if (input.decision === 'edit' && input.editedValue === undefined) {
-    ctx.addIssue({ code: 'custom', path: ['editedValue'], message: 'decision "edit" requires editedValue' });
-  }
-});
-export type OnboardingAdjudicateInput = z.infer<typeof onboardingAdjudicateInputSchema>;
-
-export const onboardingFinalApplyInputSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
-}).strict();
-export type OnboardingFinalApplyInput = z.infer<typeof onboardingFinalApplyInputSchema>;
-
-/** The minimal structured result contract for I53 final apply (design §14.7.4). */
-export const onboardingApplyResultSchema = z.object({
-  projectId: z.string().min(1).max(64),
-  onboardingSessionId: z.string().min(1),
-  appliedLayers: z.array(z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'])),
-  skippedLayers: z.array(z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'])),
-  blockedLayers: z.array(z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'])),
-  pendingLayers: z.array(z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'])),
-  retryable: z.boolean(),
-  errors: z.array(z.string()),
-}).strict();
-export type OnboardingApplyResult = z.infer<typeof onboardingApplyResultSchema>;
+export {
+  onboardingBindingSchema,
+  onboardingLayerSchema,
+  onboardingProjectIdSchema,
+  onboardingSessionIdSchema,
+  sourceHashSchema,
+  type OnboardingBinding,
+  type OnboardingLayerId,
+} from './onboarding-binding.js';
+export {
+  evidenceAtomSchema,
+  evidenceMapSchema,
+  layerCandidatesSchema,
+  ONBOARDING_LAYER_KEYS,
+  onboardingAnalysisBeginResultSchema,
+  onboardingAnalysisInputSchema,
+  onboardingAnalysisOutputSchema,
+  onboardingAnalysisResultSchema,
+  onboardingAnalysisStartInputSchema,
+  onboardingAnalysisStatusSchema,
+  onboardingCanonLayerSchema,
+  onboardingCanonSchema,
+  onboardingCharacterLayerSchema,
+  onboardingCharacterSchema,
+  onboardingLayersSchema,
+  onboardingOutlineLayerSchema,
+  onboardingOutlineSchema,
+  onboardingRelationshipLayerSchema,
+  onboardingRelationshipSchema,
+  onboardingSessionSchema,
+  onboardingStateLayerSchema,
+  onboardingStateSchema,
+  onboardingWorldviewLayerSchema,
+  onboardingWorldviewSchema,
+  type CandidateConfidence,
+  type EvidenceAtom,
+  type EvidenceMap,
+  type OnboardingAnalysisBeginResult,
+  type OnboardingAnalysisInput,
+  type OnboardingAnalysisOutput,
+  type OnboardingAnalysisResult,
+  type OnboardingAnalysisStartInput,
+  type OnboardingAnalysisStatus,
+  type OnboardingCanon,
+  type OnboardingCharacter,
+  type OnboardingLayerKey,
+  type OnboardingLayers,
+  type OnboardingOutline,
+  type OnboardingRelationship,
+  type OnboardingSession,
+  type OnboardingState,
+  type OnboardingWorldview,
+} from './onboarding-analysis.js';
+export {
+  onboardingAcceptedLayerSchema,
+  onboardingAdjudicateInputSchema,
+  onboardingApplyResultSchema,
+  onboardingCandidateProvenanceSchema,
+  onboardingFinalApplyInputSchema,
+  onboardingLayerDecisionRequirementSchema,
+  onboardingLayerProposalPayloadSchema,
+  onboardingProposalModeSchema,
+  type OnboardingAcceptedLayer,
+  type OnboardingAdjudicateInput,
+  type OnboardingApplyResult,
+  type OnboardingCandidateProvenance,
+  type OnboardingFinalApplyInput,
+  type OnboardingLayerDecision,
+  type OnboardingLayerProposalPayload,
+  type OnboardingProposalMode,
+} from './onboarding-adjudication.js';

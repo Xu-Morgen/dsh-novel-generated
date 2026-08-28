@@ -13,6 +13,14 @@ const b2ReplacementSchema = worldEntrySchema.omit({ version: true, status: true,
 export type B2WorldviewReplacement = z.infer<typeof b2ReplacementSchema>;
 
 /** Exact I29 operation: replace one mutable active B2 entry without an in-place model update. */
+/**
+ * I102 prompt 示例单点化（计划 §18 I102，review v2.0 §6）：本常量是 prompt 中的
+ * schema 描述示例，与下方 zod schema 双写；字段名/枚举随 schema 修改时必须同步
+ * 本常量（smoke-i102 做骨架键一致性断言）。
+ */
+export const B2_PROMPT_EXAMPLE =
+    '{"ops":[{"op":"supersede","targetId":"现有可改写且生效的世界观条目 id","replacement":{"id":"new id","kind":"geography|history|faction|culture|race|concept|artifact","title":"string","content":"string","keywords":["string"],"triggerMode":"keyword|regex|constant","weight":"integer","parent":"same parent id or null","mutable":"boolean"},"confidence":"low|medium|high"}]}';
+
 export const b2WorldviewSupersedeOperationSchema = z.object({
   op: z.literal('supersede'),
   targetId: entityIdSchema,
@@ -67,7 +75,7 @@ export function buildB2WorldviewParserPrompt(input: B2WorldviewParserInput): str
     '你是小说世界观改写解析器。比较已接受正文与给定当前世界观，只识别已经发生且需要改写的可变世界观条目。',
     '不得输出状态、关系、知情、正史、大纲、角色、风格或正文改写；不得原地更新、删除或直接创建条目；不得解释、不得使用 Markdown。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"supersede","targetId":"现有可改写且生效的世界观条目 id","replacement":{"id":"new id","kind":"geography|history|faction|culture|race|concept|artifact","title":"string","content":"string","keywords":["string"],"triggerMode":"keyword|regex|constant","weight":"integer","parent":"same parent id or null","mutable":"boolean"},"confidence":"low|medium|high"}]}',
+    B2_PROMPT_EXAMPLE,
     'supersede 只可指向给出的 mutable:true 且 status:active 条目；replacement 必须使用未出现的新 id，与目标保持相同 parent。新条目的 version/status/supersededBy 由存储层决定。所有世界观条目改写无论置信度都必须等待用户确认；没有改写输出 {"ops":[]}。',
     `当前世界观：${JSON.stringify(input.current)}`,
     `已接受正文：${input.prose}`,

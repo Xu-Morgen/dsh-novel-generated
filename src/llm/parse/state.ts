@@ -13,6 +13,14 @@ const stateFieldSchema = z.enum([
 const stateActionSchema = z.enum(['set', 'add', 'remove', 'delete']);
 
 /** Exact I25 operation envelope. Context-sensitive target/field rules are checked before use. */
+/**
+ * I102 prompt 示例单点化（计划 §18 I102，review v2.0 §6）：本常量是 prompt 中的
+ * schema 描述示例，与下方 zod schema 双写；字段名/枚举随 schema 修改时必须同步
+ * 本常量（smoke-i102 做骨架键一致性断言）。
+ */
+export const C2_PROMPT_EXAMPLE =
+    '{"ops":[{"op":"modify","target":"state|scene|现有 characterId","field":"允许的状态字段","action":"set|add|remove|delete","value":"JSON 值","confidence":"low|medium|high"}]}';
+
 export const c2StateOperationSchema = z.object({
   op: z.literal('modify'),
   target: z.string().trim().min(1),
@@ -72,7 +80,7 @@ export function buildC2StateParserPrompt(input: C2StateParserInput): string {
     '你是小说世界状态解析器。比较已接受正文与给定当前世界状态，只识别需要写入状态的变化。',
     '不得输出关系、知情、正史、世界观、大纲、风格或正文改写；不得解释、不得使用 Markdown。',
     '仅输出一个 JSON 对象，必须完全符合：',
-    '{"ops":[{"op":"modify","target":"state|scene|现有 characterId","field":"允许的状态字段","action":"set|add|remove|delete","value":"JSON 值","confidence":"low|medium|high"}]}',
+    C2_PROMPT_EXAMPLE,
     'state 仅可 set storyTime；scene 仅可 set location/timeOfDay/weather/season/atmosphere；角色标量仅可 set location/alive/health/mood/condition/currentGoal；inventory 仅可 add/remove 字符串；flags 仅可 set {key,value} 或 delete {key}。没有变更输出 {"ops":[]}。',
     `当前世界状态：${JSON.stringify(input.state)}`,
     `已接受正文：${input.prose}`,

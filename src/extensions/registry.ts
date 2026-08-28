@@ -9,15 +9,6 @@ import { entityIdSchema } from '../core/schema/base.js';
  * repositories, paths, credentials, ctx.llm, Client Slots, or composition
  * handles, so Host ownership remains intact (design §0.1.2; requirements R6-3).
  */
-export const extensionCategorySchema = z.enum([
-  'provider',
-  'injector',
-  'validator',
-  'parser',
-  'relationship-rule',
-  'backend-strategy',
-]);
-export type ExtensionCategory = z.infer<typeof extensionCategorySchema>;
 export const extensionIdSchema = entityIdSchema;
 
 export interface ExtensionBase { readonly id: string; }
@@ -95,18 +86,72 @@ export interface RegistrySeams {
 export interface ExtensionHandle { readonly id: string; release(): void; }
 interface Registration { readonly definition: Extension; armed: boolean; }
 
-const categoryByKind: Record<Extension['kind'], ExtensionCategory> = {
-  provider: 'provider', injector: 'injector', validator: 'validator', parser: 'parser',
-  'relationship-rule': 'relationship-rule', 'backend-strategy': 'backend-strategy',
-};
+/**
+ * I102 单一 kind descriptor 表（计划 §18 I102，review v2.0 §6）：新增 kind 只改
+ * 此处——枚举、validateDefinition 的字段白名单与函数检查、seams() 投影、默认武装
+ * 全部由本表派生（原未使用的 kind→category 恒等映射已删除）。Extension 判别联合经
+ * `satisfies` 与表双向约束（kind 字面量漂移即编译错）。
+ */
+export interface ExtensionKindDescriptor<K extends Extension['kind']> {
+  readonly kind: K;
+  /** seams() 投影键（RegistrySeams 字段名）。 */
+  readonly seam: keyof RegistrySeams;
+  /** 允许的顶层字段白名单（validateDefinition 授权检查）。 */
+  readonly keys: readonly string[];
+  /** 关系规则默认禁用（armRelationshipRules 显式武装）。 */
+  readonly armedByDefault: boolean;
+  /** kind 特有形状校验（provider 的 schema / parser 的 outputSchema+parse 等）。 */
+  validate(extension: Extract<Extension, { kind: K }>): void;
+}
 
-const keysByKind: Record<Extension['kind'], readonly string[]> = {
-  provider: ['id', 'kind', 'layerId', 'schema'],
-  injector: ['id', 'kind', 'layerId', 'heading', 'serialize'],
-  validator: ['id', 'kind', 'check'],
-  parser: ['id', 'kind', 'layerId', 'outputSchema', 'parse'],
-  'relationship-rule': ['id', 'kind', 'evaluate'],
-  'backend-strategy': ['id', 'kind', 'adapt'],
+type AnyKindExtension = Extract<Extension, { kind: ExtensionKindDescriptor<Extension['kind']>['kind'] }>;
+
+export const EXTENSION_KIND_DESCRIPTORS: readonly ExtensionKindDescriptor<Extension['kind']>[] = [
+  { kind: 'provider', seam: 'providers', keys: ['id', 'kind', 'layerId', 'schema'], armedByDefault: true,
+    validate(extension: AnyKindExtension) {
+      const provider = extension as ProviderExtension;
+      if (!provider.schema || typeof provider.schema.parse !== 'function') throw new Error('Provider schema is required');
+    } },
+  { kind: 'injector', seam: 'injectors', keys: ['id', 'kind', 'layerId', 'heading', 'serialize'], armedByDefault: true,
+    validate(extension: AnyKindExtension) {
+      const injector = extension as InjectorExtension;
+      if (!injector.heading.trim() || typeof injector.serialize !== 'function') throw new Error('Valid injector is required');
+    } },
+  { kind: 'validator', seam: 'validators', keys: ['id', 'kind', 'check'], armedByDefault: true,
+    validate(extension: AnyKindExtension) {
+      const validator = extension as ValidatorExtension;
+      if (typeof validator.check !== 'function') throw new Error('Validator check function is required');
+    } },
+  { kind: 'parser', seam: 'parsers', keys: ['id', 'kind', 'layerId', 'outputSchema', 'parse'], armedByDefault: true,
+    validate(extension: AnyKindExtension) {
+      const parser = extension as ParserExtension;
+      if (!parser.outputSchema || typeof parser.outputSchema.parse !== 'function' || typeof parser.parse !== 'function') {
+        throw new Error('Parser output schema and parse function are required');
+      }
+    } },
+  { kind: 'relationship-rule', seam: 'relationshipRules', keys: ['id', 'kind', 'evaluate'], armedByDefault: false,
+    validate(extension: AnyKindExtension) {
+      const rule = extension as RelationshipRuleExtension;
+      if (typeof rule.evaluate !== 'function') throw new Error('Relationship rule evaluate function is required');
+    } },
+  { kind: 'backend-strategy', seam: 'backendStrategies', keys: ['id', 'kind', 'adapt'], armedByDefault: true,
+    validate(extension: AnyKindExtension) {
+      const strategy = extension as BackendStrategyExtension;
+      if (typeof strategy.adapt !== 'function') throw new Error('Backend strategy adapt function is required');
+    } },
+] as const satisfies readonly ExtensionKindDescriptor<Extension['kind']>[];
+
+/** 由 descriptor 表派生的 kind 枚举（替代原手写 extensionCategorySchema）。 */
+export const extensionKindSchema = z.enum(EXTENSION_KIND_DESCRIPTORS.map((descriptor) => descriptor.kind));
+export type ExtensionKind = z.infer<typeof extensionKindSchema>;
+// 兼容别名：既有外部引用以 category 命名读取 kind 枚举。
+export const extensionCategorySchema = extensionKindSchema;
+export type ExtensionCategory = ExtensionKind;
+
+const descriptorFor = (kind: Extension['kind']): ExtensionKindDescriptor<Extension['kind']> => {
+  const descriptor = EXTENSION_KIND_DESCRIPTORS.find((item) => item.kind === kind);
+  if (!descriptor) throw new Error(`Unknown extension kind: ${kind}`);
+  return descriptor;
 };
 
 /**
@@ -131,7 +176,7 @@ export class ExtensionRegistry {
     // 快照——注册后对原对象突变（id/kind/layerId 等不变量字段）不再能绕过注册时
     // 的校验；schema/函数等引用原样保留（只冻结投影顶层，不深拷 zod/函数）。
     const snapshot = Object.freeze({ ...extension });
-    this.registrations.set(id, { definition: snapshot, armed: extension.kind !== 'relationship-rule' });
+    this.registrations.set(id, { definition: snapshot, armed: descriptorFor(extension.kind).armedByDefault });
 
     let released = false;
     const release = () => {
@@ -154,17 +199,12 @@ export class ExtensionRegistry {
   seams(): RegistrySeams {
     this.assertAlive();
     const active = [...this.registrations.values()].filter((item) => item.armed).map((item) => item.definition);
-    const pick = <T extends Extension>(kind: T['kind']): readonly T[] => Object.freeze(
-      active.filter((item): item is T => item.kind === kind),
-    );
-    return Object.freeze({
-      providers: pick<ProviderExtension>('provider'),
-      injectors: pick<InjectorExtension>('injector'),
-      validators: pick<ValidatorExtension>('validator'),
-      parsers: pick<ParserExtension>('parser'),
-      relationshipRules: pick<RelationshipRuleExtension>('relationship-rule'),
-      backendStrategies: pick<BackendStrategyExtension>('backend-strategy'),
-    });
+    // I102：seams 投影由单一 descriptor 表派生（新增 kind 无需改此处）。
+    const result = {} as Record<keyof RegistrySeams, readonly Extension[]>;
+    for (const descriptor of EXTENSION_KIND_DESCRIPTORS) {
+      result[descriptor.seam] = Object.freeze(active.filter((item) => item.kind === descriptor.kind));
+    }
+    return Object.freeze(result as RegistrySeams);
   }
 
   dispose(): void {
@@ -192,33 +232,13 @@ export class ExtensionRegistry {
 
 function validateDefinition(extension: Extension): void {
   if (!extension || typeof extension !== 'object') throw new Error('Extension definition must be an object');
-  const kind = extensionCategorySchema.parse((extension as { kind?: unknown }).kind);
+  const kind = extensionKindSchema.parse((extension as { kind?: unknown }).kind);
   extensionIdSchema.parse((extension as { id?: unknown }).id);
-  const allowed = new Set(keysByKind[kind]);
+  const descriptor = descriptorFor(kind);
+  const allowed = new Set(descriptor.keys);
   const extra = Object.keys(extension).filter((key) => !allowed.has(key));
   if (extra.length > 0) throw new Error(`Unauthorized extension fields: ${extra.join(', ')}`);
 
   if ('layerId' in extension) extensionIdSchema.parse(extension.layerId);
-  switch (extension.kind) {
-    case 'provider':
-      if (!extension.schema || typeof extension.schema.parse !== 'function') throw new Error('Provider schema is required');
-      break;
-    case 'injector':
-      if (!extension.heading.trim() || typeof extension.serialize !== 'function') throw new Error('Valid injector is required');
-      break;
-    case 'validator':
-      if (typeof extension.check !== 'function') throw new Error('Validator check function is required');
-      break;
-    case 'parser':
-      if (!extension.outputSchema || typeof extension.outputSchema.parse !== 'function' || typeof extension.parse !== 'function') {
-        throw new Error('Parser output schema and parse function are required');
-      }
-      break;
-    case 'relationship-rule':
-      if (typeof extension.evaluate !== 'function') throw new Error('Relationship rule evaluate function is required');
-      break;
-    case 'backend-strategy':
-      if (typeof extension.adapt !== 'function') throw new Error('Backend strategy adapt function is required');
-      break;
-  }
+  descriptor.validate(extension);
 }

@@ -11,6 +11,14 @@ import { confidenceSchema, parseJsonObject } from './shared.js';
 const sourceChunkSchema = z.number().int().nonnegative();
 
 /** A B5 outline candidate is complete enough for the existing outline store. */
+/**
+ * I102 prompt 示例单点化（计划 §18 I102，review v2.0 §6）：本常量是 prompt 中的
+ * schema 描述示例，与下方 zod schema 双写；字段名/枚举随 schema 修改时必须同步
+ * 本常量（smoke-i102 做骨架键一致性断言）。
+ */
+export const SPLIT_PROMPT_EXAMPLE =
+    '{"candidates":[{"id":"...","kind":"outline|worldview|detail-beat","sourceChunkIndex":0,"confidence":"low|medium|high","value":{}}]}';
+
 export const splitOutlineValueSchema = outlineSchema.omit({ version: true });
 export type SplitOutlineValue = z.infer<typeof splitOutlineValueSchema>;
 
@@ -109,7 +117,7 @@ export function buildSplitAgentPrompt(input: SplitAgentInput): string {
     '只输出一个 JSON 对象，完全符合 candidates schema；每条候选必须标注 sourceChunkIndex 和 confidence。',
     'outline 是完整 B5 大纲候选；worldview 是新的 B2 世界观条目；detail-beat 必须引用现有 actId/beatId。',
     '禁止输出或推断 C1 关系、C2 状态、C3 知情、C4 正史，也禁止自动接受、写入、解释或 Markdown。低置信内容仍输出为候选并标 confidence: low。',
-    '{"candidates":[{"id":"...","kind":"outline|worldview|detail-beat","sourceChunkIndex":0,"confidence":"low|medium|high","value":{}}]}',
+    SPLIT_PROMPT_EXAMPLE,
     `输入文本块：${JSON.stringify(input.chunks)}`,
   ].join('\n');
 }
