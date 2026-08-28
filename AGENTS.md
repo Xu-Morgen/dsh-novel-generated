@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v2.3
+> 规则版本：v2.4
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -10,9 +10,9 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v2.3）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-requirements.md`（v2.3）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v2.3）—— 执行层，15 个阶段、84 个迭代（I1–I84）；I1–I53 已完成，I54–I84 待逐迭代执行，每一步从对应阶段/迭代卡片出发。
+1. `docs/novel-creation-tool-design.md`（v2.4）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v2.4）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v2.4）—— 执行层，16 个阶段、85 个迭代（I1–I85）；I1–I84 已完成，I85 待执行，每一步从对应阶段/迭代卡片出发。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）—— 架构审查记录，架构债务治理的立项输入；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -37,6 +37,7 @@
 - 样本禁改：禁止为让测试通过而修改样本/金标/阈值，违者该迭代判失败并回退。
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16）。
+- I85 是唯一待执行迭代：当前运行时观测为 DSH `0.1.1-rc.2`，项目 pin 仍为 `0.1.0-rc.7`；只有 manifest/profile/lockfile 同步并通过完整 base+web+plugin、Client/Remote/Tools/LLM 兼容门后，才可声明项目基线升级完成。禁止混装或 rc.7 fallback。
 
 ## 3. 完成定义（DoD）
 

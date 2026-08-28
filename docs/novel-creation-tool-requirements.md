@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.3
-> 日期：2026-08-27
+> 版本：v2.4
+> 日期：2026-08-28
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线。
-2. 本文件 v2.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.3：I1–I84 的执行卡片、交付物与命令细节。
-4. `AGENTS.md` v2.3：执行纪律。
+1. `docs/novel-creation-tool-design.md` v2.4：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线与 D23。
+2. 本文件 v2.4：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v2.4：I1–I85 的执行卡片、交付物与命令细节。
+4. `AGENTS.md` v2.4：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）：架构审查记录，Stage 15（R16）重构立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份只有本文件定义的 **I1–I84**：I1–I53 已完成，I54–I74 已批准，I75–I84 架构债务消除（R16）已批准。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R14 产品能力的通过抵消；I2 兼容性门失败时必须执行停止线。
+- 当前迭代身份只有本文件定义的 **I1–I85**：I1–I84 已完成；I85 DSH family `0.1.1-rc.2` 兼容升级已批准、待执行。任何保留需求必须能追溯到其中至少一个迭代和一个精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R17 产品能力的通过抵消；I2 或 I85 兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -36,7 +36,7 @@
 7. 所有用户确认复用 I11 ConfirmationGate。未确认不得写回；重复确认必须幂等。
 8. 每个迭代只有在对应 `verify:iN` 通过后才可完成；每个阶段只有在全部迭代验证和 `verify:stage-N` 通过后才可完成。
 
-### 0.4 v2.2 阶段与验证命令
+### 0.4 当前阶段与验证命令
 
 | 阶段 | 迭代 | 累积门 |
 |---|---|---|
@@ -56,6 +56,7 @@
 | Stage 13 P1 能力可达性 | I66–I72 | `pnpm run verify:stage-13` |
 | Stage 14 剧情时间线 | I73–I74 | `pnpm run verify:stage-14` |
 | Stage 15 架构债务消除 | I75–I84 | `pnpm run verify:stage-15` |
+| Stage 16 DSH family 兼容升级 | I85 | `pnpm run verify:stage-16` |
 
 ---
 
@@ -73,8 +74,9 @@
 | H0-8 | **I2 仅为 gate-only Client probe**：只证明公共 client bundle、公共 Remote、selected-profile boot、单一 Slot 注册与 Fiber 卸载；probe 必须非产品、不得演化为工作区。 | 真实 package build + selected-profile boot + 单一 Slot mount/unmount smoke；产品术语、领域读取/写入和多 Slot 均为负向失败。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
 | H0-9 | **公共合同停止线**：I2 必须证明受支持的普通 out-of-tree plugin 公共 Remote 与 client bundling/装载合同。不得使用动态 `harness.handle`/`host.call`，不得以内置或未发布 builder/`clientBundle` API fallback。证明失败即 I2 失败，禁止开始 I33–I36 及任何产品 Client 工作。 | 依赖/API allowlist 与 forbidden-symbol 扫描；公开 contract 集成 smoke；缺公共合同夹具必须 fail closed，且产品 Client 构建任务保持阻塞。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
 | H0-10 | 禁止 standalone UI：无独立 HTML、`createRoot()` 自挂载、独立 SPA/Vite server 或第二主路径；禁止浏览器直连 LLM、直接文件访问、长期 key/secret。 | repository 与 Client bundle 负向扫描；核心能力只能在现有 DSH GUI/Host 中启动。 | I1, I2, I33 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i33`; `pnpm run verify:stage-0`; `pnpm run verify:stage-6` |
-| H0-11 | 工具链 pin：Node.js **22+**、pnpm、TypeScript strict、ESM；项目 manifest 固定 DSH family/Cordis 兼容范围，lockfile 固定精确解析版本。 | engines/packageManager/type/module/tsconfig/lockfile 静态断言；Node 低版本、npm lock、CJS 输出夹具失败。 | I1 | `pnpm run verify:i1`; `pnpm run verify:stage-0` |
-| H0-12 | 必须具备可重复的 install/build/selected-profile boot/stop/restart 验证；stop 后消失，restart 后恰好恢复一次。 | 干净安装、Host build、首次 boot、stop、同进程 restart、DSH 重启后 boot 的脚本日志与断言。 | I1, I2 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:stage-0` |
+| H0-11 | 工具链 pin：Node.js **22+**、pnpm、TypeScript strict、ESM；项目 manifest 固定 DSH family/Cordis 兼容范围，lockfile 固定精确解析版本。当前运行时观测 `0.1.1-rc.2` 与项目 pin `0.1.0-rc.7` 必须保持明确区分，直到 I85 验证完成后才切换唯一项目 pin。 | engines/packageManager/type/module/tsconfig/lockfile 静态断言；DSH family 直接依赖、selected profile 与 lockfile 同版本；Node 低版本、npm lock、CJS 输出、混装版本夹具失败。 | I1, I85 | `pnpm run verify:i1`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| H0-12 | 必须具备可重复的 install/build/selected-profile boot/stop/restart 验证；stop 后消失，restart 后恰好恢复一次。宿主升级还必须在真实 base+web+plugin 组合中重跑完整 Client gate。 | 干净安装、Host build、首次 boot、Client mount、Remote 往返、stop、同进程 restart、DSH 重启后 boot 的脚本日志与断言。 | I1, I2, I85 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| H0-13 | DSH family 升级必须是单一专门兼容迭代：manifest、selected profile 与 lockfile 原子切换至同一精确版本；不得保留旧宿主 fallback，不得用运行时观测冒充已验证项目基线。 | `0.1.1-rc.2` 同版本断言；rc.7 残留/混装负向扫描；真实 base+web+plugin selected-profile boot；完整 Client/Remote/Tools/LLM 合同与生命周期门。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
 
 ---
 
@@ -232,7 +234,7 @@
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
-| R12-1 | I54 执行前核验所选 DSH 与当时最新版公开 Slot tree；若存在 additive 侧区内容 Slot，停止并通知用户升级、更新兼容基线后再实现；否则将 `shell.overlay` 创作台退役为贴右、全高、非模态停靠侧板。禁止接管 root/sidebar/conversation/details 单槽，禁止双落点 fallback。 | Slot manifest/Inspect 证据；当前 `0.1.0-rc.7` 与已核验 `0.1.1-rc.2` 均走右侧板；selected-profile mount/unmount；扫描无第二路径和居中浮窗样式。 | I54 | `pnpm run verify:i54`; `pnpm run verify:stage-11` |
+| R12-1 | I54 执行前核验所选 DSH 与当时最新版公开 Slot tree；若存在 additive 侧区内容 Slot，停止并通知用户升级、更新兼容基线后再实现；否则将 `shell.overlay` 创作台退役为贴右、全高、非模态停靠侧板。禁止接管 root/sidebar/conversation/details 单槽，禁止双落点 fallback。 | Slot manifest/Inspect 证据；I54 所选 `0.1.0-rc.7` 与当时已核验 `0.1.1-rc.2` 均走右侧板；selected-profile mount/unmount；扫描无第二路径和居中浮窗样式。 | I54 | `pnpm run verify:i54`; `pnpm run verify:stage-11` |
 | R12-2 | 当前作品持续可见，并可返回作品列表、新建/切换；跨项目切换清空旧 Client draft，由 Host 重新 open/验证，脏表单有明确裁决。项目目录层始终提供「空白创建 + 文档导入」新增入口（不受已有作品影响）；文档导入新建独立作品后，六层初始化审阅在项目目录层展示，apply 成功才进入创作台。 | 两作品往返、脏表单、失败 open、重启恢复与零串写断言；目录层空白创建/文档导入、审阅上移与 apply 后进入创作台断言。 | I55 | `pnpm run verify:i55`; `pnpm run verify:stage-11` |
 | R12-3 | 六层“修改后接受”必须提交用户编辑后的 `editedValue`；重生成必须提交 feedback；空候选、pending 和错绑定阻止裁决/apply。 | Remote payload 精确断言；Host 不得回退使用旧值；六层终态门与负向夹具。 | I56 | `pnpm run verify:i56`; `pnpm run verify:stage-11` |
 | R12-4 | 初始化分析显示进度并支持取消/失败重试；final apply 成功后刷新六层并进入创作台，partial-retryable 只重试未完成层。 | progress/cancel/retry、apply refresh、失败隔离、Fiber dispose 零任务残留。 | I57 | `pnpm run verify:i57`; `pnpm run verify:stage-11` |
@@ -295,6 +297,18 @@
 | R16-5 | 分层边界纪律保持并显式化：core→host/client 反向 import 保持 0；分层倒置边（`core/settings-index→llm/port`、`core/upload→import`、`llm/template→core/settings-index` 往返）修复；可入 client 图的 core 纯模块白名单显式化并受构建扫描约束。 | 反向 import 扫描 0；倒置边扫描 0；白名单外 core 引用负测失败。 | I78, I84 | `pnpm run verify:i78`; `pnpm run verify:i84`; `pnpm run verify:stage-15` |
 | R16-6 | 重构不改变领域行为与公开契约：I1–I74 全部既有验收（`pnpm test` + stage verify + LLM 样本阈值）在重构后保持绿；公开 Remote/wire 契约形状不变。 | 全量测试 + 全 held-out 回归 + 既有 stage 累积门全绿；契约形状快照不变。 | I75–I84（全部） | `pnpm run verify:stage-15`（含 I75–I84 各迭代 verify 全绿） |
 
+## R17. DSH family `0.1.1-rc.2` 兼容升级（Stage 16）
+
+> 定位：消除当前已安装运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的漂移。升级只验证并切换宿主公共合同，不新增产品功能，不改变领域语义、公开 Remote/wire 形状或作品数据。
+
+| ID | 需求 | 验收/证据 | 迭代 | 验证 |
+|---|---|---|---|---|
+| R17-1 | DSH family 直接依赖、selected-profile 示例与 lockfile 必须统一精确固定为 `0.1.1-rc.2`；Cordis 保持已验证 `4.0.1` 兼容线。 | manifest/profile/lockfile 同版本断言；`0.1.0-rc.7` 残留与 rc.7/rc.2 混装夹具失败。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| R17-2 | 兼容门必须在一次性 `DSH_HOME` 中安装真实 base+web+plugin 组合，证明 bundle 只有一个 insertion owner，Host 可 boot/stop/restart，卸载后副作用归零。 | clean install、compose、boot、stop、restart、DSH 重启、upgrade/uninstall 日志与断言。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| R17-3 | Client 必须通过 `0.1.1-rc.2` ModuleLoader 装载，在 live `shell.overlay` 唯一注册、卸载后消失，并完成 Typert Remote 往返；不得以 Host-only artifact scan 代替浏览器合同。 | 真实 Client graph/ModuleLoader smoke；Slot mount/unmount；Remote 成功/错误/卸载负测。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| R17-4 | Tools 与 `ctx.llm` 必须按 `0.1.1-rc.2` 公共合同验证：Tools 参数执行前 fail closed；LLM request/text-delta/finish/cancel 与 provider-specific stop 能力有确定性断言。 | 真实 ToolRuntime 注册/执行/非法参数测试；真实 LLM runtime fake adapter；stop 支持/拒绝均显式，不静默承诺。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| R17-5 | 升级不得改变领域行为、prompt、样本/gold/阈值、公开 Remote/wire 形状或作品 source of truth；修复兼容测试所暴露的两处 Vitest 未 await 警告。 | 全量 723+ 回归、build、held-out、contract lock、生命周期门全绿；作品目录零迁移/删除；Vitest 无未 await 警告。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+
 ---
 
 ## 覆盖矩阵
@@ -303,9 +317,9 @@
 
 | 宿主面 | 需求 ID | 迭代 | 必须证明的证据 |
 |---|---|---|---|
-| selected-profile dependency + pins | H0-1, H0-11 | I1 | profile manifest、项目 lockfile、Node22+/pnpm/strict ESM |
-| chosen bundle composition + one owner | H0-2 | I1 | `dsh.bundle.patch` + `dsh.profile.bundles` + 单 row |
-| ordinary persistent lifecycle | H0-3, H0-12 | I1–I2 | install/build/boot/stop/restart |
+| selected-profile dependency + pins | H0-1, H0-11, H0-13 | I1, I85 | profile manifest、项目 lockfile、DSH family 同版本、Node22+/pnpm/strict ESM |
+| chosen bundle composition + one owner | H0-2 | I1, I85 | `dsh.bundle.patch` + `dsh.profile.bundles` + 单 row |
+| ordinary persistent lifecycle | H0-3, H0-12, H0-13 | I1–I2, I85 | install/build/base+web+plugin boot/Client mount/stop/restart/upgrade/uninstall |
 | Host ownership | H0-4, H0-7 | I1 | Host-only Service/Fiber；无 Client 产物 |
 | Client ownership and gate | H0-5, H0-8 | I2 | 非产品单 Slot probe |
 | Fiber cleanup | H0-6 | I1–I2 | Host/Client 副作用归零 |
@@ -345,7 +359,7 @@
 | NarrativeParser | I25–I29 | R2-7, R5-1–R5-6 |
 | Pipeline/lifecycle | I19, I30 | R3-5–R3-6, R5-7 |
 
-### M-P. 产品能力与 I1–I84 全覆盖矩阵
+### M-P. 产品能力与 I1–I85 全覆盖矩阵
 
 | 能力 | 迭代 | 需求组 |
 |---|---|---|
@@ -433,6 +447,7 @@
 | client.ts 拆分（一）store/ops | I82 | R16 |
 | client.ts 拆分（二）panels/mount/harness | I83 | R16 |
 | 低优先级债务清零 | I84 | R16 |
+| DSH family `0.1.1-rc.2` 兼容升级 | I85 | H0, R17 |
 
 ---
 
@@ -454,6 +469,6 @@
 
 ## 结论
 
-**直接结论：I1–I53 已完成并形成 v2.1 基线；v2.2 将现有 UI 修复、P0 正文写作闭环与 P1 能力可达性拆为 I54–I72，并新增 Stage 14（I73–I74）剧情时间线（方案 A，R15）。v2.3 依据 `docs/novel-creation-tool-architecture-review.md` §9 新增 Stage 15（I75–I84）架构债务消除（R16）：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零，只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。新计划不改写 I1–I53 的历史合同，也不以 UI 扩展或重构改变 Host source-of-truth。**
+**直接结论：I1–I84 已完成：v2.0–v2.2 交付 Host/Client 产品闭环、作品启动、侧板化、正文写作、能力可达性与剧情时间线；v2.3 Stage 15（I75–I84）完成架构债务消除并保持领域与公开契约不变。v2.4 新增 Stage 16 / I85（R17），专门把 DSH family 可复现项目 pin 从 `0.1.0-rc.7` 升级到当前运行时 `0.1.1-rc.2` 并补齐完整 base+web+plugin 兼容门。I85 完成前，`0.1.1-rc.2` 只是运行时观测版本，唯一项目 pin 仍为 `0.1.0-rc.7`。**
 
-H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 还必须执行 D20 Slot 兼容门：若新版出现 additive 侧区公共 Slot，先通知升级并更新兼容基线；否则使用单一 `shell.overlay` 右侧停靠侧板路径。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
+H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

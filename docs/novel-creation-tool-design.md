@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v2.3
-> 状态：v2.3 当前设计权威；I1–I53 已完成，I54–I84 为已批准待执行计划（I54–I74 功能迭代，I75–I84 架构债务消除重构）；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v2.4
+> 状态：v2.4 当前设计权威；I1–I84 已完成，I85 为已批准待执行的 DSH family 兼容升级迭代；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -18,8 +18,9 @@
 | **v2.2（2026-08-26）** | 将 I1–I53 同步为已完成；新增 Stage 11–13（I54–I72），先把居中浮窗退役为 DSH 内右侧停靠侧板并修复现有 UI，再交付 P0 正文写作闭环与 P1 能力可达性；记录 D20。§0.1 宿主基线不变。 |
 | **v2.2（增补：剧情时间线）** | 新增剧情时间线层（§5.13）：把 B5 大纲结构展开为有序剧情时间轴（timeline.yaml），节点可安排揭示信息与关系建立时机；C1 关系注入改为按「当前时间线节点之前已建立」过滤（§8），C3 revealAt 可对齐时间线节点；onboarding 落地 B5 后自建骨架，作者可手动编辑保存。记录 R15/I73–I74。§0.1 宿主基线不变。 |
 | **v2.3（2026-08-27）** | 依据 `docs/novel-creation-tool-architecture-review.md`（v1.0）§9 新增 **Stage 15 架构债务消除（I75–I84）**：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零；记录 D21–D22。重构只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。§0.1 宿主基线不变。 |
+| **v2.4（2026-08-28）** | 同步 I1–I84 已完成事实与当前 DSH `0.1.1-rc.2` 运行时观测；新增 **Stage 16 / I85 DSH family 兼容升级**，由专门迭代把项目 pin、selected profile 与 lockfile 从 `0.1.0-rc.7` 切换到 `0.1.1-rc.2`，并补齐真实 base+web+plugin、Client ModuleLoader、Slot、Typert Remote、Tools 与 `ctx.llm` 兼容门；记录 D23。I85 完成前，运行时观测版本不得冒充可复现项目依赖基线。 |
 
-> **v2.3 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md`、`AGENTS.md` 与 `README.md` 已同步为 v2.3 当前执行材料；当前迭代身份为 I1–I84，其中 I1–I53 已完成，I54–I74 已批准，I75–I84 架构债务消除重构（R16）已批准，均须按单迭代纪律逐项执行。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。`docs/novel-creation-tool-architecture-review.md`（v1.0）是重构立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线，也不构成新的设计决策。
+> **v2.4 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.4 当前执行材料；I1–I84 已完成，当前唯一待执行迭代为 I85。README 仍描述已交付产品与安装方法，不作为 I85 完成证据。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。`docs/novel-creation-tool-architecture-review.md`（v1.0）是 Stage 15 重构立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线，也不构成新的设计决策。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -60,7 +61,7 @@
 ### 0.1.3 包、构建、发现与 Host–Client 兼容性门
 
 - 生产安装与发现严格引用 §0.1.1 的唯一合同，不在本节另立依赖、patch、bundle 或仓库 composition 规则。
-- **过渡期已观测安装证据（非项目 pin）**：当前已安装环境的观测证据是 DSH `0.1.0-rc.7` 与 Cordis `4.0.1`；该证据尚不是可复现的项目 pin，过渡期间不得称为 project baseline。I1 必须先在项目根权威 `package.json` 中加入 DSH family 与 Cordis 的明确 pin/经验证兼容范围，并生成、提交与之对应且锁定精确解析版本的权威 lockfile；只有二者齐备并经可复现安装验证后，才可称为项目依赖基线。任何后续升级都必须进入专门的兼容性迭代，并重新执行 selected profile boot 与完整 Client gate。
+- **运行时观测与项目 pin 必须分离**：当前已安装 DSH 运行时观测为 `0.1.1-rc.2`，Cordis 为 `4.0.1`；项目根 `package.json`、selected-profile 示例与权威 lockfile 当前仍固定 DSH family `0.1.0-rc.7`。I85 完成前，`0.1.1-rc.2` 只能称为运行时观测版本，不能称为可复现项目依赖基线；`0.1.0-rc.7` 仍是项目 pin。I85 必须在同一干净迭代内更新 manifest/profile/lockfile，并通过真实 selected-profile base+web+plugin boot、完整 Client gate 与生命周期验证后，才能把唯一项目 pin 切换为 `0.1.1-rc.2`。任何后续升级仍必须进入专门兼容性迭代。
 - **I1（Host-only 地基）**：package manifest 必须通过 I1 建立并验证的项目 DSH 基线公共入口暴露 Host；Host 构建必须能被实际安装并由所选 profile 启动。I1 严格为 Host-only，**不尝试 Client gate**，不得预建 Client seam、伪 RPC、Client probe、产品 UI 或独立 UI fallback。
 - **I2（专用兼容性门迭代）**：I2 是唯一获准在门禁通过前产生 Client 代码的例外，但只可构建证明普通 out-of-tree plugin 公共合同所必需的**最小、非产品 Client probe**。该 probe 仅用于证明公共 client bundling/装载、按 §0.1.1 完成 selected profile boot、向一个经核验 Slot 注册以及 Fiber dispose 后完整卸载；不得加入任何产品 UI、领域行为、产品 Host–Client seam、独立 HTML、独立 SPA 或其他 standalone 路径。
 - **I2 通过条件与停止线**：I2 必须针对 I1 的项目依赖基线证明普通 out-of-tree plugin 可用且受支持的**公共 Remote 合同与公共 client bundling/装载合同**，并留下真实 package build、selected profile boot、单一 Slot 注册/卸载 smoke 的可执行证据。不得以动态插件的 `harness.handle` / `host.call`（动态 RPC）代替证明，也不得采用未发布或 internal 的 builder/`clientBundle` API 作为 fallback。若该公开、受支持的 out-of-tree 合同不能被证明，I2 判失败并停止，**不得开始任何产品 Client 工作**。
@@ -897,9 +898,10 @@ project/
 | D17 | 六层初始化裁决 | 自动写入 / 整包确认 / 六层独立裁决 | ✅ 已定（I52–I53）：B3/B2/B5/C1/C2/C4 分别允许直接接受、手动修改后接受、整层打回重生成或显式跳过；pending 不等于 skip。每项 Gate 提案绑定 projectId + onboardingSessionId + layer；accepted 只授权随后由 final apply 执行业务副作用，修改/重生成先 reject 当前提案再建立带 `replacesId` 的后继提案。 |
 | D18 | DOCX 浏览器入口与解析 owner | Host 路径输入 / Client 解析 / Client 受控运输 + Host 解析 | ✅ 已定（I51）：文件选择器只做限额分块运输；Host 校验 SHA-256、压缩/解压上限与包结构并提取文本。使用成熟 ZIP/XML 解析依赖，退役手写最小 parser，不保留双路径 fallback。 |
 | D19 | Stage 10 切分与失败恢复 | 巨型 I50 / 两迭代压缩 / 四迭代分层 | ✅ 已定：I50 启动编排、I51 上传提取、I52 六层分析、I53 审阅落地；跨文件写入不伪装为原子事务，先全量预检，部分失败报告 `partial-retryable`，重试以确定性 ID 和现值比较继续，禁止补偿性删除作品数据。 |
-| D20 | 创作台侧区落点与兼容门 | 替换 `sidebar`/`details` 单槽 / 居中浮窗继续存在 / DSH additive 侧区 Slot 优先、否则 `shell.overlay` 右侧停靠侧板 | ✅ 已定（I54）：I54 执行前先核验所选 DSH 版本及最新公开 Slot 合同；若新版已有 additive 侧区内容 Slot，停止并先通知用户升级、更新项目兼容基线后再实现；若仍无，则使用 `shell.overlay` list Slot 渲染贴右、全高、非模态停靠侧板。当前安装 `0.1.0-rc.7` 的 live Slot tree，以及最新版 `0.1.1-rc.2` 发布包 `dsh-client-ui-slots`、`dsh-client-ui-sidebar`、`dsh-client-ui-layout`、`dsh-client-ui-workspace` 的静态合同核验，均未发现该公共 Slot，故当前目标为右侧停靠侧板（发布参考：https://github.com/deepseek-ai/DeepSeek-Harness/releases/tag/dsh-v0.1.1-rc.2）。禁止接管 `sidebar`/`details` 单槽，禁止保留居中浮窗与停靠侧板双路径。 |
+| D20 | 创作台侧区落点与兼容门 | 替换 `sidebar`/`details` 单槽 / 居中浮窗继续存在 / DSH additive 侧区 Slot 优先、否则 `shell.overlay` 右侧停靠侧板 | ✅ 已定（I54）：I54 执行前先核验所选 DSH 版本及最新公开 Slot 合同；若新版已有 additive 侧区内容 Slot，停止并先通知用户升级、更新项目兼容基线后再实现；若仍无，则使用 `shell.overlay` list Slot 渲染贴右、全高、非模态停靠侧板。I54 执行时 `0.1.0-rc.7` 的 live Slot tree，以及 `0.1.1-rc.2` 发布包 `dsh-client-ui-slots`、`dsh-client-ui-sidebar`、`dsh-client-ui-layout`、`dsh-client-ui-workspace` 的静态合同核验，均未发现该公共 Slot，故当前目标为右侧停靠侧板（发布参考：https://github.com/deepseek-ai/DeepSeek-Harness/releases/tag/dsh-v0.1.1-rc.2）。禁止接管 `sidebar`/`details` 单槽，禁止保留居中浮窗与停靠侧板双路径。 |
 | D21 | 架构债务治理策略 | 不立项（继续功能优先）/ 一次巨型重构 / 按架构审查 §9 性价比排序的分阶段重构 | ✅ 已定（v2.3，Stage 15 立项）：新增 Stage 15（I75–I84）分阶段重构；纯机械重构优先（共享 Remote 接线层、llm 公共基座、core 文件拆分），结构性拆分一次一个切片（两个 god service、client.ts）；重构只消除复制与接线债务，不改变领域契约与公开 Remote 形状；每个迭代以「既有验收回归全绿 + 本迭代负向扫描断言」为完成条件，禁止夹带新功能。 |
 | D22 | 契约单一来源方式 | 继续手写多重复声明 / 引入独立 codegen 工具链 / 复用 core schema 派生 + 启用 `contracts/` 形状本体 | ✅ 已定（v2.3，I77–I78）：wire schema 从 core schema 派生（沿用 timeline/editor 直接复用先例）；`contracts/` 存形状本体并加一致性断言；Client 投影 shape 用可打包纯 zod 直用；**不引入独立 codegen 工具链**（避免第二构建面）。 |
+| D23 | DSH `0.1.1-rc.2` 基线切换方式 | 直接改文档声称已升级 / 回写已完成 I54 / 新增专门兼容迭代 | ✅ 已定（v2.4，Stage 16 / I85）：先诚实记录“当前运行时观测 `0.1.1-rc.2`、项目 pin 仍为 `0.1.0-rc.7`”双状态；I85 一次性更新 DSH family manifest/profile/lockfile 并重跑完整 Host+Client+Remote+Tools+LLM 兼容门，全部通过后才切换唯一项目 pin。不得改写 I54 历史，不保留 rc.7 运行时 fallback，不触碰作品 source of truth。 |
 
 ---
 
@@ -925,6 +927,7 @@ project/
 | **M13** | C5 正文工作台 + 候选裁决 + 一致性中心 + 自动生成队列 | 作者可在 DSH 内完成章节/场景写作、审校、接受与可恢复批量生成 |
 | **M14** | C3/B1/B4/C6、导入导出、正文分支、搜索与进度可达性 | 已有 Host 能力进入作者工作流，长篇知识边界、版本和交付路径可视化 |
 | **M15** | 架构债务消除（Stage 15，I75–I84）：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、god file/god service 拆分、client.ts 拆分与低优先级债务清零 | 霰弹枪修改、契约多重复声明与边界类型安全侵蚀消除；公开契约与领域行为不变 |
+| **M16** | DSH family `0.1.1-rc.2` 兼容升级（Stage 16，I85） | manifest/profile/lockfile 唯一 pin 同步；真实 base+web+plugin、Client ModuleLoader/Slot、Typert Remote、Tools、`ctx.llm` 与生命周期兼容门通过 |
 
 ---
 
@@ -1059,6 +1062,16 @@ project/
 - **`contracts/` 形状本体契约锁（I78 落地）**：`contracts/stage10/{docx-upload,project-lifecycle}.json` 与 `contracts/stage15/client-projection.json` 以 JSON Schema（zod `z.toJSONSchema` 生成）存形状本体，不再是只含字符串 shapeIds 的空壳（review §6.3）；一致性断言（`src/contract-lock.ts` + `src/contract-lock.test.ts`）重新生成本体并逐字节比较 —— 实现或锁任何一侧漂移即失败。有意识改契约的唯一入口是 `pnpm run update:contracts`（`scripts/update-contract-locks.ts`，非构建步骤，不引入第二构建面，D22）。
 - **Client 投影 shape 纯 zod 直用（I78 收敛）**：`CharacterShape`/`OutlineShape`/`RelationshipShape`/`WorldShape` 等编辑器表单模型统一收拢到 `src/client/shapes.ts`，从 canonical core schema 派生的纯 zod 直用（`characterCoreSchema`/`outlineSchema` 等 `.omit().partial()`/`.extend()`），消除手写「全 optional + `[key: string]: unknown` + `kind: string` 失型」接口（review §6.2 #6）；枚举下拉选项同样从 core 枚举派生，硬编码副本归零。表单模型是 canonical 输入类型的放宽（草稿可部分填写），类型关系由 `src/client-shape-contract.test.ts` 编译期断言锁定。
 - **完成线**：接线层类型安全恢复、全仓库最大复制源归零、契约单一来源生效（schema 字段单一变更影响面 ≤3 文件）、god file/god service 消除、分层边界保持、I1–I74 全部既有验收回归保持绿、公开契约形状不变。
+
+### 14.13 DSH family `0.1.1-rc.2` 兼容升级（Stage 16，I85，v2.4）
+
+> 定位：I1–I84 完成后，消除当前运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的版本漂移。该阶段只升级并验证宿主公共合同，不新增产品功能、不改变领域或公开 Remote/wire 契约。
+
+- **基线切换（D23）**：同步 `package.json` 的 DSH family 直接依赖、`examples/selected-profile.package.json` 与 `pnpm-lock.yaml` 至精确 `0.1.1-rc.2`；DSH family 必须同版本，不允许 rc.7/rc.2 混装或运行时 fallback。Cordis 继续为已验证的 `4.0.1` 兼容线。
+- **完整兼容门**：一次性临时 `DSH_HOME` 中安装真实 `@deepseek-ai/dsh-base` + `@deepseek-ai/dsh-web-app` + `novel-creation-tool`，证明 bundle 单 owner、Host boot/stop/restart、Client ModuleLoader 装载、`shell.overlay` mount/unmount、Typert Remote 往返、Tools 真实注册/非法参数拒绝以及 `ctx.llm` 请求/finish/cancel 合同。
+- **已知修复边界**：补齐两处 Vitest 未 `await` 的 `resolves`；Tools 参数必须在执行前按 JSON Schema fail closed；`stopSequences` 按 `0.1.1-rc.2` provider 能力显式处理，不再提供与实际路由不一致的静默承诺。不得借机改 prompt、样本、gold、阈值或领域生成语义。
+- **安全与回退**：升级失败时回退 manifest/profile/lockfile 与兼容测试代码到 I84 commit；不迁移、不删除、不改写任何作品 source of truth。兼容旧作品属于数据合同，不等于保留 rc.7 宿主路径。
+- **完成线**：`verify:i85` 与 `verify:stage-16` 全绿，既有 `pnpm test`、build、held-out、安装→升级→卸载生命周期回归全绿；随后四份权威文档与 README 才可把唯一项目 DSH family pin 声明为 `0.1.1-rc.2`。
 
 ---
 

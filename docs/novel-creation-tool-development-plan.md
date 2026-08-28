@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v2.3
-> 日期：2026-08-27
-> 状态：当前执行权威（I1–I53 已完成；I54–I84 已批准、待逐迭代执行）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v2.3（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.3（需求 ID、验收、迭代覆盖）
+> 版本：v2.4
+> 日期：2026-08-28
+> 状态：当前执行权威（I1–I84 已完成；I85 已批准、待执行）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v2.4（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.4（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）
 
 ---
@@ -15,8 +15,8 @@
 
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
-- I1–I53 已完成：包括插件核心、创作台、多作品启动、受控 DOCX 上传、六层初始化分析与逐层确认落地；不得再将 Stage 10 标为待执行。
-- 当前排期扩展为 **15 个阶段、84 个迭代（I1–I84）**：v2.2 新增 Stage 11（I54–I59）侧板化与 UI 修复、Stage 12（I60–I65）P0 正文写作闭环、Stage 13（I66–I72）P1 能力可达性；Stage 14（I73–I74）剧情时间线（方案 A）把 B5 结构展开为有序剧情时间轴，支撑关系注入按当前时间过滤。v2.3 依据 `docs/novel-creation-tool-architecture-review.md`（v1.0）§9 新增 **Stage 15（I75–I84）架构债务消除（重构）**：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零；重构只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。I54–I84 仍须遵守一次只执行一个 Ixx。
+- I1–I84 已完成：插件核心、创作台、多作品启动、六层初始化、侧板化、正文写作闭环、能力可达性、剧情时间线与 Stage 15 架构债务消除均已有独立提交与验证证据；不得再将 I1–I84 标为待执行。
+- 当前排期扩展为 **16 个阶段、85 个迭代（I1–I85）**。v2.4 新增 **Stage 16 / I85 DSH family `0.1.1-rc.2` 兼容升级**：消除当前运行时观测 `0.1.1-rc.2` 与项目 pin `0.1.0-rc.7` 的漂移，一次性同步 manifest/profile/lockfile 并补齐真实 base+web+plugin、Client ModuleLoader/Slot、Typert Remote、Tools 与 `ctx.llm` 兼容门。I85 仍须遵守一次只执行一个 Ixx。
 
 ### 0.2 Goal
 
@@ -38,7 +38,7 @@
 | 语言 | TypeScript strict，ESM | 13 层 schema 需类型约束 |
 | 包管理 | pnpm + 提交锁文件 | DSH 插件安装经 profile 转发 pnpm |
 | 插件框架 | `@deepseek-ai/cordis`（当前观测 4.0.1） | 设计 §0.1 |
-| DSH | 项目当前 pin/观测为 `0.1.0-rc.7`；v2.2 规划时已核验 npm 最新 `0.1.1-rc.2`，两者均无 additive 侧区内容 Slot；I54 执行前重跑版本/Slot 门 | 设计 §0.1.3 / D20 |
+| DSH | 当前运行时观测 `0.1.1-rc.2`；项目 manifest/profile/lockfile pin 仍为 `0.1.0-rc.7`，I85 完成完整兼容门后才切换唯一项目 pin | 设计 §0.1.3 / D20 / D23 |
 | 生产组合 | bundle path（`dsh.bundle.patch` + `dsh.profile.bundles`） | 设计 §0.1.1 |
 | 本地 smoke 组合 | 仓库 `cordis.yml` + loader/include（仅 smoke） | 设计 §0.1.1 |
 | Host 构建 | TypeScript 编译输出 ESM + 类型声明 | 设计 §0.1.3 |
@@ -67,7 +67,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I84）
+### 0.7 全局执行纪律（贯穿 I1–I85）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -79,6 +79,7 @@ TDD Route:
 8. 提交自检：`git status` 只含本迭代文件；`git diff` 无 console.log/临时文件/死代码；无真实 key。
 9. 阶段收尾跑全量 `pnpm test` + 本阶段全部 held-out 回归 + `pnpm run verify:stage-N`。
 10. 重构迭代（I75–I84）叠加纪律：以「重构前后领域行为等价」为完成条件（既有全量测试 + 相关 stage 回归 + LLM 样本阈值不变 + 本迭代专属负向扫描断言）；只消除复制与接线债务，禁止夹带新功能或改变公开契约；结构性拆分一次一个切片（见 §16）。
+11. 宿主兼容升级（I85）叠加纪律：版本观测与项目 pin 分离；manifest/profile/lockfile 必须同迭代同版本切换；完整 base+web+plugin 与 Client/Remote/Tools/LLM 门未通过时不得声明新基线，不保留 rc.7 fallback，不触碰作品数据。
 
 ---
 
@@ -816,9 +817,31 @@ TDD Route:
 
 ---
 
-## 17. 完成线
+## 17. 阶段 16：DSH family `0.1.1-rc.2` 兼容升级
 
-I45 通过时 v2.0 核心闭环完成，I49 通过时首轮创作台 UI 完成，I53 通过时 v2.1 作品启动与六层初始化闭环完成；这些 I1–I53 状态均已完成。v2.2 的新增完成线为：I59 通过时停靠侧板与现有 UI 修复完成，I65 通过时 P0 正文写作闭环完成，I72 通过时 P1 能力可达性完成，I74 通过时剧情时间线（方案 A）完成。v2.3 的新增完成线为：**I84 通过时 Stage 15 架构债务消除完成**。
+**阶段门**：`pnpm run verify:stage-16`（I85 全绿）。
+
+> 定位：I1–I84 已完成后，消除当前已安装运行时 `0.1.1-rc.2` 与项目可复现 pin `0.1.0-rc.7` 的漂移。只升级并验证宿主公共合同；不新增产品功能、不改领域语义或公开 Remote/wire 形状。
+
+### I85：同步 DSH family `0.1.1-rc.2` 基线并重建完整兼容门
+
+- **目标**：把 DSH family 项目 pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，以真实 base+web+plugin Host/Client 生命周期证据证明普通持久 Cordis Plugin 在当前 DSH 上完整兼容。
+- **明确不做**：不改产品功能、领域 Schema、公开 Service/Remote/wire 形状、prompt、样本/gold/阈值；不新增 standalone 或动态 RPC；不保留 rc.7 fallback；不迁移、删除或改写作品 source of truth；不顺手升级 Cordis 或其他无关依赖。
+- **交付物**：
+  1. `package.json` 的 `@deepseek-ai/dsh-client-ui-slots`、`@deepseek-ai/dsh-typert-protocol`、`@deepseek-ai/dsh-typert-registry` 精确 pin 更新为 `0.1.1-rc.2`；若发布 `.d.ts` 需要消费者解析 Typert 类型，则把对应包移到正确的生产依赖面；
+  2. `examples/selected-profile.package.json` 的 `dsh-base`/`dsh-web-app` 更新为 `0.1.1-rc.2`，`pnpm-lock.yaml` 精确同步，加入 rc.7 残留/混装负向断言；
+  3. 一次性 `DSH_HOME` 真实 `dsh-base + dsh-web-app + novel-creation-tool` selected-profile smoke：单一 bundle row、Host boot/stop/restart、Client ModuleLoader graph、`shell.overlay` mount/unmount、Fiber 零残留；
+  4. Typert Remote 真实 gateway 往返与卸载负测；真实 ToolRuntime 注册/合法执行/非法参数 fail-closed；`ctx.llm` 以 `0.1.1-rc.2` runtime + fake adapter 锁定 request、text-delta、finish、cancel 及 provider-specific stop 支持/拒绝；
+  5. 修复 `src/host/remote/shared.test.ts` 两处未 `await` 的 `resolves`；更新 I54 版本门使其读取当前项目 pin/live Slot 证据，而非硬编码 rc.7 历史观测；新增 `smoke:i85`、`verify:i85`、`verify:stage-16`。
+- **验收**：① DSH family manifest/profile/lockfile 全为精确 `0.1.1-rc.2`，仓库执行基线无 `0.1.0-rc.7` 残留（历史 provenance 文本除外）；② clean install + build + 真实 base+web+plugin boot/Client mount/Remote 往返/stop/restart/upgrade/uninstall 全绿；③ Tools 非法参数在业务执行前拒绝，缺失 projectId 不得变成字符串 `undefined`；④ LLM 已支持与不支持的 stop 路由均显式，不静默承诺；⑤ `pnpm test`、全 held-out、contract lock、Stage 0/6/8/11/15 关键宿主消费者回归全绿且 Vitest 无未 await 警告；⑥ git diff 不含作品数据、样本/gold/阈值或公开契约形状变化。
+- **验证**：`pnpm run verify:i85`；阶段累积 `pnpm run verify:stage-16`。
+- **回退**：任一 Host/Client/Remote/Tools/LLM 门失败即 I85 未完成，回退本迭代 manifest/profile/lockfile 与兼容测试改动至 I84 commit；不得以混装、双版本或 fallback 继续。
+
+---
+
+## 18. 完成线
+
+I1–I84 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成 v2.1 作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除。v2.4 的新增完成线为：**I85 通过时 Stage 16 完成，唯一可复现项目 DSH family pin 才从 `0.1.0-rc.7` 切换为 `0.1.1-rc.2`**。
 
 I74 完成时还必须证明：
 
@@ -841,14 +864,20 @@ Stage 15（I84）完成时还必须证明：
 - 分层边界保持：core→host/client 反向 import 为 0，分层倒置边修复，「可入 client 图的 core 纯模块白名单」显式化并受扫描约束；
 - 领域行为等价：I1–I74 全部既有验收（`pnpm test` + stage verify + LLM 样本阈值）在重构后保持绿，公开 Remote/wire 契约形状不变。
 
+Stage 16（I85）完成时还必须证明：
+
+- manifest、selected profile 与 lockfile 的 DSH family 唯一 pin 均为精确 `0.1.1-rc.2`，无 rc.7/rc.2 混装或 fallback；
+- 真实 base+web+plugin selected-profile 的 Host、Client ModuleLoader、Slot、Typert Remote、Tools、`ctx.llm` 与完整生命周期门全部通过；
+- 升级前后领域行为、公开 Remote/wire、样本/gold/阈值与作品 source of truth 不变；失败可整体回退到 I84，而不产生第二宿主路径。
+
 语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎、C3 revealAt 直接引用时间线节点 id 的联动，以及公开 Remote 服务的破坏性改名（`novelImport`/`novelImportExport`/`novelExport` 三服务合并等）继续后置为 backlog。
 
 ---
 
-## 18. Risks 与 Retirement
+## 19. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
-- **DSH 版本漂移与侧区 Slot 门**：I54 执行前核验所选版本和当时最新版。若出现 additive 侧区内容 Slot，停止并通知用户升级，更新项目 pin/lockfile 后重跑 selected-profile boot 与完整 Client gate；若没有则只实现 `shell.overlay` 右侧停靠侧板。禁止运行时双路 fallback。
+- **DSH 版本漂移与兼容门**：I54 已完成 Slot 落点决策；当前漂移为运行时 `0.1.1-rc.2`、项目 pin `0.1.0-rc.7`。I85 必须原子同步 manifest/profile/lockfile 并重跑真实 base+web+plugin 与完整 Client/Remote/Tools/LLM 门；任一失败即回退 I85，不以混装或双路 fallback 过关。
 - **旧路径残留**：旧 I1a/I1b 独立 Vite/浏览器 LLM 路径必须零引用；不保留双主路径兼容层。
 - **作品数据安全**：卸载/回退不删除作品 source of truth；只退役 tracked 固定 mock 产物，不触碰未跟踪存档或真实作品目录。
 - **创作台 UI 重设计风险**：I46 将测试锚点从 `data-novel-editors` 迁移到新契约并重写 `client.test.ts`；I33–I36 既有 Host 契约（`novelWorkspace` Remote）不得回退，样式必须归属 Fiber 并在卸载后归零。
