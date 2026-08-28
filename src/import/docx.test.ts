@@ -50,6 +50,8 @@ describe('I51 mature DOCX adapter', () => {
     expect(() => readDocxText(new Uint8Array(archive))).toThrow('decompressed size limit');
   });
 
+  // I51 重负载夹具（200×1MB 高压缩 filler）在 CI/阶段链负载下可能超过 vitest
+  // 默认 5s 超时；显式放宽到 30s（不改断言语义）。
   it('rejects a zip bomb by total decompressed size', () => {
     // Highly-compressible filler trips the compression-ratio, per-entry or
     // total-decompressed guard; all three are correct zip-bomb rejections (D18).
@@ -57,7 +59,7 @@ describe('I51 mature DOCX adapter', () => {
     for (let i = 0; i < 200; i += 1) many[`d${i}.bin`] = 'a'.repeat(1024 * 1024);
     const big = Buffer.from(zipSync(Object.fromEntries(Object.entries(many).map(([k, v]) => [k, strToU8(v)]))));
     expect(() => readDocxText(new Uint8Array(big))).toThrow(/total decompressed size|entry count|compression ratio/);
-  });
+  }, 30_000);
 });
 
 describe('I51 upload store', () => {
