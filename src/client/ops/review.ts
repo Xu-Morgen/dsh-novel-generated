@@ -26,7 +26,7 @@ export function createReviewOps(ctx: OpsContext): ReviewEditOps {
           reviewPatch({ status: 'scanning', message: undefined });
           // 投影 + 审计记录并行读取（都为只读 Remote）。
           void Promise.all([
-            unwrap(target.scan(projectId)),
+            unwrap(target.scan(projectId, undefined)),
             unwrap(target.records(projectId)),
           ]).then(([projection, recordList]) => {
             release();

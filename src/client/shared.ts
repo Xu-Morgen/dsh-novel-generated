@@ -143,8 +143,10 @@ export interface StatisticsNamespace {
   stats(projectId: string): Promise<unknown>;
   overview(projectId: string): Promise<unknown>;
   chapterDetail(projectId: string, chapterId: string): Promise<unknown>;
-  sceneCards(projectId: string, filter?: { actId?: string; beatId?: string; status?: string; limit?: number }): Promise<unknown>;
-  tasks(projectId: string, filter?: { status?: string; limit?: number }): Promise<unknown>;
+  // I86：wire 契约为位置参数（descriptor 参数个数即真实客户端绑定器要求的实参个数，
+  // 缺省位显式传 undefined，对齐 host/remote/statistics.ts 的 jsonCodec 可选参数）。
+  sceneCards(projectId: string, actId?: string, beatId?: string, status?: string, limit?: number): Promise<unknown>;
+  tasks(projectId: string, status?: string, limit?: number): Promise<unknown>;
 }
 
 /** 方案 A 剧情时间线 Remote（design §8「相关角色对」）：只提交受控命令，Host 持有 timeline.yaml。 */

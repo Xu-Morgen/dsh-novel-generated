@@ -25,14 +25,19 @@ export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
         }, (cause: Error) => { release(); if (!active) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
       };
       const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
-        run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, (ns, pid) => ns.sceneCards(pid, {
-          ...(filters.actId !== '' ? { actId: filters.actId } : {}),
-          ...(filters.beatId !== '' ? { beatId: filters.beatId } : {}),
-          ...(filters.status !== '' ? { status: filters.status } : {}),
-        }), (result) => statisticsPatch({ sceneCards: result }));
+        // I86：wire 契约为位置参数 [projectId, actId, beatId, status, limit]（descriptor
+        // 参数个数即 binder 要求的实参个数）；未选筛选位显式传 undefined（jsonCodec
+        // 可选参数在真实客户端绑定器下放行并丢弃，Host 侧接受缺省位）。
+        run<SceneCardsResultShape>(`statistics:cards:${filters.actId}:${filters.beatId}:${filters.status}`, (ns, pid) => ns.sceneCards(
+          pid,
+          filters.actId === '' ? undefined : filters.actId,
+          filters.beatId === '' ? undefined : filters.beatId,
+          filters.status === '' ? undefined : filters.status,
+          undefined,
+        ), (result) => statisticsPatch({ sceneCards: result }));
       };
       const loadTasks = (status: string): void => {
-        run<TasksResultShape>(`statistics:tasks:${status}`, (ns, pid) => ns.tasks(pid, status === '' ? undefined : { status }), (result) => statisticsPatch({ tasks: result }));
+        run<TasksResultShape>(`statistics:tasks:${status}`, (ns, pid) => ns.tasks(pid, status === '' ? undefined : status, undefined), (result) => statisticsPatch({ tasks: result }));
       };
       const loadOverview = (): void => {
         run<StatisticsOverviewShape>('statistics:overview', (ns, pid) => ns.overview(pid), (result) => statisticsPatch({ overview: result }));

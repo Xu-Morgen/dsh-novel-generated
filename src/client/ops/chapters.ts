@@ -236,7 +236,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         if (!beginOp(`writing:propose:${intent}`)) return;
         const release = (): void => endOp(`writing:propose:${intent}`);
         candidatePatch({ ui: { kind: 'proposing', intent } });
-        void unwrap(target.propose(projectId, { intent })).then((result) => {
+        void unwrap(target.propose(projectId, { intent }, undefined)).then((result) => {
           release();
           if (!active) return;
           const candidate = (result as { candidate?: { id: string } }).candidate;
@@ -255,7 +255,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         if (!beginOp('writing:propose:rewrite')) return;
         const release = (): void => endOp('writing:propose:rewrite');
         candidatePatch({ ui: { kind: 'proposing', intent: 'rewrite' } });
-        void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt })).then((result) => {
+        void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt }, undefined)).then((result) => {
           release();
           if (!active) return;
           const candidate = (result as { candidate?: { id: string } }).candidate;
@@ -272,7 +272,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         if (!beginOp(`writing:adjudicate:${candidateId}:${decision}`)) return;
         const release = (): void => endOp(`writing:adjudicate:${candidateId}:${decision}`);
         candidatePatch({ ui: { kind: 'acting', review: ui.review, action: decision } });
-        void unwrap(target.adjudicate(candidateId, decision)).then((result) => {
+        void unwrap(target.adjudicate(candidateId, decision, undefined)).then((result) => {
           release();
           if (!active) return;
           const outcome = result as WritingAdjudicationOutcome;

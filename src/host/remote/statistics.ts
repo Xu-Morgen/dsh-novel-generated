@@ -1,6 +1,6 @@
 import type { InvocationDescriptor, InvocationParameterDescriptor, TypertCodec, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
-import { numberCodec, strictCodec, stringCodec } from './common.js';
+import { jsonCodec, strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
 // I77：运行态/任务态枚举从 core/queue/schema.ts 派生（I72 统计口径与 I65 队列
 // 同一状态源；纯 zod 模块可入 Client bundle 图 —— 架构审查 §6.3/§9#3）。
@@ -183,11 +183,16 @@ const statisticsInvocation = (method: string, parameters: readonly InvocationPar
 
 const projectParameter = param('projectId', stringCodec);
 const chapterIdParameter = param('chapterId', stringCodec);
-const actIdParameter = param('actId', stringCodec, true);
-const beatIdParameter = param('beatId', stringCodec, true);
-const cardStatusParameter = param('status', stringCodec, true);
-const taskStatusParameter = param('status', stringCodec, true);
-const limitParameter = param('limit', numberCodec, true);
+// I86：sceneCards/tasks 的可选筛选参数必须用 jsonCodec —— 真实 DSH 客户端绑定器
+// （dsh-api-gateway/lib/client.js）按位置逐个 strict parse 实参：jsonCodec(z.unknown)
+// 放行显式 `undefined`（丢弃后 Host 接受缺省位），string/number strict codec 会拒绝
+// undefined（`rejected "actId"`）。Host 适配闭包（index.ts）仍用 String()/Number()
+// 收敛为 domain filter，筛选语义不变。
+const actIdParameter = param('actId', jsonCodec, true);
+const beatIdParameter = param('beatId', jsonCodec, true);
+const cardStatusParameter = param('status', jsonCodec, true);
+const taskStatusParameter = param('status', jsonCodec, true);
+const limitParameter = param('limit', jsonCodec, true);
 
 export const statisticsRebuildInvocation = statisticsInvocation('rebuild', [projectParameter], strictCodec('novel-creation-tool#novelStatistics:rebuild', statisticsStatsWireSchema));
 export const statisticsDropInvocation = statisticsInvocation('drop', [projectParameter], strictCodec('novel-creation-tool#novelStatistics:drop', statisticsStatsWireSchema));

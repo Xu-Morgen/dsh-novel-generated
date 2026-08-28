@@ -1431,8 +1431,15 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
         statistics: {
           rebuild: async () => ({ ok: true, value: STATS }),
           overview: async () => ({ ok: true, value: OVERVIEW }),
-          sceneCards: async (_projectId, filter) => {
-            calls.push({ ...(filter ?? {}) });
+          // I86：fake 按真实 wire 位置参数（descriptor 顺序）接收，重新聚合为
+          // 筛选对象供既有断言使用（binder 语义由 src/remote-binder.test.ts 覆盖）。
+          sceneCards: async (_projectId, actId, beatId, status, limit) => {
+            calls.push({
+              ...(actId !== undefined ? { actId } : {}),
+              ...(beatId !== undefined ? { beatId } : {}),
+              ...(status !== undefined ? { status } : {}),
+              ...(limit !== undefined ? { limit } : {}),
+            });
             return { ok: true, value: { total: 1, cards: [CARD] } };
           },
           tasks: async () => ({ ok: true, value: { total: 2, tasks: [] } }),
@@ -1471,7 +1478,7 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
           rebuild: async () => ({ ok: true, value: STATS }),
           overview: async () => ({ ok: true, value: OVERVIEW }),
           sceneCards: async () => ({ ok: true, value: { total: 3, cards: [] } }),
-          tasks: async (_projectId, filter) => {
+          tasks: async (_projectId, _status, _limit) => {
             taskCalls += 1;
             return { ok: true, value: { total: 1, tasks: [TASK] } };
           },
