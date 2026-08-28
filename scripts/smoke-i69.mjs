@@ -44,7 +44,7 @@ const fail = (msg) => { throw new Error(`I69 smoke: ${msg}`); };
 
 // Part 2 — 源码：装配 + Client 无领域 fallback + 不复制 owner。
 {
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
   const client = read('src/client.ts');

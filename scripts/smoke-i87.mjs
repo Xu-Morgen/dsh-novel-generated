@@ -32,8 +32,9 @@ const countIn = (p, fragment) => codeLines(p).filter((line) => line.includes(fra
 // Part 0 — 静态负向扫描。
 {
   const agentTools = codeLines('src/agents/agent-tools.ts');
-  const index = codeLines('src/index.ts');
-  // 生产源码（src，排除 *.test.ts）中 builder 调用唯一（index.ts:342 组合根）。
+  // I89 后组合根拆为 index.ts + host/composition/ 三段（builder 调用落在 management.ts）。
+  const index = [...codeLines('src/index.ts'), ...codeLines('src/host/composition/base.ts'), ...codeLines('src/host/composition/management.ts'), ...codeLines('src/host/composition/orchestration.ts')];
+  // 生产源码（src，排除 *.test.ts）中 builder 调用唯一（组合根 management.ts）。
   const builderCalls = [];
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -48,11 +49,11 @@ const countIn = (p, fragment) => codeLines(p).filter((line) => line.includes(fra
   };
   walk('src');
   const production = builderCalls.filter((at) => !at.includes('host/writing-context.ts'));
-  if (production.length !== 1) fail(`createNextSceneContextBuilder 生产调用必须唯一（index.ts 组合根），实际 ${production.length} 处：${production.join(', ')}`);
-  if (!production[0].startsWith('src/index.ts:')) fail(`唯一 builder 调用必须在 src/index.ts，实际 ${production[0]}`);
+  if (production.length !== 1) fail(`createNextSceneContextBuilder 生产调用必须唯一（组合根），实际 ${production.length} 处：${production.join(', ')}`);
+  if (!production[0].startsWith('src/host/composition/management.ts:')) fail(`唯一 builder 调用必须在组合根 management.ts，实际 ${production[0]}`);
   if (agentTools.some((line) => line.includes('createNextSceneContextBuilder('))) fail('agent-tools.ts 仍自建第二套 context builder');
   if (!agentTools.some((line) => line.includes('readonly context: NextSceneContextProvider'))) fail('NovelAgentDeps 缺少注入的 context: NextSceneContextProvider');
-  if (!index.some((line) => line.includes('context: nextSceneContext'))) fail('index.ts agent wiring 未复用生产 nextSceneContext 实例');
+  if (!index.some((line) => line.includes('context: nextSceneContext'))) fail('组合根 agent wiring 未复用生产 nextSceneContext 实例');
 }
 
 // Part 1 — 运行时委派契约（lib 产物）。

@@ -49,7 +49,7 @@ const fail = (msg) => { throw new Error(`I73 smoke: ${msg}`); };
 // Part 2 — 源码：schema/fs 分离、装配、上下文过滤、onboarding 自建。
 {
   const context = read('src/host/writing-context.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const schema = read('src/core/timeline/schema.ts');
   if (!context.includes('anchorNodeId') || !context.includes('filterRelationshipsByTimeline')) {

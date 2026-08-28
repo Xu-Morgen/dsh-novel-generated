@@ -132,7 +132,7 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
 
 // Part 2 — 组合根补丁移除：index.ts 不再为 records/pending 整形 envelope。
 {
-  const index = codeLines('src/index.ts');
+  const index = [...codeLines('src/index.ts'), ...codeLines('src/host/composition/base.ts'), ...codeLines('src/host/composition/management.ts'), ...codeLines('src/host/composition/orchestration.ts')];
   if (index.some((l) => l.includes('({ records: ') || l.includes('({ projectId, proposals: '))) {
     fail('index.ts still reshapes records/pending into an envelope at the composition root');
   }

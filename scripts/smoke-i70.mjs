@@ -59,7 +59,7 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
 {
   const schema = read('src/core/schema/text.ts');
   const textSource = read('src/core/text/index.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const client = read('src/client.ts');
   const shared = read('src/client/shared.ts');

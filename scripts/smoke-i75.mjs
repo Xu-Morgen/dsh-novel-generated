@@ -29,6 +29,11 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
 });
 const countIn = (p, pattern) => codeLines(p).filter((line) => line.includes(pattern)).length;
+/** 在组合根合并源码文本中计数（I89 后组合根拆为 index + host/composition 三段）。 */
+const countInText = (text, pattern) => text.split('\n').filter((line) => {
+  const t = line.trim();
+  return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') && line.includes(pattern);
+}).length;
 
 const remoteDir = resolve(repoRoot, 'src/host/remote');
 const allRemoteFiles = readdirSync(remoteDir).filter((f) => f.endsWith('.ts') && f !== 'shared.ts' && f !== 'common.ts');
@@ -44,7 +49,9 @@ walkSrc(resolve(repoRoot, 'src'));
 
 // Part 1 — 接线层类型断言归零 + 组合根收敛 + 复制源唯一。
 {
-  const index = read('src/index.ts');
+  // I89：组合根拆为 index.ts + host/composition/ 三段，合并源码做组合根级断言。
+  const composition = ['src/index.ts', 'src/host/composition/base.ts', 'src/host/composition/management.ts', 'src/host/composition/orchestration.ts']
+    .map((p) => read(p)).join('\n');
   const shared = read('src/host/remote/shared.ts');
 
   // 1a) 生产代码 `as Parameters<...>` 归零（I75 消除 18 处；审查 §3.3）。
@@ -52,20 +59,20 @@ walkSrc(resolve(repoRoot, 'src'));
   if (asParameters.length !== 0) fail(`production code still has ${asParameters.length} as Parameters<...> assertion(s):\n${asParameters.join('\n')}`);
 
   // 1b) 接线层 `as never` 归零（I75 消除 6 处，含审查 §3.3 的 3 处零成本项）。
-  const asNever = ['src/index.ts', ...allRemoteFiles.map((f) => `src/host/remote/${f}`)]
+  const asNever = ['src/index.ts', 'src/host/composition/base.ts', 'src/host/composition/management.ts', 'src/host/composition/orchestration.ts', ...allRemoteFiles.map((f) => `src/host/remote/${f}`)]
     .flatMap((p) => codeLines(p).filter((line) => line.includes('as never')));
   if (asNever.length !== 0) fail(`wiring layer still has as never:\n${asNever.join('\n')}`);
 
   // 1c) 组合根重复闭包收敛：27 个 dispose 钩子 → onFiberDispose；6 次 settings 闭包 → resolveGenerationSettings。
-  if (countIn('src/index.ts', '(dispose) => ctx.effect(') !== 0) fail('index.ts still has duplicated (dispose) => ctx.effect(...) hooks');
-  if (countIn('src/index.ts', 'resolveA2GenerationConfig(await settingsIndex.load())') !== 0) fail('index.ts still duplicates resolveA2GenerationConfig(await settingsIndex.load())');
-  if (!index.includes('const onFiberDispose = (dispose: () => void): void => { ctx.effect(() => dispose); };')) fail('index.ts missing the unified onFiberDispose hook');
-  if (!index.includes('const resolveGenerationSettings = async') || !index.includes('resolveA2GenerationConfig(a2Config).settings;')) fail('index.ts missing the unified resolveGenerationSettings closure');
+  if (countInText(composition, '(dispose) => ctx.effect(') !== 0) fail('composition root still has duplicated (dispose) => ctx.effect(...) hooks');
+  if (countInText(composition, 'resolveA2GenerationConfig(await settingsIndex.load())') !== 0) fail('composition root still duplicates resolveA2GenerationConfig(await settingsIndex.load())');
+  if (!composition.includes('const onFiberDispose = (dispose: () => void): void => { ctx.effect(() => dispose); };')) fail('composition root missing the unified onFiberDispose hook');
+  if (!composition.includes('const resolveGenerationSettings = async') || !composition.includes('resolveA2GenerationConfig(a2Config).settings;')) fail('composition root missing the unified resolveGenerationSettings closure');
 
   // 1d) 16 个 bindRemote 适配块 → defineRemote（bindRemote 在组合根归零）。
-  const bindRemoteCount = countIn('src/index.ts', 'bindRemote(');
-  const defineRemoteCount = countIn('src/index.ts', 'defineRemote(');
-  if (bindRemoteCount !== 0) fail(`index.ts still has ${bindRemoteCount} bindRemote(...) call(s)`);
+  const bindRemoteCount = countInText(composition, 'bindRemote(');
+  const defineRemoteCount = countInText(composition, 'defineRemote(');
+  if (bindRemoteCount !== 0) fail(`composition root still has ${bindRemoteCount} bindRemote(...) call(s)`);
   if (defineRemoteCount !== 16) fail(`expected 16 defineRemote(...) wiring blocks, got ${defineRemoteCount}`);
 
   // 1e) `param()` 全量工厂只有 shared.ts 一份（19 份逐文件复制归零）。

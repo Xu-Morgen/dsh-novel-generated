@@ -72,7 +72,7 @@ const source = files.map((path) => [path, readFileSync(path, 'utf8')]);
   if (!analyzer.includes('onBackgroundError(error, current.onboardingSessionId)')) fail('background analyzer rejection is not reported');
   const queue = read('src/client/ops/queue.ts');
   if (!queue.includes('QUEUE_POLL_INTERVAL_MS = 2_000') || queue.includes('setTimeout(pollQueueStatus, 2000)')) fail('queue poll interval is not named');
-  const indexLines = read('src/index.ts').split('\n');
+  const indexLines = (read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts')).split('\n');
   for (const symbol of ['const consistencyDetectionService', 'const knowledgeLeakDetectionService', 'const relationshipStyleDetectionService']) {
     const line = indexLines.find((value) => value.includes(symbol));
     if (!line || !line.startsWith('  ') || line.startsWith('   ')) fail(`src/index.ts indentation sentinel failed: ${symbol}`);
@@ -81,7 +81,7 @@ const source = files.map((path) => [path, readFileSync(path, 'utf8')]);
 
 // Internal names clarify semantics while every public service/Remote name stays frozen.
 {
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   for (const name of ['fileImportService', 'portableArchiveService', 'projectPortabilityService', 'rangeEditService', 'controlledTextEditService']) {
     if (!index.includes(name)) fail(`semantic internal name missing: ${name}`);
   }

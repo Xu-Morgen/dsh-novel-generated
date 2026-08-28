@@ -54,7 +54,7 @@ const fail = (msg) => { throw new Error(`I64 smoke: ${msg}`); };
 // Part 2 — 源码：复用而非复制 + 不新增第二裁决器 + 装配。
 {
   const service = read('src/host/review-service.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
   const client = read('src/client.ts');

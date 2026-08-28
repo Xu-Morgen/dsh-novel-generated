@@ -49,7 +49,7 @@ const fail = (msg) => { throw new Error(`I67 smoke: ${msg}`); };
   const manager = read('src/host/rule-style-manager-service.ts');
   const rulesSchema = read('src/core/schema/rules.ts');
   const styleSchema = read('src/core/schema/style.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
   const client = read('src/client.ts');

@@ -55,7 +55,7 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 {
   const service = read('src/host/queue-service.ts');
   const task = read('src/core/queue/task.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const writing = read('src/host/writing-adjudication-service.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');

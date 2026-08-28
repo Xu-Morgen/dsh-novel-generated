@@ -61,7 +61,7 @@ const fail = (msg) => { throw new Error(`I71 smoke: ${msg}`); };
 
 // Part 2 — 源码：装配 + Client 无领域 fallback + 派生索引不进可移植档案。
 {
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const client = read('src/client.ts');
   const shared = read('src/client/shared.ts');

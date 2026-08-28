@@ -63,7 +63,7 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   const hostRemote = read('src/host/remote/text.ts');
   const editService = read('src/host/text-edit-service.ts');
   const workspace = read('src/host/workspace-service.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const client = read('src/client.ts');
   const chapters = read('src/client/layers/chapters.ts');
   // I82：C5 编辑 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。

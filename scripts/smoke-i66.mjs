@@ -53,7 +53,7 @@ const fail = (msg) => { throw new Error(`I66 smoke: ${msg}`); };
 {
   const service = read('src/host/knowledge-manager-service.ts');
   const actions = read('src/core/knowledge/actions.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const remoteTs = read('src/remote.ts');
   const nav = read('src/client/nav.ts');
   const client = read('src/client.ts');

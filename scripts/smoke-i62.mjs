@@ -43,7 +43,7 @@ const fail = (msg) => { throw new Error(`I62 smoke: ${msg}`); };
 {
   const service = read('src/host/candidate-service.ts');
   const contract = read('src/core/candidate/index.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   for (const reuse of ['assembleStoryContext', 'buildChapterWritingPrompt', 'buildContinuationPrompt', 'createGenerationService']) {
     if (!service.includes(reuse)) fail(`candidate-service must reuse ${reuse} instead of copying`);
   }

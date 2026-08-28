@@ -55,7 +55,7 @@ const fail = (msg) => { throw new Error(`I63 smoke: ${msg}`); };
   const saga = read('src/host/writing-adjudication/landing-saga.ts');
   const ledger = read('src/core/candidate/adjudication.ts');
   const agent = read('src/agents/agent-tools.ts');
-  const index = read('src/index.ts');
+  const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const writingContext = read('src/host/writing-context.ts');
   // 复用 I30/I25–I29/I17，不复制既有 prompt 文案与解析实现（I79 拆段后符号落在
   // 对应段模块；组合根只做编排）。
