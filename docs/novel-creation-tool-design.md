@@ -20,7 +20,7 @@
 | **v2.3（2026-08-27）** | 依据 `docs/novel-creation-tool-architecture-review.md`（v1.0）§9 新增 **Stage 15 架构债务消除（I75–I84）**：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零；记录 D21–D22。重构只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。§0.1 宿主基线不变。 |
 | **v2.4（2026-08-28）** | 同步 I1–I84 已完成事实与当前 DSH `0.1.1-rc.2` 运行时观测；新增 **Stage 16 / I85 DSH family 兼容升级**，由专门迭代把项目 pin、selected profile 与 lockfile 从 `0.1.0-rc.7` 切换到 `0.1.1-rc.2`，并补齐真实 base+web+plugin、Client ModuleLoader、Slot、Typert Remote、Tools 与 `ctx.llm` 兼容门；记录 D23。I85 完成前，运行时观测版本不得冒充可复现项目依赖基线。 |
 
-> **v2.4 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步为 v2.4 当前执行材料；I1–I84 已完成，当前唯一待执行迭代为 I85。README 仍描述已交付产品与安装方法，不作为 I85 完成证据。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。`docs/novel-creation-tool-architecture-review.md`（v1.0）是 Stage 15 重构立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线，也不构成新的设计决策。
+> **v2.4 supersession / 同步状态**：`novel-creation-tool-development-plan.md`（v2.5）、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 已同步当前执行材料；I1–I85 已完成（含 I85 DSH family `0.1.1-rc.2` 兼容升级），当前待执行排期为 Stage 17 修复迭代 I86–I102（review v2.0 中级以上问题立项，见 development-plan §18），Stage 18 新增功能候选 I103–I112 未排期。README 仍描述已交付产品与安装方法，不作为后续迭代完成证据。历史 v1.x 文本只保留 provenance，尤其不得恢复旧 React/Vite 独立应用计划。`docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）分别是 Stage 15 重构 / Stage 17 修复迭代立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线，也不构成新的设计决策。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1077,7 +1077,7 @@ project/
 
 ### 14.14 后续迭代立项（backlog，v2.5 立项输入）
 
-> 定位：v2.4 期间按「专业作者视角评审」产出、经作者逐项裁决的后续迭代立项输入（对应 `requirements.md` R18）。**未排期**：当前唯一待执行迭代是 I85（DSH family `0.1.1-rc.2` 兼容门）；R18 各行须在 I85 完成后经正常立项流程加入计划。本节不改变 §0.1 宿主基线、公开 Remote/wire 契约与既有 13 层模型。
+> 定位：v2.4 期间按「专业作者视角评审」产出、经作者逐项裁决的后续迭代立项输入（对应 `requirements.md` R18）。**未排期**：I85 已完成；R18 候选已延后至 Stage 17 修复迭代（I86–I102，review v2.0 立项）之后并顺延重编号为 I103–I112（development-plan §19），仍须经正常立项流程加入计划。本节不改变 §0.1 宿主基线、公开 Remote/wire 契约与既有 13 层模型。
 
 - **产品方向定调（作者裁决）**：导入大纲 → AI 按大纲推导细纲 → 自动生成首版正文 → 作者仅微调 → 发布。据此「继续写作首页」「富文本/专注编辑器」「笔记素材库」「DOCX 编译」明确不立项；交付以 Markdown 为准。
 - **R18-1 场景/章节管理**：完整 CRUD/排序/元数据编辑，复用既有 C5 Domain Service，GUI 补齐组织能力（新建/重命名/删除/排序章节与场景、摘要与 notes、场景↔细纲卡绑定、候选落点选择）。

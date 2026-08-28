@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v2.4
+> 规则版本：v2.5
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -12,8 +12,8 @@
 
 1. `docs/novel-creation-tool-design.md`（v2.4）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v2.4）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v2.4）—— 执行层，16 个阶段、85 个迭代（I1–I85）；**I1–I85 全部完成**，每一步从对应阶段/迭代卡片出发。
-4. `docs/novel-creation-tool-architecture-review.md`（v1.0）—— 架构审查记录，架构债务治理的立项输入；**review record，非设计权威**，不覆盖以上产品权威。
+3. `docs/novel-creation-tool-development-plan.md`（v2.5）—— 执行层，18 个阶段、112 个迭代（I1–I112）；**I1–I85 全部完成**；Stage 17 修复迭代（I86–I102，review v2.0 中级以上问题立项）已排期，Stage 18 新增功能候选（I103–I112，原 I86–I95 延后重编号）未排期；每一步从对应阶段/迭代卡片出发。
+4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → Stage 15；v2.0 → Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
 
@@ -36,8 +36,8 @@
 - 地基切片必配「消费者夹具」（至少一条按下游消费方式的测试）。
 - 样本禁改：禁止为让测试通过而修改样本/金标/阈值，违者该迭代判失败并回退。
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
-- 架构债务治理方向：重构只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16）。
-- I85 已完成（唯一待执行迭代已关闭）：唯一可复现项目 DSH family pin 已从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，manifest/profile/lockfile 同版本，并通过完整 base+web+plugin、Client/Remote/Tools/LLM 兼容门与生命周期验证。禁止混装或 rc.7 fallback。
+- 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代立项与纪律见计划 §18）。
+- I85 已完成：唯一可复现项目 DSH family pin 已从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，manifest/profile/lockfile 同版本，并通过完整 base+web+plugin、Client/Remote/Tools/LLM 兼容门与生命周期验证。禁止混装或 rc.7 fallback。I85 之后当前待执行排期为 **Stage 17 修复迭代 I86–I102**（review v2.0 中级以上问题立项，见计划 §18）；Stage 18 新增功能候选 **I103–I112**（原 I86–I95 延后重编号）未排期。
 
 ## 3. 完成定义（DoD）
 

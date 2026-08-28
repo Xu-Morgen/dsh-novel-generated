@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "docs/novel-creation-tool-development-plan.md I85 826-838"
+  ],
+  "impactStatement": "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/impact-statement-draft.json",
+  "compatPlan": "No domain schema, public Service/Remote/wire, prompt/sample/gold/threshold, or project data changes; no rc.7 fallback.",
+  "retirementPlan": "rc.7 executable pins retired (delete-first); rc.7 text kept only as historical provenance in docs",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-pin-and-negative-scans.json",
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-stage-key-regressions.json",
+    "docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-verify-i85.json"
+  ]
+}

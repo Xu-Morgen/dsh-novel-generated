@@ -1,11 +1,11 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v2.4
+> 版本：v2.5
 > 日期：2026-08-28
-> 状态：当前执行权威（**I1–I85 全部完成**；Stage 16 完成，唯一可复现项目 DSH family pin 已由 I85 切换为 `0.1.1-rc.2`）
+> 状态：当前执行权威（**I1–I85 全部完成**；Stage 16 完成，唯一可复现项目 DSH family pin 已由 I85 切换为 `0.1.1-rc.2`；Stage 17 修复迭代 I86–I102 已立项，Stage 18 新增功能候选 I103–I112 未排期）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v2.4（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.4（需求 ID、验收、迭代覆盖）
-> 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）
+> 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
 
@@ -17,6 +17,7 @@
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I85 已完成：插件核心、创作台、多作品启动、六层初始化、侧板化、正文写作闭环、能力可达性、剧情时间线、Stage 15 架构债务消除与 Stage 16 DSH family `0.1.1-rc.2` 兼容升级均已有独立提交与验证证据；不得再将 I1–I85 标为待执行。
 - 排期扩展为 **16 个阶段、85 个迭代（I1–I85）**。v2.4 新增 **Stage 16 / I85 DSH family `0.1.1-rc.2` 兼容升级**：把唯一可复现项目 DSH family pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`（manifest/profile/lockfile 同步），并以真实 base+web+plugin、Client ModuleLoader/Slot、Typert Remote、Tools 与 `ctx.llm` 兼容门验证；I85 完成前运行时观测与项目 pin 分离，完成后唯一项目 pin 即 `0.1.1-rc.2`。
+- v2.5（2026-08-28）：I85 完成后，按 review v2.0（`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`）§9.2 优先级表把其中**中级以上（高 / 中-高 / 中）**审查问题立项为 **Stage 17 修复迭代 I86–I102**，紧接 I85 之后按 P0 紧急 → P1 高 → P2 中-高/中 → P3 中-高/中 顺序排期；原 I85 后的 R18 新增功能候选迭代 **I86–I95 延后至全部修复迭代之后，顺延重编号为 I103–I112（Stage 18）**，仍为未排期候选占位；review v2.0 其余中-低/低项继续留 backlog（§21）。除 I100（公开 Remote 命名统一，独立兼容迁移迭代）外，修复迭代不改变领域契约与公开 Remote/wire 形状。
 
 ### 0.2 Goal
 
@@ -78,7 +79,7 @@ TDD Route:
 7. 安装/卸载/装载 smoke 使用一次性 `DSH_HOME` 与测试 profile，不污染现有 profile。
 8. 提交自检：`git status` 只含本迭代文件；`git diff` 无 console.log/临时文件/死代码；无真实 key。
 9. 阶段收尾跑全量 `pnpm test` + 本阶段全部 held-out 回归 + `pnpm run verify:stage-N`。
-10. 重构迭代（I75–I84）叠加纪律：以「重构前后领域行为等价」为完成条件（既有全量测试 + 相关 stage 回归 + LLM 样本阈值不变 + 本迭代专属负向扫描断言）；只消除复制与接线债务，禁止夹带新功能或改变公开契约；结构性拆分一次一个切片（见 §16）。
+10. 重构/修复迭代（I75–I84、I86–I102）叠加纪律：以「重构/修复前后领域行为等价 + 缺陷消除」为完成条件（既有全量测试 + 相关 stage 回归 + LLM 样本阈值不变 + 本迭代专属负向扫描断言）；只消除复制与接线债务，禁止夹带新功能或改变公开契约（I100 公开命名统一属独立迁移迭代，必须带兼容期与退役文档）；结构性拆分一次一个切片（见 §16；Stage 17 立项输入与修复专属纪律见 §18）。
 11. 宿主兼容升级（I85）叠加纪律：版本观测与项目 pin 分离；manifest/profile/lockfile 必须同迭代同版本切换；完整 base+web+plugin 与 Client/Remote/Tools/LLM 门未通过时不得声明新基线，不保留 rc.7 fallback，不触碰作品数据。
 
 ---
@@ -854,101 +855,256 @@ TDD Route:
 
 ---
 
-## 18. 阶段 17：后续迭代立项输入（R18，未排期）
+## 18. 阶段 17：架构债务修复（review v2 立项）
 
-**阶段门**：无。本阶段是 backlog 立项输入，不是执行阶段；I85 完成后按正常立项流程逐迭代启动（AGENTS.md §2「超范围想法记 backlog」）。
+**阶段门**：`pnpm run verify:stage-17`（I86–I102 全绿）。
 
-> 定位：v2.4 期间按「专业作者视角评审」产出、经作者逐项裁决的后续迭代计划（需求权威 `requirements.md` R18，设计要点 `design.md` §14.14）。以下 **I86–I95 为候选占位迭代号，全部未排期**，未纳入需求文档 §0.4 当前迭代身份；立项时由需求文档更新迭代身份、分配正式 verify 命令与 DoD 卡。任何迭代都不改变 §0.1 宿主基线、公开 Remote/wire 契约形状与既有 13 层模型。
+> 立项输入：`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0，2026-08-28）§9.2 优先级表。审查记录非设计权威，本阶段是其立项落地的执行卡片。覆盖范围：review v2.0 中**中级以上**（高 / 中-高 / 中）问题，按 **P0 紧急 → P1 高 → P2 中-高/中 → P3 中-高/中** 顺序排期，紧接 I85 之后；review v2.0 §8 其余中-低/低项（validator 骨架、仓储 primitive、import 格式 descriptor 等）继续留 backlog（§21）。除 **I100**（公开 Remote 命名统一，独立兼容迁移迭代）外，所有迭代**不改变领域契约与公开 Remote/wire 形状**，不夹带新功能。
+
+### 本阶段执行纪律（修复专属，叠加 §0.7 与 §16 重构专属纪律）
+
+1. 每个修复迭代以「修复后领域行为等价 / 缺陷消除」为完成条件：`pnpm test` 全量 + 相关 stage 回归 + LLM 样本阈值（如有）不变，外加本迭代专属**负向扫描断言**（见各卡片）。
+2. 审查证据行号（如 `client/ops/queue.ts:17-34`）为审查当日（2026-08-28）实测，随代码演进可能漂移；以文件路径与职责为准。
+3. 一迭代一任务；结构性拆分一次一个切片（I89/I90/I95）；禁止夹带新功能或领域语义调整；超范围想法记 backlog。
+4. 修改既有目录语义前先确认对应卡片列出的 canonical owner、兼容/退役边界；跨模块共享类型一律走 `contracts/` 契约锁（I78 启用后强制）。
+
+### I86：修复 5 个 Remote 死方法并补齐真实 binder 端到端契约测试（P0 紧急）
+
+- **目标**：修复 `novelWriting.propose/adjudicate`、`novelReview.scan`、`novelStatistics.sceneCards/tasks` 在真实 DSH 客户端绑定器处 arity/位置实参漂移导致的必现拒绝（review §3.1：实参个数精确等于参数个数，缺参即抛错；`acceptsUndefined` 只放行显式 `undefined`，不放行缺参）。
+- **明确不做**：不改 descriptor 公开形状（方法名/参数顺序/参数个数为公开 wire 契约）；不改领域服务语义；不改 fake remote UI 测试契约。
+- **交付物**：5 处 Client 调用补齐实参（`propose(projectId, input, settings)`、`adjudicate(candidateId, decision, settings)`、`scan(projectId, settings)`、`sceneCards(pid, actId, beatId, status, limit)`、`tasks(pid, status, limit)`，缺省位显式传 `undefined`，对齐 `client/onboarding.ts:387/423`、`ops/progress.ts:44`、`ops/search.ts:23-24` 先例）；新增走真实 DSH 客户端绑定器语义的端到端契约测试（覆盖 5 个修复方法与既有正常对照），消除「接线后方法在真实绑定器下可调用」盲区。
+- **验收**：真实绑定器下 5 个方法往返成功且负向（缺参/错参）仍拒绝；新增契约测试在 CI 全绿；既有 fake remote UI 测试不变仍绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i86`。
+
+### I87：Agent 上下文单一 owner（P1 高）
+
+- **目标**：消除 `src/agents/agent-tools.ts:98-102` 自建 context builder（`NovelAgentDeps:49-70` 无 timeline）与生产候选路径 `NextSceneContextProvider`（`src/index.ts:342-355` + `writing-context.ts:124-135`）双 owner 导致的 `novel_context` 与 `novel_continue` 语义分叉（可能暴露「未来」关系）（review §3.2）。
+- **明确不做**：不改 prompt 语义与注入内容；不改时间线过滤规则；不改 Agent 工具名。
+- **交付物**：Agent wiring（`src/index.ts:589-606`）复用同一 `NextSceneContextProvider` 实例；删除第二套 builder；一致性测试（`novel_context` 展示与 `novel_continue` prompt 基于同一上下文）。
+- **验收**：grep 断言 context builder 生产定义唯一；Agent 上下文与生产候选路径同一 provider 实例；一致性测试绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i87`。
+
+### I88：队列轮询 timer 归 Fiber（P1 高）
+
+- **目标**：`src/client/ops/queue.ts:17-34` 的 `queuePollTimer` 从每次渲染重建的 ops 闭包（`client.ts:662` `makeOps` → `createWorkbenchOps`）移到 apply 级（Fiber）持有并随 Fiber dispose 完整回收；`OpsContext.active` 布尔快照（`ops/context.ts:21`）改为 `isActive()` 函数，消除卸载后旧闭包仍自视 active 与单槽 timer 被覆盖、堆积并行轮询链的问题（review §3.3，违反设计 §0.1.1 Fiber 行）。
+- **明确不做**：不改轮询间隔与队列业务语义；不改 Host `queue-service`；不改队列 UI 行为。
+- **交付物**：apply 级 poll controller（Fiber 持有 + disposer）；ops 只发命令；`isActive()` 活跃判定。
+- **验收**：Fiber 卸载后轮询链归零（负向断言）；多轮 refresh/start 不堆积并行轮询（负向断言）；既有队列 UI 测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i88`。
+
+### I89：index.ts 组合根分段（P1 高）
+
+- **目标**：把 `src/index.ts`（65 import `:1-66`、单 apply `:145-619`、52 处 `ctx.provide` `:148-607`）按「基础服务 / 管理面 / 编排面」三段组装函数拆分；跨域副作用（onboarding 成功后触发 timeline 副流程并 `.catch(() => undefined)` 静默吞错 `:299-309`、统计 wire 形状转换 `:560-576`）外移或改为显式注册的 hook（review §3.4）。
+- **明确不做**：不改任何 Service/Remote 契约与装配行为；不做新功能；不拆 client 侧（I90）。
+- **交付物**：分段组装函数；副作用外移模块或显式 hook；行数护栏负向断言。
+- **验收**：装配行为等价（既有测试全绿）；grep 断言单 apply 行数护栏成立、`.catch(() => undefined)` 静默吞错归零（analyzer/onboarding 副流程有显式 logger 或注册 hook）；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i89`。
+
+### I90：client.ts 拆 controllers/presenter（P1 高）
+
+- **目标**：把 `src/client.ts`（1002 行，factory `:372-1002`、Overlay `:703-900` 约 200 行 `ui` 方法表、`workbenchView` 21 形参 `:160-345`；Remote 资源清单五处平行维护 `:383-398/:401-416/:912-959/:965-980/:982-997`）拆出 workspace shell、project/onboarding/settings/upload controllers、overlay presenter；mount 清单改声明式 registry + service bag + disposer Set（review §3.5）。
+- **明确不做**：不改 UI 行为与 DOM 测试契约；不新增面板；不动 `client/ops`、`client/store`（I82/I83 已拆）；不动 `client/layers/chapters.ts` 等大文件（I95）。
+- **交付物**：controllers/presenter 模块；声明式 mount registry + service bag + disposer Set；workbenchView 长参数列表收敛。
+- **验收**：迁移后 UI 测试等价全绿（锚点/交互断言不变）；grep 断言 Remote 资源清单单份维护、`$mount` 块仍归零、行数护栏成立；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i90`。
+
+### I91：descriptor↔adapter↔client namespace 三方类型耦合（P1 高）
+
+- **目标**：消除 `RemoteMethodSpec.call: (...args: any[])`、`adapter as unknown as TService`（`host/remote/shared.ts:56-64,71-80`）、Client 侧手写 `Promise<unknown>` 接口 + 消费处 `as unknown as X` 强转，让 descriptor↔Host adapter↔Client namespace 三方类型耦合，方法签名变更在接线层即报编译错（review §3.1 根因 / §9.2 P1，穿透 I75/I77 的遗留）。
+- **明确不做**：不改公开 Remote 方法名/参数形状与领域服务实现；不做 codegen（沿用 I77/I78 派生 schema 路线）。
+- **交付物**：接线层类型化（descriptor 参数/返回类型派生 adapter 与 client namespace 类型）；消除接线层 `any[]`/`as unknown as`；签名变更负向夹具。
+- **验收**：grep 断言接线层 `as unknown as`/`...args: any[]` 归零；给一个 Remote 方法增删参数，接线层/Client 消费处编译错（负向夹具）；`pnpm test` 全量绿 + Stage 11–14 回归绿。
+- **验证**：`pnpm run verify:i91`。
+
+### I92：双导航真相一致性校验（P2 中-高）
+
+- **目标**：`src/write/continuation.ts:10-30` 同时消费已含 outline/navigation 的 StoryContextAssembly（`core/pipeline/index.ts:54-59,69-79` 已把 navigation 渲染进 assembly）与独立 OutlineNavigation，补一致性校验，消除语义分叉风险（review §8#3）。
+- **明确不做**：不改 assembly 组装与渲染语义；不改 prompt 输出与样本；不改导航生成规则。
+- **交付物**：一致性校验（assembly 内 navigation 与独立 OutlineNavigation 不一致即 fail loudly，拒绝使用分叉视图）；回归/负向测试。
+- **验收**：不一致输入被拒（负向断言）；一致输入行为不变；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i92`。
+
+### I93：LLM 批量 apply 事务化（UoW）（P2 中-高）
+
+- **目标**：`llm/parse/canon.ts:149-164` 逐条 append、`worldview.ts:120-137` 逐条 rewrite、`split.ts:129-153` 混合 save/create 改为工作单元（UoW）语义：后项失败不部分落库；split 重试不因 outline 已存在而失败（review §8#6）。
+- **明确不做**：不改解析 schema、输出形状、prompt、样本/gold/阈值；不改 ConfirmationGate 语义。
+- **交付物**：UoW 封装（全成功才提交，失败可回滚/可重试）；split 幂等重试。
+- **验收**：中途失败零落库（负向断言）；split 重试成功；既有 parser 样本回归（含 held-out）阈值不变；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i93`。
+
+### I94：TextRepository 拆分与镜像 outbox 语义（P2 中）
+
+- **目标**：拆分 `src/core/text/index.ts` 四职（codec/迁移 `61-105` / 仓储 `108-180` / 编辑分支策略 `183-295` / 迁移写入队列 `309-356`）；修复 `:335-349` 先提交 JSON 真相再写 Markdown 镜像、镜像失败时「主写已成功但调用报错」的谎报问题（review §8#7）。
+- **明确不做**：不改 C5 存储格式与语义；不改公开 Remote/wire 形状；不改分支模型。
+- **交付物**：按职责拆分模块（保持导出兼容 index）；镜像写入 outbox/可补偿语义（主写成功即成功，镜像失败记录待重试并显式暴露，不谎报失败）。
+- **验收**：镜像失败时主写成功且调用不谎报失败、镜像待重试（负向断言）；既有 C5/编辑测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i94`。
+
+### I95：大文件拆分（chapters / onboarding / test-harness / 巨型测试文件）（P2 中）
+
+- **目标**：拆分 `src/client/layers/chapters.ts`（590 行，章节树+场景编辑+reparse+候选裁决+分支五职混装，`ChaptersEditOps` 23 方法 `:164-196`，拆 chapters/scene-editor/candidate/branch 四片）、`src/client/ops/chapters.ts`（348 行，分支 `21-91`/正文 `92-209`/候选 `210-293` 三段，随 layers 拆）、`src/client/onboarding.ts`（431 行四职，拆 types/panels）、`src/client/test-harness.ts`（426 行，拆 fake runtime/remote builders/DOM helpers/onboarding fixtures）；巨型测试文件（`client-panels.test.ts` 1555、`client-shell.test.ts` 736、`client-onboarding.test.ts` 666）按面板拆文件（review §4）。`client.ts`/`index.ts` 已由 I89/I90 覆盖；`queue-service.ts` 内聚不拆（review §4 同判）；`core/text/index.ts` 由 I94 按职责拆。
+- **明确不做**：不改 UI 行为、DOM 契约与测试锚点；不新增面板；不改 Remote 调用。
+- **交付物**：拆分后模块 + 兼容导出；测试文件拆分；行数护栏。
+- **验收**：迁移后 UI 测试等价全绿（锚点/交互断言不变）；grep 断言目标文件行数护栏与复制源归零；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i95`。
+
+### I96：五层写回阶段合同类型化（P2 中）
+
+- **目标**：消除 `LifecycleWriters<unknown>`（`five-layer-writeback.ts:55-60`）+ 类型断言（`:64-109`）+ `executeLifecycle<unknown>`（`landing-saga.ts:163-175`），恢复 parser/writer 形状漂移的编译期保护（review §8#1）。
+- **明确不做**：不改五层写回顺序（C2→C1→C3→C4→B2）与语义；不改裁决/Gate 流程；不改公开契约。
+- **交付物**：泛型化 `LifecycleWriters`/`executeLifecycle`（按层参数化类型）；消除 unknown 断言；负向夹具。
+- **验收**：grep 断言 `LifecycleWriters<unknown>`/`executeLifecycle<unknown>` 归零；parser/writer 形状漂移负向夹具编译失败；既有裁决测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i96`。
+
+### I97：Remote editor 请求合同精确化（P2 中）
+
+- **目标**：`remote/editor.ts:35-38`、`common.ts:8` 的通用 `z.unknown()` json codec 改为表达真实请求合同（read/write 请求/响应 schema），让 strict wire 边界表达真实请求（review §8#2；领域服务侧复验保留，属防御纵深）。
+- **明确不做**：不改领域服务校验语义；不改 wire 行为（请求仍经领域服务校验）。
+- **交付物**：editor 请求/响应精确 schema；strict codec wire smoke。
+- **验收**：wire smoke 断言请求/响应与精确 schema 完全一致；非法请求在 wire 边界拒绝（负向断言）；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i97`。
+
+### I98：extensions store schema 校验落地（P2 中）
+
+- **目标**：`extensions/store.ts:9-11` 声称写前/读后 schema 校验、实际仅校验 layerId 后直接 `writeYaml/readYaml<unknown>`（`:25-35`），补真实写前/读后校验与 schema resolver（review §8#4）。
+- **明确不做**：不改 extension 协议与存储格式；不新增 extension kind；不改 registry 生命周期（I99）。
+- **交付物**：store 层 schema resolver（按 kind 解析校验 schema）+ 写前/读后校验。
+- **验收**：非法 extension 内容写前/读后被拒（负向断言）；合法内容行为不变；既有 extension 测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i98`。
+
+### I99：extensions registry 不可变引用（P2 中）
+
+- **目标**：`extensions/registry.ts:124-140` 保存原 extension、`:150-163` 返回同一可变引用——注册后突变可绕过 id/kind/layerId 不变量，改为注册时快照/冻结，返回不可变投影（review §8#5）。
+- **明确不做**：不改 extension 注册/卸载生命周期语义；不改协议。
+- **交付物**：注册快照/冻结；负向测试（注册后突变不生效/不可见）。
+- **验收**：注册后突变被拒或不可见（负向断言）；既有 extension 测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i99`。
+
+### I100：公开 Remote 服务命名统一（P2 中，独立迁移）
+
+- **目标**：`novelImport`/`novelImportExport`/`novelExport` 三服务并存统一为单一公开服务（review §8#17；I84 明确后置的独立迁移迭代）。
+- **明确不做**：不改导入导出语义与文件格式；不做静默破坏——公开契约变更必须带兼容期（旧服务名保留 deprecated 转发并文档化退役路径）与迁移测试。
+- **交付物**：单一服务名 + 兼容转发层 + 命名迁移/退役文档 + 迁移测试。
+- **验收**：三服务生产引用归零（兼容转发层除外）；公开契约迁移文档化；旧名 deprecated 转发行为等价；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i100`。
+
+### I101：单 acting 互锁拆分 / OpsContext 窄化 / workspace-service 收敛（P3 中-高）
+
+- **目标**：`client/layers/statistics.ts:115-129,166-287`（概览/详情/筛选/任务/重建删除共用一个 acting，**高**）与 `knowledge.ts:86-113,163-275`、`import-export.ts:35-67,107-209`（**中**）的单 acting 互锁独立子工作流拆为子流程判别联合或独立 busy 状态（不新建全局 LayerContext）；`OpsContext`（`ops/context.ts:17-36`，完整 state/actions + 12 Remote，传入 16 个 ops 工厂）拆 OpsRuntime + 各域窄 port；`workspace-service` mega-facade（`host/workspace-service.ts:26-64` 35 方法、`:67` 11 位置依赖）收敛（review §5 / §9.2 P3）。
+- **明确不做**：不改 Remote 调用与面板行为；不新建全局 LayerContext 掩盖依赖；不改领域真相 owner。
+- **交付物**：子工作流独立 busy/判别联合；OpsRuntime 窄化；workspace-service 收敛。
+- **验收**：并行子工作流互不阻塞（断言）；ops 工厂窄 port 断言；既有 UI/服务测试全绿；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i101`。
+
+### I102：onboarding schema 抽 BindingSchema / extension kind 单一 descriptor 表 / prompt 示例类型化（P3 中-高）
+
+- **目标**：`core/schema/onboarding.ts` projectId/session/sourceHash 重列 6 次（`:115-119/:136-145/:149-155/:195-201/:231-253/:257-266`）、六层 enum 重列 4 次（`:199/:219/:235/:260-263`）复用 `core/schema/base.ts:4` 的 `entityIdSchema`，抽 BindingSchema/OnboardingLayerSchema 并拆 analysis/adjudication 合同；`extensions/registry.ts` 新增 kind 需同步 enum（`12-20`）/union（`26-84`）/seams（`86-93`）/maps（`98-110`）/projection（`150-163`）/switch（`198-219`）六处改单一 descriptor 表派生全部，未用的 `categoryByKind`（`98-101`）删除；prompt 示例字面量类型化（`core/onboarding/example.ts`、`llm/parse/*` 的 zod schema vs prompt JSON 示例双写，review §6）。
+- **明确不做**：不改 onboarding 候选 schema 字段语义与 apply 顺序；不改 extension 协议；不改 prompt 语义与样本。
+- **交付物**：BindingSchema/OnboardingLayerSchema；extension 单一 descriptor 表；prompt 示例类型化（双写消除）。
+- **验收**：grep 断言 projectId/session/sourceHash 与六层 enum 重列归零（复用单一 schema）；extension kind 新增为单点变更（演示性新增+回退）；`pnpm test` 全量绿。
+- **验证**：`pnpm run verify:i102`。
+
+---
+
+## 19. 阶段 18：后续迭代立项输入（R18，未排期，延后于 Stage 17 修复迭代）
+
+**阶段门**：无。本阶段是 backlog 立项输入，不是执行阶段；Stage 17（I86–I102）修复迭代完成后按正常立项流程逐迭代启动（AGENTS.md §2「超范围想法记 backlog」）。
+
+> 定位：v2.4 期间按「专业作者视角评审」产出、经作者逐项裁决的后续迭代计划（需求权威 `requirements.md` R18，设计要点 `design.md` §14.14）。以下 **I103–I112 为候选占位迭代号（v2.5 由原 I86–I95 顺延重编号），全部未排期**，未纳入需求文档 §0.4 当前迭代身份；立项时由需求文档更新迭代身份、分配正式 verify 命令与 DoD 卡。任何迭代都不改变 §0.1 宿主基线、公开 Remote/wire 契约形状与既有 13 层模型。
+>
+> v2.5 延后说明：本阶段原编号 I86–I95 位于 I85 之后；v2.5 依据 review v2.0 立项 Stage 17 修复迭代（I86–I102），本阶段整体**延后至所有紧急-高修复迭代之后**，顺延重编号为 **I103–I112**。
 >
 > 产品方向定调（作者裁决）：**导入大纲 → AI 按大纲推导细纲 → 自动生成首版正文 → 作者仅微调 → 发布**。据此「继续写作首页」「富文本/专注编辑器」「笔记素材库」「DOCX 编译」明确不立项（requirements N-10–N-13）；正文编辑保持轻量，交付以 Markdown 为准。
 
-### I86：场景/章节管理（R18-1，候选）
+### I103：场景/章节管理（R18-1，候选）
 
 - **目标**：GUI 补齐章节与场景的完整组织能力：新建/重命名/删除/排序章节与场景、章节标题/POV/状态、场景摘要与 notes 编辑、场景↔细纲场景卡绑定、生成候选落点选择。
 - **明确不做**：不引入富文本编辑器；不改 C5 存储 Schema 与既有公开 Remote/wire 形状；不改变写作候选合同。
 - **交付物**：章节/场景 CRUD 与排序 Remote 接线（复用 `createChapter`/`appendScene` 等既有 Domain Service）；Client 章节树/场景列表增强（编辑、排序、落点选择）；空作品引导态文案更新。
 - **验收**：CRUD/排序 round-trip；场景↔细纲卡绑定校验（悬空引用拒绝）；候选落点选择生效；`pnpm test` 全绿；公开契约形状不变。
-- **验证**：立项时分配（候选 `verify:i86`）。
+- **验证**：立项时分配（候选 `verify:i103`）。
 
-### I87：生成变更逐层预览（R18-2，候选）
+### I104：生成变更逐层预览（R18-2，候选）
 
 - **目标**：接受生成候选或重解析前，展示 C1/C2/C3/C4/B2 将发生的逐层结构化变更（旧值→新值），接受后自动回扫确认。
 - **明确不做**：不改变既有候选/裁决合同形状；不隐式写层。
 - **交付物**：Host 层变更预览投影（每层旧值→新值，有界 JSON）；Client 预览面板（候选审阅内）；接受后回扫确认。
 - **验收**：预览与实际写回一致；未确认零写；预览投影无完整 live object 泄漏；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i87`）。
+- **验证**：立项时分配（候选 `verify:i104`）。
 
-### I88：审校→定位→修复闭环（R18-3，候选）
+### I105：审校→定位→修复闭环（R18-3，候选）
 
 - **目标**：审校问题卡一键定位到章节/场景/文本范围，从问题卡直接发起修复候选（rewrite 语义），接受后自动回扫并标记 resolved。
 - **明确不做**：不改检测器阈值/样本；不自动接受；硬冲突仍阻止接受。
 - **交付物**：审校问题→正文定位跳转（衔接 R18-8 链接模型）；问题卡内「发起修复候选」；修复接受后自动回扫与 resolved 标记。
 - **验收**：问题定位准确；修复候选复用既有 candidate 合同与 Gate；接受后回扫状态正确；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i88`）。
+- **验证**：立项时分配（候选 `verify:i105`）。
 
-### I89：单章三种可选润色（R18-4，候选）
+### I106：单章三种可选润色（R18-4，候选）
 
 - **目标**：正文区提供三种可选润色操作（建议：语言润色 / 压缩精简 / 扩写细节，启动时与作者最终确认），只作用于当前章节，产出候选先审阅后落盘。
 - **明确不做**：不做全书批量润色；不改 candidate 合同；硬约束校验仍生效。
 - **交付物**：三种润色 intent 的候选入口；复用既有校验→裁决→写回。
 - **验收**：三种润色均产候选且零写；接受后逐字落盘；拒绝零写；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i89`）。
+- **验证**：立项时分配（候选 `verify:i106`）。
 
-### I90：自动引用联动（R18-5，候选）
+### I107：自动引用联动（R18-5，候选）
 
 - **目标**：角色/关系/知情引用由系统自动维护，作者不手填 ID；角色与关系单调线性变化、知情事实单调新增；自动更新在审查页可见，作者可标记错误更新并发起对话让 LLM 修正内部库。
 - **明确不做**：不改变 C1.knownTo / C3 知情边界语义；不提供作者手动编辑 ID 列表的入口；不改 13 层 Schema。
 - **交付物**：自动引用维护器（引用随角色/关系/知情更新自动同步）；「自动更新审查页」（按层列出自动更新、可标记错误）；LLM 修正回路（对话驱动的内部库修正，写回仍走 ConfirmationGate）；移除时间线/大纲/关系面板的 `listField` ID 输入。
 - **验收**：单调性不变式（角色/关系线性、知情新增）；手填 ID 入口移除扫描；审查页错误标记与 LLM 修正 E2E；修正写回经 Gate；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i90`）。
+- **验证**：立项时分配（候选 `verify:i107`）。
 
-### I91：长稿导入→大纲循环工作流（R18-6，候选）
+### I108：长稿导入→大纲循环工作流（R18-6，候选）
 
 - **目标**：已有长稿先拆为大纲；循环 = AI 按大纲推导细纲 → 生成首版正文 → 作者微调保存 → 下一章基于细纲 + 作者修订后的正文继续。
 - **明确不做**：不静默合并结构层；不做 ST 迁移（N-1）；导入拆大纲候选仍走 ConfirmationGate。
 - **交付物**：长稿→大纲拆分候选入口（复用 I38 拆分 agent 思路）；循环工作流的写作上下文保证（下一章注入细纲 + 已修订正文）；工作流引导文案。
 - **验收**：长稿拆分候选经 Gate 落地；下一章生成消费「细纲 + 作者修订后正文」；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i91`）。
+- **验证**：立项时分配（候选 `verify:i108`）。
 
-### I92：术语替换（R18-7，候选）
+### I109：术语替换（R18-7，候选）
 
 - **目标**：把创作台所有面向作者的 UI 文案中的工程术语替换为作者可理解语言，不改变任何功能、契约与数据。
 - **明确不做**：不改 Host/Client/Remote 契约、wire 形状、Schema 与存储；不改 `novel_*` 工具名与参数（属外部合同）；不建 i18n/多语言框架；不改导航分组结构（R12-5）。
 - **交付物**：全文扫描 `src/client/` 作者可见文案并维护替换对照表；文案替换；技术徽标降级到高级视图；错误/空态文案给出可执行下一步。
 - **替换对照表（初稿，立项时以全文扫描为准）**：ConfirmationGate→确认后才会同步（设定确认）；C1–C6 徽标→仅高级视图；Remote 未挂载→服务暂时不可用，请重试；entryId/C1 id→名称选择器/自动维护（衔接 R18-5）；派生索引/统计→搜索/统计会自动更新；reparse/parser/fan-out→同步到人物状态与故事事实；proposal/candidate/adjudicate→修改建议/采纳/放弃；sourceHash/baseHash 错配→内容已变化，请刷新后重试。
 - **验收**：`data-novel-*` 锚点与 DOM 契约不变；对照表覆盖 100%（扫描确认清单内术语不再出现在作者可见文案）；五个面板（正文编辑、候选审阅、审校中心、知情、时间线）人工走查无术语残留；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i92`）。
+- **验证**：立项时分配（候选 `verify:i109`）。
 
-### I93：上下文跳转链接（R18-8，候选）
+### I110：上下文跳转链接（R18-8，候选）
 
 - **目标**：角色/关系/知情/审校问题/时间线节点/搜索命中/场景卡之间稳定双向跳转，返回保留上下文。
 - **作者裁决硬约束**：① 链接信息不落盘进 Markdown 正文文件；② 作者编辑/优化正文后链接不被破坏或污染正文文本；③ 回传正文后重新分析再链接（假设 Markdown 输出带链接信息且作者不改链接）；④ 最终 txt 导出无链接信息可直接发布。
 - **明确不做**：不改 C5 存储 Schema（`scene.content` 仍是纯正文；链接是派生视图/外部索引或阅读态 UI）；不引入富文本/HTML 存储；不做语义向量跳转（N-2）。
 - **交付物**：统一实体链接模型（视图 + id + 可选文本锚点）；来源侧跳转入口（审校/搜索/时间线/大纲/统计）；目标侧打开与高亮；返回恢复上下文；回传重链分析；txt 导出无链接回归断言。
 - **验收**：五类跳转 E2E（审校→正文、搜索→正文/层、时间线→知情、大纲→角色、统计→正文）；编辑前后导出 Markdown 正文字节不变；回传重链成功且原文逐字保留；txt 无链接残留；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i93`）。
+- **验证**：立项时分配（候选 `verify:i110`）。
 
-### I94：操作模式分层（R18-9，候选）
+### I111：操作模式分层（R18-9，候选）
 
 - **目标**：正文区按「写作 / AI 候选 / 版本比较 / 场景资料」四个互斥模式页签展示，同一时间只展开一个，解决候选/版本/追踪/校验垂直堆叠过长。
 - **明确不做**：不改候选/裁决/版本/追踪的 Host 合同与行为；不新增视图或导航项；不做富文本编辑（N-12）。
 - **交付物**：四个互斥模式页签（写作 = 编辑器 + 保存/重解析 + 场景元数据；AI 候选 = 现有 candidatePanel 移入；版本比较 = 现有 branchPanel 移入；场景资料 = summary/细纲卡/beats/canonEvents/notes 只读视图）；候选/硬冲突提醒徽标；键盘切换（保持 I59 纪律）。
 - **验收**：四模式互斥（同一时间只显示一个）；候选就绪徽标出现、裁决后清除；既有 `data-novel-candidate-*`/`data-novel-branch-*`/`data-novel-scene-*` 锚点保留（仅移动容器），client 测试迁移等价全绿；就绪场景单屏可完成写作/裁决/对比任一动作；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i94`）。
+- **验证**：立项时分配（候选 `verify:i111`）。
 
-### I95：场景版本聚合视图（R18-10，方案 B，候选）
+### I112：场景版本聚合视图（R18-10，方案 B，候选）
 
 - **目标**：把全部场景的版本历史汇总为「章节→场景→版本」树，任意场景可切换/对比；不做全书快照与修订线。
 - **明确不做**：不做全书级快照与修订线（方案 A/C 排除）；不改 C5 版本 Schema（`scene.branches` 语义不变）。
 - **交付物**：Host 聚合投影（章节→场景→版本树，复用 `novelBranches`）；Client 聚合视图（任意场景切换/对比、版本徽标）；与既有分支面板的导航关系。
 - **验收**：聚合树与各场景 `branches` 一致；切换/对比行为与既有分支面板等价；chosen 唯一不变式保持；`pnpm test` 全绿。
-- **验证**：立项时分配（候选 `verify:i95`）。
+- **验证**：立项时分配（候选 `verify:i112`）。
 
 ---
 
-## 19. 完成线
+## 20. 完成线
 
 I1–I85 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成 v2.1 作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，**I85 完成 Stage 16 DSH family 兼容升级：唯一可复现项目 DSH family pin 已从 `0.1.0-rc.7` 切换为 `0.1.1-rc.2`**。
+
+v2.5 起当前排期：**Stage 17 修复迭代（I86–I102，review v2.0 中级以上问题立项）为当前待执行**；Stage 18 新增功能候选（I103–I112，原 I86–I95 延后重编号）未排期。
 
 I74 完成时还必须证明：
 
@@ -977,11 +1133,25 @@ Stage 16（I85）完成时还必须证明（✅ I85 已验证）：
 - 真实 base+web+plugin selected-profile 的 Host、Client ModuleLoader、Slot、Typert Remote、Tools、`ctx.llm` 与完整生命周期门全部通过；
 - 升级前后领域行为、公开 Remote/wire、样本/gold/阈值与作品 source of truth 不变；失败可整体回退到 I84，而不产生第二宿主路径。
 
-语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎、C3 revealAt 直接引用时间线节点 id 的联动，以及公开 Remote 服务的破坏性改名（`novelImport`/`novelImportExport`/`novelExport` 三服务合并等）继续后置为 backlog。
+Stage 17（review v2 修复迭代 I86–I102）完成时还必须证明：
+
+- 五个 Remote 死方法在真实 DSH 客户端绑定器下往返成功，端到端 binder 契约测试在 CI 全绿（I86）；
+- 接线层类型安全恢复：descriptor↔adapter↔client namespace 三方类型耦合，方法签名变更在接线层即报编译错，生产接线无 `any[]`/`as unknown as`（I91/I96）；
+- Agent 上下文单一 owner，`novel_context` 与 `novel_continue` 无语义分叉（I87）；
+- 队列轮询 timer 归属 Fiber，卸载后零残留轮询、不堆积并行轮询链（I88）；
+- index.ts/client.ts 装配层按职责分段/拆 controllers，Remote 资源清单单份维护（I89/I90）；
+- 双导航一致、LLM 批量 apply 事务化（UoW）、TextRepository 拆分且镜像失败不谎报（I92/I93/I94）；
+- 大文件与巨型测试文件拆分，行数护栏成立（I95）；
+- editor wire 请求合同精确、extensions store/registry 校验与不可变（I97/I98/I99）；
+- 公开 Remote 命名统一经兼容期迁移完成（I100）；
+- 单 acting 互锁 / OpsContext / workspace-service 收敛（I101）；onboarding schema 与 extension kind 单点化（I102）；
+- 领域行为等价：I1–I85 全部既有验收在修复后保持绿，公开 Remote/wire 契约形状不变（I100 兼容迁移除外）。
+
+语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎、C3 revealAt 直接引用时间线节点 id 的联动，以及 review v2.0 其余中-低/低项（validator 骨架、仓储 primitive、import 格式 descriptor 等）继续后置为 backlog；公开 Remote 服务的破坏性改名（`novelImport`/`novelImportExport`/`novelExport` 三服务合并）已由 **I100** 立项（兼容迁移，见 §18）。
 
 ---
 
-## 20. Risks 与 Retirement
+## 21. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移与兼容门**：I54 已完成 Slot 落点决策；I85 已把唯一项目 DSH family pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，并重跑真实 base+web+plugin 与完整 Client/Remote/Tools/LLM 门；门内任一失败即回退 I85，不以混装或双路 fallback 过关。当前无运行时观测与项目 pin 的漂移。
@@ -995,7 +1165,8 @@ Stage 16（I85）完成时还必须证明（✅ I85 已验证）：
 - **正文分支迁移风险**：I70 是 C5 source-of-truth 迁移迭代；必须先锁旧单版本项目 fixture，失败时 fail closed，禁止为了兼容保留两个可写 owner。
 - **派生视图风险**：I71 搜索索引与 I72 统计均可删除重建，不得成为正文/设定/进度的第二真相，也不得越过 C3/POV 知识边界。
 - **时间线语义风险**：I73–I74 的时间线是作者可编辑的规划文档，不是 C1/C3 的第二写 owner；`knownTo` 仍只表关系公开性，C3 revealAt 仍自由文本。关系过滤必须「未安排关系始终保留」，否则时间线出现即丢关系；时间线缺失/未锚定必须回退全量，避免行为突变。schema 与 node:fs 分离，Client bundle 不得入图 repository。
-- **重构回归风险**：I75–I84 纯机械重构必须以既有全量测试 + stage 回归 + LLM 样本阈值兜底；出现回归先定位到具体迭代并回退上一可用 commit，不带着红灯进入下一迭代。
+- **重构/修复回归风险**：I75–I84 与 I86–I102 纯机械重构/修复必须以既有全量测试 + stage 回归 + LLM 样本阈值兜底；出现回归先定位到具体迭代并回退上一可用 commit，不带着红灯进入下一迭代。
+- **修复迭代范围风险（v2.5）**：I86–I102 以 review v2.0 中级以上问题为界，禁止顺手夹带中-低/低项或新功能；I100 属公开 Remote 契约迁移，必须带兼容期与退役文档，禁止静默破坏既有调用方；审查证据行号以文件路径与职责为准。
 - **契约漂移风险**：I77/I78 改变 wire 形状推导方式时，必须以 strict codec wire smoke 证明形状等价；禁止继续在接线层以补丁掩盖契约不匹配。
 - **大文件拆分风险**：I82/I83 拆 `client.ts` 时保持 DOM 契约与既有测试锚点不变，测试迁移分批提交；禁止一迭代内同时改实现与语义。
 - **范围蔓延风险**：重构迭代禁止夹带新功能或领域语义调整；超范围想法记 backlog。

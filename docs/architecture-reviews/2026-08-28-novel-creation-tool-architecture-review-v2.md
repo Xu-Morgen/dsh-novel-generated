@@ -184,25 +184,33 @@ v1.0 §9 六项路线图已全部进入 **Stage 15（I75–I84）** 并落地：
 | #5 拆 client.ts | I82/I83 | makeOps→`client/ops/*` 18 工厂；store→`client/store`；面板注册表 `client/panels`；mount→`client/mount.ts`；client.ts 2876→1002 行 | ✅ 完成（§3.5 显示装配层仍 god） |
 | #6 低优先级债务 | I84 | 分层倒置边清零、analyzer 背景错误显式 logger、workspace 构造依赖不再 optional、SHA 集中 | ✅ 完成 |
 
-### 9.2 v2.0（本文件，2026-08-28）→ 尚未进入任何迭代
+### 9.2 v2.0（本文件，2026-08-28）→ 中级以上条目已立项为 Stage 17 修复迭代
 
-- 当前唯一待执行迭代为 **I85（Stage 16，DSH family `0.1.1-rc.2` 兼容升级）**，与本审查意见无关；本文件全部意见在 I85 完成前**不得**进入迭代（一次一迭代纪律）。
-- 以下条目在 I85 完成后按优先级立项（参照 development-plan §20 backlog 机制），未排期前全部标记为 **backlog / 未进入迭代**：
+- I85（Stage 16，DSH family `0.1.1-rc.2` 兼容升级）已于 2026-08-28 完成；本文件中级及以上条目已于同日依 development-plan §21 backlog 机制立项为 **Stage 17（I86–I102，见 development-plan §18）**，按 P0 紧急 → P1 高 → P2 中-高/中 → P3 中-高/中 顺序紧接 I85 之后排期；原 R18 新增功能候选（I86–I95）延后至全部修复迭代之后并顺延重编号为 **I103–I112（development-plan §19）**。
+- §8 其余中-低/低项（validator 骨架、仓储 primitive、import 格式 descriptor 等）继续标记为 **backlog / 未进入迭代**。
 
 | 优先级 | 条目 | 来源 | 进入迭代状态 |
 |---|---|---|---|
-| **P0（建议紧急）** | §3.1 五个 Remote 死方法（`novelWriting.propose/adjudicate`、`novelReview.scan`、`novelStatistics.sceneCards/tasks`）+ 补端到端 binder 契约测试 | v2.0 | ⬜ 未进入迭代 |
-| P1 | §3.2 Agent 上下文单一 owner（复用 NextSceneContextProvider） | v2.0 | ⬜ 未进入迭代 |
-| P1 | §3.3 队列轮询 timer 归 Fiber（`isActive()` 函数 + apply 级 controller） | v2.0 | ⬜ 未进入迭代 |
-| P1 | §3.4 index.ts 组合根分段；§3.5 client.ts 拆 controllers/presenter | v2.0 | ⬜ 未进入迭代 |
-| P1 | descriptor↔adapter↔client namespace 三方类型耦合（消除 `any[]`/`as unknown as`） | v2.0 | ⬜ 未进入迭代 |
-| P2 | §8#3/#6/#7 双导航真相校验、llm 批量 apply UoW、TextRepository 拆分与镜像 outbox 语义 | v2.0 | ⬜ 未进入迭代 |
-| P2 | §4 大文件拆分（chapters.ts 590、client.ts、巨型测试文件） | v2.0 | ⬜ 未进入迭代 |
-| P3 | §5 单 acting 互锁 / OpsContext 窄化 / workspace-service 收敛 | v2.0 | ⬜ 未进入迭代 |
-| P3 | §6 onboarding schema 抽 BindingSchema、extension kind 单一 descriptor 表、prompt 示例类型化 | v2.0 | ⬜ 未进入迭代 |
-| P3 | §8 其余中-低项（validator 骨架、仓储 primitive、import 格式 descriptor 等） | v2.0 | ⬜ 未进入迭代 |
+| **P0（建议紧急）** | §3.1 五个 Remote 死方法（`novelWriting.propose/adjudicate`、`novelReview.scan`、`novelStatistics.sceneCards/tasks`）+ 补端到端 binder 契约测试 | v2.0 | 进入迭代 **I86** |
+| P1 | §3.2 Agent 上下文单一 owner（复用 NextSceneContextProvider） | v2.0 | 进入迭代 **I87** |
+| P1 | §3.3 队列轮询 timer 归 Fiber（`isActive()` 函数 + apply 级 controller） | v2.0 | 进入迭代 **I88** |
+| P1 | §3.4 index.ts 组合根分段 | v2.0 | 进入迭代 **I89** |
+| P1 | §3.5 client.ts 拆 controllers/presenter | v2.0 | 进入迭代 **I90** |
+| P1 | descriptor↔adapter↔client namespace 三方类型耦合（消除 `any[]`/`as unknown as`） | v2.0 | 进入迭代 **I91** |
+| P2 | §8#3 双导航真相校验 | v2.0 | 进入迭代 **I92** |
+| P2 | §8#6 llm 批量 apply UoW | v2.0 | 进入迭代 **I93** |
+| P2 | §8#7 TextRepository 拆分与镜像 outbox 语义 | v2.0 | 进入迭代 **I94** |
+| P2 | §4 大文件拆分（chapters.ts 590 / ops chapters / onboarding.ts / test-harness.ts / 巨型测试文件；client.ts、index.ts 由 I89/I90 覆盖） | v2.0 | 进入迭代 **I95** |
+| P2 | §8#1 五层写回阶段合同类型化 | v2.0 | 进入迭代 **I96** |
+| P2 | §8#2 Remote editor 请求合同精确化 | v2.0 | 进入迭代 **I97** |
+| P2 | §8#4 extensions store schema 校验 | v2.0 | 进入迭代 **I98** |
+| P2 | §8#5 extensions registry 不可变引用 | v2.0 | 进入迭代 **I99** |
+| P2 | §8#17 公开 Remote 服务命名统一（`novelImport`/`novelImportExport`/`novelExport`，独立兼容迁移） | v2.0 | 进入迭代 **I100** |
+| P3 | §5 单 acting 互锁 / OpsContext 窄化 / workspace-service 收敛 | v2.0 | 进入迭代 **I101** |
+| P3 | §6 onboarding schema 抽 BindingSchema、extension kind 单一 descriptor 表、prompt 示例类型化 | v2.0 | 进入迭代 **I102** |
+| P3 | §8 其余中-低项（validator 骨架、仓储 primitive、import 格式 descriptor 等） | v2.0 | ⬜ backlog（未进入迭代） |
 
-> 跟踪约定：条目立项（进入某迭代卡）时在本表把状态改为「进入迭代 Ixx」并标注迭代号；迭代完成后改为「✅ 完成（Ixx）」。本表与 development-plan §20 backlog 保持一致。
+> 跟踪约定：条目立项（进入某迭代卡）时在本表把状态改为「进入迭代 Ixx」并标注迭代号；迭代完成后改为「✅ 完成（Ixx）」。本表与 development-plan §21 backlog 保持一致。
 
 ## 附录 A：证据索引（2026-08-28 实测）
 

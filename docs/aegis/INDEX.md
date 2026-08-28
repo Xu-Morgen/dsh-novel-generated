@@ -175,3 +175,5 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-verify-i85.json | 2026-08-28-i85-dsh-rc2-upgrade evidence verify-i85 |
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-stage-key-regressions.json | 2026-08-28-i85-dsh-rc2-upgrade evidence stage-key-regressions |
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-pin-and-negative-scans.json | 2026-08-28-i85-dsh-rc2-upgrade evidence pin-and-negative-scans |
+| 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/gate-input-pack.json | 2026-08-28-i85-dsh-rc2-upgrade gate input pack |
+| 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/proof-bundle.md | 2026-08-28-i85-dsh-rc2-upgrade proof bundle |
