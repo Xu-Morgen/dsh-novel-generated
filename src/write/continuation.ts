@@ -3,6 +3,38 @@ import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { StoryContextAssembly } from '../core/pipeline/index.js';
 
 /**
+ * I92 双导航一致性校验（review v2.0 §8#3 / 计划 §18 I92）：assembly 渲染时
+ * 已把 `sources.navigation` 写进 Outline 段（core/pipeline/index.ts
+ * renderNavigation），此处独立传入的 `navigation` 必须与 assembly 记录的是
+ * 同一真相，否则 prompt 同时携带两套导航 → 语义分叉。全字段深比较，不等即
+ * fail loudly，拒绝使用分叉视图。
+ */
+export function assertNavigationConsistent(
+  assembly: StoryContextAssembly,
+  navigation: OutlineNavigation,
+): void {
+  const base = assembly.navigation;
+  if (
+    base.actId !== navigation.actId || base.beatId !== navigation.beatId ||
+    base.title !== navigation.title || base.description !== navigation.description ||
+    base.prerequisitesMet !== navigation.prerequisitesMet ||
+    base.instruction !== navigation.instruction ||
+    !sameStringList(base.prerequisites, navigation.prerequisites) ||
+    !sameStringList(base.deviationIds, navigation.deviationIds)
+  ) {
+    throw new Error('Navigation mismatch: assembled context outline and explicit navigation diverge; refusing forked view');
+  }
+}
+
+function sameStringList(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
+/**
  * I44 continuation prompt contract (design §9.4): the caller supplies the
  * complete I19 assembly, while this layer adds only explicit next-segment
  * intent. It never hides the current state, canon, outline, detail beat, or POV.
@@ -12,6 +44,7 @@ export function buildContinuationPrompt(
   card: DetailBeat,
   navigation: OutlineNavigation,
 ): string {
+  assertNavigationConsistent(context, navigation);
   if (!card.title.trim() || !card.summary.trim() || !card.pov.trim()) {
     throw new Error('Continuation card title, summary, and POV are required');
   }

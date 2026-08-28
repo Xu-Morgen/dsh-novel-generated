@@ -3,6 +3,7 @@ import { filterKnowledge } from '../core/knowledge/filter.js';
 import { ContextAssembler } from '../core/assemble/index.js';
 import { registerContextSerializers } from '../core/assemble/serializers.js';
 import { assembleStoryContext, type StoryGenerationSources } from '../core/pipeline/index.js';
+import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import { buildContinuationPrompt } from './continuation.js';
 
 function sources(): StoryGenerationSources {
@@ -30,5 +31,18 @@ describe('I44 continuation prompt', () => {
   it('rejects a missing explicit navigation instruction', () => {
     const context = assembleStoryContext(registerContextSerializers(new ContextAssembler()), sources());
     expect(() => buildContinuationPrompt(context, { id: 'detail-1', title: 'Find key', summary: 'Mira finds the key.', pov: 'mira', wordTarget: 20, points: [], status: 'writing' }, { ...sources().navigation, instruction: '' })).toThrow(/navigation/);
+  });
+
+  it('I92 rejects a navigation that diverges from the assembled context outline (forked view)', () => {
+    const context = assembleStoryContext(registerContextSerializers(new ContextAssembler()), sources());
+    const forked: OutlineNavigation = { ...sources().navigation, beatId: 'beat-other', instruction: 'Take the other route.' };
+    expect(() => buildContinuationPrompt(context, { id: 'detail-1', title: 'Find key', summary: 'Mira finds the key.', pov: 'mira', wordTarget: 20, points: [], status: 'writing' }, forked))
+      .toThrow(/Navigation mismatch.*forked view/);
+  });
+
+  it('I92 accepts navigation that equals the assembled context outline (same truth)', () => {
+    const context = assembleStoryContext(registerContextSerializers(new ContextAssembler()), sources());
+    const same = { ...sources().navigation };
+    expect(() => buildContinuationPrompt(context, { id: 'detail-1', title: 'Find key', summary: 'Mira finds the key.', pov: 'mira', wordTarget: 20, points: [], status: 'writing' }, same)).not.toThrow();
   });
 });

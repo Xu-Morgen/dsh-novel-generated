@@ -36,6 +36,12 @@ export interface StoryContextAssembly {
   readonly prompt: string;
   readonly sections: readonly (ContextAssemblySection | StoryContextSection)[];
   readonly characterCount: number;
+  /**
+   * I92 双导航一致性校验（review v2.0 §8#3 / 计划 §18 I92）：记录渲染进
+   * Outline 段的 OutlineNavigation 实例，供下游（write/continuation）与独立
+   * 传入的 navigation 比对，拒绝分叉视图。只读快照，不改变组装语义。
+   */
+  readonly navigation: OutlineNavigation;
 }
 
 /**
@@ -63,7 +69,7 @@ export function assembleStoryContext(
   if (prompt.length > i19ContextBudget.totalCharacters) {
     throw new Error(`Story context total budget exceeded: ${prompt.length} > ${i19ContextBudget.totalCharacters}`);
   }
-  return Object.freeze({ prompt, sections, characterCount: prompt.length });
+  return Object.freeze({ prompt, sections, characterCount: prompt.length, navigation: sources.navigation });
 }
 
 function renderNavigation(navigation: OutlineNavigation): string {
