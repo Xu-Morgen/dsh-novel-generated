@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
 import { validateProjectId } from '../io/path.js';
@@ -70,24 +70,72 @@ export class WorldRepository {
    */
   async rewrite(entryId: string, input: WorldEntryInput): Promise<{ superseded: WorldEntry; replacement: WorldEntry }> {
     return this.enqueue(async () => {
+      const [prepared] = await this.prepareRewriteBatch([{ entryId, input }]);
+      await this.writeEntryDocument(prepared.replacement);
+      await this.writeEntryDocument(prepared.marked);
+      return { superseded: structuredClone(prepared.marked), replacement: structuredClone(prepared.replacement) };
+    });
+  }
+
+  /**
+   * I93 batch rewrite（review v2.0 §8#6 / 计划 §18 I93）：全部校验（含批内
+   * 相互影响：replacement id 冲突、parent 环）通过后才开始写盘；先写全部新
+   * 文档、再写全部标记；任一步失败即补偿——删除已写 replacement 文档、把已
+   * 标记文档还原为原内容，不产生可见部分落库。
+   */
+  async rewriteBatch(
+    operations: ReadonlyArray<{ entryId: string; input: WorldEntryInput }>,
+  ): Promise<Array<{ superseded: WorldEntry; replacement: WorldEntry }>> {
+    return this.enqueue(async () => {
+      const prepared = await this.prepareRewriteBatch(operations);
+      const writtenReplacements: string[] = [];
+      let writtenMarks = 0;
+      try {
+        for (const item of prepared) {
+          await this.writeEntryDocument(item.replacement);
+          writtenReplacements.push(item.replacement.id);
+        }
+        for (const item of prepared) {
+          await this.writeEntryDocument(item.marked);
+          writtenMarks += 1;
+        }
+      } catch (error) {
+        for (const id of writtenReplacements) await rm(this.entryPath(id), { force: true });
+        for (let index = 0; index < writtenMarks; index += 1) {
+          await this.writeEntryDocument(prepared[index].original);
+        }
+        throw error;
+      }
+      return prepared.map((item) => ({ superseded: structuredClone(item.marked), replacement: structuredClone(item.replacement) }));
+    });
+  }
+
+  /** Pure batch preparation: parse/validate every operation against current + batch state, zero writes. */
+  private async prepareRewriteBatch(
+    operations: ReadonlyArray<{ entryId: string; input: WorldEntryInput }>,
+  ): Promise<Array<{ entryId: string; original: WorldEntry; marked: WorldEntry; replacement: WorldEntry }>> {
+    const existing = await this.loadAll();
+    const byId = new Map(existing.map((entry) => [entry.id, entry]));
+    const prepared: Array<{ entryId: string; original: WorldEntry; marked: WorldEntry; replacement: WorldEntry }> = [];
+    for (const { entryId, input } of operations) {
       if (input.id === entryId) throw new Error(`Replacement id must differ from the superseded id: ${entryId}`);
-      const superseded = await this.read(entryId);
+      const superseded = byId.get(entryId);
+      if (!superseded) throw new Error(`Unknown world entry: ${entryId}`);
       const replacement = worldEntrySchema.parse({ ...input, version: input.version ?? 1 });
-      const existing = await this.loadAll();
-      this.assertNoCycle(replacement.id, replacement.parent, existing);
-      if (await this.exists(this.entryPath(replacement.id))) {
+      if (byId.has(replacement.id) || prepared.some((item) => item.replacement.id === replacement.id)) {
         throw new Error(`WorldEntry already exists: ${replacement.id}`);
       }
+      const merged = [...existing, ...prepared.map((item) => item.replacement)];
+      this.assertNoCycle(replacement.id, replacement.parent, merged);
       const marked = worldEntrySchema.parse({
         ...superseded,
         version: superseded.version + 1,
         status: 'rewritten' as const,
         supersededBy: replacement.id,
       });
-      await this.writeEntryDocument(marked);
-      await this.writeEntryDocument(replacement);
-      return { superseded: structuredClone(marked), replacement: structuredClone(replacement) };
-    });
+      prepared.push({ entryId, original: structuredClone(superseded), marked, replacement });
+    }
+    return prepared;
   }
 
   /** Deterministic trigger query: constant hits + keyword/regex matches. */

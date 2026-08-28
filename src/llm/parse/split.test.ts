@@ -81,4 +81,70 @@ describe('I38 split agent contract', () => {
     expect(applied.worldview).toHaveLength(1);
     expect((await acceptedOutline.read()).acts[0].beats[0].detailBeats).toHaveLength(1);
   });
+
+  it('I93 rejects a mid-batch detail-beat failure before any write (UoW prepare)', async () => {
+    const project = await mkdtemp(join(tmpdir(), 'novel-i93-prepare-'));
+    roots.push(project);
+    const gate = await ConfirmationGate.open(project);
+    const outline = new OutlineRepository(project);
+    const worldview = new WorldRepository(project);
+    await outline.open();
+    await worldview.open();
+    const input: SplitAgentInput = { chunks: [{ index: 0, text: '正文' }, { index: 1, text: '设定' }] };
+    const withBadBeat: SplitAgentOutput = {
+      candidates: [
+        output().candidates[0],
+        {
+          id: 'detail-candidate-1', kind: 'detail-beat', sourceChunkIndex: 0, confidence: 'high',
+          value: { actId: 'act-a', beatId: 'beat-missing', detailBeat: { id: 'detail-new', title: 'x', summary: 'y', pov: 'lin', wordTarget: 500, points: [], status: 'planned' } },
+        },
+        output().candidates[1],
+      ],
+    };
+    await proposeSplitCandidates(gate, 'bad-proposal', input, withBadBeat);
+    await gate.accept('bad-proposal');
+    await expect(applyAcceptedSplitCandidates(gate, 'bad-proposal', outline, worldview)).rejects.toThrow(/Unknown outline beat/);
+    await expect(outline.read()).rejects.toThrow();
+    expect(await worldview.list()).toEqual([]);
+  });
+
+  it('I93 retries an accepted split proposal idempotently (full replay)', async () => {
+    const project = await mkdtemp(join(tmpdir(), 'novel-i93-retry-'));
+    roots.push(project);
+    const gate = await ConfirmationGate.open(project);
+    const outline = new OutlineRepository(project);
+    const worldview = new WorldRepository(project);
+    await outline.open();
+    await worldview.open();
+    const input: SplitAgentInput = { chunks: [{ index: 0, text: '正文' }, { index: 1, text: '设定' }] };
+    await proposeSplitCandidates(gate, 'retry-proposal', input, output());
+    await gate.accept('retry-proposal');
+    const applied1 = await applyAcceptedSplitCandidates(gate, 'retry-proposal', outline, worldview);
+    const applied2 = await applyAcceptedSplitCandidates(gate, 'retry-proposal', outline, worldview);
+    expect(applied2).toEqual(applied1);
+    expect(applied2.outline?.id).toBe('outline-a');
+    expect(applied2.worldview).toHaveLength(1);
+    expect((await outline.read()).acts[0].beats[0].detailBeats).toHaveLength(1);
+  });
+
+  it('I93 retries after a partial commit (outline already applied, worlds missing) without failing', async () => {
+    const project = await mkdtemp(join(tmpdir(), 'novel-i93-partial-'));
+    roots.push(project);
+    const gate = await ConfirmationGate.open(project);
+    const outline = new OutlineRepository(project);
+    const worldview = new WorldRepository(project);
+    await outline.open();
+    await worldview.open();
+    const input: SplitAgentInput = { chunks: [{ index: 0, text: '正文' }, { index: 1, text: '设定' }] };
+    await proposeSplitCandidates(gate, 'partial-proposal', input, output());
+    await gate.accept('partial-proposal');
+    // 模拟首次提交只完成 outline：outline 已按提案落库、worldview 缺失。
+    const outlineCandidate = output().candidates.find((candidate): candidate is Extract<SplitAgentOutput['candidates'][number], { kind: 'outline' }> => candidate.kind === 'outline');
+    if (!outlineCandidate) throw new Error('fixture must include an outline candidate');
+    await outline.save({ ...outlineCandidate.value, version: 1 });
+    const applied = await applyAcceptedSplitCandidates(gate, 'partial-proposal', outline, worldview);
+    expect(applied.outline?.id).toBe('outline-a');
+    expect(applied.worldview).toHaveLength(1);
+    expect((await outline.read()).acts[0].beats[0].detailBeats).toHaveLength(1);
+  });
 });

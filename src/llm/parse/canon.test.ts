@@ -81,8 +81,25 @@ describe('I26 C4 Canon parser', () => {
     await expect(parseC4CanonFromNarrative(undefined, { prose: 'x', canon }, settings)).rejects.toThrow(/unavailable/);
   });
 
-  it('keeps low-confidence append and every correction pending, so rejection leaves the append-only ledger unchanged', async () => {
+  it('I93 rejects a mid-batch event shape failure with zero ledger writes (UoW)', async () => {
     const project = await root();
+    const ledger = await CanonLedger.open(project);
+    await ledger.append(arrival);
+    const before = ledger.query().map((event) => event.id);
+    const { storyTime: _storyTime, ...missingStoryTime } = arrival;
+    const batch = {
+      ops: [
+        { op: 'append' as const, event: { ...arrival, id: 'evt-decision', kind: 'decision' as const, summary: '米拉决定保留铜钥匙', detail: '米拉决定保留铜钥匙。', participants: ['mira'] }, confidence: 'high' as const },
+        { op: 'append' as const, event: { ...missingStoryTime, id: 'evt-bad' } as never, confidence: 'high' as const },
+      ],
+    } as unknown as Parameters<typeof applyC4CanonOperations>[1];
+    await expect(applyC4CanonOperations(ledger, batch)).rejects.toThrow();
+    expect(ledger.query().map((event) => event.id)).toEqual(before);
+    const reloaded = await CanonLedger.open(project);
+    expect(reloaded.query().map((event) => event.id)).toEqual(before);
+  });
+
+  it('keeps low-confidence append and every correction pending, so rejection leaves the append-only ledger unchanged', async () => {    const project = await root();
     const ledger = await CanonLedger.open(join(project, 'canon'));
     await ledger.append(arrival);
     const gate = await ConfirmationGate.open(project);

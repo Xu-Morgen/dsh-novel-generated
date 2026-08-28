@@ -145,6 +145,9 @@ export function requiresC4CanonConfirmation(operations: readonly C4CanonOperatio
  * Mechanically dispatch validated medium/high append proposals to CanonLedger.
  * Every correction requires I11 confirmation per design §6.2, so neither it nor
  * a low-confidence append can reach the ledger through this function.
+ *
+ * I93 UoW（review v2.0 §8#6 / 计划 §18 I93）：整批先校验后经
+ * `CanonLedger.appendBatch` 单次写入提交，后项失败不部分落库。
  */
 export async function applyC4CanonOperations(
   ledger: CanonLedger,
@@ -155,13 +158,12 @@ export async function applyC4CanonOperations(
   if (requiresC4CanonConfirmation(output.ops)) {
     throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
   }
-  const applied: CanonEventView[] = [];
-  for (const operation of output.ops) {
-    if (operation.op !== 'append') throw new Error('C4 supersede operations require ConfirmationGate');
-    const event = await ledger.append(operation.event);
-    applied.push({ ...event, supersededBy: null });
+  if (output.ops.some((operation) => operation.op !== 'append')) {
+    throw new Error('C4 supersede operations require ConfirmationGate');
   }
-  return applied;
+  const appends = output.ops.filter((operation): operation is Extract<C4CanonOperation, { op: 'append' }> => operation.op === 'append');
+  const events = await ledger.appendBatch(appends.map((operation) => operation.event));
+  return events.map((event) => ({ ...event, supersededBy: null }));
 }
 
 /** Propose, but never write, all low-confidence appends and every correction through the sole I11 Gate. */

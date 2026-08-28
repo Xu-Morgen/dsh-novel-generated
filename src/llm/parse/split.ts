@@ -125,7 +125,17 @@ export async function proposeSplitCandidates(
   return gate.propose({ id: proposalId, kind: 'i38-import-split-candidates', payload: output });
 }
 
-/** Apply only an accepted split proposal through the canonical B5/B2 stores. */
+/**
+ * Apply only an accepted split proposal through the canonical B5/B2 stores.
+ *
+ * I93 UoW（review v2.0 §8#6 / 计划 §18 I93）：
+ * - 准备阶段零写：outline/worldview/detail-beat 全部先对当前状态 + 批内
+ *   相互影响校验（含 detail-beat 针对「拟写入 outline」而非旧 outline），
+ *   任一失败即整体拒绝，不部分落库；
+ * - 幂等重试：重试时已精确落库的项按 replay 跳过（outline 已存在且与提案
+ *   一致不再报错），部分失败的提案可安全重试；
+ * - 提交阶段失败补偿：覆盖既有 outline 时用准备阶段捕获的原文档还原。
+ */
 export async function applyAcceptedSplitCandidates(
   gate: ConfirmationGate,
   proposalId: string,
@@ -136,22 +146,146 @@ export async function applyAcceptedSplitCandidates(
   if (record.kind !== 'i38-import-split-candidates') throw new Error(`Unexpected split proposal kind: ${record.kind}`);
   if (record.status !== 'accepted') throw new Error('Split proposal requires accepted ConfirmationGate decision');
   const output = splitAgentOutputSchema.parse(record.payload);
-  let outline = await readOptionalOutline(outlineRepository);
-  const worldview: WorldEntry[] = [];
-  const detailBeats: DetailBeat[] = [];
+
+  const existingOutline = await readOptionalOutline(outlineRepository);
+  const existingWorld = await worldRepository.list();
+  const planned = planSplitApply(existingOutline, existingWorld, output);
+
+  const outline = await commitSplitApply(outlineRepository, worldRepository, planned, existingOutline);
+  return {
+    outline,
+    worldview: planned.worldview.map((item) => item.entry),
+    detailBeats: planned.detailBeats,
+  };
+}
+
+interface SplitPlanItem { readonly entry: WorldEntry; readonly create: boolean; }
+
+interface SplitPlan {
+  readonly outline?: Outline;
+  readonly saveOutline: boolean;
+  readonly worldview: SplitPlanItem[];
+  readonly detailBeats: DetailBeat[];
+}
+
+/**
+ * Pure preparation: classify every candidate as create/replay against current +
+ * batch state, zero writes（I93 UoW）。
+ *
+ * 预期 outline = 提案 outline 候选（若有）叠加全部 detail-beat 候选；与磁盘上
+ * 既有 outline 比对时按此整体比对，因此「outline 已由上次部分提交落库」的
+ * 重试被识别为 replay，不再误报冲突。
+ */
+function planSplitApply(
+  existingOutline: Outline | undefined,
+  existingWorld: readonly WorldEntry[],
+  output: SplitAgentOutput,
+): SplitPlan {
+  let outlineProposal: SplitOutlineValue | undefined;
   for (const candidate of output.candidates) {
     if (candidate.kind === 'outline') {
-      if (outline !== undefined) throw new Error('An outline already exists for accepted split proposal');
-      outline = await outlineRepository.save(asOutlineInput(candidate.value));
-    } else if (candidate.kind === 'worldview') {
-      worldview.push(await worldRepository.create(asWorldEntryInput(candidate.value)));
-    } else {
-      if (!outline) throw new Error(`Detail beat requires an outline: ${candidate.id}`);
-      outline = await appendDetailBeat(outlineRepository, outline, candidate.value);
-      detailBeats.push(candidate.value.detailBeat);
+      if (outlineProposal !== undefined) throw new Error('Split proposal has more than one outline candidate');
+      outlineProposal = candidate.value;
     }
   }
-  return { outline, worldview, detailBeats };
+
+  const expectedOutline = outlineProposal !== undefined
+    ? structuredClone(outlineProposal) as Outline
+    : existingOutline === undefined ? undefined : structuredClone(existingOutline);
+
+  const detailBeats: DetailBeat[] = [];
+  let detailAppended = false;
+  for (const candidate of output.candidates) {
+    if (candidate.kind !== 'detail-beat') continue;
+    if (expectedOutline === undefined) throw new Error(`Detail beat requires an outline: ${candidate.id}`);
+    const act = expectedOutline.acts.find((item) => item.id === candidate.value.actId);
+    if (!act) throw new Error(`Unknown outline act for detail beat: ${candidate.value.actId}`);
+    const beat = act.beats.find((item) => item.id === candidate.value.beatId);
+    if (!beat) throw new Error(`Unknown outline beat for detail beat: ${candidate.value.beatId}`);
+    const existingBeat = beat.detailBeats.find((item) => item.id === candidate.value.detailBeat.id);
+    if (existingBeat !== undefined) {
+      if (JSON.stringify(existingBeat) !== JSON.stringify(candidate.value.detailBeat)) {
+        throw new Error(`Duplicate detail beat id with different content: ${candidate.value.detailBeat.id}`);
+      }
+      detailBeats.push(candidate.value.detailBeat); // 重放：已落库
+      continue;
+    }
+    beat.detailBeats.push(candidate.value.detailBeat as DetailBeat);
+    detailBeats.push(candidate.value.detailBeat);
+    detailAppended = true;
+  }
+
+  const worldview: SplitPlanItem[] = [];
+  const worldById = new Map(existingWorld.map((entry) => [entry.id, entry]));
+  for (const candidate of output.candidates) {
+    if (candidate.kind !== 'worldview') continue;
+    const existing = worldById.get(candidate.value.id);
+    if (existing !== undefined) {
+      if (equalsSplitWorldview(existing, candidate.value)) {
+        worldview.push({ entry: existing, create: false }); // 重放：已落库
+        continue;
+      }
+      throw new Error(`World entry already exists with different content: ${candidate.value.id}`);
+    }
+    const entry = worldEntrySchema.parse({ ...candidate.value, version: 1, status: 'active', supersededBy: null });
+    worldview.push({ entry, create: true });
+  }
+
+  let outline = existingOutline;
+  let saveOutline = false;
+  if (outlineProposal !== undefined) {
+    if (expectedOutline === undefined) throw new Error('Split proposal outline candidate is empty');
+    if (existingOutline !== undefined) {
+      if (!equalsSplitOutline(existingOutline, expectedOutline)) {
+        throw new Error('An outline already exists for accepted split proposal');
+      }
+      // 重放：既有 outline 已含提案 outline + 全部 detail-beat
+    } else {
+      outline = expectedOutline;
+      saveOutline = true;
+    }
+  } else if (detailAppended) {
+    outline = expectedOutline;
+    saveOutline = true;
+  }
+  return { outline, saveOutline, worldview, detailBeats };
+}
+
+function equalsSplitOutline(stored: Outline, expected: Outline): boolean {
+  return JSON.stringify({ ...stored, version: undefined }) === JSON.stringify({ ...expected, version: undefined });
+}
+
+function equalsSplitWorldview(stored: WorldEntry, proposal: SplitWorldviewValue): boolean {
+  return JSON.stringify({ ...stored, version: undefined, status: undefined, supersededBy: undefined }) === JSON.stringify(proposal);
+}
+
+/** Commit planned writes; restore the previous outline document on failure (I93 compensation). */
+async function commitSplitApply(
+  outlineRepository: OutlineRepository,
+  worldRepository: WorldRepository,
+  plan: SplitPlan,
+  existingOutline: Outline | undefined,
+): Promise<Outline | undefined> {
+  const wroteNewOutline = plan.saveOutline && existingOutline === undefined;
+  try {
+    let outline = existingOutline === undefined ? undefined : existingOutline;
+    if (plan.saveOutline && plan.outline !== undefined) {
+      outline = await outlineRepository.save(asOutlineInput(plan.outline));
+    }
+    for (const item of plan.worldview) {
+      if (!item.create) continue;
+      await worldRepository.create(asWorldEntryInput(item.entry));
+    }
+    return outline;
+  } catch (error) {
+    if (existingOutline !== undefined) {
+      await outlineRepository.save(existingOutline).catch(() => undefined);
+    }
+    if (wroteNewOutline) {
+      throw new Error(`Split apply failed mid-commit with new outline persisted (${(error as Error).message}); retry is idempotent`);
+    }
+    throw error;
+  }
 }
 
 async function readOptionalOutline(repository: OutlineRepository): Promise<Outline | undefined> {
@@ -164,17 +298,4 @@ function asOutlineInput(value: SplitOutlineValue): OutlineInput {
 
 function asWorldEntryInput(value: SplitWorldviewValue): WorldEntryInput {
   return { ...value, version: 1, status: 'active', supersededBy: null };
-}
-
-async function appendDetailBeat(repository: OutlineRepository, outline: Outline, value: SplitDetailBeatValue): Promise<Outline> {
-  const act = outline.acts.find((item) => item.id === value.actId);
-  if (!act) throw new Error(`Unknown outline act for detail beat: ${value.actId}`);
-  const beat = act.beats.find((item) => item.id === value.beatId);
-  if (!beat) throw new Error(`Unknown outline beat for detail beat: ${value.beatId}`);
-  if (beat.detailBeats.some((item) => item.id === value.detailBeat.id)) throw new Error(`Duplicate detail beat id: ${value.detailBeat.id}`);
-  const next = structuredClone(outline);
-  const nextAct = next.acts.find((item) => item.id === value.actId)!;
-  const nextBeat = nextAct.beats.find((item) => item.id === value.beatId)!;
-  nextBeat.detailBeats.push(value.detailBeat as DetailBeat);
-  return repository.save(next);
 }

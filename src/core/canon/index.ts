@@ -103,6 +103,34 @@ export class CanonLedger {
     return this.enqueue(() => this.doAppend(input));
   }
 
+  /**
+   * I93 batch append（review v2.0 §8#6 / 计划 §18 I93）：全部校验通过后以
+   * 单次 appendFile 写入整批行，再整体内存提交——任何准备/写入失败都不产生
+   * 可见部分落库（append-only 语义保持，行为与逐条 append 等价）。
+   */
+  appendBatch(inputs: readonly CanonEventInput[]): Promise<CanonEvent[]> {
+    return this.enqueue(async () => {
+      const events = this.prepareAppendBatch(inputs);
+      if (events.length === 0) return [];
+      await appendFile(this.filePath, events.map((event) => `${JSON.stringify(event)}\n`).join(''), 'utf8');
+      for (const event of events) this.commit(event);
+      return events.map((event) => ({ ...event }));
+    });
+  }
+
+  /** Pure preparation: build seq-contiguous events and reject any invalid input before a single write. */
+  private prepareAppendBatch(inputs: readonly CanonEventInput[]): CanonEvent[] {
+    const events: CanonEvent[] = [];
+    for (const input of inputs) {
+      if (input.kind === 'correction') throw new Error('Use supersede() to append a correction event');
+      if (this.ids.has(input.id) || events.some((event) => event.id === input.id)) {
+        throw new Error(`Duplicate canon event id: ${input.id}`);
+      }
+      events.push(canonEventSchema.parse({ ...input, seq: this.nextSeq + events.length, immutable: true }));
+    }
+    return events;
+  }
+
   /** Append a correction that supersedes an existing event without rewriting it. */
   supersede(targetId: string, correction: CanonCorrectionInput): Promise<CanonEvent> {
     return this.enqueue(() => this.doSupersede(targetId, correction));

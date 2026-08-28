@@ -1,7 +1,7 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ConfirmationGate } from '../../core/confirm/index.js';
 import { WorldRepository } from '../../core/worldview/index.js';
 import {
@@ -11,6 +11,22 @@ import {
   parseB2WorldviewParserOutput,
   proposeB2WorldviewSupersedeOperations,
 } from './worldview.js';
+
+/** I93 UoW 负向：注入 writeYaml 失败（第 N 次调用），验证批中段失败零落库。 */
+const yamlWrite = vi.hoisted(() => ({ failOnCall: 0, calls: 0 }));
+vi.mock('../../core/io/yaml.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../core/io/yaml.js')>();
+  return {
+    ...actual,
+    writeYaml: (async (...args: Parameters<typeof actual.writeYaml>) => {
+      yamlWrite.calls += 1;
+      if (yamlWrite.failOnCall > 0 && yamlWrite.calls === yamlWrite.failOnCall) {
+        throw new Error('I93 injected yaml write failure');
+      }
+      return actual.writeYaml(...args);
+    }) as typeof actual.writeYaml,
+  };
+});
 
 const settings = { modelRef: 'dsh/default', credentialRef: 'dsh/managed' };
 const roots: string[] = [];
@@ -87,6 +103,25 @@ describe('I29 B2 worldview supersede parser', () => {
     await gate.reject(proposal.id);
     await expect(applyAcceptedB2WorldviewSupersedeOperations(gate, proposal.id, repository)).rejects.toThrow(/requires accepted/);
     expect(await repository.list()).toEqual(current);
+  });
+
+  it('I93 rolls back a mid-batch write failure so no rewrite is partially visible (UoW)', async () => {
+    const project = await root();
+    const repository = new WorldRepository(join(project, 'worldview'));
+    await repository.open();
+    await repository.create(current[0]);
+    const gate = await ConfirmationGate.open(project);
+    const second = { ...operation, replacement: { ...operation.replacement, id: 'second-replacement', title: '第二替换' } };
+    const output = { ops: [operation, second] };
+    const proposal = await proposeB2WorldviewSupersedeOperations(gate, 'proposal-i93-batch', current, output);
+    await gate.accept(proposal.id);
+    // 失败注入点：apply 内第 2 次 writeYaml（replacement #2 的 tmp 写入）。
+    yamlWrite.failOnCall = yamlWrite.calls + 2;
+    await expect(applyAcceptedB2WorldviewSupersedeOperations(gate, proposal.id, repository)).rejects.toThrow(/I93 injected yaml write failure/);
+    expect(await repository.list()).toEqual(current);
+    // WorldRepository 在传入路径下追加 worldview/ 目录，yaml 文档在内层目录。
+    const files = (await readdir(join(project, 'worldview', 'worldview'))).filter((file) => file.endsWith('.yaml'));
+    expect(files).toEqual(['north-kingdom.yaml']);
   });
 
   it('regresses the frozen corpus including held-out cases at threshold', async () => {

@@ -116,6 +116,9 @@ export async function proposeB2WorldviewSupersedeOperations(
  * Apply an accepted I11 proposal through the canonical B2 repository. Replays
  * return the prior repository result only when it exactly matches the proposal,
  * preserving the I11 accept/apply idempotency boundary.
+ *
+ * I93 UoW（review v2.0 §8#6 / 计划 §18 I93）：整批经 `WorldRepository.rewriteBatch`
+ * 提交——先全部校验（含批内相互影响）再写盘，任一步失败补偿回滚，不部分落库。
  */
 export async function applyAcceptedB2WorldviewSupersedeOperations(
   gate: ConfirmationGate,
@@ -130,11 +133,10 @@ export async function applyAcceptedB2WorldviewSupersedeOperations(
   const replay = readExactB2WorldviewReplay(current, output.ops);
   if (replay !== undefined) return replay;
   assertB2WorldviewSupersedeOperations(current, output.ops);
-  const applied: Array<{ superseded: WorldEntry; replacement: WorldEntry }> = [];
-  for (const operation of output.ops) {
-    applied.push(await repository.rewrite(operation.targetId, asWorldEntryInput(operation.replacement)));
-  }
-  return applied;
+  return repository.rewriteBatch(output.ops.map((operation) => ({
+    entryId: operation.targetId,
+    input: asWorldEntryInput(operation.replacement),
+  })));
 }
 
 function asWorldEntryInput(replacement: B2WorldviewReplacement): WorldEntryInput {
