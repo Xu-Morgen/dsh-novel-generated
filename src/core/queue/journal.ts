@@ -17,14 +17,23 @@ async function renameWithRetry(temporary: string, target: string): Promise<void>
   }
 }
 
+/** 每次写入使用唯一 tmp 名（pid+序号）：两个实例并发写同一账本时不再互相消费
+ *  对方 tmp 导致 rename ENOENT；rename 到同一目标仍原子，最后 rename 者胜
+ *  （整快照覆盖，语义与同 tmp 路径一致，见 I65 场景 6 恢复竞态修复）。 */
+let writeSequence = 0;
+function temporaryPathFor(target: string): string {
+  writeSequence += 1;
+  return `${target}.tmp-${process.pid}-${writeSequence}`;
+}
+
 /**
  * I65 队列账本持久化（design §14.9 / R13-6「任务恢复依赖稳定 ID 与幂等状态」）。
  *
  * 每个项目一个 `queue-journal.yaml`（与 lifecycle-journal / review-audit 同模式）：
  * - `read()` 从磁盘读并严格复验（queueJournalSchema）；文件缺失返回 fresh 账本
  *   （projectId 从项目目录名派生；runState=idle、空任务列表）—— 首次使用不报错。
- * - `write()` 走 tmp+rename 原子替换；candidate-ready 任务内联候选正文，因此
- *   单次写入即任务状态 + 候选的原子快照（无半写、无孤儿候选）。
+ * - `write()` 走唯一 tmp + rename 原子替换；candidate-ready 任务内联候选正文，
+ *   因此单次写入即任务状态 + 候选的原子快照（无半写、无孤儿候选）。
  * - 账本是队列的唯一持久 truth；运行/恢复/停止状态全部经本文件往返。
  */
 export class QueueJournalFile {
@@ -57,7 +66,7 @@ export class QueueJournalFile {
   async write(journal: QueueJournalData): Promise<void> {
     const next = queueJournalSchema.parse(journal);
     await mkdir(dirname(this.path), { recursive: true });
-    const temporary = `${this.path}.tmp`;
+    const temporary = temporaryPathFor(this.path);
     await writeYaml(temporary, next);
     await renameWithRetry(temporary, this.path);
   }
