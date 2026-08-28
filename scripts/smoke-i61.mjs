@@ -66,12 +66,12 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   const index = read('src/index.ts') + read('src/host/composition/base.ts') + read('src/host/composition/management.ts') + read('src/host/composition/orchestration.ts');
   const client = read('src/client.ts');
   const chapters = read('src/client/layers/chapters.ts');
-  // I82：C5 编辑 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。
-  const chaptersOps = read('src/client/ops/chapters.ts');
+  // I82：C5 编辑 ops 迁至 ops/chapters.ts（makeOps 按层拆分）；I95 再拆三片。
+  const chaptersOps = read('src/client/ops/chapters.ts') + read('src/client/ops/chapters-editor.ts') + read('src/client/ops/chapters-branch.ts') + read('src/client/ops/chapters-candidate.ts');
   for (const method of ['sceneEdit', 'sceneReparsePropose', 'sceneReparseAccept', 'sceneReparseReject']) {
     if (!hostRemote.includes(method)) fail(`host remote text.ts missing ${method}`);
     if (!workspace.includes(method)) fail(`workspace adapter missing ${method}`);
-    if (!chaptersOps.includes(method)) fail(`ops/chapters.ts missing ${method}`);
+    if (!chaptersOps.includes(method)) fail(`ops/chapters missing ${method}`);
   }
   for (const fn of ['createTextEditService', 'reparsePropose', 'reparseAccept', 'reparseReject', 'buildParsers', 'buildWriters']) {
     if (!editService.includes(fn)) fail(`text-edit-service.ts missing ${fn}`);
@@ -80,7 +80,9 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
     || !editService.includes('parseC3KnowledgeFromNarrative') || !editService.includes('parseC4CanonFromNarrative')
     || !editService.includes('parseB2WorldviewFromNarrative')) fail('text-edit-service must reuse the five existing I25–I29 parsers');
   if (!index.includes("ctx.provide('novelTextEdit'") || !index.includes('createTextEditService')) fail('index.ts missing novelTextEdit wiring');
-  if (!chapters.includes('computeEditRange') || !chapters.includes('data-novel-scene-save')) fail('chapters layer missing editor UI/diff');
+  // I95：computeEditRange 与编辑面板 UI 落在 scene-editor 片（chapters.ts 兼容重导出）。
+  const sceneEditor = read('src/client/layers/scene-editor.ts');
+  if (!sceneEditor.includes('computeEditRange') || !sceneEditor.includes('data-novel-scene-save')) fail('scene-editor layer missing editor UI/diff');
   // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
   const stylesSource = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
     'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',

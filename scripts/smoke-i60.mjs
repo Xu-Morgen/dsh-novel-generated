@@ -65,6 +65,8 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
 {
   const nav = read('src/client/nav.ts');
   const chapters = read('src/client/layers/chapters.ts');
+  // I95：proseParagraphs 随章节面板拆到 chapters-shared.ts（组合根 chapters.ts 消费）。
+  const chaptersShared = read('src/client/layers/chapters-shared.ts');
   // I83：styles 按键分区（架构审查 §4.2）——扫描组合器 + 全部分区文件。
   const styles = ['src/client/styles.ts', 'src/client/styles/base.ts', 'src/client/styles/navigation.ts',
     'src/client/styles/forms.ts', 'src/client/styles/chapters.ts', 'src/client/styles/layers.ts',
@@ -75,17 +77,18 @@ const containsText = (bundle, text) => bundle.includes(text) || bundle.includes(
   const hostRemote = read('src/host/remote/text.ts');
   if (!nav.includes("view: 'chapters'")) fail('nav model missing chapters view');
   if (!nav.includes("badge: 'C5'")) fail('nav model missing C5 badge');
-  for (const fn of ['chaptersPanel', 'freshChapters', 'proseParagraphs']) {
+  for (const fn of ['chaptersPanel', 'freshChapters']) {
     if (!chapters.includes(`function ${fn}`)) fail(`chapters layer missing ${fn}`);
   }
+  if (!chaptersShared.includes('function proseParagraphs')) fail('chapters-shared.ts missing proseParagraphs');
   for (const cls of ['.nv-chapters', '.nv-chapters__pane', '.nv-chapters__prose', '.nv-chapters__empty']) {
     if (!styles.includes(cls)) fail(`styles missing ${cls}`);
   }
   // I83：正文视图分发迁至面板注册表（PANEL_REGISTRY chapters 条目）。
   if (!panels.includes('chapters:') || !panels.includes('chaptersPanel(')) fail('panels registry missing chapters view dispatch');
-  // I82：正文 ops 迁至 ops/chapters.ts（makeOps 按层拆分），结构断言按新布局维护。
-  const chaptersOps = read('src/client/ops/chapters.ts');
-  if (!chaptersOps.includes("chaptersRead('ready'")) fail('ops/chapters.ts missing chapters read ops');
+  // I82：正文 ops 迁至 ops/chapters.ts（makeOps 按层拆分）；I95 再拆三片。
+  const chaptersOps = read('src/client/ops/chapters.ts') + read('src/client/ops/chapters-editor.ts') + read('src/client/ops/chapters-branch.ts') + read('src/client/ops/chapters-candidate.ts');
+  if (!chaptersOps.includes("chaptersRead('ready'")) fail('ops/chapters 缺章节读取 ops');
   for (const method of ['chapterList', 'chapterRead', 'sceneRead']) {
     if (!hostRemote.includes(method)) fail(`host remote text.ts missing ${method}`);
     if (!read('src/host/workspace-service.ts').includes(method)) fail(`workspace adapter missing ${method}`);

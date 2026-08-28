@@ -96,12 +96,14 @@ const fail = (msg) => { throw new Error(`I70 smoke: ${msg}`); };
     fail('client mount wiring missing branch Remote mount');
   }
   if (!shared.includes('BranchNamespace')) fail('shared.ts missing BranchNamespace');
-  // 分支面板（Client）无领域 fallback：不导入 core schema / zod。
-  if (chapters.includes('../core/') || chapters.includes("from 'zod'")) {
+  // 分支面板（Client）无领域 fallback：不导入 core schema / zod（I95 拆到 branch 片）。
+  const chaptersSlices = read('src/client/layers/chapters.ts') + read('src/client/layers/branch.ts') + read('src/client/layers/scene-editor.ts') + read('src/client/layers/candidate.ts') + read('src/client/layers/chapters-shared.ts');
+  if (chaptersSlices.includes('../core/') || chaptersSlices.includes("from 'zod'")) {
     fail('client branch panel must not import core schema or zod (no domain fallback)');
   }
-  if (!chapters.includes('data-novel-branch-panel') || !chapters.includes('branchPanel') || !chapters.includes('freshBranchPanel')) {
-    fail('chapters.ts missing branch panel UI');
+  const branchSlice = read('src/client/layers/branch.ts');
+  if (!branchSlice.includes('data-novel-branch-panel') || !branchSlice.includes('branchPanel') || !branchSlice.includes('freshBranchPanel')) {
+    fail('branch.ts missing branch panel UI');
   }
   // I63 接缝：候选落地保留旧正文为分支（最小 owner 级修改，见 I70 卡片目标）。
   // I79 拆段后 landScene 落在落地 saga 段（landing-saga.ts）。

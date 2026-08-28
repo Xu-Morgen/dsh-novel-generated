@@ -62,7 +62,8 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
   // client.ts 不再内联 $mount：16 个同构块收敛为 mountRemote 调用。
   const inlineMounts = codeLines('src/client.ts').filter((line) => line.includes('$mount('));
   if (inlineMounts.length > 0) fail(`client.ts 残留 ${inlineMounts.length} 处内联 $mount 调用`);
-  // 16 个 Remote 全部经声明式规格挂载（contribution + serviceKey 一一对应）。
+  // 16 个 Remote 全部经声明式规格挂载（contribution + serviceKey 一一对应，
+  // I90 起清单收敛到 mount-registry.ts 的 mountRemoteRegistry 数组）。
   const contributions = ['workspaceRemoteContribution', 'onboardingAnalyzerRemoteContribution', 'onboardingRemoteContribution', 'llmConfigRemoteContribution',
     'workbenchSettingsRemoteContribution', 'writingRemoteContribution', 'reviewRemoteContribution', 'queueRemoteContribution', 'knowledgeRemoteContribution',
     'ruleStyleRemoteContribution', 'progressRemoteContribution', 'importExportRemoteContribution', 'branchRemoteContribution', 'searchRemoteContribution',
@@ -71,15 +72,25 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
     'remote.novelWorkbenchSettings', 'remote.novelWriting', 'remote.novelReview', 'remote.novelQueue', 'remote.novelKnowledgeManager',
     'remote.novelRuleStyleManager', 'remote.novelOutlineProgress', 'remote.novelImportExport', 'remote.novelBranches', 'remote.novelSearch',
     'remote.novelStatistics', 'remote.novelTimeline'];
-  const mountCalls = client.match(/mountRemote<[A-Za-z]+>\(/g) ?? [];
-  if (mountCalls.length !== 16) fail(`client.ts 应有 16 个 mountRemote 调用，实际 ${mountCalls.length}`);
+  const registry = read('src/client/mount-registry.ts');
+  const registryBody = codeLines('src/client/mount-registry.ts').join('\n');
+  if (registryBody.match(/mountRemote\(ctx, entry\)/g)?.length !== 1) fail('mount-registry 应恰好 1 处 mountRemote 调用');
   for (const contribution of contributions) {
-    if (!client.includes(contribution)) fail(`client.ts mount 规格缺失 ${contribution}`);
+    if (!registry.includes(contribution)) fail(`mount-registry 缺少 ${contribution}`);
+  }
+  for (const serviceKey of serviceKeys) {
+    if (!registry.includes(serviceKey)) fail(`mount-registry 缺少 ${serviceKey}`);
+  }
+  // 声明式规格唯一：registry 条目（serviceKey:）共 16 项。
+  const registryEntries = registryBody.match(/serviceKey: 'remote\.[A-Za-z]+'/g) ?? [];
+  if (registryEntries.length !== 16) fail(`mount-registry 应有 16 个声明式规格，实际 ${registryEntries.length}`);
+  for (const contribution of contributions) {
+    if (!registry.includes(contribution)) fail(`mount-registry 规格缺失 ${contribution}`);
   }
   for (const key of serviceKeys) {
-    if (!client.includes(`'${key}'`)) fail(`client.ts mount 规格缺失 serviceKey ${key}`);
+    if (!registry.includes(`'${key}'`)) fail(`mount-registry 规格缺失 serviceKey ${key}`);
   }
-  console.log(`I83 Part 2: $mount 块重复归零 OK（mount.ts 唯一 mountRemote 实现；client.ts 16 个声明式规格，内联 $mount 归零）`);
+  console.log(`I83 Part 2: $mount 块重复归零 OK（mount.ts 唯一 mountRemote 实现；mount-registry.ts 16 个声明式规格，内联 $mount 归零）`);
 }
 
 // Part 3 — styles 按键分区：tokens + 8 分区 + 组合器；构建产物携带全部规则。
@@ -116,23 +127,41 @@ const codeLines = (p) => read(p).split('\n').filter((line) => {
 // Part 4 — 测试 harness 抽取与测试拆分。
 {
   if (existsSync(resolve(repoRoot, 'src/client.test.ts'))) fail('client.test.ts 应已拆分删除');
-  const harness = read('src/client/test-harness.ts');
-  for (const symbol of ['export function mount(', 'export const flush', 'export function collect(', 'export function cleanupClientTestEnv', 'export const READY_MODEL', 'export class FakeFileReader']) {
-    if (!harness.includes(symbol)) fail(`test-harness.ts missing ${symbol}`);
+  // I95：harness 四片（fake runtime + remote builders + dom helpers + onboarding fixtures）。
+  const harnessParts = ['src/client/test-harness.ts', 'src/client/test-harness/remote-builders.ts',
+    'src/client/test-harness/dom-helpers.ts', 'src/client/test-harness/onboarding-fixtures.ts'];
+  for (const file of harnessParts) {
+    if (!existsSync(resolve(repoRoot, file))) fail(`test-harness 拆分文件缺失：${file}`);
   }
-  const splitFiles = ['src/client-shell.test.ts', 'src/client-project.test.ts', 'src/client-onboarding.test.ts',
-    'src/client-layers.test.ts', 'src/client-chapters.test.ts', 'src/client-panels.test.ts'];
+  const harness = harnessParts.map((file) => read(file)).join('\n');
+  for (const symbol of ['export function mount(', 'export const flush', 'export function collect(', 'export function cleanupClientTestEnv', 'export const READY_MODEL', 'export class FakeFileReader']) {
+    if (!harness.includes(symbol)) fail(`test-harness missing ${symbol}`);
+  }
+  // I95：巨型测试文件按面板拆分（22 个新文件 + 3 个既有文件，describe 总数仍为 30）。
+  const splitFiles = [
+    'src/client-shell-workbench.test.ts', 'src/client-shell-visual.test.ts', 'src/client-shell-registration.test.ts',
+    'src/client-shell-sidebar.test.ts', 'src/client-shell-ia.test.ts', 'src/client-shell-navigation.test.ts', 'src/client-shell-responsive.test.ts',
+    'src/client-panels-candidate.test.ts', 'src/client-panels-review.test.ts', 'src/client-panels-queue.test.ts',
+    'src/client-panels-knowledge.test.ts', 'src/client-panels-rules.test.ts', 'src/client-panels-progress.test.ts',
+    'src/client-panels-import-export.test.ts', 'src/client-panels-search.test.ts', 'src/client-panels-statistics.test.ts', 'src/client-panels-timeline.test.ts',
+    'src/client-onboarding-docx.test.ts', 'src/client-onboarding-project-dir.test.ts', 'src/client-onboarding-analysis-error.test.ts',
+    'src/client-onboarding-adjudication.test.ts', 'src/client-onboarding-progress.test.ts',
+    'src/client-project.test.ts', 'src/client-layers.test.ts', 'src/client-chapters.test.ts'];
   let describes = 0;
   for (const file of splitFiles) {
     if (!existsSync(resolve(repoRoot, file))) fail(`split test file missing: ${file}`);
     describes += (read(file).match(/^describe\(/gm) ?? []).length;
   }
   if (describes !== 30) fail(`拆分测试文件应共 30 个 describe，实际 ${describes}`);
+  // 巨型测试文件（原 client-panels/shell/onboarding）不得再作为单一文件存在。
+  for (const file of ['src/client-panels.test.ts', 'src/client-shell.test.ts', 'src/client-onboarding.test.ts']) {
+    if (existsSync(resolve(repoRoot, file))) fail(`${file} 应按面板拆分删除`);
+  }
   // harness 不进构建产物（tsconfig.build.json exclude）。
   const buildConfig = read('tsconfig.build.json');
   if (!buildConfig.includes('src/client/test-harness.ts')) fail('tsconfig.build.json 未排除 test-harness.ts');
   if (existsSync(resolve(repoRoot, 'lib/client/test-harness.js'))) fail('lib 不应包含 test-harness.js');
-  console.log(`I83 Part 4: 测试拆分 OK（client.test.ts 删除；harness 共享；6 文件共 ${describes} 个 describe）`);
+  console.log(`I83 Part 4: 测试拆分 OK（client.test.ts 删除；harness 四片共享；${splitFiles.length} 文件共 ${describes} 个 describe）`);
 }
 
 // Part 5 — 构建产物存在性。
