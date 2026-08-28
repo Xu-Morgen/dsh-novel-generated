@@ -7,6 +7,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyzerStub, cleanupClientTestEnv, collect, factory, FakeFileReader, fakeReact, flush, I56_LAYERS, layerButtons, makeWorkspace, MountOptions, mount, openOnboardingReview, READY_MODEL, WorkspaceOverrides, type FakeNode } from './client/test-harness.js';
+import { QUEUE_POLL_INTERVAL_MS } from './client/ops/queue.js';
 
 afterEach(cleanupClientTestEnv);
 
@@ -445,6 +446,40 @@ describe('I65 生成队列 UI (R13-6)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('ready');
+  });
+
+  it('I88：Fiber 卸载后队列轮询链归零（负向断言，review §3.3）', async () => {
+    let statusCalls = 0;
+    const RUNNING_STATUS = { ...QUEUE_STATUS, runState: 'running' as const };
+    const { registrations, overlayCleanups } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { outlineBeatCards: async () => CARDS },
+      {
+        queue: {
+          status: async () => { statusCalls += 1; return { ok: true, value: RUNNING_STATUS }; },
+          start: async () => ({ ok: true, value: RUNNING_STATUS }),
+          pause: async () => ({ ok: true, value: RUNNING_STATUS }),
+          resume: async () => ({ ok: true, value: RUNNING_STATUS }),
+          cancel: async () => ({ ok: true, value: RUNNING_STATUS }),
+          retry: async () => ({ ok: true, value: RUNNING_STATUS }),
+          cancelTask: async () => ({ ok: true, value: RUNNING_STATUS }),
+          recover: async () => ({ ok: true, value: RUNNING_STATUS }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openQueue(render);
+    await flush();
+    // 刷新（running）→ 立即拉取一次并进入轮询（refresh 自身拉取 + 轮询控制器
+    // 立即 tick 一次 = 2 次 status 调用）。
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(statusCalls).toBe(2);
+    // 卸载（等价 Fiber dispose）：disposer 停表 + isActive 翻转，轮询链必须归零。
+    for (const cleanup of overlayCleanups.splice(0)) cleanup();
+    await new Promise((resolve) => { setTimeout(resolve, QUEUE_POLL_INTERVAL_MS + 250); });
+    expect(statusCalls).toBe(2);
   });
 });
 

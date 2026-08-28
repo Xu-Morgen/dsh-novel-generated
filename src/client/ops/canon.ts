@@ -7,7 +7,7 @@ import type { CanonEditOps } from '../layers/canon.js';
 import type { OpsContext } from './context.js';
 
 export function createCanonOps(ctx: OpsContext): CanonEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const workspace = ctx.workspace;
   return {
@@ -21,7 +21,7 @@ export function createCanonOps(ctx: OpsContext): CanonEditOps {
         if (e.selectedId === undefined) { release(); act.canonDraft({ error: '请先选择一个正史事件再发起更正' }); return; }
         if ((e.draft.summary ?? '').trim() === '') { release(); act.canonDraft({ error: '更正摘要不能为空' }); return; }
         act.canonDraft({ saving: true, saveMessage: '', error: '' });
-        void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, buildCanonCorrectionInput(e.draft))).then((proposal) => { release(); if (!active) return; act.canonDraft({ proposalId: (proposal as { id?: string }).id, saving: false, saveMessage: '更正提案已发起', error: '' }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
+        void unwrap(workspace.canonCorrectionPropose(projectId, e.selectedId, buildCanonCorrectionInput(e.draft))).then((proposal) => { release(); if (!isActive()) return; act.canonDraft({ proposalId: (proposal as { id?: string }).id, saving: false, saveMessage: '更正提案已发起', error: '' }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
       },
       accept: () => {
         const e = snapshot.canonEditor;
@@ -30,7 +30,7 @@ export function createCanonOps(ctx: OpsContext): CanonEditOps {
         if (!workspace || projectId === undefined) { release(); act.canonDraft({ error: '创作台远程服务不可用' }); return; }
         if (e.proposalId === undefined) { release(); act.canonDraft({ error: '请先发起更正提案' }); return; }
         act.canonDraft({ saving: true, saveMessage: '', error: '' });
-        void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!active) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
+        void unwrap(workspace.canonCorrectionAccept(projectId, e.proposalId)).then(() => { release(); if (!isActive()) return; act.canonDraft({ proposalId: undefined, dirty: false, saving: false, saveMessage: '已确认更正', error: '' }); void unwrap(workspace!.canonQuery(projectId, undefined)).then((events) => act.setCanon('ready', events as unknown[]), (cause: Error) => { act.setCanon('error', [], cause.message); act.canonDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.canonDraft({ saving: false, saveMessage: '', error: cause.message }); });
       },
   };
 }

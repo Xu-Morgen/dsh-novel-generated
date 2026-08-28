@@ -1,4 +1,5 @@
 import type { BranchNamespace, ImportExportNamespace, KnowledgeNamespace, ProgressNamespace, QueueNamespace, ReviewNamespace, RuleStyleNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, WorkspaceNamespace, WritingNamespace } from '../shared.js';
+import type { QueuePollHandle } from '../queue-poll.js';
 import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
 
 /**
@@ -12,15 +13,19 @@ import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
  * - `act` 是 renderer 的 baked actions（inject 捕获的同一实例）；一切写经 action，
  *   绝不就地改对象。
  * - `beginOp/endOp` 是 I59 请求去重（R12-6）：同一操作键在 Remote 返回前至多提交一次。
- * - `active` 是 Fiber 存活守卫：Remote 完成晚于卸载时不再 dispatch。
+ * - `isActive()` 是 Fiber 存活守卫（I88 由布尔快照改为函数）：Remote 完成晚于卸载时
+ *   不再 dispatch；函数总是读当前活跃态，旧闭包不会自视 active。
+ * - `queuePoll` 是 Fiber 级队列轮询控制器（I88）：ops 只发 start/stop 命令，
+ *   不持有任何 timer。
  */
 export interface OpsContext {
   snapshot: WorkbenchState;
   act: WorkbenchActions;
   projectId: string | undefined;
-  active: boolean;
+  isActive(): boolean;
   beginOp(key: string): boolean;
   endOp(key: string): void;
+  queuePoll: QueuePollHandle;
   workspace: WorkspaceNamespace | undefined;
   writing: WritingNamespace | undefined;
   reviewNamespace: ReviewNamespace | undefined;

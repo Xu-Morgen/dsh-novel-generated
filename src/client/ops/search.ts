@@ -8,7 +8,7 @@ import type { OpsContext } from './context.js';
 import type { ChaptersEditOps } from '../layers/chapters.js';
 
 export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOps }): SearchEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const searchNamespace = ctx.searchNamespace;
       const searchPatch = (patch: Partial<SearchLayerState>): void => act.searchPatch(patch);
@@ -24,10 +24,10 @@ export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOp
           : target.references(projectId, key, pov === '' ? undefined : pov);
         void unwrap(call).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           onResult(result as T);
           searchPatch({ acting: false, status: 'ready' });
-        }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
       };
       const runStats = (): void => {
         const target = searchNamespace;
@@ -37,9 +37,9 @@ export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOp
         searchPatch({ acting: true, message: undefined });
         void unwrap(target.stats(projectId)).then((stats) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           searchPatch({ acting: false, stats: stats as SearchStatsShape, message: undefined });
-        }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
       };
       return {
         setQuery(value: string) { searchPatch({ query: value, message: undefined }); },
@@ -66,9 +66,9 @@ export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOp
           searchPatch({ acting: true, message: undefined });
           void unwrap(target.build(projectId)).then((stats) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             searchPatch({ acting: false, stats: stats as SearchStatsShape, message: `已从六层 live source-of-truth 重建派生索引（${(stats as SearchStatsShape).totalEntries} 条，零写结构层）。` });
-          }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
         },
         drop(): void {
           const target = searchNamespace;
@@ -78,9 +78,9 @@ export function createSearchOps(ctx: OpsContext, ref: { current?: ChaptersEditOp
           searchPatch({ acting: true, message: undefined });
           void unwrap(target.drop(projectId)).then((stats) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             searchPatch({ acting: false, stats: stats as SearchStatsShape, results: undefined, references: undefined, message: '已删除派生索引（可随时重建，不写任何结构层）。' });
-          }, (cause: Error) => { release(); if (!active) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
         },
         // 结果跳转：正文命中 → 正文视图对应场景；其余层 → 对应层面板（R14-6 结果跳转）。
         jumpTo(hit: SearchHitShape): void {

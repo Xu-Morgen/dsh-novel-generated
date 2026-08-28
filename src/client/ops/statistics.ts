@@ -7,7 +7,7 @@ import type { ChapterDetailShape, SceneCardsResultShape, StatisticsEditOps, Stat
 import type { OpsContext } from './context.js';
 
 export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const statisticsNamespace = ctx.statisticsNamespace;
       const statisticsPatch = (patch: Partial<StatisticsLayerState>): void => act.statisticsPatch(patch);
@@ -19,10 +19,10 @@ export function createStatisticsOps(ctx: OpsContext): StatisticsEditOps {
         statisticsPatch({ acting: true, message: undefined });
         void unwrap(call(target, projectId)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           onResult(result as T);
           statisticsPatch({ acting: false, status: 'ready' });
-        }, (cause: Error) => { release(); if (!active) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; statisticsPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
       };
       const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
         // I86：wire 契约为位置参数 [projectId, actId, beatId, status, limit]（descriptor

@@ -7,7 +7,7 @@ import type { RuleDraftShape, RuleShape, RuleStyleEditOps, RuleStyleLayerState, 
 import type { OpsContext } from './context.js';
 
 export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const ruleStyleNamespace = ctx.ruleStyleNamespace;
       const ruleStylePatch = (patch: Partial<RuleStyleLayerState>): void => act.ruleStylePatch(patch);
@@ -32,10 +32,10 @@ export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
           ruleStylePatch({ status: 'loading', message: undefined });
           void unwrap(target.list(projectId)).then((projection) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = projection as RuleStyleProjectionShape;
             ruleStylePatch({ status: 'ready', projection: result, styleDraft: styleDraftFrom(result.style), message: undefined });
-          }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ status: 'error', message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ status: 'error', message: (cause as Error).message }); });
         },
         selectRule(ruleId: string): void {
           const target = ruleStyleNamespace;
@@ -49,9 +49,9 @@ export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
           const release = (): void => endOp(`ruleStyle:read:${ruleId}`);
           void unwrap(target.readRule(projectId, ruleId)).then((rule) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             ruleStylePatch({ editingRuleId: ruleId, ruleDraft: ruleDraftFrom(rule as RuleShape), message: undefined });
-          }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ message: (cause as Error).message }); });
         },
         newRule(): void {
           const editing = snapshot.ruleStyle.editingRuleId === '__new__';
@@ -81,16 +81,16 @@ export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
             : target.updateRule(projectId, draft.id.trim(), payload);
           void unwrap(call).then((rule) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const saved = rule as RuleShape;
             ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则「${saved.id}」（v${saved.version}）。` });
             // 刷新列表投影以反映同一 Host 真相（生成/检测消费同一存储）。
             void unwrap(target.list(projectId)).then((projection) => {
-              if (!active) return;
+              if (!isActive()) return;
               const result = projection as RuleStyleProjectionShape;
               ruleStylePatch({ projection: result, status: 'ready' });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
         },
         setStyleDraft(patch: Partial<StyleDraftShape>): void {
           ruleStylePatch({ styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
@@ -110,16 +110,16 @@ export function createRuleStyleOps(ctx: OpsContext): RuleStyleEditOps {
           ruleStylePatch({ acting: true, message: undefined });
           void unwrap(target.saveStyle(projectId, input)).then((style) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const saved = style as StyleShape;
             ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（v${saved.version}，id ${saved.id}）。` });
             // 刷新投影：style 视图同步（含 version/id）。
             void unwrap(target.list(projectId)).then((projection) => {
-              if (!active) return;
+              if (!isActive()) return;
               const result = projection as RuleStyleProjectionShape;
               ruleStylePatch({ projection: result, status: 'ready', styleDraft: styleDraftFrom(result.style) });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!active) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
         },
         dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
       };

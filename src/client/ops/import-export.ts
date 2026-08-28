@@ -7,7 +7,7 @@ import type { ImportExportEditOps, ImportExportLayerState, ImportExportPreviewSh
 import type { OpsContext } from './context.js';
 
 export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const importExportNamespace = ctx.importExportNamespace;
       const iePatch = (patch: Partial<ImportExportLayerState>): void => act.importExportPatch(patch);
@@ -19,9 +19,9 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
         pickImportFile(file) {
           if (!file) return;
           void file.text().then((text) => {
-            if (!active) return;
+            if (!isActive()) return;
             iePatch({ importText: text, importFileName: file.name, message: undefined, error: undefined });
-          }, () => { if (!active) return; iePatch({ error: `读取导入文件失败：${file.name}` }); });
+          }, () => { if (!isActive()) return; iePatch({ error: `读取导入文件失败：${file.name}` }); });
         },
         pickRestoreFile(file) {
           if (!file) return;
@@ -30,9 +30,9 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
             return;
           }
           void file.text().then((text) => {
-            if (!active) return;
+            if (!isActive()) return;
             iePatch({ restoreFileName: file.name, restoreRaw: text, restoreResult: undefined, restoreError: undefined, message: undefined, error: undefined });
-          }, () => { if (!active) return; iePatch({ restoreError: `读取恢复包失败：${file.name}` }); });
+          }, () => { if (!isActive()) return; iePatch({ restoreError: `读取恢复包失败：${file.name}` }); });
         },
         exportArchive(): void {
           const target = importExportNamespace;
@@ -42,11 +42,11 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
           iePatch({ acting: true, message: undefined, error: undefined });
           void unwrap(target.exportArchive(projectId, snapshot.importExport.exportMode)).then((outcome) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = outcome as { fileName: string; mode: string; fileCount: number; content: string };
             downloadText(result.fileName, result.content);
             iePatch({ acting: false, message: `已导出 ${result.fileCount} 个文件（${result.mode}），开始下载 ${result.fileName}。` });
-          }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ acting: false, error: (cause as Error).message }); });
         },
         exportText(): void {
           const target = importExportNamespace;
@@ -56,7 +56,7 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
           iePatch({ acting: true, message: undefined, error: undefined });
           void unwrap(target.exportText(projectId, snapshot.importExport.textFormat)).then((outcome) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = outcome as { fileName: string; format: string; files: Record<string, string> };
             for (const [name, content] of Object.entries(result.files)) {
               const base = name.split('/').pop() ?? name;
@@ -66,7 +66,7 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
               downloadText(base, content);
             }
             iePatch({ acting: false, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
-          }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ acting: false, error: (cause as Error).message }); });
         },
         restore(): void {
           const target = importExportNamespace;
@@ -77,14 +77,14 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
           iePatch({ acting: true, message: undefined, error: undefined, restoreError: undefined, restoreResult: undefined });
           void unwrap(target.restore(projectId, state.restoreRaw)).then((outcome) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = outcome as ImportExportRestoreResultShape;
             if (result.status === 'imported') {
               iePatch({ acting: false, restoreResult: result, message: `恢复完成：写入 ${result.written.length} 个文件（round-trip）。` });
             } else {
               iePatch({ acting: false, restoreResult: result, message: undefined });
             }
-          }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, restoreError: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ acting: false, restoreError: (cause as Error).message }); });
         },
         previewImport(): void {
           const target = importExportNamespace;
@@ -95,10 +95,10 @@ export function createImportExportOps(ctx: OpsContext): ImportExportEditOps {
           iePatch({ acting: true, message: undefined, error: undefined });
           void unwrap(target.importPreview(projectId, { fileName: state.importFileName ?? `pasted.${state.importFormat}`, format: state.importFormat, text: state.importText })).then((outcome) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = outcome as ImportExportPreviewShape;
             iePatch({ acting: false, preview: result, message: `导入预览完成：${result.chunks.length} 块（零写）。` });
-          }, (cause: Error) => { release(); if (!active) return; iePatch({ acting: false, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ acting: false, error: (cause as Error).message }); });
         },
         dismiss() { iePatch({ status: 'idle', message: undefined, error: undefined, acting: false, preview: undefined, restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: undefined, importText: '', importFileName: undefined }); },
       };

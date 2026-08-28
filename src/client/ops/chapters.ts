@@ -10,7 +10,7 @@ import type { WritingAdjudicationOutcome } from '../store/types.js';
 import type { OpsContext } from './context.js';
 
 export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEditOps }): ChaptersEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const workspace = ctx.workspace;
   const writing = ctx.writing;
@@ -32,10 +32,10 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         branchesPatch({ status: 'loading', message: undefined });
         void unwrap(target.list(projectId, cid, sid)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const list = ((result as { branches?: BranchSummaryShape[] }).branches ?? []) as BranchSummaryShape[];
           branchesPatch({ status: 'ready', list, message: undefined });
-        }, (cause: Error) => { release(); if (!active) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
       };
       const branchSave = (): void => {
         const target = branchNamespace;
@@ -50,10 +50,10 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         branchesPatch({ acting: true, message: undefined });
         void unwrap(target.save(projectId, chapterId, sceneId, label)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const saved = (result as { branches?: BranchSummaryShape[] }).branches;
           branchesPatch({ acting: false, status: 'ready', list: (saved ?? current.list) as BranchSummaryShape[], labelDraft: '', message: '已存档当前版本' });
-        }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
       };
       const branchChoose = (branchId: string): void => {
         const target = branchNamespace;
@@ -66,12 +66,12 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         branchesPatch({ acting: true, message: undefined });
         void unwrap(target.choose(projectId, chapterId, sceneId, branchId)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const chosen = (result as { branches?: BranchSummaryShape[]; content?: string });
           branchesPatch({ acting: false, status: 'ready', list: (chosen.branches ?? current.list) as BranchSummaryShape[], message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
           // 切换后正文变化：重载场景，让编辑器以新原文初始化（baseHash 随之更新）。
           if (chosen.content !== undefined && chosen.content !== snapshot.chapters.editor.original && sceneId !== undefined) loadScene(sceneId, chapterId);
-        }, (cause: Error) => { release(); if (!active) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
       };
       const branchDiff = (branchId: string): void => {
         const target = branchNamespace;
@@ -83,10 +83,10 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         branchesPatch({ diff: { status: 'loading', lines: [] }, message: undefined });
         void unwrap(target.diff(projectId, chapterId, sceneId, branchId)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const diff = result as { from?: { label: string }; to?: { label: string }; lines?: BranchDiffLineShape[] };
           branchesPatch({ diff: { status: 'ready', fromLabel: diff.from?.label, toLabel: diff.to?.label, lines: (diff.lines ?? []) as BranchDiffLineShape[] } });
-        }, (cause: Error) => { release(); if (!active) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
       };
       const branchCloseDiff = (): void => branchesPatch({ diff: { status: 'idle', lines: [] } });
       const loadScene = (sceneId: string, chapterId: string): void => {
@@ -97,7 +97,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         act.chaptersSelectScene(sceneId);
         void unwrap(target.sceneRead(projectId, chapterId, sceneId)).then((scene) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const shape = (scene as { scene?: SceneReadShape }).scene;
           act.chaptersScene('ready', scene, undefined);
           // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
@@ -105,7 +105,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
           act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
           // I70：装载后刷新该场景的版本列表（chosen 唯一投影）。
           branchesLoad(chapterId, sceneId);
-        }, (cause: Error) => { release(); if (!active) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); branchesPatch({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); branchesPatch({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
       };
       const selectChapter = (chapterId: string): void => {
         // I61 脏文本保护：草稿未保存时先弹离开确认，把切换推迟到裁决后。
@@ -118,12 +118,12 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         act.chaptersSelectChapter(chapterId);
         void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const shape = read as ChapterReadShape;
           act.chaptersRead('ready', shape, undefined);
           if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
           else act.chaptersScene('idle', undefined, undefined);
-        }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
+        }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, (cause as Error).message); });
       };
       const selectScene = (sceneId: string): void => {
         const chapterId = snapshot.chapters.selectedChapterId;
@@ -150,25 +150,25 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
           if (reparse) {
             void unwrap(target.sceneReparsePropose(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((proposal) => {
               release();
-              if (!active) return;
+              if (!isActive()) return;
               const p = proposal as { proposalId?: string; status?: string };
               if (!p.proposalId) { editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
               // 幂等提议：同一编辑重复提议返回既有提案（可能是已拒绝/已处理）。
               if (p.status === 'rejected') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
               if (p.status === 'accepted') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'done', message: '该重解析提案此前已确认并应用' } }); return; }
               editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId: p.proposalId, range: diff.range, replacement: diff.replacement, baseHash } });
-            }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+            }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
           } else {
             void unwrap(target.sceneEdit(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((result) => {
               release();
-              if (!active) return;
+              if (!isActive()) return;
               const r = result as { scene?: SceneReadShape };
               const content = r.scene?.content ?? editor.draft;
               act.chaptersScene('ready', { scene: r.scene }, undefined);
               editorPatch({ saving: false, saveMessage: '已保存', dirty: false, original: content, draft: content, error: '' });
-            }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+            }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
           }
-        }, (cause: Error) => { release(); if (!active) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
       };
       const acceptReparse = (): void => {
         const target = workspace;
@@ -184,12 +184,12 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         // accept 再带 baseHash：Host 在 propose→accept 窗口内核对正文未变（脏文本保护）。
         void unwrap(target.sceneReparseAccept(projectId, chapterId, sceneId, r.range, r.replacement, r.proposalId, r.baseHash)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const res = result as { scene?: SceneReadShape; layers?: string[] };
           const content = res.scene?.content ?? editor.draft;
           act.chaptersScene('ready', { scene: res.scene }, undefined);
           editorPatch({ saving: false, dirty: false, original: content, draft: content, error: '', saveMessage: '', reparse: { kind: 'done', message: `已重解析并同步：${(res.layers ?? []).join(' / ')}` } });
-        }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
       };
       const rejectReparse = (): void => {
         const target = workspace;
@@ -197,7 +197,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         if (!target || projectId === undefined || r.kind !== 'proposed') return;
         if (!beginOp('chapters:reparse:reject')) return;
         const release = (): void => endOp('chapters:reparse:reject');
-        void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!active) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!active) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+        void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
       };
       const discardDraft = (): void => {
         const pending = snapshot.chapters.editor.pendingNavigation;
@@ -214,21 +214,21 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         const target = workspace;
         if (!target || projectId === undefined) return;
         void unwrap(target.chapterList(projectId)).then((list) => {
-          if (!active) return;
+          if (!isActive()) return;
           act.setChapters('ready', list as unknown[]);
           const chapterId = snapshot.chapters.selectedChapterId;
           if (chapterId !== undefined) selectChapter(chapterId);
-        }, (cause: Error) => { if (active) act.setChapters('error', [], (cause as Error).message); });
+        }, (cause: Error) => { if (isActive()) act.setChapters('error', [], (cause as Error).message); });
       };
       // 候选生成后立即预览（正文 + diff + 校验结果），ready 才允许裁决。
       const previewAfterPropose = (candidateId: string, onReady: () => void): void => {
         const target = writing;
         if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
         void unwrap(target.preview(candidateId)).then((review) => {
-          if (!active) return;
+          if (!isActive()) return;
           candidatePatch({ ui: { kind: 'ready', review: review as CandidateReviewShape } });
           onReady();
-        }, (cause: Error) => { if (active) candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+        }, (cause: Error) => { if (isActive()) candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
       };
       const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
         const target = writing;
@@ -238,11 +238,11 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         candidatePatch({ ui: { kind: 'proposing', intent } });
         void unwrap(target.propose(projectId, { intent }, undefined)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const candidate = (result as { candidate?: { id: string } }).candidate;
           if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
           previewAfterPropose(candidate.id, () => undefined);
-        }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
       };
       const proposeRewrite = (): void => {
         const target = writing;
@@ -257,11 +257,11 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         candidatePatch({ ui: { kind: 'proposing', intent: 'rewrite' } });
         void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt }, undefined)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const candidate = (result as { candidate?: { id: string } }).candidate;
           if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
           previewAfterPropose(candidate.id, () => undefined);
-        }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
       };
       const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
         const target = writing;
@@ -274,7 +274,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
         candidatePatch({ ui: { kind: 'acting', review: ui.review, action: decision } });
         void unwrap(target.adjudicate(candidateId, decision, undefined)).then((result) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const outcome = result as WritingAdjudicationOutcome;
           if (outcome.status === 'written') {
             candidatePatch({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } });
@@ -289,7 +289,7 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
           } else if (outcome.status === 'pending-compensation') {
             candidatePatch({ ui: { kind: 'error', message: `写回中断（${outcome.failedStage}），未完成。请重试或重写。` } });
           }
-        }, (cause: Error) => { release(); if (!active) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
       };
       const chaptersOpsResult: ChaptersEditOps = {
         selectChapter,
@@ -336,10 +336,10 @@ export function createChaptersOps(ctx: OpsContext, ref: { current?: ChaptersEdit
           act.chaptersSelectChapter(chapterId);
           void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             act.chaptersRead('ready', read as ChapterReadShape, undefined);
             loadScene(sceneId, chapterId);
-          }, (cause: Error) => { release(); if (!active) return; act.chaptersRead('error', undefined, (cause as Error).message); });
+          }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, (cause as Error).message); });
         },
       };
       ref.current = chaptersOpsResult;

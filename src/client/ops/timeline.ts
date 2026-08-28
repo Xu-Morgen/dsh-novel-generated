@@ -6,7 +6,7 @@ import type { TimelineEditOps, TimelineLayerState, TimelineShape } from '../laye
 import type { OpsContext } from './context.js';
 
 export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const timelineNamespace = ctx.timelineNamespace;
       const timelinePatch = (patch: Partial<TimelineLayerState>): void => act.timelinePatch(patch);
@@ -18,9 +18,9 @@ export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
         timelinePatch({ status: 'loading', message: undefined });
         void unwrap(target.read(projectId)).then((timeline) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           timelinePatch({ status: 'ready', timeline: (timeline ?? undefined) as TimelineShape | undefined, selectedId: undefined, dirty: false, saving: false, saveMessage: '', error: '', message: undefined });
-        }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', message: (cause as Error).message }); });
       };
       return {
         refresh: load,
@@ -32,9 +32,9 @@ export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
           timelinePatch({ status: 'loading', error: '', message: undefined });
           void unwrap(target.ensureFromOutline(projectId)).then((timeline) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             timelinePatch({ status: 'ready', timeline: timeline as TimelineShape, selectedId: undefined, dirty: false, saving: false, saveMessage: '已从大纲生成时间线骨架', error: '', message: undefined });
-          }, (cause: Error) => { release(); if (!active) return; timelinePatch({ status: 'error', error: (cause as Error).message, message: undefined }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', error: (cause as Error).message, message: undefined }); });
         },
         select(nodeId: string) {
           timelinePatch({ selectedId: nodeId, dirty: false, error: '', saveMessage: '' });
@@ -52,9 +52,9 @@ export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
           const release = (): void => endOp('timeline:setCurrent');
           void unwrap(target.setCurrentNode(projectId, nodeId)).then((timeline) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saveMessage: nodeId === null ? '已恢复自动锚定' : '已设为当前时间点', error: '' });
-          }, (cause: Error) => { release(); if (!active) return; timelinePatch({ error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ error: (cause as Error).message }); });
         },
         save(): void {
           const target = timelineNamespace;
@@ -65,9 +65,9 @@ export function createTimelineOps(ctx: OpsContext): TimelineEditOps {
           timelinePatch({ saving: true, error: '', saveMessage: '' });
           void unwrap(target.save(projectId, current)).then((timeline) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saving: false, saveMessage: '已保存', error: '' });
-          }, (cause: Error) => { release(); if (!active) return; timelinePatch({ saving: false, error: (cause as Error).message, saveMessage: '' }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ saving: false, error: (cause as Error).message, saveMessage: '' }); });
         },
       };
 }

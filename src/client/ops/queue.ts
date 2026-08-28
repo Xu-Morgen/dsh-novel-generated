@@ -5,45 +5,26 @@ import { unwrap } from '../shared.js';
 import type { QueueEditOps, QueueLayerState, QueueStartInputShape, QueueStatusShape, QueueTaskShape } from '../layers/queue.js';
 import type { OpsContext } from './context.js';
 
-export const QUEUE_POLL_INTERVAL_MS = 2_000;
+export { QUEUE_POLL_INTERVAL_MS } from '../queue-poll.js';
 
 export function createQueueOps(ctx: OpsContext): QueueEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive, queuePoll } = ctx;
   const projectId = ctx.projectId;
   const workspace = ctx.workspace;
   const queueNamespace = ctx.queueNamespace;
       const queuePatch = (patch: Partial<QueueLayerState>): void => act.queuePatch(patch);
-      // 运行中轮询状态（Host 后台 loop 驱动；terminal 后停止，Fiber 卸载即清）。
-      let queuePollTimer: ReturnType<typeof setTimeout> | undefined;
-      const clearQueuePoll = (): void => {
-        if (queuePollTimer !== undefined) { clearTimeout(queuePollTimer); queuePollTimer = undefined; }
-      };
-      const pollQueueStatus = (): void => {
-        const target = queueNamespace;
-        if (!active || target === undefined || projectId === undefined) { clearQueuePoll(); return; }
-        void unwrap(target.status(projectId)).then((projection) => {
-          if (!active) { clearQueuePoll(); return; }
-          const next = projection as QueueStatusShape;
-          queuePatch({ projection: next });
-          if (next.runState === 'running' || next.runState === 'paused') {
-            queuePollTimer = setTimeout(pollQueueStatus, QUEUE_POLL_INTERVAL_MS);
-          } else {
-            clearQueuePoll();
-          }
-        }, () => { clearQueuePoll(); });
-      };
       const loadCards = (): void => {
         const target = workspace;
         if (!target || projectId === undefined) return;
         void unwrap(target.outlineBeatCards(projectId)).then((cards) => {
-          if (!active) return;
+          if (!isActive()) return;
           const shaped = (cards as Array<{ actId: string; beatId: string; detailBeat: { id: string; title: string; pov: string; wordTarget: number; status: string } }>).map((card) => ({
             actId: card.actId, beatId: card.beatId, id: card.detailBeat.id, title: card.detailBeat.title,
             pov: card.detailBeat.pov, wordTarget: card.detailBeat.wordTarget, status: card.detailBeat.status,
           }));
           // 默认全选（start 时全部入队）；已有勾选保留。
           queuePatch({ cards: shaped, selectedCardIds: snapshot.queue.selectedCardIds.length > 0 ? snapshot.queue.selectedCardIds : shaped.map((card) => card.id), status: 'ready' });
-        }, (cause: Error) => { if (active) queuePatch({ status: 'ready', message: (cause as Error).message }); });
+        }, (cause: Error) => { if (isActive()) queuePatch({ status: 'ready', message: (cause as Error).message }); });
       };
       /** 通用队列命令（幂等由 Host 状态机保证；同键 inflight 去重）。 */
       const queueCommand = (method: 'pause' | 'resume' | 'cancel' | 'retry', taskId?: string): void => {
@@ -54,11 +35,12 @@ export function createQueueOps(ctx: OpsContext): QueueEditOps {
         const call = method === 'retry' ? target.retry(projectId, taskId as string) : (target[method] as (projectId: string) => Promise<unknown>)(projectId);
         void unwrap(call).then((projection) => {
           release();
-          if (!active) return;
+          if (!isActive()) return;
           const next = projection as QueueStatusShape;
           queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
-          if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-        }, (cause: Error) => { release(); if (!active) return; queuePatch({ message: (cause as Error).message }); });
+          // I88：轮询命令发往 Fiber 级控制器（单飞行，不堆积并行轮询链）。
+          if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
+        }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ message: (cause as Error).message }); });
       };
       return {
         refresh(): void {
@@ -69,12 +51,12 @@ export function createQueueOps(ctx: OpsContext): QueueEditOps {
           queuePatch({ status: 'loading', message: undefined });
           void unwrap(target.status(projectId)).then((projection) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const next = projection as QueueStatusShape;
             queuePatch({ status: 'ready', projection: next });
             loadCards();
-            if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-          }, (cause: Error) => { release(); if (!active) return; queuePatch({ status: 'error', message: (cause as Error).message }); });
+            if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
+          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ status: 'error', message: (cause as Error).message }); });
         },
         toggleCard(cardId: string) {
           const selected = snapshot.queue.selectedCardIds;
@@ -101,16 +83,16 @@ export function createQueueOps(ctx: OpsContext): QueueEditOps {
           queuePatch({ acting: true, message: undefined });
           void unwrap(target.start(projectId, input)).then((projection) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const next = projection as QueueStatusShape;
             queuePatch({ acting: false, status: 'ready', projection: next });
-            if (next.runState === 'running' || next.runState === 'paused') pollQueueStatus();
-          }, (cause: Error) => { release(); if (!active) return; queuePatch({ acting: false, message: (cause as Error).message }); });
+            if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
+          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: (cause as Error).message }); });
         },
         pause() { queueCommand('pause'); },
         resume() { queueCommand('resume'); },
         cancel() { queueCommand('cancel'); },
         retry(taskId: string) { queueCommand('retry', taskId); },
-        dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); clearQueuePoll(); },
+        dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); queuePoll.stop(); },
       };
 }

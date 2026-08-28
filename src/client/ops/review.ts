@@ -6,7 +6,7 @@ import type { ReviewAdjudicationOutcomeShape, ReviewAuditRecordShape, ReviewEdit
 import type { OpsContext } from './context.js';
 
 export function createReviewOps(ctx: OpsContext): ReviewEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const reviewNamespace = ctx.reviewNamespace;
       const reviewPatch = (patch: Partial<ReviewLayerState>): void => act.reviewPatch(patch);
@@ -30,11 +30,11 @@ export function createReviewOps(ctx: OpsContext): ReviewEditOps {
             unwrap(target.records(projectId)),
           ]).then(([projection, recordList]) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             // I77：records wire 契约即裸数组（组合根不再包 envelope）。
             const records = (recordList as ReviewAuditRecordShape[] | undefined) ?? [];
             reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined });
-          }, (cause: Error) => { release(); if (!active) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
         },
         toggleFilter,
         clearFilters() { reviewPatch({ filter: { categories: [], severities: [], statuses: [] } }); },
@@ -52,7 +52,7 @@ export function createReviewOps(ctx: OpsContext): ReviewEditOps {
           reviewPatch({ acting: true, message: undefined });
           void unwrap(target.adjudicate(projectId, { decision, issueIds: [...state.selected] })).then((outcome) => {
             release();
-            if (!active) return;
+            if (!isActive()) return;
             const result = outcome as ReviewAdjudicationOutcomeShape;
             reviewPatch({
               acting: false,
@@ -61,7 +61,7 @@ export function createReviewOps(ctx: OpsContext): ReviewEditOps {
               selected: [],
               message: `已记录 ${result.applied.length} 项${decision === 'continue' ? '「显式继续」' : '「请求重写」'}（重复 ${result.duplicate.length} 项）。`,
             });
-          }, (cause: Error) => { release(); if (!active) return; reviewPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ acting: false, message: (cause as Error).message }); });
         },
         dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [] }); },
       };

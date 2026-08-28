@@ -62,6 +62,7 @@ import {
 import { GRID_STEP, NAV_WIDTH_DEFAULT, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_DEFAULT, PANEL_WIDTH_MAX, PANEL_WIDTH_MIN } from './client/store/types.js';
 import { createWorkbenchOps } from './client/ops/index.js';
 import type { OpsContext } from './client/ops/context.js';
+import { createQueuePollController } from './client/queue-poll.js';
 
 /** 侧栏/面板宽度与步进常量已迁至 store 契约层（I82，src/client/store/types.ts）；
  *  此处 re-export 保持既有导入面（client.test.ts 的 NAV/PANEL 锚点不变）。 */
@@ -454,6 +455,15 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         if (capturedActions !== undefined) fn(capturedActions);
         else pending.push(fn);
       };
+      // I88：队列轮询 timer 归 Fiber 级持有（review v2.0 §3.3）——控制器单例在
+      // slot 装配作用域创建一次（非每次渲染），随 slot 卸载（Fiber dispose）经下方
+      // disposer 回收；ops 只发 start/stop 命令。isActive 用函数读取当前活跃态。
+      const queuePoll = createQueuePollController({
+        isActive: () => active,
+        projectId: () => currentProjectId,
+        queue: () => queueNamespace,
+        onStatus: (next) => dispatch((x) => x.queuePatch({ projection: next })),
+      });
       const openProject = (projectId: string, onOpened?: () => void): void => {
         const target = workspace;
         if (!active || target === undefined) return;
@@ -663,9 +673,10 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         snapshot,
         act: capturedActions as WorkbenchActions,
         projectId: currentProjectId,
-        active,
+        isActive: () => active,
         beginOp,
         endOp,
+        queuePoll,
         workspace,
         writing,
         reviewNamespace,
@@ -960,6 +971,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         return () => {
           active = false;
           clearAnalysisPoll();
+          queuePoll.stop();
           capturedActions = undefined;
           pending.splice(0);
           workspace = undefined;

@@ -6,7 +6,7 @@ import type { StateDiffShape, StateEditOps, StateSnapshotShape } from '../layers
 import type { OpsContext } from './context.js';
 
 export function createStateOps(ctx: OpsContext): StateEditOps {
-  const { act, snapshot, beginOp, endOp, active } = ctx;
+  const { act, snapshot, beginOp, endOp, isActive } = ctx;
   const projectId = ctx.projectId;
   const workspace = ctx.workspace;
   return {
@@ -25,7 +25,7 @@ export function createStateOps(ctx: OpsContext): StateEditOps {
         const release = (): void => endOp('state:rollback');
         if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
         if (e.selectedSeq === undefined) { release(); act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
-        void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!active) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message }); });
+        void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!isActive()) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message }); });
       },
   };
 }
