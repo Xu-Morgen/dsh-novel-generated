@@ -5,7 +5,7 @@ export interface CanonEventShape { id: string; seq: number; storyTime: string; k
 export interface CanonLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly events: CanonEventShape[]; readonly message?: string; }
 export interface CanonEditor { selectedId: string | undefined; proposalId: string | undefined; draft: { storyTime: string; summary: string; detail: string }; dirty: boolean; error: string; saving: boolean; saveMessage: string; }
 export interface CanonEditOps { select(event: CanonEventShape): void; mutate(update: (draft: CanonEditor['draft']) => CanonEditor['draft']): void; propose(): void; accept(): void; }
-export function canonCorrectionInput(draft: CanonEditor['draft']): unknown { return { storyTime: draft.storyTime, summary: draft.summary, detail: draft.detail, participants: [], location: '', consequences: [], affectedLayers: [] }; }
+export function canonCorrectionInput(draft: CanonEditor['draft'], targetId: string): Parameters<WorkspaceNamespace['canonCorrectionPropose']>[2] { return { id: `evt-fix-${targetId}`, storyTime: draft.storyTime, summary: draft.summary, detail: draft.detail, participants: [], location: '', consequences: [], affectedLayers: [] }; }
 
 export function canonLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, layerState: CanonLayerState, editor: CanonEditor, ops: CanonEditOps): unknown {
   if (layerState.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'canon', 'data-novel-layer-state': 'loading' }, '\u6b63\u5728\u88c5\u8f7d\u6b63\u53f2\u8d26\u672c\u2026');

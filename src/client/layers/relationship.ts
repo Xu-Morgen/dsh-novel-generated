@@ -13,7 +13,7 @@ export interface RelationshipLayerState { readonly status: 'loading' | 'ready' |
 export interface RelationshipEditor { selectedId: string | undefined; draft: RelationshipShape; dirty: boolean; error: string; saving: boolean; saveMessage: string; }
 export interface RelationshipEditOps { select(entry: RelationshipShape): void; newDraft(): void; mutate(update: (draft: RelationshipShape) => RelationshipShape): void; save(): void; }
 
-export function relationshipInput(draft: RelationshipShape): unknown {
+export function relationshipInput(draft: RelationshipShape): Parameters<WorkspaceNamespace['relationshipSave']>[1] {
   return { id: draft.id, from: draft.from, to: draft.to, type: draft.type ?? 'friendship', affinity: draft.affinity ?? 0, trust: draft.trust ?? 0, status: draft.status ?? 'active', milestones: draft.milestones ?? [], knownTo: draft.knownTo ?? [] };
 }
 export function newRelationshipDraft(): RelationshipShape {

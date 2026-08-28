@@ -33,7 +33,7 @@ export interface WorldEditOps {
   save(): void;
 }
 
-export function worldviewInput(draft: WorldShape): unknown {
+export function worldviewInput(draft: WorldShape): Parameters<WorkspaceNamespace['worldviewCreate']>[1] {
   return {
     id: draft.id,
     kind: draft.kind ?? 'concept',

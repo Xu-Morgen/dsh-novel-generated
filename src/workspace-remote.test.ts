@@ -56,20 +56,21 @@ describe('I33 Host workspace Remote', () => {
   });
 
   it('uses precise typed result schemas and passthrough Host-validated input objects', () => {
-    // Results carry precise domain/view schemas (never the `#json` passthrough),
-    // while `input`/`patch`/`filter` objects stay passthrough because the Host
-    // owns domain validation and the Client owns no schema (design §0.1.2).
-    // I51 `uploadStart` and I50 `projectCreate` are the deliberate exceptions:
-    // their `input` is a small typed boundary (fileName/size/sha256; strict
-    // CreateProjectInput) validated strictly at the wire (R11-2 / I50 plan
-    // step 14).
+    // Results carry precise domain/view schemas (never the `#json` passthrough).
+    // I97（review v2.0 §8#2）：editor 写入口的 `input`/`patch` wire 请求合同精确化——
+    // 携带真实请求 schema（不再落到通用 #json），领域服务侧复验保留（防御纵深）；
+    // 可选 `filter` 仍为 passthrough。I51 `uploadStart` 与 I50 `projectCreate`
+    // 是既有的小类型边界（fileName/size/sha256；strict CreateProjectInput）。
     for (const descriptor of workspaceRemoteContribution.descriptors) {
       expect((descriptor.result as { typeSymbol: string }).typeSymbol).not.toBe('novel-creation-tool#json');
     }
     for (const descriptor of workspaceRemoteContribution.descriptors) {
       if (descriptor.method === 'uploadStart' || descriptor.method === 'projectCreate') continue;
       for (const parameter of descriptor.parameters) {
-        if (['input', 'patch', 'filter'].includes(parameter.wire)) {
+        if (['input', 'patch'].includes(parameter.wire)) {
+          expect((parameter.codec as { typeSymbol: string }).typeSymbol).not.toBe('novel-creation-tool#json');
+        }
+        if (parameter.wire === 'filter') {
           expect((parameter.codec as { typeSymbol: string }).typeSymbol).toBe('novel-creation-tool#json');
         }
       }

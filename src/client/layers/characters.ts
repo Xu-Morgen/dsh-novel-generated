@@ -33,7 +33,7 @@ export interface CharacterEditOps {
 }
 
 /** Host-validated create/update copy of a character form model. */
-export function characterCreateInput(draft: CharacterShape): unknown {
+export function characterCreateInput(draft: CharacterShape): Parameters<WorkspaceNamespace['characterCreate']>[1] {
   return {
     id: draft.id,
     name: draft.name,

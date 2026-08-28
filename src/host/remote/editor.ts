@@ -28,6 +28,18 @@ const outlineBeatCardSchema = z.object({ actId: z.string(), beatId: z.string(), 
 const stateDiffSchema = z.object({ fromSeq: z.number(), toSeq: z.number(), changes: z.array(z.object({ path: z.string(), before: z.unknown(), after: z.unknown() })) });
 const worldviewRewriteResultSchema = z.object({ superseded: worldEntrySchema, replacement: worldEntrySchema });
 const canonCorrectionAcceptResultSchema = z.object({ confirmation: confirmationRecordSchema, event: z.unknown() });
+
+// I97（review v2.0 §8#2 / 计划 §18 I97）：editor 写入口的 wire 请求合同精确化——
+// 每个写方法携带真实输入 schema（strictCodec），不再落到通用 z.unknown() json
+// codec；领域服务侧复验保留（防御纵深）。schema 输出类型同时派生 Client namespace
+// 入参类型（I91 接线层类型化）。
+export const characterCoreInputWireSchema = characterCoreSchema.omit({ version: true }).extend({ version: z.number().int().optional() });
+export const characterPatchWireSchema = characterCoreSchema.omit({ id: true, version: true });
+export const worldEntryInputWireSchema = worldEntrySchema.omit({ version: true }).extend({ version: z.number().int().optional() });
+export const outlineInputWireSchema = outlineSchema.omit({ version: true }).extend({ version: z.number().int().optional() });
+export const relationshipInputWireSchema = relationshipSchema.omit({ version: true }).extend({ version: z.number().int().optional() });
+export const canonCorrectionInputWireSchema = canonEventSchema.omit({ seq: true, immutable: true, supersedes: true, kind: true });
+
 // I75：`param` 统一到 shared 接线层；`editorInvocation` 只保留 strictCodec 包装
 // （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
 // I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
@@ -39,8 +51,6 @@ const editorInvocation = <const M extends string, const P extends readonly Invoc
 ) => remoteInvocation(service, method, parameters, strictCodec(`novel-creation-tool#${method}:result`, resultSchema));
 const projectParameter = param('projectId', stringCodec);
 const entityParameter = param('entityId', stringCodec);
-const inputParameter = param('input');
-const patchParameter = param('patch');
 const seqParameter = param('seq', numberCodec);
 const fromSeqParameter = param('fromSeq', numberCodec);
 const toSeqParameter = param('toSeq', numberCodec);
@@ -61,23 +71,23 @@ export function workspaceViewModel(): WorkspaceViewModel { return { product: 'no
 export const workspaceViewModelInvocation = remoteInvocation(NOVEL_WORKSPACE_NAMESPACE, 'viewModel', [], strictCodec('novel-creation-tool#workspaceViewModel', z.object({ product: z.literal('novel-creation-tool'), version: z.literal('2.0.0'), ready: z.literal(true), capabilities: z.array(z.enum(['generate', 'rewrite', 'continue', 'inspire'])) })));
 export const characterListInvocation = editorInvocation('novelWorkspace', 'characterList', [projectParameter], z.array(characterCoreSchema));
 export const characterReadInvocation = editorInvocation('novelWorkspace', 'characterRead', [projectParameter, entityParameter], characterCoreSchema);
-export const characterCreateInvocation = editorInvocation('novelWorkspace', 'characterCreate', [projectParameter, inputParameter], characterCoreSchema);
-export const characterUpdateInvocation = editorInvocation('novelWorkspace', 'characterUpdate', [projectParameter, entityParameter, patchParameter], characterCoreSchema);
+export const characterCreateInvocation = editorInvocation('novelWorkspace', 'characterCreate', [projectParameter, param('input', strictCodec('novel-creation-tool#characterCreateInput', characterCoreInputWireSchema))], characterCoreSchema);
+export const characterUpdateInvocation = editorInvocation('novelWorkspace', 'characterUpdate', [projectParameter, entityParameter, param('patch', strictCodec('novel-creation-tool#characterUpdatePatch', characterPatchWireSchema))], characterCoreSchema);
 export const worldviewListInvocation = editorInvocation('novelWorkspace', 'worldviewList', [projectParameter], z.array(worldEntrySchema));
 export const worldviewReadInvocation = editorInvocation('novelWorkspace', 'worldviewRead', [projectParameter, entityParameter], worldEntrySchema);
-export const worldviewCreateInvocation = editorInvocation('novelWorkspace', 'worldviewCreate', [projectParameter, inputParameter], worldEntrySchema);
-export const worldviewRewriteInvocation = editorInvocation('novelWorkspace', 'worldviewRewrite', [projectParameter, entityParameter, inputParameter], worldviewRewriteResultSchema);
+export const worldviewCreateInvocation = editorInvocation('novelWorkspace', 'worldviewCreate', [projectParameter, param('input', strictCodec('novel-creation-tool#worldviewCreateInput', worldEntryInputWireSchema))], worldEntrySchema);
+export const worldviewRewriteInvocation = editorInvocation('novelWorkspace', 'worldviewRewrite', [projectParameter, entityParameter, param('input', strictCodec('novel-creation-tool#worldviewRewriteInput', worldEntryInputWireSchema))], worldviewRewriteResultSchema);
 export const outlineReadInvocation = editorInvocation('novelWorkspace', 'outlineRead', [projectParameter], outlineSchema);
-export const outlineSaveInvocation = editorInvocation('novelWorkspace', 'outlineSave', [projectParameter, inputParameter], outlineSchema);
+export const outlineSaveInvocation = editorInvocation('novelWorkspace', 'outlineSave', [projectParameter, param('input', strictCodec('novel-creation-tool#outlineSaveInput', outlineInputWireSchema))], outlineSchema);
 export const outlineBeatCardsInvocation = editorInvocation('novelWorkspace', 'outlineBeatCards', [projectParameter], z.array(outlineBeatCardSchema));
 export const relationshipReadInvocation = editorInvocation('novelWorkspace', 'relationshipRead', [projectParameter], z.array(relationshipSchema));
-export const relationshipSaveInvocation = editorInvocation('novelWorkspace', 'relationshipSave', [projectParameter, inputParameter], relationshipSchema);
+export const relationshipSaveInvocation = editorInvocation('novelWorkspace', 'relationshipSave', [projectParameter, param('input', strictCodec('novel-creation-tool#relationshipSaveInput', relationshipInputWireSchema))], relationshipSchema);
 export const stateCurrentInvocation = editorInvocation('novelWorkspace', 'stateCurrent', [projectParameter], worldStateSchema);
 export const stateSnapshotsInvocation = editorInvocation('novelWorkspace', 'stateSnapshots', [projectParameter], z.array(worldStateSchema));
 export const stateRollbackInvocation = editorInvocation('novelWorkspace', 'stateRollback', [projectParameter, seqParameter], worldStateSchema);
 export const stateDiffInvocation = editorInvocation('novelWorkspace', 'stateDiff', [projectParameter, fromSeqParameter, toSeqParameter], stateDiffSchema);
 export const canonQueryInvocation = editorInvocation('novelWorkspace', 'canonQuery', [projectParameter, filterParameter], z.array(canonEventViewSchema));
-export const canonCorrectionProposeInvocation = editorInvocation('novelWorkspace', 'canonCorrectionPropose', [projectParameter, targetIdParameter, inputParameter], confirmationRecordSchema);
+export const canonCorrectionProposeInvocation = editorInvocation('novelWorkspace', 'canonCorrectionPropose', [projectParameter, targetIdParameter, param('input', strictCodec('novel-creation-tool#canonCorrectionProposeInput', canonCorrectionInputWireSchema))], confirmationRecordSchema);
 export const canonCorrectionAcceptInvocation = editorInvocation('novelWorkspace', 'canonCorrectionAccept', [projectParameter, proposalIdParameter], canonCorrectionAcceptResultSchema);
 export const editorInvocations = [characterListInvocation, characterReadInvocation, characterCreateInvocation, characterUpdateInvocation, worldviewListInvocation, worldviewReadInvocation, worldviewCreateInvocation, worldviewRewriteInvocation, outlineReadInvocation, outlineSaveInvocation, outlineBeatCardsInvocation, relationshipReadInvocation, relationshipSaveInvocation, stateCurrentInvocation, stateSnapshotsInvocation, stateRollbackInvocation, stateDiffInvocation, canonQueryInvocation, canonCorrectionProposeInvocation, canonCorrectionAcceptInvocation, ...c5Invocations] as const;
 export const workspaceContribution: TypertContribution = { package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] }, invocations: [workspaceViewModelInvocation, ...editorInvocations] };

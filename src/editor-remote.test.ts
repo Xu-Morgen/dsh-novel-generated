@@ -3,6 +3,7 @@ import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 import {
   NOVEL_WORKSPACE_NAMESPACE, characterCreateInvocation, characterListInvocation,
+  characterCoreInputWireSchema, canonCorrectionInputWireSchema, outlineInputWireSchema,
   editorInvocations, createWorkspaceEditorService, workspaceContribution,
   workspaceRemoteContribution,
 } from './remote.js';
@@ -62,5 +63,28 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     disposer();
     expect(root.typert.local.get('novelWorkspace/characterCreate')).toBeUndefined();
     await root.fiber.dispose();
+  });
+
+  it('I97 expresses the exact write request contract at the wire boundary and rejects invalid requests', () => {
+    // 合法请求按精确 wire schema 完整通过（请求/响应与精确 schema 完全一致）。
+    const validCharacter = characterCoreInputWireSchema.parse({
+      id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '见习测绘师',
+      motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [],
+      arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
+    });
+    expect(validCharacter.id).toBe('mira');
+    // 非法请求（缺必填/多未知字段）在 wire 边界拒绝。
+    expect(() => characterCoreInputWireSchema.parse({ id: 'mira', name: '' })).toThrow();
+    expect(() => characterCoreInputWireSchema.parse({ ...validCharacter, unexpected: 1 })).toThrow();
+    expect(() => canonCorrectionInputWireSchema.parse({ storyTime: 'dawn', summary: 'x' })).toThrow();
+    expect(() => outlineInputWireSchema.parse({ id: 'outline' })).toThrow();
+    // 写方法 wire 参数携带精确 schema（不再落到通用 #json）。
+    for (const method of ['characterCreate', 'characterUpdate', 'worldviewCreate', 'worldviewRewrite', 'outlineSave', 'relationshipSave', 'canonCorrectionPropose']) {
+      const descriptor = editorInvocations.find((item) => item.method === method);
+      expect(descriptor, `missing ${method}`).toBeDefined();
+      const parameters = (descriptor!.parameters as readonly { codec: { typeSymbol: string } }[]);
+      expect(parameters[1], `${method} missing input param`).toBeDefined();
+      expect(parameters[1].codec.typeSymbol).not.toBe('novel-creation-tool#json');
+    }
   });
 });
