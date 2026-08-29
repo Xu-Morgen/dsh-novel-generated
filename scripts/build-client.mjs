@@ -45,8 +45,11 @@ const body = result.outputFiles[0].text;
 
 // 1) Declaration-only emit first: lib/client.d.ts + lib/client/*.d.ts. If it
 //    fails, lib/client.js keeps its previous (last good) wrapper content.
-const tscBin = resolve(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tsc.cmd' : 'tsc');
-const decl = spawnSync(tscBin, ['-p', 'tsconfig.build-client.json'], { cwd: repoRoot, encoding: 'utf8' });
+// Execute TypeScript's JavaScript entry through the current Node process. On
+// Windows, spawning the `.bin/tsc.cmd` shim without a shell fails with EINVAL;
+// invoking the canonical CLI avoids a shell-only compatibility branch.
+const tscBin = resolve(repoRoot, 'node_modules', 'typescript', 'bin', 'tsc');
+const decl = spawnSync(process.execPath, [tscBin, '-p', 'tsconfig.build-client.json'], { cwd: repoRoot, encoding: 'utf8' });
 if (decl.status !== 0) {
   process.stderr.write(decl.stdout || '');
   process.stderr.write(decl.stderr || '');
