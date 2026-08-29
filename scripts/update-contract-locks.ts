@@ -12,7 +12,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
-import { shapeLockBody } from '../src/contract-lock.js';
+import { remoteDescriptorLockBodies, remoteResultShapeBodies, shapeLockBody } from '../src/contract-lock.js';
+import { hostContribution } from '../src/remote.js';
+import { branchInvocations } from '../src/host/remote/branch.js';
+import { writingInvocations } from '../src/host/remote/writing.js';
+import { reviewInvocations } from '../src/host/remote/review.js';
+import { c5Invocations } from '../src/host/remote/text.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -104,4 +109,21 @@ for (const lock of EXISTING_LOCKS) {
     shapes: shapeBodies(shapes),
   });
   console.log(`created ${file}`);
+}
+
+/** I103 Stage 18 Remote descriptor/result baseline（计划 §19 I103）。 */
+{
+  const resultDescriptors = [...branchInvocations, ...writingInvocations, ...reviewInvocations, ...c5Invocations];
+  const descriptors = remoteDescriptorLockBodies(hostContribution.invocations);
+  const resultSchemas = remoteResultShapeBodies(resultDescriptors);
+  write('contracts/stage18/remote-descriptors.json', {
+    schemaVersion: 1,
+    namespace: 'stage18RemoteBaseline',
+    contractNote: 'I103 Remote baseline：锁定全部既有 Host invocation descriptor enumerable 字段，并单独锁定 Branch/Writing/Review/C5 result JSON Schema。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage18/remote-descriptors.json');
 }

@@ -47,15 +47,16 @@ export type SearchLayer = typeof SEARCH_LAYER_ORDER[number];
  * - characters / worldview / canon / knowledge：对应层条目（entryId）；
  * - outline：幕/节/场景卡或伏笔/结局条目（entryId，可带 act/beat/detail）。
  */
-export interface SearchNavigation {
-  readonly kind: SearchLayer;
-  readonly chapterId?: string;
-  readonly sceneId?: string;
-  readonly actId?: string;
-  readonly beatId?: string;
-  readonly detailId?: string;
-  readonly entryId?: string;
-}
+export type SearchNavigation =
+  | { readonly kind: 'text'; readonly chapterId: string; readonly sceneId: string }
+  | { readonly kind: 'characters' | 'worldview' | 'canon' | 'knowledge'; readonly entryId: string }
+  | {
+      readonly kind: 'outline';
+      readonly actId?: string;
+      readonly beatId?: string;
+      readonly detailId?: string;
+      readonly entryId?: string;
+    };
 
 /** 索引中的一条检索条目：可检索文本 + 有界展示 + 跳转 + 实体引用键。 */
 export interface SearchEntry {

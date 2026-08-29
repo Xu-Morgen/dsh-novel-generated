@@ -1,5 +1,5 @@
 import { unwrap } from '../shared.js';
-import type { BranchDiffLineShape, BranchPanelState, BranchSummaryShape, ChaptersEditOps } from '../layers/chapters.js';
+import type { BranchPanelState, ChaptersEditOps } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type BranchPort = Pick<OpsPorts, 'branchNamespace'>;
 import type { ChaptersInternal } from './chapters-internal.js';
@@ -27,8 +27,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     void unwrap(target.list(projectId, cid, sid)).then((result) => {
       release();
       if (!isActive()) return;
-      const list = ((result as { branches?: BranchSummaryShape[] }).branches ?? []) as BranchSummaryShape[];
-      branchesPatch({ status: 'ready', list, message: undefined });
+      branchesPatch({ status: 'ready', list: result.branches, message: undefined });
     }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
   };
   const branchSave = (): void => {
@@ -45,8 +44,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     void unwrap(target.save(projectId, chapterId, sceneId, label)).then((result) => {
       release();
       if (!isActive()) return;
-      const saved = (result as { branches?: BranchSummaryShape[] }).branches;
-      branchesPatch({ acting: false, status: 'ready', list: (saved ?? current.list) as BranchSummaryShape[], labelDraft: '', message: '已存档当前版本' });
+      branchesPatch({ acting: false, status: 'ready', list: result.branches, labelDraft: '', message: '已存档当前版本' });
     }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
   };
   const branchChoose = (branchId: string): void => {
@@ -61,10 +59,9 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     void unwrap(target.choose(projectId, chapterId, sceneId, branchId)).then((result) => {
       release();
       if (!isActive()) return;
-      const chosen = (result as { branches?: BranchSummaryShape[]; content?: string });
-      branchesPatch({ acting: false, status: 'ready', list: (chosen.branches ?? current.list) as BranchSummaryShape[], message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
+      branchesPatch({ acting: false, status: 'ready', list: result.branches, message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
       // 切换后正文变化：重载场景，让编辑器以新原文初始化（baseHash 随之更新）。
-      if (chosen.content !== undefined && chosen.content !== snapshot.chapters.editor.original && sceneId !== undefined) internal.loadScene(sceneId, chapterId);
+      if (result.content !== snapshot.chapters.editor.original && sceneId !== undefined) internal.loadScene(sceneId, chapterId);
     }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
   };
   const branchDiff = (branchId: string): void => {
@@ -78,8 +75,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     void unwrap(target.diff(projectId, chapterId, sceneId, branchId, undefined)).then((result) => {
       release();
       if (!isActive()) return;
-      const diff = result as { from?: { label: string }; to?: { label: string }; lines?: BranchDiffLineShape[] };
-      branchesPatch({ diff: { status: 'ready', fromLabel: diff.from?.label, toLabel: diff.to?.label, lines: (diff.lines ?? []) as BranchDiffLineShape[] } });
+      branchesPatch({ diff: { status: 'ready', fromLabel: result.from.label, toLabel: result.to.label, lines: result.lines } });
     }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
   };
   const branchCloseDiff = (): void => branchesPatch({ diff: { status: 'idle', lines: [] } });

@@ -1,0 +1,32 @@
+{
+  "iteration": "I103",
+  "contract": "remote-result-contract",
+  "descriptorCount": 109,
+  "resultSchemaCount": 18,
+  "resultFamilies": [
+    "Branch",
+    "Writing",
+    "Review",
+    "C5"
+  ],
+  "branchListWireShape": "{ branches: BranchSummary[] }",
+  "domainListShape": "BranchSummary[]",
+  "invalidResultsFailClosed": [
+    "raw-array",
+    "missing-branches",
+    "extra-field"
+  ],
+  "compileFixtures": {
+    "sync": true,
+    "promise": true,
+    "rawArrayRejected": true,
+    "missingFieldRejected": true,
+    "undefinedResultRejected": true
+  },
+  "checks": [
+    "typecheck",
+    "shared-result-contract",
+    "contract-lock",
+    "real-dsh-client-binder"
+  ]
+}

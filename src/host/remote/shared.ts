@@ -133,10 +133,21 @@ export type RemoteMethodSpec<A extends readonly unknown[] = readonly unknown[]> 
   readonly call: (...args: A) => unknown;
 };
 
-/** 由 descriptor 派生的单个方法规格（`defineRemote` 形状对齐面）。 */
-type MethodSpecFor<D extends InvocationDescriptor> = {
+/**
+ * Adapter 可返回 schema 输出的可深只读表示；JSON codec 会重新物化 owned JSON，
+ * 因此 Domain view 的 readonly 容器不应迫使 Host adapter 复制领域对象。
+ */
+export type RemoteResultShape<Out> =
+  unknown extends Out ? unknown
+  : Out extends undefined ? undefined
+  : Out extends readonly (infer Item)[] ? readonly RemoteResultShape<Item>[]
+  : Out extends object ? { readonly [K in keyof Out]: RemoteResultShape<Out[K]> }
+  : Out;
+
+/** 由 descriptor result codec 派生的单个方法规格；允许同步值或 Promise。 */
+export type MethodSpecFor<D extends InvocationDescriptor> = {
   readonly method: D['method'];
-  readonly call: (...args: ParametersCallShape<D['parameters']>) => unknown;
+  readonly call: (...args: ParametersCallShape<D['parameters']>) => RemoteResultShape<CodecOut<D['result']>> | Promise<RemoteResultShape<CodecOut<D['result']>>>;
 };
 
 /** 按位置把 methods 与 descriptors 逐一对齐的类型（方法名/调用形参任一漂移即编译错）。 */

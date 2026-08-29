@@ -2,7 +2,7 @@ import { createKnowledgeManagerService } from '../knowledge-manager-service.js';
 import { createRuleStyleManagerService } from '../rule-style-manager-service.js';
 import { createProgressInspirationService } from '../progress-inspiration-service.js';
 import { createNovelPortabilityService } from '../import-export-service.js';
-import { createBranchService } from '../branch-service.js';
+import { createBranchService, type NovelBranchService } from '../branch-service.js';
 import { createSearchService } from '../search-service.js';
 import { createStatisticsService, type StatisticsSceneCardFilter, type StatisticsTaskFilter, type NovelStatisticsService } from '../statistics-service.js';
 import { createNovelAgentService, registerNovelAgentTools } from '../../agents/agent-tools.js';
@@ -32,6 +32,16 @@ import type { BaseServices, CompositionBase, ManagementServices } from './types.
  * （位置筛选参数 → domain filter 对象）外移为显式命名适配器（I89 修复：
  * 不再内联在 defineRemote 块内）。
  */
+/** I103：Domain 裸数组到公开 `{ branches }` 的唯一 Host wire adapter。 */
+export async function branchListWireAdapter(
+  service: Pick<NovelBranchService, 'listBranches'>,
+  projectId: string,
+  chapterId: string,
+  sceneId: string,
+) {
+  return { branches: await service.listBranches(projectId, chapterId, sceneId) };
+}
+
 export function assembleOrchestrationSurface(base: CompositionBase, baseServices: BaseServices, management: ManagementServices): void {
   const { ctx } = base;
   const {
@@ -138,7 +148,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
   // 命令，不持有版本真相。
   const branchService = createBranchService(base.projectsRoot);
   ctx.provide('novelBranches', defineRemote('novelBranches', 'novelBranches', branchService, [
-    { method: 'list', call: (projectId: string, chapterId: string, sceneId: string) => branchService.listBranches(projectId, chapterId, sceneId) },
+    { method: 'list', call: (projectId: string, chapterId: string, sceneId: string) => branchListWireAdapter(branchService, projectId, chapterId, sceneId) },
     { method: 'read', call: (projectId: string, chapterId: string, sceneId: string, branchId: string) => branchService.readBranch(projectId, chapterId, sceneId, branchId) },
     { method: 'save', call: (projectId: string, chapterId: string, sceneId: string, label: string) => branchService.saveBranch(projectId, chapterId, sceneId, label) },
     { method: 'choose', call: (projectId: string, chapterId: string, sceneId: string, branchId: string) => branchService.chooseBranch(projectId, chapterId, sceneId, branchId) },
@@ -171,14 +181,14 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
   // I91：筛选位 wire codec 是 jsonCodec（z.unknown），descriptor 派生形参为
   // `unknown | undefined`，适配器形参对齐为 unknown（String()/Number() 收敛不变）。
   const sceneCardsWireAdapter = (statisticsService: NovelStatisticsService) =>
-    (projectId: string, actId?: unknown, beatId?: unknown, status?: unknown, limit?: unknown): Promise<unknown> => statisticsService.sceneCards(projectId, {
+    (projectId: string, actId?: unknown, beatId?: unknown, status?: unknown, limit?: unknown) => statisticsService.sceneCards(projectId, {
       ...(actId !== undefined && actId !== null ? { actId: String(actId) } : {}),
       ...(beatId !== undefined && beatId !== null ? { beatId: String(beatId) } : {}),
       ...(status !== undefined && status !== null ? { status: String(status) as 'planned' | 'writing' | 'done' } : {}),
       ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
     } satisfies StatisticsSceneCardFilter);
   const tasksWireAdapter = (statisticsService: NovelStatisticsService) =>
-    (projectId: string, status?: unknown, limit?: unknown): Promise<unknown> => statisticsService.tasks(projectId, {
+    (projectId: string, status?: unknown, limit?: unknown) => statisticsService.tasks(projectId, {
       ...(status !== undefined && status !== null ? { status: String(status) as 'queued' | 'running' | 'candidate-ready' | 'failed' | 'cancelled' | 'completed' } : {}),
       ...(limit !== undefined && limit !== null ? { limit: Number(limit) } : {}),
     } satisfies StatisticsTaskFilter);

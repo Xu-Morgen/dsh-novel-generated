@@ -1,3 +1,4 @@
+import type { InvocationDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
 
 /**
@@ -43,6 +44,67 @@ export function checkShapeLock(
   }
   for (const shapeId of Object.keys(locked)) {
     if (!(shapeId in schemas)) diffs.push(`契约锁含未实现 shapeId: ${shapeId}（锁已过时，请审阅后更新）`);
+  }
+  return diffs;
+}
+
+/** I103：把 codec 的公开字段与 canonical schema 一并投影为稳定 JSON。 */
+function codecLockBody(codec: TypertCodec): Record<string, unknown> {
+  if (!('schema' in codec)) return { ...codec };
+  const schema = codec.schema as z.ZodType;
+  // JSON Schema 没有 undefined；void Remote 用显式 DSH 标记锁定，禁止伪装成 `{}`。
+  const schemaBody = schema instanceof z.ZodUndefined ? { $dshType: 'undefined' } : shapeLockBody(schema);
+  return { ...codec, schema: schemaBody };
+}
+
+/** I103：锁定 invocation descriptor 的全部既有 enumerable 字段。 */
+export function remoteDescriptorLockBody(descriptor: InvocationDescriptor): Record<string, unknown> {
+  return {
+    ...descriptor,
+    invocation: { ...descriptor.invocation },
+    parameters: descriptor.parameters.map((parameter) => ({
+      ...parameter,
+      codec: codecLockBody(parameter.codec),
+    })),
+    result: codecLockBody(descriptor.result),
+  };
+}
+
+/** I103：以 descriptor id 为键生成稳定基线，重复 id 立即 fail closed。 */
+export function remoteDescriptorLockBodies(descriptors: readonly InvocationDescriptor[]): Record<string, unknown> {
+  const bodies: Record<string, unknown> = {};
+  for (const descriptor of descriptors) {
+    if (descriptor.id in bodies) throw new Error(`duplicate Remote descriptor id: ${descriptor.id}`);
+    bodies[descriptor.id] = remoteDescriptorLockBody(descriptor);
+  }
+  return bodies;
+}
+
+/** I103：只生成指定 descriptor 的 result JSON Schema 锁。 */
+export function remoteResultShapeBodies(descriptors: readonly InvocationDescriptor[]): Record<string, unknown> {
+  const bodies: Record<string, unknown> = {};
+  for (const descriptor of descriptors) {
+    if (descriptor.id in bodies) throw new Error(`duplicate Remote result descriptor id: ${descriptor.id}`);
+    if (!('schema' in descriptor.result)) throw new Error(`Remote result codec has no schema: ${descriptor.id}`);
+    bodies[descriptor.id] = shapeLockBody(descriptor.result.schema as z.ZodType);
+  }
+  return bodies;
+}
+
+/** I103 Remote baseline 一致性检查；descriptor 或 result schema 任一漂移即失败。 */
+export function checkRemoteContractLock(
+  lock: { descriptors?: Record<string, unknown>; resultSchemas?: Record<string, unknown> },
+  descriptors: readonly InvocationDescriptor[],
+  resultDescriptors: readonly InvocationDescriptor[],
+): string[] {
+  const diffs: string[] = [];
+  const generatedDescriptors = remoteDescriptorLockBodies(descriptors);
+  const generatedResults = remoteResultShapeBodies(resultDescriptors);
+  if (JSON.stringify(lock.descriptors ?? {}) !== JSON.stringify(generatedDescriptors)) {
+    diffs.push('Remote invocation descriptor baseline 漂移（字段/codec/schema/顺序或集合变化）');
+  }
+  if (JSON.stringify(lock.resultSchemas ?? {}) !== JSON.stringify(generatedResults)) {
+    diffs.push('Branch/Writing/Review/C5 result JSON schema baseline 漂移');
   }
   return diffs;
 }

@@ -8,6 +8,8 @@ import * as cordis from '@deepseek-ai/cordis';
 import { describe, expect, it } from 'vitest';
 
 import { unwrap } from './client/shared.js';
+import { branchListWireAdapter } from './host/composition/orchestration.js';
+import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
@@ -23,7 +25,7 @@ import { writingRemoteContribution } from './host/remote/writing.js';
  *   `expected N argument(s), got M`）；
  * - 逐位置 strict parse：jsonCodec 可选参数放行显式 `undefined`（丢弃，不进入
  *   wire args）；string/number strict codec 拒绝 undefined（`rejected "<field>"`）；
- * - 5 个修复方法（propose/adjudicate/scan/sceneCards/tasks）以完整实参（缺省位
+ * - 修复方法（propose/adjudicate/scan/sceneCards/tasks/branches.list）以完整实参（缺省位
  *   显式 `undefined`）往返成功，且缺参/错参在业务前仍被拒绝；
  * - 既有正常对照（records/stats 等零可选参数方法）往返不受影响。
  *
@@ -83,6 +85,8 @@ function fixtureFor(endpoint: string): unknown {
       return { projectId: 'p1', scannedAt: ISO, issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
     case 'novelReview/records':
       return [];
+    case 'novelBranches/list':
+      return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }] };
     case 'novelStatistics/sceneCards':
       return { total: 0, cards: [] };
     case 'novelStatistics/tasks':
@@ -101,7 +105,7 @@ interface Mounted {
 }
 
 /** 挂载一个真实 contribution 到真实客户端绑定器，connection 记录 wire args。 */
-async function mount(contribution: unknown): Promise<Mounted> {
+async function mount(contribution: unknown, resultFor: (endpoint: string, args: Record<string, unknown>) => unknown | Promise<unknown> = fixtureFor): Promise<Mounted> {
   const client = new Context();
   client.provide('typert', {
     remotes: { register: () => () => {} },
@@ -112,7 +116,7 @@ async function mount(contribution: unknown): Promise<Mounted> {
     rpc: {
       call: async (_path: string, endpoint: string, payload: { args: Record<string, unknown> }): Promise<{ ok: boolean; value?: unknown }> => {
         calls.push({ endpoint, args: payload.args });
-        return { ok: true, value: fixtureFor(endpoint) };
+        return { ok: true, value: await resultFor(endpoint, payload.args) };
       },
     },
   } as never);
@@ -198,6 +202,45 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       expect(calls[0]).toEqual({ endpoint: 'novelStatistics/tasks', args: { projectId: 'p1' } });
       expect((await unwrap(ns.tasks('p1', 'completed', undefined)) as { total: number }).total).toBe(0);
       expect(calls[1]).toEqual({ endpoint: 'novelStatistics/tasks', args: { projectId: 'p1', status: 'completed' } });
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I103 novelBranches.list：Domain 裸数组经唯一 Host adapter/codec/真实 Client binder 返回非空 envelope', async () => {
+    const domainCalls: unknown[][] = [];
+    const domain = {
+      async listBranches(...args: [string, string, string]) {
+        domainCalls.push(args);
+        return [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }];
+      },
+    };
+    const { client, calls, dispose } = await mount(branchRemoteContribution, (endpoint, args) => {
+      if (endpoint !== 'novelBranches/list') return fixtureFor(endpoint);
+      return branchListWireAdapter(domain, String(args.projectId), String(args.chapterId), String(args.sceneId));
+    });
+    try {
+      const branches = client.get('remote.novelBranches') as { list: (...args: unknown[]) => Promise<unknown> };
+      const result = await unwrap(branches.list('p1', 'c1', 's1')) as { branches: Array<{ id: string }> };
+      expect(result.branches.map((branch) => branch.id)).toEqual(['branch-1']);
+      expect(domainCalls).toEqual([['p1', 'c1', 's1']]);
+      expect(calls).toEqual([{ endpoint: 'novelBranches/list', args: { projectId: 'p1', chapterId: 'c1', sceneId: 's1' } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it.each([
+    ['数组直出', [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }]],
+    ['缺少 branches', {}],
+    ['多余字段', { branches: [], extra: true }],
+  ])('I103 novelBranches.list 负向：%s 在真实绑定器 result codec fail closed', async (_label, invalidResult) => {
+    const { client, dispose } = await mount(branchRemoteContribution, (endpoint) => endpoint === 'novelBranches/list' ? invalidResult : fixtureFor(endpoint));
+    try {
+      const branches = client.get('remote.novelBranches') as { list: (...args: unknown[]) => Promise<unknown> };
+      await expect(unwrap(branches.list('p1', 'c1', 's1'))).rejects.toThrow(/rejected "result"/);
     } finally {
       await dispose();
       await client.fiber.dispose();

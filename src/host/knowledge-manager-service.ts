@@ -11,7 +11,7 @@ import {
   type KnowledgeChangeInput,
   type KnowledgeChangeKind,
 } from '../core/knowledge/actions.js';
-import type { KnowledgeEntry, KnowledgeStatus } from '../core/schema/knowledge.js';
+import type { KnowledgeEntry, KnowledgeKind, KnowledgeStatus } from '../core/schema/knowledge.js';
 import type { NovelCharacterService } from './character-service.js';
 import type { NovelConfirmationService } from './confirmation-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
@@ -50,7 +50,7 @@ export interface KnowledgeManagerDeps {
 export interface KnowledgeEntryView {
   readonly id: string;
   readonly fact: string;
-  readonly kind: string;
+  readonly kind: KnowledgeKind;
   readonly status: KnowledgeStatus;
   readonly holders: readonly string[];
   readonly revealPlan: { readonly revealTo: readonly string[]; readonly revealAt: string };

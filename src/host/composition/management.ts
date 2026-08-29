@@ -66,7 +66,10 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'begin', call: async (input: OnboardingAnalysisStartInput, settings?: unknown) => analyzerService.begin(input, await resolveAnalyzerSettings(settings)) },
     { method: 'start', call: async (input: OnboardingAnalysisStartInput, settings?: unknown) => analyzerService.start(input, await resolveAnalyzerSettings(settings)) },
     { method: 'status', call: (onboardingSessionId: string) => analyzerService.status(onboardingSessionId) },
-    { method: 'cancel', call: (onboardingSessionId: string) => analyzerService.cancel(onboardingSessionId) },
+    { method: 'cancel', call: async (onboardingSessionId: string) => {
+      await analyzerService.cancel(onboardingSessionId);
+      return undefined;
+    } },
     { method: 'result', call: (onboardingSessionId: string) => analyzerService.result(onboardingSessionId) },
   ], onboardingAnalyzerInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
