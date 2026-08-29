@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { branchListInvocation } from './branch.js';
 import { onboardingAnalysisCancelInvocation } from './onboarding-analyzer.js';
+import { textChapterCreateInvocation } from './text-mutation.js';
 import type { MethodSpecFor } from './shared.js';
 
 const branch = { id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' };
@@ -38,10 +39,16 @@ const invalidUndefinedResultSpec: MethodSpecFor<typeof onboardingAnalysisCancelI
   // @ts-expect-error z.undefined() result 禁止借 `void` 规则返回任意值
   call: () => ({ ignored: true }),
 };
+const invalidTextMutationResultSpec: MethodSpecFor<typeof textChapterCreateInvocation> = {
+  method: 'chapterCreate',
+  // @ts-expect-error I104 wire chapter 是最小 projection，禁止 Domain C5 文档直出
+  call: async () => ({ chapter: { id: 'chapter-1', index: 1, title: '章', pov: 'pov-1', status: 'draft', scenes: [] }, fingerprint: 'a'.repeat(64) }),
+};
 
 void rawArrayListSpec;
 void missingBranchesListSpec;
 void invalidUndefinedResultSpec;
+void invalidTextMutationResultSpec;
 
 describe('I103 MethodSpecFor result codec 类型耦合', () => {
   it('接受同步和 Promise 的 descriptor 派生结果', async () => {

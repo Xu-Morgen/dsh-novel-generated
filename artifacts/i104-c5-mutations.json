@@ -1,0 +1,78 @@
+{
+  "iteration": "I104",
+  "requirement": "R18-1a",
+  "publicNamespace": "novelText",
+  "publicMethods": [
+    "fingerprint",
+    "chapterCreate",
+    "chapterUpdate",
+    "sceneCreate",
+    "sceneUpdate",
+    "reorder"
+  ],
+  "hardDeletePublic": false,
+  "metadataPatchAllowlist": {
+    "chapter": [
+      "title",
+      "pov",
+      "status"
+    ],
+    "scene": [
+      "summary",
+      "beats",
+      "canonEvents",
+      "notes"
+    ]
+  },
+  "reorder": {
+    "shape": "complete-project-permutation",
+    "optimisticToken": "sha256 project fingerprint",
+    "projectUowRollback": true,
+    "processCrashJournalRecovery": true,
+    "posixDirectoryFsync": true,
+    "windowsPowerLossDurability": "best-effort",
+    "pathGlobalCoordinator": true,
+    "serializedReaders": true
+  },
+  "deletion": {
+    "primitive": "host-only",
+    "lastProjectSceneLandingProtected": true,
+    "postDeleteFingerprint": true,
+    "impactIncludes": [
+      "proseCharacters",
+      "branchCount",
+      "sources.sourceHash",
+      "sources.branches",
+      "targetFingerprint",
+      "projectFingerprint"
+    ]
+  },
+  "descriptorCount": 115,
+  "resultSchemaCount": 24,
+  "negativeFixtures": [
+    "duplicate-id",
+    "out-of-range-index",
+    "unknown-scene",
+    "incomplete-permutation",
+    "stale-fingerprint",
+    "invalid-wire-input",
+    "invalid-wire-result",
+    "mid-commit-fault"
+  ],
+  "checks": [
+    "repository-reopen",
+    "durable-json-markdown-mirror-delete-outbox",
+    "project-uow-journal-recovery",
+    "single-chapter-shares-journal-outbox-uow",
+    "path-global-multi-repository-serialization",
+    "process-crash-recovery-and-platform-fsync-boundary",
+    "reader-writer-serialization",
+    "global-scene-id-preflight",
+    "post-delete-token",
+    "type-result-coupling",
+    "contract-lock",
+    "real-dsh-host-gateway",
+    "real-dsh-client-binder",
+    "TextService-adapter-client-consumer"
+  ]
+}

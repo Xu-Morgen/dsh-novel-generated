@@ -30,6 +30,7 @@ import type {
   searchRemoteContribution,
   statisticsRemoteContribution,
   timelineRemoteContribution,
+  textMutationRemoteContribution,
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from '../remote.js';
@@ -84,3 +85,5 @@ export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;
 export type TimelineNamespace = NamespaceOf<typeof timelineRemoteContribution>;
+/** I104 additive mutation contract; mounted by the chapters GUI consumer in I106. */
+export type TextMutationNamespace = NamespaceOf<typeof textMutationRemoteContribution>;

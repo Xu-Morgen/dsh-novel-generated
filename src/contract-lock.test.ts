@@ -7,6 +7,7 @@ import { branchInvocations } from './host/remote/branch.js';
 import { writingInvocations } from './host/remote/writing.js';
 import { reviewInvocations } from './host/remote/review.js';
 import { c5Invocations } from './host/remote/text.js';
+import { textMutationInvocations } from './host/remote/text-mutation.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -30,7 +31,7 @@ const remoteLock = JSON.parse(readFileSync(new URL('../contracts/stage18/remote-
   resultSchemaIds: string[];
   resultSchemas: Record<string, unknown>;
 };
-const stage18ResultDescriptors = [...branchInvocations, ...writingInvocations, ...reviewInvocations, ...c5Invocations];
+const stage18ResultDescriptors = [...branchInvocations, ...writingInvocations, ...reviewInvocations, ...c5Invocations, ...textMutationInvocations];
 
 const docxSchemas: Record<string, z.ZodType> = {
   UploadStartInput: uploadStartInputSchema,

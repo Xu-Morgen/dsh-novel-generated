@@ -43,10 +43,25 @@ export function renderChapterMarkdown(chapter: Chapter): string {
   return blocks.join('\n') + '\n';
 }
 
+/** 确定性 SHA-256；I104 mutation freshness 与既有 branch id 共用同一算法。 */
+export function textContentHash(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex');
+}
+
 /** 确定性分支 id：`v-<sha256(content) 前 12 位>`（同内容同 id，幂等去重）。 */
 export function branchIdFor(content: string): string {
-  const digest = createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 12);
-  return `v-${digest}`;
+  return `v-${textContentHash(content).slice(0, 12)}`;
+}
+
+/** I104 单场景/章节删除影响 fingerprint；覆盖全部 C5 字段与 branch 集。 */
+export function textObjectFingerprint(value: Chapter | Chapter['scenes'][number]): string {
+  return textContentHash(JSON.stringify(value));
+}
+
+/** I104 项目级 mutation freshness；按叙事 index/id 排序后覆盖全部章节文档。 */
+export function textProjectFingerprint(chapters: readonly Chapter[]): string {
+  const ordered = chapters.slice().sort((left, right) => left.index - right.index || left.id.localeCompare(right.id));
+  return textContentHash(JSON.stringify(ordered));
 }
 
 /** 旧单版本文档 → canonical（branches: []，隐含单版本）；只做内存映射，不做校验。 */

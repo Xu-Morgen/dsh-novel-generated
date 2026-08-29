@@ -6,6 +6,7 @@ import { createRuleService } from '../rule-service.js';
 import { createStateService } from '../state-service.js';
 import { createStyleService } from '../style-service.js';
 import { createTextService } from '../text-service.js';
+import { createTextMutationRemote } from '../text-mutation-adapter.js';
 import { createWorldviewService } from '../worldview-service.js';
 import { createOutlineService } from '../outline-service.js';
 import { createRelationshipService } from '../relationship-service.js';
@@ -69,7 +70,9 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
   ctx.provide('novelState', stateService);
   ctx.provide('novelCanon', canonService);
   const textService = createTextService(projectsRoot);
-  ctx.provide('novelText', textService);
+  // I104：descriptor.service 固定为 novelText，故 wire aliases 与既有 Host
+  // domain API 必须共存于同一个 gateway receiver（不能另挂 service key）。
+  ctx.provide('novelText', createTextMutationRemote(textService));
   const ruleService = createRuleService(projectsRoot);
   ctx.provide('novelRule', ruleService);
   ctx.provide('novelWorldview', worldviewService);

@@ -155,6 +155,11 @@ export type MethodsForDescriptors<D extends readonly InvocationDescriptor[]> = {
   [K in keyof D]: MethodSpecFor<D[K]>;
 };
 
+/** Exact Host wire surface derived from descriptor literals (method/args/result). */
+export type RemoteSurfaceForDescriptors<D extends readonly InvocationDescriptor[]> = {
+  [Descriptor in D[number] as Descriptor['method']]: MethodSpecFor<Descriptor>['call'];
+};
+
 /**
  * 参数化 Remote 适配工厂（I75/I91）：由方法规格数组构建适配对象并绑定 gateway
  * 派发元数据。`methods` 为空时直接绑定 domain service 本身（直通面）。
@@ -180,4 +185,28 @@ export function defineRemote<
   const surface = adapter as Record<string, Function>;
   for (const spec of specs) surface[spec.method] = spec.call;
   return bindRemote(adapter, serviceKey, namespace);
+}
+
+/**
+ * Bind wire aliases on the domain receiver itself when descriptor.service must
+ * keep resolving to an existing Host service key. Unlike `defineRemote`, this
+ * preserves the domain API and returns the exact descriptor-derived wire
+ * surface, avoiding a caller-side cast or a second gateway owner.
+ */
+export function defineRemoteOnService<
+  TService extends object,
+  const D extends readonly InvocationDescriptor[],
+  const M extends readonly { method: string; call: Function }[],
+>(
+  serviceKey: string,
+  namespace: string,
+  service: TService,
+  methods: M & MethodsForDescriptors<D>,
+  descriptors: D,
+): TService & RemoteSurfaceForDescriptors<D> {
+  const receiver = service as TService & RemoteSurfaceForDescriptors<D>;
+  const surface = receiver as Record<string, Function>;
+  const specs: readonly { method: string; call: Function }[] = methods;
+  for (const spec of specs) surface[spec.method] = spec.call;
+  return bindRemote(receiver, serviceKey, namespace);
 }

@@ -91,7 +91,7 @@ export function remoteResultShapeBodies(descriptors: readonly InvocationDescript
   return bodies;
 }
 
-/** I103 Remote baseline 一致性检查；descriptor 或 result schema 任一漂移即失败。 */
+/** Stage 18 Remote baseline 一致性检查；既有项漂移或 additive descriptor/result 缺失均失败。 */
 export function checkRemoteContractLock(
   lock: { descriptors?: Record<string, unknown>; resultSchemas?: Record<string, unknown> },
   descriptors: readonly InvocationDescriptor[],

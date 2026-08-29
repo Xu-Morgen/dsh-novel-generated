@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createContext, runInContext } from 'node:vm';
 
 import { Context } from '@deepseek-ai/cordis';
 import * as cordis from '@deepseek-ai/cordis';
+import { TypertGatewayService } from '@deepseek-ai/dsh-api-gateway';
+import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 
 import { unwrap } from './client/shared.js';
@@ -13,6 +17,10 @@ import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
+import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
+import type { TextMutationNamespace } from './client/remote-namespace.js';
+import { createTextService, type NovelTextService } from './host/text-service.js';
+import { apply } from './index.js';
 
 /**
  * I86 真实 DSH 客户端绑定器端到端契约测试（review v2.0 §3.1 / 计划 §18 I86）。
@@ -87,6 +95,16 @@ function fixtureFor(endpoint: string): unknown {
       return [];
     case 'novelBranches/list':
       return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }] };
+    case 'novelText/fingerprint':
+      return { fingerprint: 'a'.repeat(64) };
+    case 'novelText/chapterCreate':
+    case 'novelText/chapterUpdate':
+      return { chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', sceneCount: 0 }, fingerprint: 'b'.repeat(64) };
+    case 'novelText/sceneCreate':
+    case 'novelText/sceneUpdate':
+      return { chapterId: 'chapter-1', scene: { id: 'scene-1', index: 0, summary: '开场', contentHash: 'c'.repeat(64), branchCount: 0 }, fingerprint: 'd'.repeat(64) };
+    case 'novelText/reorder':
+      return { chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', sceneCount: 1 }], fingerprint: 'e'.repeat(64) };
     case 'novelStatistics/sceneCards':
       return { total: 0, cards: [] };
     case 'novelStatistics/tasks':
@@ -244,6 +262,98 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await dispose();
       await client.fiber.dispose();
+    }
+  });
+
+  it('I104 novelText additive mutation：strict input/result 经真实 Client binder 往返', async () => {
+    const { client, calls, dispose } = await mount(textMutationRemoteContribution);
+    try {
+      const text = client.get('remote.novelText') as TextMutationNamespace;
+      const before = await unwrap(text.fingerprint('p1'));
+      const created = await unwrap(text.chapterCreate('p1', {
+        id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', expectedFingerprint: before.fingerprint,
+      }));
+      expect(created.chapter).toMatchObject({ id: 'chapter-1', index: 1, sceneCount: 0 });
+      expect(calls).toEqual([
+        { endpoint: 'novelText/fingerprint', args: { projectId: 'p1' } },
+        { endpoint: 'novelText/chapterCreate', args: { projectId: 'p1', input: { id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', expectedFingerprint: 'a'.repeat(64) } } },
+      ]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I104 真实 TextService→adapter→codec→Client 消费者链重开一致', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i104-binder-'));
+    const host = new Context();
+    await host.plugin(TypertRegistry);
+    await host.plugin(TypertGatewayService);
+    await host.plugin(apply, { projectsRoot: root });
+    const service = host.get('novelText') as NovelTextService;
+    await service.open('p1');
+    const gateway = host.get('typertGateway') as TypertGatewayService;
+    const mounted = await mount(textMutationRemoteContribution, (endpoint, args) => {
+      const separator = endpoint.indexOf('/');
+      return gateway.invoke({ namespace: endpoint.slice(0, separator), method: endpoint.slice(separator + 1), args });
+    });
+    try {
+      const text = mounted.client.get('remote.novelText') as TextMutationNamespace;
+      const before = await unwrap(text.fingerprint('p1'));
+      let fingerprint = (await unwrap(text.chapterCreate('p1', {
+        id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', expectedFingerprint: before.fingerprint,
+      }))).fingerprint;
+      fingerprint = (await unwrap(text.chapterCreate('p1', {
+        id: 'chapter-2', index: 2, title: '第二章', pov: 'pov-2', status: 'draft', expectedFingerprint: fingerprint,
+      }))).fingerprint;
+      fingerprint = (await unwrap(text.sceneCreate('p1', {
+        chapterId: 'chapter-1', index: 0, expectedFingerprint: fingerprint,
+        scene: { id: 'scene-1', content: '初始正文', summary: '旧摘要', beats: [], canonEvents: [], notes: '' },
+      }))).fingerprint;
+      fingerprint = (await unwrap(text.sceneCreate('p1', {
+        chapterId: 'chapter-2', index: 0, expectedFingerprint: fingerprint,
+        scene: { id: 'scene-2', content: '第二章正文', summary: '第二场', beats: [], canonEvents: [], notes: '' },
+      }))).fingerprint;
+      fingerprint = (await unwrap(text.chapterUpdate('p1', {
+        chapterId: 'chapter-2', patch: { title: '终章', status: 'revised' }, expectedFingerprint: fingerprint,
+      }))).fingerprint;
+      fingerprint = (await unwrap(text.sceneUpdate('p1', {
+        chapterId: 'chapter-1', sceneId: 'scene-1', patch: { summary: '新摘要', beats: ['beat-1'], canonEvents: ['event-1'], notes: '作者注' }, expectedFingerprint: fingerprint,
+      }))).fingerprint;
+      await unwrap(text.reorder('p1', {
+        expectedFingerprint: fingerprint,
+        chapters: [
+          { chapterId: 'chapter-2', sceneIds: ['scene-2'] },
+          { chapterId: 'chapter-1', sceneIds: ['scene-1'] },
+        ],
+      }));
+
+      const reopened = createTextService(root);
+      await reopened.open('p1');
+      const chapters = await reopened.listChapters('p1');
+      expect(chapters.map((chapter) => [chapter.id, chapter.index, chapter.title, chapter.status])).toEqual([
+        ['chapter-2', 1, '终章', 'revised'], ['chapter-1', 2, '第一章', 'draft'],
+      ]);
+      expect(chapters[1].scenes[0]).toMatchObject({
+        id: 'scene-1', index: 0, content: '初始正文', summary: '新摘要', beats: ['beat-1'], canonEvents: ['event-1'], notes: '作者注', branches: [],
+      });
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+      await host.fiber.dispose();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('I104 novelText 负向：非法参数与非法结果均在真实 binder fail closed', async () => {
+    const invalidMount = await mount(textMutationRemoteContribution, (endpoint) => endpoint === 'novelText/reorder' ? { chapters: [], fingerprint: 'bad' } : fixtureFor(endpoint));
+    try {
+      const text = invalidMount.client.get('remote.novelText') as TextMutationNamespace;
+      await expect(text.chapterCreate('p1', { id: 'chapter-1' } as never)).rejects.toThrow(/rejected "input"/);
+      await expect(unwrap(text.reorder('p1', { chapters: [], expectedFingerprint: 'a'.repeat(64) }))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await invalidMount.dispose();
+      await invalidMount.client.fiber.dispose();
     }
   });
 
