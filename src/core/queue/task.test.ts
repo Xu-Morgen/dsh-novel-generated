@@ -8,6 +8,7 @@ import {
   queueJournalSchema,
   queueTaskId,
   queueTaskSchema,
+  refreshQueueJournal,
   stableSceneId,
   isTerminalTaskStatus,
   type QueueJournalData,
@@ -61,6 +62,7 @@ describe('core/queue task status machine', () => {
   it('allows the documented transitions', () => {
     expect(() => assertTaskTransition('queued', 'running')).not.toThrow();
     expect(() => assertTaskTransition('queued', 'cancelled')).not.toThrow();
+    expect(() => assertTaskTransition('queued', 'completed')).not.toThrow();
     expect(() => assertTaskTransition('running', 'queued')).not.toThrow();
     expect(() => assertTaskTransition('running', 'candidate-ready')).not.toThrow();
     expect(() => assertTaskTransition('running', 'failed')).not.toThrow();
@@ -73,7 +75,7 @@ describe('core/queue task status machine', () => {
     expect(() => assertTaskTransition('cancelled', 'queued')).toThrow(/Invalid queue task transition/);
     expect(() => assertTaskTransition('completed', 'running')).toThrow(/Invalid queue task transition/);
     expect(() => assertTaskTransition('queued', 'candidate-ready')).toThrow(/Invalid queue task transition/);
-    expect(() => assertTaskTransition('candidate-ready', 'failed')).toThrow(/Invalid queue task transition/);
+    expect(() => assertTaskTransition('candidate-ready', 'running')).toThrow(/Invalid queue task transition/);
   });
 
   it('marks cancelled and completed as terminal', () => {
@@ -96,11 +98,13 @@ describe('core/queue journal schema', () => {
   });
 
   const journal = (overrides: Partial<QueueJournalData> = {}): QueueJournalData => ({
+    version: 2,
     projectId: 'demo',
     runState: 'running',
     config: { wordBudget: 200, maxRetries: 1, stopOnSoftWarnings: false },
     consumedUnits: 10,
     tasks: [{
+      version: 2,
       id: queueTaskId('scene-abc123'),
       projectId: 'demo',
       chapterId: 'chapter-1',
@@ -120,6 +124,7 @@ describe('core/queue journal schema', () => {
       updatedAt: '2025-01-01T00:00:00.000Z',
       candidate: candidate('cand-queue-1'),
       settings: { modelRef: 'dsh/default', credentialRef: 'dsh/managed' },
+      targetSnapshot: { chapterId: 'chapter-1', sceneId: 'scene-abc123', detailBeatId: 'detail-1', textFingerprint: '0'.repeat(64), outlineFingerprint: '1'.repeat(64), bindingFingerprint: '2'.repeat(64) },
     }],
     updatedAt: '2025-01-01T00:00:00.000Z',
     ...overrides,
@@ -134,10 +139,31 @@ describe('core/queue journal schema', () => {
     expect(parsed.tasks[0].settings?.credentialRef).toBe('dsh/managed');
   });
 
+  it('atomically refreshes a same-card task and resets all generation state', () => {
+    const source = journal();
+    const refreshed = refreshQueueJournal(source, [{
+      sourceTaskId: source.tasks[0].id,
+      chapterId: 'chapter-2', sceneId: 'scene-rebound', actId: 'act-2', beatId: 'beat-2',
+      card: { ...source.tasks[0].card, title: 'Fresh card title' },
+      navigation: { ...source.tasks[0].navigation, actId: 'act-2', beatId: 'beat-2' },
+      targetSnapshot: { chapterId: 'chapter-2', sceneId: 'scene-rebound', detailBeatId: 'detail-1', textFingerprint: '3'.repeat(64), outlineFingerprint: '4'.repeat(64), bindingFingerprint: '5'.repeat(64) },
+      occupied: false,
+      updatedAt: '2025-01-02T00:00:00.000Z',
+    }]);
+    expect(refreshed.tasks[0]).toMatchObject({
+      id: queueTaskId('scene-rebound'), chapterId: 'chapter-2', sceneId: 'scene-rebound',
+      actId: 'act-2', beatId: 'beat-2', status: 'queued', attempts: 0,
+      candidateId: null, candidate: null, settings: null, error: null, budgetUnits: null,
+    });
+    expect(source.tasks[0]).toMatchObject({ status: 'candidate-ready', candidateId: 'cand-queue-1', sceneId: 'scene-abc123' });
+  });
+
   it('rejects extra fields and malformed task shapes (strict, negative)', () => {
     expect(() => queueJournalSchema.parse({ ...journal(), extra: true })).toThrow();
     expect(() => queueJournalSchema.parse({ ...journal(), tasks: [{ ...journal().tasks[0], status: 'bogus' }] })).toThrow();
     expect(() => queueJournalSchema.parse({ ...journal(), consumedUnits: -1 })).toThrow();
+    const { targetSnapshot: _snapshot, ...missingSnapshot } = journal().tasks[0] as QueueJournalData['tasks'][number] & { targetSnapshot: unknown };
+    expect(() => queueTaskSchema.parse(missingSnapshot)).toThrow();
     expect(() => queueTaskSchema.parse({ ...journal().tasks[0], intent: 'rewrite' })).toThrow(/scene-card/);
   });
 });
@@ -156,6 +182,7 @@ describe('core/queue journal file', () => {
       expect(fresh.tasks).toEqual([]);
 
       const data: QueueJournalData = {
+        version: 2,
         projectId: 'demo',
         runState: 'paused',
         config: { wordBudget: 100, maxRetries: 2, stopOnSoftWarnings: true },

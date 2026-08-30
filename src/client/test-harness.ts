@@ -159,6 +159,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
     })
     : name === 'remote.novelWriting' ? (writingStub ?? {
       propose: async () => { throw new Error('未注入 remote.novelWriting.propose'); },
+      proposeAt: async () => { throw new Error('未注入 remote.novelWriting.proposeAt'); },
       preview: async () => { throw new Error('未注入 remote.novelWriting.preview'); },
       adjudicate: async () => { throw new Error('未注入 remote.novelWriting.adjudicate'); },
     })
@@ -170,6 +171,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
     : name === 'remote.novelQueue' ? (queueStub ?? {
       status: async () => { throw new Error('未注入 remote.novelQueue.status'); },
       start: async () => { throw new Error('未注入 remote.novelQueue.start'); },
+      startAt: async () => { throw new Error('未注入 remote.novelQueue.startAt'); },
       pause: async () => { throw new Error('未注入 remote.novelQueue.pause'); },
       resume: async () => { throw new Error('未注入 remote.novelQueue.resume'); },
       cancel: async () => { throw new Error('未注入 remote.novelQueue.cancel'); },

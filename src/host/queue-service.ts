@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
@@ -7,19 +8,22 @@ import {
   countProseUnits,
   queueTaskId,
   queueTaskSchema,
-  stableSceneId,
+  refreshQueueJournal,
   type QueueConfig,
   type QueueJournalData,
+  type LegacyQueueTaskData,
   type QueueRunState,
   type QueueTaskData,
+  type QueueTaskRefresh,
+  type StoredQueueTaskData,
   type QueueTaskStatus,
 } from '../core/queue/index.js';
 import type { NovelWritingCandidateService, WritingCandidateRequest } from './candidate-service.js';
 import type { NovelWritingAdjudicationService } from './writing-adjudication-service.js';
 import type { NovelTextService } from './text-service.js';
 import type { NovelOutlineService } from './outline-service.js';
-import type { OutlineBeatCard } from '../core/schema/outline.js';
 import type { GenerationSettings } from '../llm/port/index.js';
+import type { NovelSceneOutlineBindingService } from './scene-outline-binding-service.js';
 
 /**
  * I65 可恢复自动生成队列 Host owner（design §14.9「可恢复自动生成队列」/ R13-6）。
@@ -69,6 +73,11 @@ export interface QueueStartInput {
   readonly stopOnSoftWarnings?: boolean;
 }
 
+export interface QueueStartAtInput extends QueueStartInput {
+  /** Required existing chapter selected by the caller. */
+  readonly chapterId: string;
+}
+
 export interface QueueTaskView {
   readonly id: string;
   readonly sceneId: string;
@@ -106,21 +115,33 @@ export interface QueueServiceDeps {
   readonly text: NovelTextService;
   /** B5 大纲：场景卡范围解析（beatCards）+ 大纲导航（prompt 重建）。 */
   readonly outline: NovelOutlineService;
+  /** I105 canonical manual/default owner and three-token freshness gate. */
+  readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
   /** A2 生成设置解析（与 I62/I63 同一 owner）。 */
   readonly resolveSettings: () => Promise<GenerationSettings>;
+  /** Deterministic lifecycle seam for holding settlement after the terminal
+   * journal write; production composition does not provide it. */
+  readonly beforeRunCleanup?: (projectId: string) => Promise<void>;
 }
 
 interface RunEntry {
   readonly controller: AbortController;
+  readonly done: Promise<void>;
   pauseRequested: boolean;
 }
 
 const now = (): string => new Date().toISOString();
+const nextQueueCandidateId = (taskId: string, attempt: number): string =>
+  `cand-${taskId}-${attempt}-${randomUUID()}`;
+const isCurrentTask = (task: StoredQueueTaskData): task is QueueTaskData => task.version === 2;
+const isLegacyTask = (task: StoredQueueTaskData): task is LegacyQueueTaskData & { version: 1 } => task.version === 1;
+const hydrationKey = (projectId: string, taskId: string): string => `${projectId}:${taskId}`;
 
 export function createQueueService(deps: QueueServiceDeps): QueueService {
   const projectsRoot = deps.projectsRoot ?? join(homedir(), '.dsh', 'novel-projects');
   const journals = new Map<string, QueueJournalData>();
   const runs = new Map<string, RunEntry>();
+  const runErrors = new Map<string, string>();
   /** 本实例已 rehydrate 的任务（恢复可重入；新实例重启后再 rehydrate）。 */
   const hydrated = new Set<string>();
 
@@ -169,32 +190,99 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     return journal;
   };
 
-  /** 项目内已写正文的场景 id 集合（空正文不算；文本层不可读时视为无已写场景）。 */
-  const writtenSceneIds = async (projectId: string): Promise<ReadonlySet<string>> => {
-    try {
-      const chapters = await deps.text.listChapters(projectId);
-      const written = new Set<string>();
-      for (const chapter of chapters) {
-        for (const scene of chapter.scenes) {
-          if (scene.content.trim().length > 0) written.add(scene.id);
-        }
-      }
-      return written;
-    } catch {
-      // 文本层未打开/不可读：视为无已写场景（候选与既有场景冲突由 I63 accept 拦截）。
-      return new Set<string>();
-    }
-  };
-
-  const rehydrate = (projectId: string, task: QueueTaskData): void => {
-    if (hydrated.has(task.id)) return;
+  const rehydrate = async (projectId: string, task: QueueTaskData): Promise<void> => {
+    const key = hydrationKey(projectId, task.id);
+    if (hydrated.has(key)) return;
     const candidate = task.candidate;
     const settings = task.settings;
     if (candidate === null || settings === null) {
       throw new Error(`队列任务 ${task.id} 候选数据缺失（账本损坏），请重试该任务`);
     }
-    deps.writing.registerRecoveredCandidate(candidate, { card: task.card, navigation: task.navigation, settings });
-    hydrated.add(task.id);
+    await deps.sceneOutlineBinding.assertQueueTargetFresh(projectId, task.targetSnapshot);
+    await deps.writing.registerRecoveredCandidate(candidate, { card: task.card, navigation: task.navigation, settings, targetSnapshot: task.targetSnapshot });
+    hydrated.add(key);
+  };
+
+  /** Explicit pre-I105 recovery. Active rows upgrade only through a fresh,
+   * exactly-one-chapter canonical resolution; legacy candidates fail closed. */
+  const migrateLegacyTasks = async (projectId: string): Promise<void> => {
+    const journal = await load(projectId);
+    const migratable = journal.tasks.filter((task): task is LegacyQueueTaskData & { version: 1 } => isLegacyTask(task) && (task.status === 'queued' || task.status === 'running'));
+    const legacyCandidates = journal.tasks.filter((task): task is LegacyQueueTaskData & { version: 1 } => isLegacyTask(task) && task.status === 'candidate-ready');
+    if (migratable.length === 0 && legacyCandidates.length === 0) return;
+
+    const failLegacy = (task: LegacyQueueTaskData & { version: 1 }, message: string): void => {
+      task.status = 'failed';
+      task.candidateId = null;
+      task.candidate = null;
+      task.settings = null;
+      task.error = message;
+      task.updatedAt = now();
+    };
+    for (const task of legacyCandidates) {
+      failLegacy(task, 'Legacy candidate cannot reconstruct generation-time target fingerprints; retry with an explicit chapter.');
+    }
+
+    if (migratable.length > 0) {
+      const chapters = await deps.text.listChapters(projectId);
+      if (chapters.length !== 1) {
+        for (const task of migratable) failLegacy(task, `Legacy queue recovery requires exactly one existing chapter; found ${chapters.length}.`);
+      } else {
+        try {
+          // Resolve every legacy card in one owner capture before changing any
+          // row, so migration cannot mix C5/B5/binding revisions.
+          const targets = await deps.sceneOutlineBinding.resolveQueueTargets(projectId, chapters[0].id, migratable.map((task) => task.cardId));
+          const targetByCard = new Map(targets.map((target) => [target.card.detailBeat.id, target]));
+          const upgrades = migratable.map((task) => {
+            const target = targetByCard.get(task.cardId);
+            if (target === undefined) throw new Error(`Missing resolved legacy queue card: ${task.cardId}`);
+            return queueTaskSchema.parse({
+              ...task,
+              version: 2,
+              id: queueTaskId(target.sceneId),
+              chapterId: target.chapterId,
+              sceneId: target.sceneId,
+              status: target.occupied ? 'completed' : task.status,
+              targetSnapshot: target.targetSnapshot,
+            });
+          });
+          for (const upgrade of upgrades) {
+            const index = journal.tasks.findIndex((task) => !isCurrentTask(task) && task.cardId === upgrade.cardId && (task.status === 'queued' || task.status === 'running'));
+            if (index < 0) throw new Error(`Legacy queue task disappeared during migration: ${upgrade.cardId}`);
+            journal.tasks[index] = upgrade;
+          }
+        } catch (error) {
+          const message = `Legacy queue recovery failed: ${error instanceof Error ? error.message : String(error)}`;
+          for (const task of migratable) failLegacy(task, message);
+        }
+      }
+    }
+    await persist(projectId);
+  };
+
+  const projectSceneContents = async (projectId: string): Promise<ReadonlyMap<string, string>> => {
+    const chapters = await deps.text.listChapters(projectId);
+    const scenes = new Map<string, string>();
+    for (const chapter of chapters) {
+      for (const scene of chapter.scenes) {
+        if (scenes.has(scene.id)) throw new Error(`Duplicate scene id across project: ${scene.id}`);
+        scenes.set(scene.id, scene.content);
+      }
+    }
+    return scenes;
+  };
+
+  const occupiedRecovery = (
+    task: QueueTaskData,
+    scenes: ReadonlyMap<string, string>,
+  ): { readonly status: 'absent' | 'completed' | 'conflict'; readonly error?: string } => {
+    const content = scenes.get(task.sceneId);
+    if (content === undefined) return { status: 'absent' };
+    if (task.status === 'queued') return { status: 'completed' };
+    if (task.status === 'candidate-ready' && task.candidate !== null && content === task.candidate.text) {
+      return { status: 'completed' };
+    }
+    return { status: 'conflict', error: `Queue target occupied by conflicting content: ${task.chapterId}/${task.sceneId}` };
   };
 
   /**
@@ -204,9 +292,11 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
    */
   const doRecover = async (projectId: string): Promise<void> => {
     if (runs.has(projectId)) return;
+    await migrateLegacyTasks(projectId);
     const journal = await load(projectId);
     let changed = false;
     for (const task of journal.tasks) {
+      if (!isCurrentTask(task)) continue;
       if (task.status === 'running') {
         assertTaskTransition('running', 'queued');
         task.status = 'queued';
@@ -218,24 +308,32 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
       journal.runState = 'idle';
       changed = true;
     }
-    const written = await writtenSceneIds(projectId);
+    const scenes = await projectSceneContents(projectId);
     for (const task of journal.tasks) {
-      if (task.status === 'candidate-ready') {
-        if (written.has(task.sceneId)) {
-          assertTaskTransition('candidate-ready', 'completed');
-          task.status = 'completed';
-          task.candidateId = null;
-          task.candidate = null;
-          task.updatedAt = now();
-          changed = true;
-        } else {
-          // 候选仍待作者裁决：rehydrate 回 I63（可继续审阅/裁决，不重新生成）。
-          rehydrate(projectId, task);
-        }
-      } else if (task.status === 'queued' && written.has(task.sceneId)) {
-        // 场景已写正文：不再排队生成（重启恢复无重复正文）。
-        assertTaskTransition('queued', 'completed');
+      if (!isCurrentTask(task) || (task.status !== 'candidate-ready' && task.status !== 'queued')) continue;
+      const occupied = occupiedRecovery(task, scenes);
+      if (occupied.status === 'completed') {
+        assertTaskTransition(task.status, 'completed');
         task.status = 'completed';
+        task.error = null;
+        task.updatedAt = now();
+        changed = true;
+        continue;
+      }
+      try {
+        if (occupied.status === 'conflict') throw new Error(occupied.error);
+        await deps.sceneOutlineBinding.assertQueueTargetFresh(projectId, task.targetSnapshot);
+        if (task.status === 'candidate-ready') {
+          // Rehydrate the persisted body; never regenerate after restart.
+          await rehydrate(projectId, task);
+        }
+      } catch (error) {
+        assertTaskTransition(task.status, 'failed');
+        task.status = 'failed';
+        task.candidateId = null;
+        task.candidate = null;
+        task.settings = null;
+        task.error = error instanceof Error ? error.message : String(error);
         task.updatedAt = now();
         changed = true;
       }
@@ -243,49 +341,74 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     if (changed) await persist(projectId);
   };
 
-  /** 按场景卡范围入队（幂等：已存在同 sceneId 任务不重复创建；未知卡 fail-closed）。 */
-  const enqueue = async (projectId: string, cardIds: readonly string[] | undefined): Promise<void> => {
-    const journal = await load(projectId);
-    const cards = await deps.outline.beatCards(projectId);
+  const refreshFromTarget = (
+    sourceTaskId: string,
+    target: Awaited<ReturnType<NovelSceneOutlineBindingService['resolveQueueTargets']>>[number],
+    navigation: Awaited<ReturnType<NovelOutlineService['navigate']>>,
+    updatedAt: string,
+  ): QueueTaskRefresh => ({
+    sourceTaskId,
+    chapterId: target.chapterId,
+    sceneId: target.sceneId,
+    actId: target.card.actId,
+    beatId: target.card.beatId,
+    card: target.card.detailBeat,
+    navigation: {
+      ...navigation,
+      prerequisites: [...navigation.prerequisites],
+      deviationIds: [...navigation.deviationIds],
+    },
+    targetSnapshot: target.targetSnapshot,
+    occupied: target.occupied,
+    updatedAt,
+  });
+
+  /** Resolve the whole batch before mutating the journal; any stale/unknown/
+   * collision error leaves tasks and config untouched. */
+  const enqueueAt = async (
+    projectId: string,
+    chapterId: string,
+    cardIds: readonly string[] | undefined,
+    allowLegacyFailed = false,
+  ): Promise<void> => {
+    const targets = await deps.sceneOutlineBinding.resolveQueueTargets(projectId, chapterId, cardIds);
     const navigation = await deps.outline.navigate(projectId);
-    const byId = new Map(cards.map((card) => [card.detailBeat.id, card]));
-    const requested = cardIds === undefined ? cards.map((card) => card.detailBeat.id) : [...cardIds];
-    // 未知场景卡 fail-closed（绝不静默跳过）。
-    const unknown = requested.filter((id) => !byId.has(id));
-    if (unknown.length > 0) throw new Error(`未知场景卡：${unknown.join('、')}`);
-    // 派生场景 id 冲突 fail-closed（不同卡不得映射到同一场景）。
-    const cardOf = (id: string): OutlineBeatCard => {
-      const card = byId.get(id);
-      if (card === undefined) throw new Error(`未知场景卡：${id}`);
-      return card;
-    };
-    const sceneByCard = new Map<string, string>();
-    for (const id of requested) {
-      const card = cardOf(id);
-      sceneByCard.set(id, stableSceneId(card.actId, card.beatId, card.detailBeat.id));
-    }
-    const seen = new Set<string>();
-    for (const sceneId of sceneByCard.values()) {
-      if (seen.has(sceneId)) throw new Error(`场景卡范围派生场景 id 冲突：${sceneId}`);
-      seen.add(sceneId);
-    }
+    const journal = await load(projectId);
+    const additions: QueueTaskData[] = [];
+    const refreshes: QueueTaskRefresh[] = [];
+    const batchCards = new Set<string>();
+    const batchTargets = new Set<string>();
     const createdAt = now();
-    for (const id of requested) {
-      const card = cardOf(id);
-      const sceneId = sceneByCard.get(id) as string;
-      if (journal.tasks.some((task) => task.sceneId === sceneId)) continue;
-      const task: QueueTaskData = queueTaskSchema.parse({
-        id: queueTaskId(sceneId),
+    for (const target of targets) {
+      if (batchCards.has(target.card.detailBeat.id)) throw new Error(`Duplicate queue card in resolved batch: ${target.card.detailBeat.id}`);
+      const targetKey = `${target.chapterId}\u0000${target.sceneId}`;
+      if (batchTargets.has(targetKey)) throw new Error(`Queue target collision in resolved batch: ${target.chapterId}/${target.sceneId}`);
+      batchCards.add(target.card.detailBeat.id);
+      batchTargets.add(targetKey);
+
+      const sameCard = journal.tasks.find((task) => task.cardId === target.card.detailBeat.id);
+      if (sameCard !== undefined) {
+        if ((isCurrentTask(sameCard) && (sameCard.status === 'failed' || sameCard.status === 'queued'))
+          || (allowLegacyFailed && isLegacyTask(sameCard) && sameCard.status === 'failed')) {
+          refreshes.push(refreshFromTarget(sameCard.id, target, navigation, createdAt));
+        }
+        // Current running/candidate-ready/completed/cancelled rows retain their
+        // lifecycle semantics; only explicit startAt reconstructs legacy failed.
+        continue;
+      }
+      additions.push(queueTaskSchema.parse({
+        version: 2,
+        id: queueTaskId(target.sceneId),
         projectId,
-        chapterId: 'chapter-1',
-        sceneId,
-        actId: card.actId,
-        beatId: card.beatId,
-        cardId: card.detailBeat.id,
-        card: { ...card.detailBeat },
+        chapterId: target.chapterId,
+        sceneId: target.sceneId,
+        actId: target.card.actId,
+        beatId: target.card.beatId,
+        cardId: target.card.detailBeat.id,
+        card: { ...target.card.detailBeat },
         navigation: { ...navigation },
         intent: 'scene-card',
-        status: 'queued',
+        status: target.occupied ? 'completed' : 'queued',
         candidateId: null,
         attempts: 0,
         error: null,
@@ -294,12 +417,14 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         updatedAt: createdAt,
         candidate: null,
         settings: null,
-      });
-      journal.tasks.push(task);
+        targetSnapshot: target.targetSnapshot,
+      }));
     }
+    const replacement = refreshQueueJournal(journal, refreshes, additions);
+    journal.tasks = replacement.tasks;
   };
 
-  const taskViewOf = (task: QueueTaskData): QueueTaskView => ({
+  const taskViewOf = (task: StoredQueueTaskData): QueueTaskView => ({
     id: task.id,
     sceneId: task.sceneId,
     chapterId: task.chapterId,
@@ -322,13 +447,24 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
       config: Object.freeze({ ...journal.config }),
       consumedUnits: journal.consumedUnits,
       updatedAt: journal.updatedAt,
-      error: null,
+      error: runErrors.get(projectId) ?? null,
       tasks: Object.freeze(journal.tasks.map(taskViewOf)),
     });
   };
 
   /** 是否有排队任务（loop 继续条件）。 */
-  const hasQueued = (journal: QueueJournalData): boolean => journal.tasks.some((task) => task.status === 'queued');
+  const hasQueued = (journal: QueueJournalData): boolean => journal.tasks.some((task) => isCurrentTask(task) && task.status === 'queued');
+
+  /** Explicit start calls may arrive after the old loop persisted a terminal
+   * state but before its identity cleanup. Wait for that tracked settlement;
+   * only a genuinely running journal preserves merge/idempotent behavior. */
+  const hasGenuinelyRunningEntry = async (projectId: string): Promise<boolean> => {
+    const run = runs.get(projectId);
+    if (run === undefined) return false;
+    if ((await load(projectId)).runState === 'running') return true;
+    await run.done;
+    return false;
+  };
 
   /** 开始/继续一次 run（幂等：已有活动 run 时只合并配置/范围并返回现状）。 */
   const beginRun = async (projectId: string): Promise<QueueStatusView> => {
@@ -343,11 +479,22 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     await mutate(projectId, (j) => { j.runState = 'running'; });
     // 双检：两个并发 start 可能都过了 runs.has 检查；后到者让位给已起的 loop。
     if (runs.has(projectId)) return statusView(projectId);
-    const run: RunEntry = { controller: new AbortController(), pauseRequested: false };
+    let run: RunEntry;
+    const done = Promise.resolve()
+      .then(() => runLoop(projectId, run))
+      .then(async () => { await deps.beforeRunCleanup?.(projectId); })
+      .catch((error: unknown) => {
+        // Infrastructure failures are process-local status only: a catch here
+        // must not recursively attempt the journal write that just failed.
+        const message = error instanceof Error ? error.message : String(error);
+        runErrors.set(projectId, message.slice(0, 1_000));
+      })
+      .finally(() => {
+        if (runs.get(projectId) === run) runs.delete(projectId);
+      });
+    run = { controller: new AbortController(), pauseRequested: false, done };
+    runErrors.delete(projectId);
     runs.set(projectId, run);
-    void runLoop(projectId, run).finally(() => {
-      if (runs.get(projectId) === run) runs.delete(projectId);
-    });
     return statusView(projectId);
   };
 
@@ -367,18 +514,45 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         await mutate(projectId, (j) => { j.runState = 'budget-exhausted'; });
         return;
       }
-      const task = journal.tasks.find((item) => item.status === 'queued');
+      const task = journal.tasks.find((item): item is QueueTaskData => isCurrentTask(item) && item.status === 'queued');
       if (task === undefined) {
         await mutate(projectId, (j) => { j.runState = 'completed'; });
         return;
       }
       const result = await runTask(projectId, task, run);
-      if (result === 'aborted' || result === 'stopped-hard' || result === 'stopped-soft') return;
+      if (result === 'aborted' || result === 'stopped-hard' || result === 'stopped-soft' || result === 'stopped-infrastructure') return;
     }
   };
 
   /** 执行单个任务：标 running → 生成候选（I62，零写）→ 注册 I63 → 预算累计 → 停止策略。 */
-  const runTask = async (projectId: string, task: QueueTaskData, run: RunEntry): Promise<'done' | 'aborted' | 'stopped-hard' | 'stopped-soft'> => {
+  const runTask = async (projectId: string, task: QueueTaskData, run: RunEntry): Promise<'done' | 'aborted' | 'stopped-hard' | 'stopped-soft' | 'stopped-infrastructure'> => {
+    const occupied = occupiedRecovery(task, await projectSceneContents(projectId));
+    if (occupied.status === 'completed') {
+      await mutate(projectId, (j) => {
+        const target = j.tasks.find((item) => item.id === task.id);
+        if (target !== undefined && target.status === 'queued') {
+          assertTaskTransition('queued', 'completed');
+          target.status = 'completed';
+          target.error = null;
+          target.updatedAt = now();
+        }
+      });
+      return 'done';
+    }
+    try {
+      await deps.sceneOutlineBinding.assertQueueTargetFresh(projectId, task.targetSnapshot);
+    } catch (error) {
+      await mutate(projectId, (j) => {
+        const target = j.tasks.find((item) => item.id === task.id);
+        if (target !== undefined && target.status === 'queued') {
+          assertTaskTransition('queued', 'failed');
+          target.status = 'failed';
+          target.error = error instanceof Error ? error.message : String(error);
+          target.updatedAt = now();
+        }
+      });
+      return 'done';
+    }
     await mutate(projectId, (j) => {
       const target = j.tasks.find((item) => item.id === task.id);
       if (target !== undefined) {
@@ -389,10 +563,13 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         target.updatedAt = now();
       }
     });
+    let candidatePersisted = false;
+    let registered = false;
+    let attemptUnits: number | null = null;
     try {
       const settings = await deps.resolveSettings();
       const request: WritingCandidateRequest = {
-        id: `cand-${task.id}-${task.attempts}`,
+        id: nextQueueCandidateId(task.id, task.attempts),
         intent: 'scene-card',
         target: { projectId, chapterId: task.chapterId, sceneId: task.sceneId },
         card: task.card,
@@ -401,15 +578,14 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         signal: run.controller.signal,
       };
       const { candidate } = await deps.candidate.propose(request);
-      // 注册进 I63：作者立即可审阅/裁决（候选不落地任何层）。
-      deps.writing.registerRecoveredCandidate(candidate, { card: task.card, navigation: task.navigation, settings });
-      // 本实例已注册（recover 的 rehydrate 幂等跳过，避免重复注册）。
-      hydrated.add(task.id);
+      await deps.sceneOutlineBinding.assertQueueTargetFresh(projectId, task.targetSnapshot);
       const units = countProseUnits(candidate.text);
-      const review = await deps.writing.preview(candidate.id);
+      attemptUnits = units;
+      // Candidate body/settings/snapshot become actionable in one journal replacement.
+      // Persist before registration so a crash rehydrates instead of regenerating.
       await mutate(projectId, (j) => {
         const target = j.tasks.find((item) => item.id === task.id);
-        if (target !== undefined) {
+        if (target !== undefined && isCurrentTask(target)) {
           assertTaskTransition('running', 'candidate-ready');
           target.status = 'candidate-ready';
           target.candidateId = candidate.id;
@@ -421,6 +597,14 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         }
         j.consumedUnits += units;
       });
+      candidatePersisted = true;
+      // The journal write is an async boundary: reassert immediately before
+      // registration so an actionable candidate never crosses stale owner tokens.
+      await deps.sceneOutlineBinding.assertQueueTargetFresh(projectId, task.targetSnapshot);
+      await deps.writing.registerRecoveredCandidate(candidate, { card: task.card, navigation: task.navigation, settings, targetSnapshot: task.targetSnapshot });
+      registered = true;
+      hydrated.add(hydrationKey(projectId, task.id));
+      const review = await deps.writing.preview(candidate.id);
       // 停止策略（复用 I63 preview 的 I20 判定；队列不裁决、只编排）。
       if (review.validation.status === 'reject') {
         await mutate(projectId, (j) => { j.runState = 'stopped-hard'; });
@@ -435,11 +619,46 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
       }
       return 'done';
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (registered) {
+        // Registration made the persisted candidate actionable. Later preview/
+        // stop-policy infrastructure failures must preserve that truth and stop
+        // this run instead of orphaning the candidate or advancing the queue.
+        await mutate(projectId, (j) => {
+          const target = j.tasks.find((item) => item.id === task.id);
+          if (target !== undefined && target.status === 'candidate-ready') {
+            target.error = message;
+            target.updatedAt = now();
+          }
+          j.runState = 'idle';
+        });
+        return 'stopped-infrastructure';
+      }
+      if (candidatePersisted) {
+        // The body became durable but registration never succeeded. Roll back
+        // the exact attempt atomically and halt so no later task becomes actionable.
+        await mutate(projectId, (j) => {
+          const target = j.tasks.find((item) => item.id === task.id);
+          if (target !== undefined && target.status === 'candidate-ready') {
+            assertTaskTransition('candidate-ready', 'failed');
+            target.status = 'failed';
+            target.candidateId = null;
+            target.candidate = null;
+            target.settings = null;
+            target.budgetUnits = null;
+            target.error = message;
+            target.updatedAt = now();
+          }
+          if (attemptUnits !== null) j.consumedUnits = Math.max(0, j.consumedUnits - attemptUnits);
+          j.runState = 'idle';
+        });
+        return 'stopped-infrastructure';
+      }
       if (run.controller.signal.aborted) {
         // 取消/dispose：任务回到 queued（零写，重跑安全），runState → idle。
         await mutate(projectId, (j) => {
           const target = j.tasks.find((item) => item.id === task.id);
-          if (target !== undefined) {
+          if (target !== undefined && target.status === 'running') {
             assertTaskTransition('running', 'queued');
             target.status = 'queued';
             target.updatedAt = now();
@@ -448,20 +667,28 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
         });
         return 'aborted';
       }
-      const message = error instanceof Error ? error.message : String(error);
-      // task 是缓存账本中的活引用（running 标记已递增 attempts）；读取当前值判定重试。
+      // Before candidate-ready persistence, retain the existing running retry
+      // policy. A failed journal write may have mutated the cached object; first
+      // restore its pre-write running shape and undo only this attempt's units.
       const journal = await load(projectId);
       const current = journal.tasks.find((item) => item.id === task.id);
       const attempts = current?.attempts ?? task.attempts;
       await mutate(projectId, (j) => {
         const target = j.tasks.find((item) => item.id === task.id);
         if (target === undefined) return;
-        if (attempts > j.config.maxRetries) {
+        if (target.status === 'candidate-ready') {
+          target.status = 'running';
+          target.candidateId = null;
+          target.candidate = null;
+          target.settings = null;
+          target.budgetUnits = null;
+          if (attemptUnits !== null) j.consumedUnits = Math.max(0, j.consumedUnits - attemptUnits);
+        }
+        if (target.status === 'running' && attempts > j.config.maxRetries) {
           assertTaskTransition('running', 'failed');
           target.status = 'failed';
           target.error = message;
-        } else {
-          // retry policy：次数未超 → 回队（loop 下一轮重试）。
+        } else if (target.status === 'running') {
           assertTaskTransition('running', 'queued');
           target.status = 'queued';
           target.error = message;
@@ -491,17 +718,33 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     async start(projectId: string, input?: QueueStartInput) {
       await openProject(projectId);
       if (input !== undefined) {
+        const chapters = await deps.text.listChapters(projectId);
+        if (chapters.length !== 1) {
+          throw new Error(`Legacy start requires exactly one existing chapter; found ${chapters.length}. Use startAt with an explicit chapter.`);
+        }
+        await enqueueAt(projectId, chapters[0].id, input.cardIds);
         const journal = await load(projectId);
         journal.config = {
           wordBudget: input.wordBudget !== undefined ? input.wordBudget : journal.config.wordBudget,
           maxRetries: input.maxRetries !== undefined ? input.maxRetries : journal.config.maxRetries,
           stopOnSoftWarnings: input.stopOnSoftWarnings !== undefined ? input.stopOnSoftWarnings : journal.config.stopOnSoftWarnings,
         };
-        await enqueue(projectId, input.cardIds);
         await persist(projectId);
       }
-      // 幂等：已有活动 run 时合并范围/配置即可，不重复起 loop。
-      if (runs.has(projectId)) return statusView(projectId);
+      if (await hasGenuinelyRunningEntry(projectId)) return statusView(projectId);
+      return beginRun(projectId);
+    },
+    async startAt(projectId: string, input: QueueStartAtInput) {
+      await openProject(projectId);
+      await enqueueAt(projectId, input.chapterId, input.cardIds, true);
+      const journal = await load(projectId);
+      journal.config = {
+        wordBudget: input.wordBudget !== undefined ? input.wordBudget : journal.config.wordBudget,
+        maxRetries: input.maxRetries !== undefined ? input.maxRetries : journal.config.maxRetries,
+        stopOnSoftWarnings: input.stopOnSoftWarnings !== undefined ? input.stopOnSoftWarnings : journal.config.stopOnSoftWarnings,
+      };
+      await persist(projectId);
+      if (await hasGenuinelyRunningEntry(projectId)) return statusView(projectId);
       return beginRun(projectId);
     },
     async pause(projectId: string) {
@@ -554,19 +797,49 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     },
     async retry(projectId: string, taskId: string) {
       await openProject(projectId);
-      await mutate(projectId, (j) => {
-        const target = j.tasks.find((task) => task.id === taskId);
-        if (target === undefined) return;
-        if (target.status === 'failed' || target.status === 'candidate-ready') {
-          assertTaskTransition(target.status, 'queued');
-          target.status = 'queued';
-          target.attempts = 0;
-          target.candidateId = null;
-          target.candidate = null;
-          target.error = null;
-          target.budgetUnits = null;
-          target.updatedAt = now();
+      const journal = await load(projectId);
+      const existing = journal.tasks.find((task) => task.id === taskId);
+      if (existing !== undefined && !isCurrentTask(existing)) throw new Error('Legacy failed task must be restarted with startAt; fingerprints cannot be reconstructed by retry.');
+      if (existing === undefined || (existing.status !== 'failed' && existing.status !== 'candidate-ready')) return statusView(projectId);
+      const observed = Object.freeze({
+        id: existing.id,
+        cardId: existing.cardId,
+        chapterId: existing.chapterId,
+        sceneId: existing.sceneId,
+        status: existing.status,
+        candidateId: existing.candidateId,
+      });
+
+      // Target/navigation resolution and old-candidate rejection may await other
+      // owners. They intentionally happen before the final journal transform.
+      const targets = await deps.sceneOutlineBinding.resolveQueueTargets(projectId, observed.chapterId, [observed.cardId]);
+      const navigation = await deps.outline.navigate(projectId);
+      const target = targets[0];
+      if (targets.length !== 1 || target === undefined || target.card.detailBeat.id !== observed.cardId) {
+        throw new Error(`Queue retry did not resolve exactly one matching card: ${observed.cardId}`);
+      }
+      if (observed.status === 'candidate-ready') {
+        if (observed.candidateId === null) throw new Error(`Queue candidate-ready task has no candidate id: ${observed.id}`);
+        const rejected = await deps.writing.adjudicate(observed.candidateId, 'reject');
+        if (rejected.status !== 'rejected') {
+          throw new Error(`Queue retry requires rejected old candidate ${observed.candidateId}; received ${rejected.status}`);
         }
+      }
+      await mutate(projectId, (current) => {
+        const live = current.tasks.find((task) => task.id === observed.id);
+        if (live === undefined || !isCurrentTask(live)) throw new Error(`Queue retry source disappeared: ${observed.id}`);
+        // A duplicate retry that observes the already-refreshed row is an
+        // idempotent no-op. Any other identity/status drift fails closed.
+        if (live.status === 'queued' && live.candidateId === null && live.cardId === observed.cardId) return;
+        if (live.cardId !== observed.cardId
+          || live.chapterId !== observed.chapterId
+          || live.sceneId !== observed.sceneId
+          || live.status !== observed.status
+          || live.candidateId !== observed.candidateId) {
+          throw new Error(`Queue retry source changed concurrently: ${observed.id}`);
+        }
+        const replacement = refreshQueueJournal(current, [refreshFromTarget(live.id, target, navigation, now())]);
+        current.tasks = replacement.tasks;
       });
       return statusView(projectId);
     },
@@ -597,6 +870,8 @@ export interface QueueService {
   status(projectId: string): Promise<QueueStatusView>;
   /** 入队范围 + 配置并开始/继续 run（幂等：活动 run 只合并范围与配置）。 */
   start(projectId: string, input?: QueueStartInput): Promise<QueueStatusView>;
+  /** Additive explicit-chapter queue entry; public result remains QueueStatusView. */
+  startAt(projectId: string, input: QueueStartAtInput): Promise<QueueStatusView>;
   /** 暂停：当前任务完成后停止（幂等）。 */
   pause(projectId: string): Promise<QueueStatusView>;
   /** 继续：仅 paused 恢复（幂等）。 */

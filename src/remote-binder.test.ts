@@ -17,9 +17,27 @@ import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
+import { queueRemoteContribution } from './host/remote/queue.js';
+import { sceneOutlineBindingRemoteContribution } from './host/remote/scene-outline-binding.js';
 import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
-import type { TextMutationNamespace } from './client/remote-namespace.js';
+import type {
+  QueueNamespace,
+  SceneOutlineBindingNamespace,
+  TextMutationNamespace,
+  WritingNamespace,
+} from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
+import type { NovelProjectService } from './host/project-service.js';
+import type { NovelCharacterService } from './host/character-service.js';
+import type { NovelWorldviewService } from './host/worldview-service.js';
+import type { NovelOutlineService } from './host/outline-service.js';
+import type { NovelStateService } from './host/state-service.js';
+import type { NovelCanonService } from './host/canon-service.js';
+import type { NovelStyleService } from './host/style-service.js';
+import type { NovelRuleService } from './host/rule-service.js';
+import type { NovelKnowledgeService } from './host/knowledge-service.js';
+import type { NovelConfirmationService } from './host/confirmation-service.js';
+import { INITIAL_STATE } from './core/schema/project-lifecycle.js';
 import { apply } from './index.js';
 
 /**
@@ -81,14 +99,36 @@ function loadGatewayClient(): GatewayClientEntry {
 const gatewayClient = loadGatewayClient();
 
 const ISO = '2026-01-01T00:00:00.000Z';
+const generationSettings = { modelRef: 'dsh/default', credentialRef: 'dsh/managed' };
+const binderLlm = {
+  async *stream() {
+    yield { type: 'text-delta', text: '米拉推开旧灯塔的门。' };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  },
+};
 
 /** 每个 endpoint 的合法 result fixture（须通过 descriptor 的 strict result codec）。 */
 function fixtureFor(endpoint: string): unknown {
   switch (endpoint) {
     case 'novelWriting/propose':
       return { candidate: { id: 'cand-1', intent: 'continue', target: { projectId: 'p1' }, prompt: '继续写下去', text: '夜色', chunkCount: 1, createdAt: ISO } };
+    case 'novelWriting/proposeAt':
+      return { candidate: { id: 'cand-at-1', intent: 'continue', target: { projectId: 'p1', chapterId: 'chapter-1', sceneId: 'scene-1' }, prompt: '继续写下去', text: '夜色', chunkCount: 1, createdAt: ISO } };
     case 'novelWriting/adjudicate':
       return { status: 'rejected', candidateId: 'cand-1' };
+    case 'novelSceneOutlineBinding/read':
+    case 'novelSceneOutlineBinding/save':
+    case 'novelSceneOutlineBinding/rebind':
+    case 'novelSceneOutlineBinding/unbind':
+      return {
+        manual: [{ sceneId: 'scene-1', detailBeatId: 'card-1' }],
+        effective: [{ sceneId: 'scene-1', detailBeatId: 'card-1', chapterId: 'chapter-1', source: 'manual' }],
+        fingerprint: 'f'.repeat(64),
+      };
+    case 'novelSceneOutlineBinding/impact':
+      return {
+        kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1', bindings: [], fingerprint: 'f'.repeat(64),
+      };
     case 'novelReview/scan':
       return { projectId: 'p1', scannedAt: ISO, issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
     case 'novelReview/records':
@@ -105,6 +145,12 @@ function fixtureFor(endpoint: string): unknown {
       return { chapterId: 'chapter-1', scene: { id: 'scene-1', index: 0, summary: '开场', contentHash: 'c'.repeat(64), branchCount: 0 }, fingerprint: 'd'.repeat(64) };
     case 'novelText/reorder':
       return { chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', sceneCount: 1 }], fingerprint: 'e'.repeat(64) };
+    case 'novelQueue/startAt':
+      return {
+        projectId: 'p1', runState: 'idle',
+        config: { wordBudget: null, maxRetries: 0, stopOnSoftWarnings: true },
+        consumedUnits: 0, updatedAt: ISO, error: null, tasks: [],
+      };
     case 'novelStatistics/sceneCards':
       return { total: 0, cards: [] };
     case 'novelStatistics/tasks':
@@ -167,6 +213,118 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await dispose();
       await client.fiber.dispose();
+    }
+  });
+
+  it('I105 novelWriting.proposeAt keeps its result and rejects compatibility-only prompt before the Remote adapter call', async () => {
+    const { client, calls, dispose } = await mount(writingRemoteContribution);
+    try {
+      const writing = client.get('remote.novelWriting') as WritingNamespace;
+      const result = await unwrap(writing.proposeAt('p1', {
+        intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1',
+      }, undefined));
+      expect(result).toMatchObject({ candidate: { id: 'cand-at-1', target: { chapterId: 'chapter-1', sceneId: 'scene-1' } } });
+      await expect(Reflect.apply(writing.proposeAt, writing, ['p1', {
+        intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1', prompt: 'must-not-be-public',
+      }, undefined])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toEqual([{
+        endpoint: 'novelWriting/proposeAt',
+        args: { projectId: 'p1', input: { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' } },
+      }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I105 binding five methods and queue.startAt use descriptor-derived namespaces with exact wire args', async () => {
+    const bindingMount = await mount(sceneOutlineBindingRemoteContribution);
+    try {
+      const binding = bindingMount.client.get('remote.novelSceneOutlineBinding') as SceneOutlineBindingNamespace;
+      const read = await unwrap(binding.read('p1'));
+      const saved = await unwrap(binding.save('p1', { sceneId: 'scene-1', detailBeatId: 'card-1', expectedFingerprint: read.fingerprint }));
+      const rebound = await unwrap(binding.rebind('p1', {
+        sceneId: 'scene-1', detailBeatId: 'card-1', nextDetailBeatId: 'card-2', expectedFingerprint: saved.fingerprint,
+      }));
+      await unwrap(binding.unbind('p1', { sceneId: 'scene-1', detailBeatId: 'card-2', expectedFingerprint: rebound.fingerprint }));
+      const impact = await unwrap(binding.impact('p1', { kind: 'scene', sceneId: 'scene-1' }));
+      expect(impact).toMatchObject({ kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1' });
+      expect(bindingMount.calls.map((call) => call.endpoint)).toEqual([
+        'novelSceneOutlineBinding/read', 'novelSceneOutlineBinding/save', 'novelSceneOutlineBinding/rebind',
+        'novelSceneOutlineBinding/unbind', 'novelSceneOutlineBinding/impact',
+      ]);
+    } finally {
+      await bindingMount.dispose();
+      await bindingMount.client.fiber.dispose();
+    }
+
+    const queueMount = await mount(queueRemoteContribution);
+    try {
+      const queue = queueMount.client.get('remote.novelQueue') as QueueNamespace;
+      const result = await unwrap(queue.startAt('p1', { chapterId: 'chapter-1', cardIds: ['card-1'] }));
+      expect(result).toMatchObject({ projectId: 'p1', runState: 'idle', tasks: [] });
+      expect(queueMount.calls).toEqual([{ endpoint: 'novelQueue/startAt', args: { projectId: 'p1', input: { chapterId: 'chapter-1', cardIds: ['card-1'] } } }]);
+    } finally {
+      await queueMount.dispose();
+      await queueMount.client.fiber.dispose();
+    }
+  });
+
+  it('I105 strict binder negatives reject missing/extra/invalid inputs before RPC', async () => {
+    const bindingMount = await mount(sceneOutlineBindingRemoteContribution);
+    try {
+      const binding = bindingMount.client.get('remote.novelSceneOutlineBinding') as SceneOutlineBindingNamespace;
+      await expect(Reflect.apply(binding.read, binding, [])).rejects.toThrow(/expected 1 argument\(s\), got 0/);
+      await expect(Reflect.apply(binding.save, binding, ['p1', {
+        sceneId: 'scene-1', detailBeatId: 'card-1', expectedFingerprint: 'bad',
+      }])).rejects.toThrow(/rejected "input"/);
+      await expect(Reflect.apply(binding.impact, binding, ['p1', {
+        kind: 'scene', sceneId: 'scene-1', extra: true,
+      }])).rejects.toThrow(/rejected "input"/);
+      expect(bindingMount.calls).toEqual([]);
+    } finally {
+      await bindingMount.dispose();
+      await bindingMount.client.fiber.dispose();
+    }
+
+    const writingMount = await mount(writingRemoteContribution);
+    try {
+      const writing = writingMount.client.get('remote.novelWriting') as WritingNamespace;
+      await expect(Reflect.apply(writing.proposeAt, writing, ['p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' }]))
+        .rejects.toThrow(/expected 3 argument\(s\), got 2/);
+      await expect(Reflect.apply(writing.proposeAt, writing, ['p1', { intent: 'rewrite', chapterId: 'chapter-1', sceneId: 'scene-1' }, undefined]))
+        .rejects.toThrow(/rejected "input"/);
+      expect(writingMount.calls).toEqual([]);
+    } finally {
+      await writingMount.dispose();
+      await writingMount.client.fiber.dispose();
+    }
+
+    const queueMount = await mount(queueRemoteContribution);
+    try {
+      const queue = queueMount.client.get('remote.novelQueue') as QueueNamespace;
+      await expect(Reflect.apply(queue.startAt, queue, ['p1'])).rejects.toThrow(/expected 2 argument\(s\), got 1/);
+      await expect(Reflect.apply(queue.startAt, queue, ['p1', { chapterId: '', extra: true }])).rejects.toThrow(/rejected "input"/);
+      expect(queueMount.calls).toEqual([]);
+    } finally {
+      await queueMount.dispose();
+      await queueMount.client.fiber.dispose();
+    }
+  });
+
+  it.each([
+    ['binding-read', sceneOutlineBindingRemoteContribution, 'remote.novelSceneOutlineBinding', 'read', ['p1']],
+    ['binding-impact', sceneOutlineBindingRemoteContribution, 'remote.novelSceneOutlineBinding', 'impact', ['p1', { kind: 'scene', sceneId: 'scene-1' }]],
+    ['proposeAt', writingRemoteContribution, 'remote.novelWriting', 'proposeAt', ['p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' }, undefined]],
+    ['startAt', queueRemoteContribution, 'remote.novelQueue', 'startAt', ['p1', { chapterId: 'chapter-1', cardIds: [] }]],
+  ])('I105 malformed %s result is rejected by the real Client binder', async (_label, contribution, service, method, args) => {
+    const mounted = await mount(contribution, () => ({ malformed: true }));
+    try {
+      const namespace = mounted.client.get(service) as Record<string, Function>;
+      await expect(unwrap(Reflect.apply(namespace[method], namespace, args))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
     }
   });
 
@@ -340,6 +498,92 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();
+      await host.fiber.dispose();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('I105 real TypertRegistry/Gateway/Host composition/Client binder exercises binding five + proposeAt + startAt', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i105-binder-'));
+    const host = new Context();
+    host.provide('llm', binderLlm as never);
+    await host.plugin(TypertRegistry);
+    await host.plugin(TypertGatewayService);
+    await host.plugin(apply, { projectsRoot: root, agentTools: false });
+    const project = host.get('novelProject') as NovelProjectService;
+    const characters = host.get('novelCharacter') as NovelCharacterService;
+    const worldview = host.get('novelWorldview') as NovelWorldviewService;
+    const outline = host.get('novelOutline') as NovelOutlineService;
+    const state = host.get('novelState') as NovelStateService;
+    const canon = host.get('novelCanon') as NovelCanonService;
+    const style = host.get('novelStyle') as NovelStyleService;
+    const rules = host.get('novelRule') as NovelRuleService;
+    const knowledge = host.get('novelKnowledge') as NovelKnowledgeService;
+    const confirmation = host.get('novelConfirmation') as NovelConfirmationService;
+    const text = host.get('novelText') as NovelTextService;
+    await project.createProject({ projectId: 'p1', name: 'Binder project' });
+    await project.openProject('p1');
+    await characters.create('p1', {
+      id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '测绘师', motivation: '追查真相',
+      goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
+    });
+    await worldview.create('p1', {
+      id: 'harbor', kind: 'geography', title: '北港', content: '北港位于内海。', keywords: ['北港'],
+      triggerMode: 'keyword', weight: 1, parent: null, mutable: true, status: 'active', supersededBy: null,
+    });
+    await outline.save('p1', {
+      id: 'outline-1', structure: 'free', logline: 'Binder.', themes: [], foreshadowing: [], endings: [],
+      acts: [{ id: 'act-1', index: 0, title: 'Act', goal: 'Bind.', beats: [{
+        id: 'beat-1', title: 'Beat', description: 'Bind.', charactersInvolved: ['mira'], conflictType: 'external', prerequisites: [], optional: false,
+        detailBeats: ['card-1', 'card-2'].map((id) => ({ id, title: id, summary: id, pov: 'mira', wordTarget: 10, points: [], status: 'planned' })),
+      }] }],
+    });
+    await outline.saveProgress('p1', { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 0 });
+    await state.open('p1', INITIAL_STATE);
+    await canon.open('p1');
+    await style.open('p1');
+    await style.save('p1', { id: 'style-1', name: '默认', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '简洁', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] });
+    await rules.open('p1');
+    await rules.create('p1', { id: 'rule-1', scope: 'global', kind: 'physics', statement: '海图只在月圆显字。', priority: 1, immutable: true, examples: [], active: true });
+    await knowledge.open('p1');
+    await knowledge.saveAll('p1', [], [{ characterId: 'mira', knows: [] }]);
+    await confirmation.open('p1');
+    await text.open('p1');
+    await text.createChapter('p1', { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+    await text.appendScene('p1', 'chapter-1', { id: 'scene-1', content: '', summary: '', beats: [], canonEvents: [], notes: '' });
+    const gateway = host.get('typertGateway') as TypertGatewayService;
+    const throughGateway = (endpoint: string, args: Record<string, unknown>) => {
+      const separator = endpoint.indexOf('/');
+      return gateway.invoke({ namespace: endpoint.slice(0, separator), method: endpoint.slice(separator + 1), args });
+    };
+    const bindingMount = await mount(sceneOutlineBindingRemoteContribution, throughGateway);
+    const writingMount = await mount(writingRemoteContribution, throughGateway);
+    const queueMount = await mount(queueRemoteContribution, throughGateway);
+    try {
+      const binding = bindingMount.client.get('remote.novelSceneOutlineBinding') as SceneOutlineBindingNamespace;
+      const initial = await unwrap(binding.read('p1'));
+      const saved = await unwrap(binding.save('p1', { sceneId: 'scene-1', detailBeatId: 'card-1', expectedFingerprint: initial.fingerprint }));
+      const rebound = await unwrap(binding.rebind('p1', {
+        sceneId: 'scene-1', detailBeatId: 'card-1', nextDetailBeatId: 'card-2', expectedFingerprint: saved.fingerprint,
+      }));
+      const unbound = await unwrap(binding.unbind('p1', {
+        sceneId: 'scene-1', detailBeatId: 'card-2', expectedFingerprint: rebound.fingerprint,
+      }));
+      expect(unbound.manual).toEqual([]);
+      expect(await unwrap(binding.impact('p1', { kind: 'chapter', chapterId: 'chapter-1' }))).toMatchObject({ kind: 'chapter', chapterId: 'chapter-1' });
+
+      const writing = writingMount.client.get('remote.novelWriting') as WritingNamespace;
+      const proposed = await unwrap(writing.proposeAt('p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'new-scene' }, generationSettings));
+      expect(proposed.candidate.target).toMatchObject({ projectId: 'p1', chapterId: 'chapter-1', sceneId: 'new-scene' });
+      const queue = queueMount.client.get('remote.novelQueue') as QueueNamespace;
+      expect((await unwrap(queue.startAt('p1', { chapterId: 'chapter-1', cardIds: [] }))).projectId).toBe('p1');
+    } finally {
+      await bindingMount.dispose();
+      await bindingMount.client.fiber.dispose();
+      await writingMount.dispose();
+      await writingMount.client.fiber.dispose();
+      await queueMount.dispose();
+      await queueMount.client.fiber.dispose();
       await host.fiber.dispose();
       await rm(root, { recursive: true, force: true });
     }

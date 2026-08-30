@@ -1,6 +1,6 @@
 import type { Chapter } from '../schema/text.js';
 import type { Outline } from '../schema/outline.js';
-import { countProseUnits, stableSceneId } from '../queue/task.js';
+import { countProseUnits } from '../queue/task.js';
 import type {
   ActFilterNode,
   ChapterSummaryRow,
@@ -61,7 +61,7 @@ function chapterStatsOf(chapter: Chapter): ChapterWordStats {
   });
 }
 
-function cardStatsOf(act: Outline['acts'][number], beat: Outline['acts'][number]['beats'][number], card: Outline['acts'][number]['beats'][number]['detailBeats'][number], writtenUnits: number): SceneCardStats {
+function cardStatsOf(act: Outline['acts'][number], beat: Outline['acts'][number]['beats'][number], card: Outline['acts'][number]['beats'][number]['detailBeats'][number], sceneId: string, writtenUnits: number): SceneCardStats {
   return Object.freeze({
     actId: act.id,
     actIndex: act.index,
@@ -73,7 +73,7 @@ function cardStatsOf(act: Outline['acts'][number], beat: Outline['acts'][number]
     pov: card.pov,
     wordTarget: card.wordTarget,
     status: card.status,
-    sceneId: stableSceneId(act.id, beat.id, card.id),
+    sceneId,
     writtenUnits,
     // B5 schema 保证 wordTarget > 0；仍防御 0 分母（空作品无假进度）。
     completionRatio: card.wordTarget > 0 ? Math.min(1, writtenUnits / card.wordTarget) : 0,
@@ -118,17 +118,23 @@ export function buildStatistics(sources: StatisticsSources): StatisticsProjectio
     .sort((left, right) => left.index - right.index || left.id.localeCompare(right.id))
     .map(chapterStatsOf);
 
-  // B5 场景卡 → C5 联动：场景 id = stableSceneId（与 I65 队列同一确定性派生）。
   const chapterScenes = new Map<string, SceneWordStats>();
   for (const chapter of chapters) {
     for (const scene of chapter.scenes) chapterScenes.set(scene.sceneId, scene);
+  }
+  const mappingByCard = new Map<string, StatisticsSources['sceneCardMappings'][number]>();
+  for (const mapping of sources.sceneCardMappings) {
+    if (mappingByCard.has(mapping.detailBeatId)) throw new Error(`Duplicate statistics scene-card mapping: ${mapping.detailBeatId}`);
+    mappingByCard.set(mapping.detailBeatId, mapping);
   }
   const cards: SceneCardStats[] = [];
   for (const act of sources.outline?.acts ?? []) {
     for (const beat of act.beats) {
       for (const card of beat.detailBeats) {
-        const sceneId = stableSceneId(act.id, beat.id, card.id);
-        cards.push(cardStatsOf(act, beat, card, chapterScenes.get(sceneId)?.units ?? 0));
+        const mapping = mappingByCard.get(card.id);
+        if (mapping === undefined) throw new Error(`Missing statistics scene-card mapping: ${card.id}`);
+        const writtenUnits = mapping.source === 'suppressed' ? 0 : (chapterScenes.get(mapping.sceneId)?.units ?? 0);
+        cards.push(cardStatsOf(act, beat, card, mapping.sceneId, writtenUnits));
       }
     }
   }

@@ -1,0 +1,176 @@
+{
+  "iteration": "I105",
+  "requirement": "R18-1b",
+  "owner": {
+    "service": "SceneOutlineBindingRepository",
+    "file": "scene-outline-bindings.yaml",
+    "references": {
+      "C5": "TextRepository (read-only preflight)",
+      "B5": "OutlineRepository (read-only preflight)"
+    }
+  },
+  "semantics": {
+    "persistence": "manual-only versioned one-to-one pairs",
+    "effective": "manual-first; stableSceneId default only when neither scene nor detail beat is manually occupied",
+    "defaultPersisted": false
+  },
+  "remoteMethods": {
+    "novelSceneOutlineBinding": [
+      "read",
+      "save",
+      "rebind",
+      "unbind",
+      "impact"
+    ],
+    "novelWriting": [
+      "proposeAt"
+    ],
+    "novelQueue": [
+      "startAt"
+    ],
+    "publicDelete": false
+  },
+  "explicitTarget": {
+    "writing": [
+      "chapterId",
+      "sceneId"
+    ],
+    "queue": [
+      "chapterId"
+    ],
+    "freshness": [
+      "textFingerprint",
+      "outlineFingerprint",
+      "bindingFingerprint"
+    ],
+    "occupiedOrStale": "fail-closed-before-generation-or-write"
+  },
+  "persistenceMigrationRecovery": {
+    "missingBindingFile": "empty version-1 manual document",
+    "corruptBindingFile": "fail-closed",
+    "atomicWrite": "temporary YAML then rename under path-global serial lane",
+    "queueLegacy": "explicit pre-I105 parser; active rows recover only through exactly-one-chapter fresh target reconstruction",
+    "candidateRecovery": "rehydrate only with persisted target snapshot and three-owner freshness validation"
+  },
+  "negativeFixtures": [
+    "duplicate-scene",
+    "duplicate-detail-beat",
+    "dangling-scene",
+    "dangling-detail-beat",
+    "cross-project-reference",
+    "ambiguous-detail-beat",
+    "stale-binding-fingerprint",
+    "stale-text-fingerprint",
+    "stale-outline-fingerprint",
+    "occupied-target",
+    "reserved-target",
+    "partial-explicit-target",
+    "missing-wire-argument",
+    "extra-wire-field",
+    "invalid-wire-value",
+    "malformed-binding-result",
+    "malformed-proposeAt-result",
+    "malformed-startAt-result"
+  ],
+  "hardcodeScan": {
+    "literal": "chapter-1",
+    "productionPaths": [
+      "src/host/writing-adjudication/candidate-production.ts",
+      "src/host/writing-adjudication/landing-saga.ts",
+      "src/core/queue/task.ts",
+      "src/host/queue-service.ts",
+      "src/client/layers/candidate.ts",
+      "src/client/ops/chapters-candidate.ts",
+      "src/client/layers/queue.ts",
+      "src/client/ops/queue.ts",
+      "src/core/statistics/build.ts",
+      "src/core/statistics/types.ts",
+      "src/host/statistics-service.ts",
+      "src/client/layers/statistics.ts",
+      "src/client/ops/statistics.ts",
+      "src/agents/agent-tools.ts"
+    ],
+    "productionHits": 0,
+    "outsideProductionAllowlist": [
+      "src/c5-edit.test.ts",
+      "src/c5-read.test.ts",
+      "src/client-chapters.test.ts",
+      "src/client-panels-queue.test.ts",
+      "src/client-panels-review.test.ts",
+      "src/client-panels-search.test.ts",
+      "src/client-panels-statistics.test.ts",
+      "src/core/candidate/index.test.ts",
+      "src/core/queue/task.test.ts",
+      "src/core/review/issue.test.ts",
+      "src/core/search/index.test.ts",
+      "src/core/statistics/index.test.ts",
+      "src/core/text/branch.test.ts",
+      "src/core/text/index.test.ts",
+      "src/core/text/projection.test.ts",
+      "src/host/branch-service.test.ts",
+      "src/host/candidate-service.test.ts",
+      "src/host/continuation-service.test.ts",
+      "src/host/edit-service.test.ts",
+      "src/host/queue-service.test.ts",
+      "src/host/remote/shared-result-contract.test.ts",
+      "src/host/search-service.test.ts",
+      "src/host/statistics-service.test.ts",
+      "src/host/text-service.test.ts",
+      "src/host/writing-adjudication-service.test.ts",
+      "src/remote-binder.test.ts",
+      "src/text-edit-service.test.ts"
+    ],
+    "statisticsIndependentStableSceneIdTruth": false,
+    "candidateLandingAutoCreateChapter": false
+  },
+  "contracts": {
+    "descriptorCount": 122,
+    "resultSchemaCount": 28,
+    "preI105DescriptorCount": 115,
+    "preI105ResultSchemaCount": 24,
+    "preI105DescriptorBodiesSha256": "15d4da60e3b140b5c1ff70a3fb2043c0c31f7d19c898718b83d2847da437a14b",
+    "preI105ResultBodiesSha256": "b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d",
+    "additiveDescriptorIds": [
+      "novel-creation-tool/novelSceneOutlineBinding/read",
+      "novel-creation-tool/novelSceneOutlineBinding/save",
+      "novel-creation-tool/novelSceneOutlineBinding/rebind",
+      "novel-creation-tool/novelSceneOutlineBinding/unbind",
+      "novel-creation-tool/novelSceneOutlineBinding/impact",
+      "novel-creation-tool/novelWriting/proposeAt",
+      "novel-creation-tool/novelQueue/startAt"
+    ],
+    "additiveResultSchemaIds": [
+      "novel-creation-tool/novelSceneOutlineBinding/read",
+      "novel-creation-tool/novelSceneOutlineBinding/impact",
+      "novel-creation-tool/novelWriting/proposeAt",
+      "novel-creation-tool/novelQueue/startAt"
+    ]
+  },
+  "crossOwnerAtomicityBoundary": {
+    "claim": "no-shared-transaction",
+    "guarantee": "initial/pre-execute target checks plus one shared gate after lifecycle journal.start and immediately before the first real layer writer; no shared transaction claim",
+    "bindingCasScope": "scene-outline-bindings.yaml only",
+    "finalC5Write": "I104 expected text fingerprint"
+  },
+  "checks": [
+    "binding-repository-reopen-and-atomic-fault",
+    "binding-service-one-to-one-preflight",
+    "binding-adapter-type-result-coupling",
+    "writing-explicit-target-and-three-fingerprint-stale",
+    "writing-accept-immediate-first-writer-freshness-gate",
+    "writing-project-owned-adjudication-lane",
+    "queue-target-migration-recovery",
+    "queue-candidate-generation-identity",
+    "queue-live-journal-concurrent-retry",
+    "queue-candidate-registration-commit-truth",
+    "statistics-canonical-mapping-consumer",
+    "Client-candidate-proposeAt",
+    "Client-queue-startAt",
+    "agent-explicit-target",
+    "contract-lock-additive-only",
+    "real-dsh-host-gateway",
+    "real-dsh-client-binder",
+    "production-hardcode-scan",
+    "no-binding-delete-or-UI"
+  ]
+}

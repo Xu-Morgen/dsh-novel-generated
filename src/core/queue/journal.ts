@@ -1,7 +1,7 @@
 import { access, mkdir, rename } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
-import { queueJournalSchema, type QueueJournalData } from './task.js';
+import { legacyQueueJournalSchema, queueJournalSchema, type QueueJournalData } from './task.js';
 
 /** Windows 下刚写完的 tmp 文件可能被 Defender/索引器瞬时锁住，rename 偶发
  *  EPERM/ENOENT：有界退避重试（≤5 次），避免高频队列持久化被环境抖动误杀。 */
@@ -49,10 +49,23 @@ export class QueueJournalFile {
   async read(): Promise<QueueJournalData> {
     try {
       await access(this.path);
-      return queueJournalSchema.parse(await readYaml<unknown>(this.path));
+      const raw = await readYaml<unknown>(this.path);
+      const current = queueJournalSchema.safeParse(raw);
+      if (current.success) return current.data;
+      const legacy = legacyQueueJournalSchema.parse(raw);
+      return queueJournalSchema.parse({
+        version: 2,
+        projectId: legacy.projectId,
+        runState: legacy.runState,
+        config: legacy.config,
+        consumedUnits: legacy.consumedUnits,
+        tasks: legacy.tasks.map((task) => ({ version: 1, ...task })),
+        updatedAt: legacy.updatedAt,
+      });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       return queueJournalSchema.parse({
+        version: 2,
         projectId: this.projectId,
         runState: 'idle',
         config: { wordBudget: null, maxRetries: 0, stopOnSoftWarnings: false },

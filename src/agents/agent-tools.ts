@@ -3,6 +3,7 @@ import { defineTool, type InferArgs, type ParameterSchemaSpec, type ToolRunConte
 
 import { validateProjectId } from '../core/io/path.js';
 import { INITIAL_STATE, type ProjectOpenResult } from '../core/schema/project-lifecycle.js';
+import type { CandidateTargetSelection } from '../core/schema/candidate-target.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { GenerationSettings } from '../llm/port/index.js';
@@ -96,8 +97,10 @@ export interface NovelAgentService {
   listProjects(): Promise<readonly { id: string; name: string }[]>;
   status(projectId: string): Promise<NovelProjectStatus>;
   context(projectId: string): Promise<NovelAgentContext>;
-  /** I63：续写下一场景候选（只产候选、零写；接受经 novel_adjudicate）。 */
+  /** I63 legacy positional call: the second argument remains AbortSignal. */
   proposeContinue(projectId: string, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
+  /** I105 additive explicit-target call; the legacy second parameter is not repurposed. */
+  proposeContinue(projectId: string, target: CandidateTargetSelection, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   /** I63：对候选裁决（accept 受控写回 / reject 零写 / rewrite 后继候选）。 */
   adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
   inspire(projectId: string, signal?: AbortSignal): Promise<InspirationResult>;
@@ -156,9 +159,15 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
       await openProject(projectId);
       return deps.context.context(projectId);
     },
-    async proposeContinue(projectId, signal) {
+    async proposeContinue(projectId, targetOrSignal?: CandidateTargetSelection | AbortSignal, explicitSignal?: AbortSignal) {
       await openProject(projectId);
-      return deps.writing.propose(projectId, { intent: 'continue' }, undefined, signal);
+      const target = targetOrSignal !== undefined && 'chapterId' in targetOrSignal && 'sceneId' in targetOrSignal
+        ? targetOrSignal
+        : undefined;
+      const signal = target === undefined ? targetOrSignal as AbortSignal | undefined : explicitSignal;
+      return target === undefined
+        ? deps.writing.propose(projectId, { intent: 'continue' }, undefined, signal)
+        : deps.writing.proposeAt(projectId, { intent: 'continue', ...target }, undefined, signal);
     },
     async adjudicate(candidateId, decision, signal) {
       return deps.writing.adjudicate(candidateId, decision, undefined, signal);
@@ -257,9 +266,19 @@ export function registerNovelAgentTools(ctx: Context, service: NovelAgentService
     agentTool({
       name: 'novel_continue',
       description: '按当前大纲/细纲/状态/正史续写下一场景，只产生可审阅候选（零写，不落盘）。接受/拒绝/重写请调用 novel_adjudicate（candidateId）。',
-      parameters: { projectId: { type: 'string', description: '作品 id', required: true } },
+      parameters: {
+        projectId: { type: 'string', description: '作品 id', required: true },
+        chapterId: { type: 'string', description: '显式目标章节 id；必须与 sceneId 同时提供' },
+        sceneId: { type: 'string', description: '显式未占用场景 id；必须与 chapterId 同时提供' },
+      },
       async execute(args, exec) {
-        const { candidate } = await service.proposeContinue(args.projectId, exec.signal);
+        const hasChapter = args.chapterId !== undefined;
+        const hasScene = args.sceneId !== undefined;
+        if (hasChapter !== hasScene) throw new Error('chapterId and sceneId must be provided together');
+        const target = hasChapter && hasScene ? { chapterId: args.chapterId!, sceneId: args.sceneId! } : undefined;
+        const { candidate } = target === undefined
+          ? await service.proposeContinue(args.projectId, exec.signal)
+          : await service.proposeContinue(args.projectId, target, exec.signal);
         return { candidateId: candidate.id, intent: candidate.intent, text: candidate.text, target: candidate.target };
       },
     }),

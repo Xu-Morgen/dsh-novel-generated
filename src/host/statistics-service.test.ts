@@ -7,6 +7,7 @@ import { stableSceneId } from '../core/queue/index.js';
 import { createStatisticsService } from './statistics-service.js';
 import { createTextService } from './text-service.js';
 import { createOutlineService } from './outline-service.js';
+import { createSceneOutlineBindingService } from './scene-outline-binding-service.js';
 import type { QueueStatusView, QueueTaskView } from './queue-service.js';
 
 /**
@@ -85,7 +86,7 @@ describe('I72 statistics Host service', () => {
       }),
     };
 
-    const service = createStatisticsService({ projectsRoot: root, text, outline, queue });
+    const service = createStatisticsService({ projectsRoot: root, text, outline, sceneOutlineBinding: createSceneOutlineBindingService(text, outline, root), queue });
     await service.open('demo');
 
     // build：派生统计 + 分项计数。
@@ -149,6 +150,55 @@ describe('I72 statistics Host service', () => {
     expect(await service.overview('demo')).toEqual(overview);
   });
 
+  it('persists a real manual override and excludes its suppressed default from the wrong card', async () => {
+    const root = await tempRoot();
+    await new ProjectRepository(root).createProject({ projectId: 'binding-stats', name: '绑定统计' });
+    const text = createTextService(root);
+    const outline = createOutlineService(root);
+    await text.open('binding-stats');
+    await outline.open('binding-stats');
+    await text.createChapter('binding-stats', { id: 'chapter-1', index: 1, title: 'Chapter', pov: 'mira', status: 'draft' });
+    const occupiedSceneId = stableSceneId('act-1', 'beat-1', 'wrong-card');
+    await text.appendScene('binding-stats', 'chapter-1', {
+      id: occupiedSceneId, content: 'This body belongs only to the manual card.', summary: '', beats: [], canonEvents: [], notes: '',
+    });
+    const manualCard = { id: 'manual-card', title: 'Manual owner', summary: 'Manual.', pov: 'mira', wordTarget: 100, points: [], status: 'writing' as const };
+    const wrongCard = { id: 'wrong-card', title: 'Suppressed default', summary: 'Wrong.', pov: 'mira', wordTarget: 100, points: [], status: 'planned' as const };
+    const outlineDocument = {
+      id: 'outline-binding', structure: 'free' as const, logline: 'Manual ownership.', themes: [], foreshadowing: [], endings: [],
+      acts: [{ id: 'act-1', index: 0, title: 'Act', goal: 'Own.', beats: [{
+        id: 'beat-1', title: 'Beat', description: 'Bind.', charactersInvolved: [], conflictType: 'external' as const, prerequisites: [], optional: false,
+        detailBeats: [manualCard],
+      }] }],
+    };
+    await outline.save('binding-stats', outlineDocument);
+    const binding = createSceneOutlineBindingService(text, outline, root);
+    const initial = await binding.read('binding-stats');
+    await binding.save('binding-stats', { sceneId: occupiedSceneId, detailBeatId: manualCard.id, expectedFingerprint: initial.fingerprint });
+    await outline.save('binding-stats', {
+      ...outlineDocument,
+      acts: [{ ...outlineDocument.acts[0], beats: [{ ...outlineDocument.acts[0].beats[0], detailBeats: [manualCard, wrongCard] }] }],
+    });
+
+    const queue = {
+      status: async (): Promise<QueueStatusView> => ({
+        projectId: 'binding-stats', runState: 'idle', config: { wordBudget: null, maxRetries: 0, stopOnSoftWarnings: false },
+        consumedUnits: 0, updatedAt: '2026-01-01T00:00:00.000Z', error: null, tasks: [],
+      }),
+    };
+    const service = createStatisticsService({ projectsRoot: root, text, outline, sceneOutlineBinding: binding, queue });
+    await service.open('binding-stats');
+    await service.build('binding-stats');
+
+    const cards = await service.sceneCards('binding-stats');
+    const manual = cards.cards.find((card) => card.cardId === manualCard.id);
+    const suppressed = cards.cards.find((card) => card.cardId === wrongCard.id);
+    expect(manual?.sceneId).toBe(occupiedSceneId);
+    expect(manual?.writtenUnits).toBeGreaterThan(0);
+    expect(suppressed).toMatchObject({ sceneId: occupiedSceneId, writtenUnits: 0, completionRatio: 0 });
+    expect((await service.overview('binding-stats')).cardWrittenUnits).toBe(manual?.writtenUnits);
+  });
+
   it('空作品（无正文/大纲/任务）无假进度；C6 缺失按空执行态统计', async () => {
     const root = await tempRoot();
     await new ProjectRepository(root).createProject({ projectId: 'empty', name: '空作品' });
@@ -162,7 +212,7 @@ describe('I72 statistics Host service', () => {
         consumedUnits: 0, updatedAt: '2026-01-01T00:00:00.000Z', error: null, tasks: [],
       }),
     };
-    const service = createStatisticsService({ projectsRoot: root, text, outline, queue });
+    const service = createStatisticsService({ projectsRoot: root, text, outline, sceneOutlineBinding: createSceneOutlineBindingService(text, outline, root), queue });
     await service.open('empty');
     const built = await service.build('empty');
     expect(built.counts).toEqual({ chapters: 0, scenes: 0, cards: 0, tasks: 0 });
@@ -204,7 +254,7 @@ describe('I72 statistics Host service', () => {
         consumedUnits: 0, updatedAt: '2026-01-01T00:00:00.000Z', error: null, tasks: [],
       }),
     };
-    const service = createStatisticsService({ projectsRoot: root, text, outline, queue });
+    const service = createStatisticsService({ projectsRoot: root, text, outline, sceneOutlineBinding: createSceneOutlineBindingService(text, outline, root), queue });
     await service.open('no-c6');
     await service.build('no-c6');
     const overview = await service.overview('no-c6');

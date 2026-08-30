@@ -23,6 +23,7 @@ import type { QueueStatusView, QueueTaskView } from './queue-service.js';
 import type { Chapter } from '../core/schema/text.js';
 import type { Outline } from '../core/schema/outline.js';
 import type { OutlineProgress } from '../core/schema/outline-progress.js';
+import type { NovelSceneOutlineBindingService } from './scene-outline-binding-service.js';
 
 /**
  * I72 写作进度面板 Host facade（design §14.10「写作进度」/ R14-7）。
@@ -33,8 +34,8 @@ import type { OutlineProgress } from '../core/schema/outline-progress.js';
  *   `build`/`drop`/`stats` 控制其生命周期，绝不成为第二份作品进度真相（计划 §16
  *   「派生视图风险」）。
  * - 统计口径复用既有 owner：字数 = `countProseUnits`（I65 队列同一写作单位）；
- *   场景卡 ↔ 已写正文 = `stableSceneId`（I65 队列同一确定性派生）；任务记录只经
- *   I65 队列 owner 的 `status()` 读取（本服务零写账本、不读账本文件）。
+ *   场景卡 ↔ 已写正文只消费 `SceneOutlineBindingService` 的 owned mapping；任务
+ *   记录只经 I65 队列 owner 的 `status()` 读取（本服务零写账本、不读账本文件）。
  * - 空作品/未初始化：大纲 `uninitialized` → outline/progress 视为 undefined（统计
  *   为零、`overview.empty` 标记空作品视图，绝不产出 NaN/假进度）；C6 缺失同样
  *   按空执行态统计。C6 真正损坏由 outline owner 的 schema 校验在其它入口拦截，
@@ -47,6 +48,8 @@ export interface StatisticsServiceDeps {
   readonly projectsRoot?: string;
   readonly text: NovelTextService;
   readonly outline: NovelOutlineService;
+  /** Canonical manual/default/suppressed card ownership. */
+  readonly sceneOutlineBinding: Pick<NovelSceneOutlineBindingService, 'resolveOwnedTargets'>;
   /** I65 队列 owner：status 是任务记录的唯一读取面（统计只读）。 */
   readonly queue: { status(projectId: string): Promise<QueueStatusView> };
 }
@@ -138,7 +141,7 @@ export function createStatisticsService(deps: StatisticsServiceDeps): NovelStati
 
   /** 从 C5/B5/C6/I65 live 服务读取 source-of-truth（只读，零写）。 */
   const collectSources = async (projectId: string): Promise<{ sources: Parameters<typeof buildStatistics>[0] }> => {
-    const [chapters, outline, queueStatus] = await Promise.all([
+    const [chapters, outline, queueStatus, ownedTargets] = await Promise.all([
       deps.text.listChapters(projectId),
       (async (): Promise<Outline | undefined> => {
         const readiness = await deps.outline.readiness(projectId);
@@ -147,6 +150,7 @@ export function createStatisticsService(deps: StatisticsServiceDeps): NovelStati
         return deps.outline.read(projectId);
       })(),
       deps.queue.status(projectId),
+      deps.sceneOutlineBinding.resolveOwnedTargets(projectId),
     ]);
     let progress: OutlineProgress | undefined;
     if (outline !== undefined) {
@@ -158,7 +162,12 @@ export function createStatisticsService(deps: StatisticsServiceDeps): NovelStati
       }
     }
     const tasks = queueStatus.tasks.map(taskInputOf);
-    return { sources: { chapters: chapters as readonly Chapter[], outline, progress, tasks, queue: { runState: queueStatus.runState, consumedUnits: queueStatus.consumedUnits } } };
+    const sceneCardMappings = ownedTargets.map((target) => ({
+      detailBeatId: target.card.detailBeat.id,
+      sceneId: target.sceneId,
+      source: target.source,
+    }));
+    return { sources: { chapters: chapters as readonly Chapter[], outline, progress, sceneCardMappings, tasks, queue: { runState: queueStatus.runState, consumedUnits: queueStatus.consumedUnits } } };
   };
 
   /** 加载投影（内存缓存；build/drop 失效；缺失 fail closed 引导重建）。 */

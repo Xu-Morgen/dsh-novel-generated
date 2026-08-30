@@ -58,11 +58,15 @@ export const queueStatusWireSchema = z.object({
   tasks: z.array(queueTaskViewWireSchema),
 }).strict();
 
-const queueStartInputSchema = z.object({
+export const queueStartInputSchema = z.object({
   cardIds: z.array(z.string().min(1)).optional(),
   wordBudget: z.number().int().positive().nullable().optional(),
   maxRetries: z.number().int().nonnegative().optional(),
   stopOnSoftWarnings: z.boolean().optional(),
+}).strict();
+
+export const queueStartAtInputSchema = queueStartInputSchema.extend({
+  chapterId: z.string().min(1),
 }).strict();
 
 // I75：`param`/`queueInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
@@ -80,6 +84,10 @@ export const queueStartInvocation = queueInvocation('start', [
   param('projectId', stringCodec),
   param('input', strictCodec('novel-creation-tool#novelQueue:startInput', queueStartInputSchema), true),
 ], strictCodec('novel-creation-tool#novelQueue:start', queueStatusWireSchema));
+export const queueStartAtInvocation = queueInvocation('startAt', [
+  param('projectId', stringCodec),
+  param('input', strictCodec('novel-creation-tool#novelQueue:startAtInput', queueStartAtInputSchema)),
+], strictCodec('novel-creation-tool#novelQueue:startAt', queueStatusWireSchema));
 export const queuePauseInvocation = queueInvocation('pause', [
   param('projectId', stringCodec),
 ], strictCodec('novel-creation-tool#novelQueue:pause', queueStatusWireSchema));
@@ -104,6 +112,7 @@ export const queueRecoverInvocation = queueInvocation('recover', [
 export const queueInvocations = [
   queueStatusInvocation,
   queueStartInvocation,
+  queueStartAtInvocation,
   queuePauseInvocation,
   queueResumeInvocation,
   queueCancelInvocation,

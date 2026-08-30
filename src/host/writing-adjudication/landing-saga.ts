@@ -1,9 +1,8 @@
 import { lifecycleStageSchema, executeLifecycle, LifecycleJournal } from '../../core/lifecycle/index.js';
 import { adjudicateViolations, type ConsistencyViolationView } from '../../core/validate/index.js';
-import { assertCandidateFresh, type WritingCandidate } from '../../core/candidate/index.js';
+import { assertCandidateFresh } from '../../core/candidate/index.js';
 import { projectDirectory } from '../../core/io/path.js';
 import type { TextRepository } from '../../core/text/index.js';
-import type { Chapter } from '../../core/schema/text.js';
 import type { StoryLifecycleParserInputs } from '../story-lifecycle-service.js';
 import { asLlmBackend, type GenerationSettings } from '../../llm/port/index.js';
 import { parseC2StateFromNarrative } from '../../llm/parse/state.js';
@@ -18,7 +17,9 @@ import type { NovelKnowledgeService } from '../knowledge-service.js';
 import type { NovelCanonService } from '../canon-service.js';
 import type { NovelWorldviewService } from '../worldview-service.js';
 import type { NovelConfirmationService } from '../confirmation-service.js';
-import type { CandidateEntry } from './candidate-production.js';
+import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
+import type { NovelTextMutationService } from '../text-service.js';
+import type { CandidateEntry, PendingC5Landing } from './candidate-production.js';
 import type { WritingAdjudicationOutcome } from '../writing-adjudication-service.js';
 
 /**
@@ -51,7 +52,8 @@ export interface LandingSagaDeps {
   readonly confirmation: NovelConfirmationService;
   /** 校验结果（与 preview 同源，I20 复判；由校验投影段注入，接受才进入落地）。 */
   readonly ensureViolations: (entry: CandidateEntry, signal?: AbortSignal) => Promise<readonly ConsistencyViolationView[]>;
-  readonly entries: Map<string, CandidateEntry>;
+  readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
+  readonly textMutation: Pick<NovelTextMutationService, 'createSceneMutation'>;
   /** 只读 C5 仓库访问（新鲜度核对与场景落地；由组合根注入共享池）。 */
   readonly ensureOpen: (projectId: string) => Promise<TextRepository>;
 }
@@ -77,50 +79,92 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     };
   };
 
-  /**
-   * accept 落地 C5：rewrite 替换既有场景全文（半开区间语义由 commitSceneVersion
-   * 承担 —— I70/R14-5：替换前把旧正文保留为非 chosen 分支，新正文成为唯一 chosen，
-   * 候选可保留为分支、比较并回切）；新场景追加（无分支，隐含单版本）。
-   */
-  const landScene = async (candidate: WritingCandidate): Promise<{ chapterId: string; sceneId: string; index: number; content: string }> => {
+  /** Freeze every value C5 consumes before the first landing attempt. */
+  const buildLandingPlan = async (entry: CandidateEntry, repository: TextRepository): Promise<PendingC5Landing> => {
+    const candidate = entry.candidate;
     const projectId = candidate.target.projectId;
-    const repository = await deps.ensureOpen(projectId);
-    const target = candidate.target;
-    if (target.sourceHash !== undefined) {
-      const chapterId = target.chapterId as string;
-      const sceneId = target.sceneId as string;
-      const chapter = await repository.readChapter(chapterId);
-      const existing = chapter.scenes.find((item) => item.id === sceneId);
-      if (existing === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-      const scene = await repository.commitSceneVersion(chapterId, sceneId, candidate.text, '重写候选');
-      return { chapterId, sceneId, index: scene.index, content: scene.content };
+    const chapterId = candidate.target.chapterId as string;
+    const sceneId = candidate.target.sceneId as string;
+    if (candidate.target.sourceHash !== undefined) {
+      return Object.freeze({ kind: 'rewrite', projectId, chapterId, sceneId, content: candidate.text });
     }
-    const chapterId = target.chapterId as string;
-    const sceneId = target.sceneId as string;
-    const entry = deps.entries.get(candidate.id);
-    const card = entry?.context?.card ?? entry?.recovery?.card;
-    const navigation = entry?.context?.navigation ?? entry?.recovery?.navigation;
-    let chapter: Chapter;
-    try {
-      chapter = await repository.readChapter(chapterId);
-    } catch (error) {
-      if (!(error instanceof Error) || !error.message.startsWith('Unknown chapter:')) throw error;
-      chapter = await repository.createChapter({ id: chapterId, index: 1, title: '正文', pov: card?.pov ?? 'unknown', status: 'draft' });
-    }
-    const scene = await repository.appendScene(chapterId, {
-      id: sceneId,
+    const chapter = await repository.readChapter(chapterId);
+    const card = entry.context?.card ?? entry.recovery?.card;
+    const navigation = entry.context?.navigation ?? entry.recovery?.navigation;
+    const base = {
+      kind: 'new-scene' as const,
+      projectId,
+      chapterId,
+      sceneId,
+      index: chapter.scenes.length,
       content: candidate.text,
       summary: card?.summary ?? '',
-      beats: navigation ? [navigation.beatId] : [],
-      canonEvents: [],
-      notes: '',
+      beats: Object.freeze(navigation ? [navigation.beatId] : []),
+    };
+    return entry.targetSnapshot === undefined
+      ? Object.freeze(base)
+      : Object.freeze({ ...base, expectedFingerprint: entry.targetSnapshot.textFingerprint });
+  };
+
+  /** Replay only a frozen C5 plan; no detector, parser, or structured writer is reachable here. */
+  const landScene = async (plan: PendingC5Landing): Promise<{ chapterId: string; sceneId: string; index: number; content: string }> => {
+    const repository = await deps.ensureOpen(plan.projectId);
+    if (plan.kind === 'rewrite') {
+      const scene = await repository.commitSceneVersion(plan.chapterId, plan.sceneId, plan.content, '重写候选');
+      return { chapterId: plan.chapterId, sceneId: plan.sceneId, index: scene.index, content: scene.content };
+    }
+    if (plan.expectedFingerprint === undefined) {
+      // Queue-owned recovered candidates acquire snapshots in Task2B; preserve their legacy landing seam here.
+      const scene = await repository.appendScene(plan.chapterId, {
+        id: plan.sceneId,
+        content: plan.content,
+        summary: plan.summary,
+        beats: [...plan.beats],
+        canonEvents: [],
+        notes: '',
+      });
+      return { chapterId: plan.chapterId, sceneId: plan.sceneId, index: scene.index, content: scene.content };
+    }
+    const result = await deps.textMutation.createSceneMutation(plan.projectId, {
+      chapterId: plan.chapterId,
+      index: plan.index,
+      scene: {
+        id: plan.sceneId,
+        content: plan.content,
+        summary: plan.summary,
+        beats: [...plan.beats],
+        canonEvents: [],
+        notes: '',
+      },
+      expectedFingerprint: plan.expectedFingerprint,
     });
-    return { chapterId, sceneId, index: scene.index, content: scene.content };
+    return { chapterId: plan.chapterId, sceneId: plan.sceneId, index: result.scene.index, content: result.scene.content };
+  };
+
+  const finishPendingC5 = async (entry: CandidateEntry): Promise<WritingAdjudicationOutcome> => {
+    const plan = entry.pendingC5;
+    if (plan === undefined) throw new Error(`Candidate has no pending C5 landing: ${entry.candidate.id}`);
+    try {
+      const scene = await landScene(plan);
+      entry.pendingC5 = undefined;
+      return Object.freeze({
+        status: 'written',
+        candidateId: entry.candidate.id,
+        scene,
+        layers: Object.freeze([...lifecycleStageSchema.options]),
+      });
+    } catch (cause) {
+      throw new Error(
+        `C5 candidate landing failed after structured writeback; compensation is required. Retry accept for ${entry.candidate.id} to resume C5 only`,
+        { cause },
+      );
+    }
   };
 
   /** accept 主体：绑定/新鲜度零写拒绝 → 校验门 → 五层解析 → I30 journal 写回 → C5 落地。 */
   const accept = async (entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome> => {
     const candidate = entry.candidate;
+    if (entry.pendingC5 !== undefined) return finishPendingC5(entry);
     const projectId = candidate.target.projectId;
     const resolved = (settings as GenerationSettings | undefined) ?? entry.request.settings;
     const repository = await deps.ensureOpen(projectId);
@@ -130,17 +174,17 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
       const scene = chapter.scenes.find((item) => item.id === candidate.target.sceneId);
       if (scene === undefined) throw new Error(`Unknown scene: ${candidate.target.sceneId}`);
       assertCandidateFresh(candidate, scene.content);
+    } else if (entry.targetSnapshot !== undefined) {
+      await deps.sceneOutlineBinding.assertCandidateTargetFresh(projectId, entry.targetSnapshot);
     } else {
-      let chapter: Chapter | undefined;
-      try {
-        chapter = await repository.readChapter(candidate.target.chapterId as string);
-      } catch (error) {
-        if (!(error instanceof Error) || !error.message.startsWith('Unknown chapter:')) throw error;
-      }
-      if (chapter?.scenes.some((item) => item.id === candidate.target.sceneId)) {
+      const chapter = await repository.readChapter(candidate.target.chapterId as string);
+      if (chapter.scenes.some((item) => item.id === candidate.target.sceneId)) {
         throw new Error(`Target scene already exists: ${candidate.target.sceneId}`);
       }
     }
+    // Freeze the C5 replay input while the validated owner snapshot is still current.
+    // It is not exposed as pending until the lifecycle reports every structured writer complete.
+    const landingPlan = await buildLandingPlan(entry, repository);
     // 2. 标准校验门（接受才进入；preview 同源 violations 经 I20 复判）→ 硬违规零写。
     const violations = await deps.ensureViolations(entry, signal);
     const afterGeneration = adjudicateViolations(violations);
@@ -159,6 +203,34 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     ]);
     // 4. I30 受控写回：journal 记录 C2→C1→C3→C4→B2 进度，部分失败显式 pending-compensation。
     const journal = await LifecycleJournal.open(projectDirectory(deps.projectsRoot, projectId));
+    // Detector/parser work is asynchronous. Keep this pre-execute rejection,
+    // then gate the first real layer call again after journal.start.
+    if (entry.targetSnapshot !== undefined) {
+      await deps.sceneOutlineBinding.assertCandidateTargetFresh(projectId, entry.targetSnapshot);
+    }
+    const layerWriters = buildFiveLayerWriters(
+      { state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon, worldview: deps.worldview, confirmation: deps.confirmation },
+      projectId,
+      candidate.id,
+    );
+    let firstLayerWriteGate: Promise<void> | undefined;
+    const requireFreshFirstLayerWrite = (): Promise<void> => {
+      firstLayerWriteGate ??= entry.targetSnapshot === undefined
+        ? Promise.resolve()
+        : deps.sceneOutlineBinding.assertCandidateTargetFresh(projectId, entry.targetSnapshot);
+      return firstLayerWriteGate;
+    };
+    // Every structured writer shares the one-shot gate. executeLifecycle calls
+    // journal.start before c2; the c2 wrapper therefore checks freshness at the
+    // last async boundary before any real layer/C5 side effect. Later wrappers
+    // reuse the same settled promise rather than claiming a cross-owner transaction.
+    const gatedLayerWriters = {
+      c2: async (output: Parameters<typeof layerWriters.c2>[0]) => { await requireFreshFirstLayerWrite(); await layerWriters.c2(output); },
+      c1: async (output: Parameters<typeof layerWriters.c1>[0]) => { await requireFreshFirstLayerWrite(); await layerWriters.c1(output); },
+      c3: async (output: Parameters<typeof layerWriters.c3>[0]) => { await requireFreshFirstLayerWrite(); await layerWriters.c3(output); },
+      c4: async (output: Parameters<typeof layerWriters.c4>[0]) => { await requireFreshFirstLayerWrite(); await layerWriters.c4(output); },
+      b2: async (output: Parameters<typeof layerWriters.b2>[0]) => { await requireFreshFirstLayerWrite(); await layerWriters.b2(output); },
+    };
     entry.attempts += 1;
     const result = await executeLifecycle({
       id: `w-${candidate.id}-${entry.attempts}`,
@@ -167,11 +239,7 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
       beforeWritebackViolations: [],
       journal,
       parsers: { c2: async () => c2, c1: async () => c1, c3: async () => c3, c4: async () => c4, b2: async () => b2 },
-      writers: buildFiveLayerWriters(
-        { state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon, worldview: deps.worldview, confirmation: deps.confirmation },
-        projectId,
-        candidate.id,
-      ),
+      writers: gatedLayerWriters,
     });
     if (result.status === 'generation-rejected' || result.status === 'prewrite-rejected') {
       return Object.freeze({
@@ -187,14 +255,10 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
       // decision-rejected 理论不可达（decision 恒为 accept）；fail-closed。
       throw new Error(`Unexpected lifecycle outcome: ${result.status}`);
     }
-    // 5. C5 落地（仅 written 后）。
-    const scene = await landScene(candidate);
-    return Object.freeze({
-      status: 'written',
-      candidateId: candidate.id,
-      scene,
-      layers: Object.freeze([...lifecycleStageSchema.options]),
-    });
+    // 5. Lifecycle 已完整写入后先冻结补偿点，再尝试 C5。失败保留 pending；
+    // retry accept 只会进入 finishPendingC5，绝不重跑探测器/解析器/五层 writer。
+    entry.pendingC5 = landingPlan;
+    return finishPendingC5(entry);
   };
 
   return Object.freeze({ accept });

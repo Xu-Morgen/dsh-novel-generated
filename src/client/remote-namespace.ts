@@ -28,6 +28,7 @@ import type {
   reviewRemoteContribution,
   ruleStyleRemoteContribution,
   searchRemoteContribution,
+  sceneOutlineBindingRemoteContribution,
   statisticsRemoteContribution,
   timelineRemoteContribution,
   textMutationRemoteContribution,
@@ -84,6 +85,8 @@ export type ImportExportNamespace = NamespaceOf<typeof importExportRemoteContrib
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;
+/** I105 independent manual/default scene-outline binding surface. */
+export type SceneOutlineBindingNamespace = NamespaceOf<typeof sceneOutlineBindingRemoteContribution>;
 export type TimelineNamespace = NamespaceOf<typeof timelineRemoteContribution>;
 /** I104 additive mutation contract; mounted by the chapters GUI consumer in I106. */
 export type TextMutationNamespace = NamespaceOf<typeof textMutationRemoteContribution>;

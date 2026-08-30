@@ -4,9 +4,9 @@ import { createTimelineService } from '../timeline-service.js';
 import { createNextSceneContextBuilder } from '../writing-context.js';
 import { createTextEditService as createControlledTextEditService } from '../text-edit-service.js';
 import { createWritingCandidateService } from '../candidate-service.js';
-import { createWritingAdjudicationService, type WritingProposeInput } from '../writing-adjudication-service.js';
+import { createWritingAdjudicationService, type WritingProposeAtInput, type WritingProposeInput } from '../writing-adjudication-service.js';
 import { createReviewService } from '../review-service.js';
-import { createQueueService, type QueueStartInput } from '../queue-service.js';
+import { createQueueService, type QueueStartAtInput, type QueueStartInput } from '../queue-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -43,6 +43,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     canonService,
     confirmationService,
     textService,
+    sceneOutlineBindingService,
     ruleService,
     styleService,
     knowledgeService,
@@ -170,6 +171,8 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     llm,
     projectsRoot,
     context: nextSceneContext,
+    sceneOutlineBinding: sceneOutlineBindingService,
+    textMutation: textService,
     state: stateService,
     relationship: relationshipService,
     knowledge: knowledgeService,
@@ -184,12 +187,16 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });
-  // wire 面 namespace 是 `novelWriting`（writing.ts descriptor 的 service/namespace），
-  // 组合根 provide 键是 `novelWritingAdjudication`（I63 单一 owner 契约，见 agent-tools 注释）。
-  ctx.provide('novelWritingAdjudication', defineRemote('novelWritingAdjudication', 'novelWriting', writingAdjudicationService, [
+  // Domain owner remains `novelWritingAdjudication`; the strict gateway receiver
+  // must use descriptor.service `novelWriting` or the real Typert gateway cannot
+  // resolve either legacy methods or I105 proposeAt. Both keys delegate to the
+  // same owner; no second candidate/adjudication state is created.
+  ctx.provide('novelWritingAdjudication', writingAdjudicationService);
+  ctx.provide('novelWriting', defineRemote('novelWriting', 'novelWriting', writingAdjudicationService, [
     { method: 'propose', call: (projectId: string, input: WritingProposeInput, settings?: unknown) => writingAdjudicationService.propose(projectId, input, settings) },
     { method: 'preview', call: (candidateId: string) => writingAdjudicationService.preview(candidateId) },
     { method: 'adjudicate', call: (candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown) => writingAdjudicationService.adjudicate(candidateId, decision, settings) },
+    { method: 'proposeAt', call: (projectId: string, input: WritingProposeAtInput, settings?: unknown) => writingAdjudicationService.proposeAt(projectId, input, settings) },
   ], writingInvocations));
   // I64 一致性审校中心（design §14.9 / R13-5）：统一投影规则/正史/知情/关系/风格
   // 五类问题及正文定位；复用 I21/I22/I24 探测器与 I20 判定（不新增第二裁决器）；
@@ -230,12 +237,14 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     writing: writingAdjudicationService,
     text: textService,
     outline: outlineService,
+    sceneOutlineBinding: sceneOutlineBindingService,
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });
   ctx.provide('novelQueue', defineRemote('novelQueue', 'novelQueue', queueService, [
     { method: 'status', call: (projectId: string) => queueService.status(projectId) },
     { method: 'start', call: (projectId: string, input?: QueueStartInput) => queueService.start(projectId, input) },
+    { method: 'startAt', call: (projectId: string, input: QueueStartAtInput) => queueService.startAt(projectId, input) },
     { method: 'pause', call: (projectId: string) => queueService.pause(projectId) },
     { method: 'resume', call: (projectId: string) => queueService.resume(projectId) },
     { method: 'cancel', call: (projectId: string) => queueService.cancel(projectId) },

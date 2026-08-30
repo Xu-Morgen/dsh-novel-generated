@@ -14,8 +14,9 @@ import type { QueueRunState, QueueTaskStatus } from '../queue/task.js';
  *   `drop()` 删除、可随时 `build()` 重建（计划 §16「派生视图风险」：统计绝不成为
  *   正文/设定/进度的第二真相，也不自动改变大纲状态）。
  * - 统计口径全部复用既有 owner：字数用 `countProseUnits`（与 I65 队列预算同一
- *   写作单位口径）；场景卡 ↔ 已写正文的映射用 `stableSceneId(actId, beatId,
- *   cardId)`（与 I65 队列任务的目标场景 id 同一确定性派生）。
+ *   写作单位口径）；场景卡 ↔ 已写正文映射必须由 Host
+ *   `SceneOutlineBindingService` 显式提供。统计核心不独立派生映射，也不把
+ *   `stableSceneId` 当作正文归属真相。
  * - 空作品无假进度：无章节/无大纲/无任务时各项为 0，完成度分母为 0 一律取 0
  *   （绝不产生 NaN/Infinity），`overview.empty` 明确标记空作品视图。
  */
@@ -31,12 +32,20 @@ export const SCENE_CARD_DEFAULT_LIMIT = 200;
 export const TASK_HISTORY_DEFAULT_LIMIT = 50;
 
 /** 投影构建输入（调用方 owned：C5/B5/C6/I65 账本的 live 投影，本模块不读文件真相）。 */
+export interface StatisticsSceneCardMapping {
+  readonly detailBeatId: string;
+  readonly sceneId: string;
+  readonly source: 'manual' | 'default' | 'suppressed';
+}
+
 export interface StatisticsSources {
   readonly chapters: readonly Chapter[];
   /** undefined = 大纲未初始化（空作品）；统计为零，不视为进度。 */
   readonly outline: Outline | undefined;
   /** undefined = C6 未初始化；completedBeats/currentBeat 按空处理。 */
   readonly progress: OutlineProgress | undefined;
+  /** Required canonical ownership projection supplied by SceneOutlineBindingService. */
+  readonly sceneCardMappings: readonly StatisticsSceneCardMapping[];
   /** I65 队列账本的任务记录（空数组 = 无任务历史）。 */
   readonly tasks: readonly StatisticsTaskInput[];
   /** I65 队列 runState / 预算消耗（队列 owner 的权威值；缺省 = 无队列）。 */
@@ -80,7 +89,7 @@ export interface ChapterWordStats {
   readonly scenes: readonly SceneWordStats[];
 }
 
-/** B5 场景卡 + C5 已写正文的联动统计（sceneId 由 stableSceneId 派生）。 */
+/** B5 场景卡 + C5 已写正文的联动统计（sceneId 来自 canonical owned mapping）。 */
 export interface SceneCardStats {
   readonly actId: string;
   readonly actIndex: number;

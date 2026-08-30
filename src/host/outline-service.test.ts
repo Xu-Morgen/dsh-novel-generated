@@ -25,7 +25,13 @@ describe('I14 Host outline service consumer', () => {
       foreshadowing: [], endings: [],
     });
     expect((await service.read('consumer')).version).toBe(1);
+    const fingerprint = await service.contentFingerprint('consumer');
+    expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect((await service.beatCards('consumer')).map((card) => card.detailBeat.id)).toEqual(['card']);
+    expect(await service.contentFingerprint('consumer')).toBe(fingerprint);
+    const current = await service.read('consumer');
+    await service.save('consumer', { ...current, logline: 'Changed semantic content.' });
+    expect(await service.contentFingerprint('consumer')).not.toBe(fingerprint);
     await fiber.dispose();
     expect(root.get('novelOutline', false)).toBeUndefined();
     await rm(rootPath, { recursive: true, force: true });

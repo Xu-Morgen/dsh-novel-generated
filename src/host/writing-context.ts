@@ -63,6 +63,8 @@ export interface NovelCreationSettingsView {
 /** 下一场景的写作上下文（compact JSON 视图 + 内部装配结果）。 */
 export interface NovelAgentContext {
   readonly projectId: string;
+  /** Host-only B5 token proving navigation/card and generation sources share one outline revision. */
+  readonly outlineFingerprint: string;
   readonly navigation: OutlineNavigation;
   readonly card: DetailBeat;
   readonly sources: StoryGenerationSources;
@@ -103,6 +105,7 @@ export function fallbackCard(navigation: OutlineNavigation): DetailBeat {
 export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextSceneContextProvider {
   /** 装配下一场景的全部生成源（上下文/导航/知情/正史/历史）。 */
   async function context(projectId: string): Promise<NovelAgentContext> {
+    const outlineFingerprintBefore = await deps.outline.contentFingerprint(projectId);
     const navigation = await deps.outline.navigate(projectId);
     const cards = await deps.outline.beatCards(projectId);
     const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
@@ -178,7 +181,9 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       navigation,
       card,
     });
-    return { projectId, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation, trace };
+    const outlineFingerprint = await deps.outline.contentFingerprint(projectId);
+    if (outlineFingerprint !== outlineFingerprintBefore) throw new Error('Outline changed during context assembly');
+    return { projectId, outlineFingerprint, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation, trace };
   }
 
   return Object.freeze({ context });

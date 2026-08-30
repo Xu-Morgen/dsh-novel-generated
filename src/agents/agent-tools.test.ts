@@ -15,6 +15,7 @@ import { createStyleService } from '../host/style-service.js';
 import { createRuleService } from '../host/rule-service.js';
 import { createKnowledgeService } from '../host/knowledge-service.js';
 import { createTextService } from '../host/text-service.js';
+import { createSceneOutlineBindingService } from '../host/scene-outline-binding-service.js';
 import { createInspirationService } from '../host/inspiration-service.js';
 import { createConsistencyDetectionService } from '../host/consistency-detection-service.js';
 import { createKnowledgeLeakDetectionService } from '../host/knowledge-leak-detection-service.js';
@@ -84,10 +85,13 @@ async function setup(
     workbenchSettings: { load: async () => ({ wordTarget: creation?.wordTarget ?? 500, askWhenThin: creation?.askWhenThin ?? true }) },
   });
   const context = wrapContext === undefined ? realContext : wrapContext(realContext);
+  const sceneOutlineBinding = createSceneOutlineBindingService(text, outline, root);
   const writing = createWritingAdjudicationService({
     llm,
     projectsRoot: root,
     context,
+    sceneOutlineBinding,
+    textMutation: text,
     state, relationship, knowledge, canon, worldview, confirmation, rules, style,
     consistency: createConsistencyDetectionService(llm),
     knowledgeLeak: createKnowledgeLeakDetectionService(llm),
@@ -136,6 +140,7 @@ async function seedProject(deps: NovelAgentDeps, projectId: string): Promise<voi
   await deps.knowledge.open(projectId);
   await deps.knowledge.saveAll(projectId, [], [{ characterId: 'mira', knows: [] }]);
   await deps.text.open(projectId);
+  await deps.text.createChapter(projectId, { id: 'chapter-main', index: 1, title: '正文', pov: 'mira', status: 'draft' });
   await deps.confirmation.open(projectId);
 }
 
@@ -178,9 +183,9 @@ describe('novel agent tools（对话创作入口）', () => {
       await seedProject(deps, 'demo');
       const { candidate } = await agent.proposeContinue('demo');
       expect(candidate.intent).toBe('continue');
-      expect(candidate.target.chapterId).toBe('chapter-1');
-      // 只产候选：无章节、无结构化层写入。
-      expect(await deps.text.listChapters('demo')).toHaveLength(0);
+      expect(candidate.target.chapterId).toBe('chapter-main');
+      // 只产候选：既有章节仍无场景、无结构化层写入。
+      expect((await deps.text.listChapters('demo'))[0].scenes).toHaveLength(0);
       expect(deps.state.current('demo').storyTime).toBe('');
       // 通用目标字数（创作设置 800）覆盖了细纲卡自带的 wordTarget（20）。
       expect(seen.some((prompt) => prompt.includes('目标字数: 800'))).toBe(true);
@@ -192,17 +197,17 @@ describe('novel agent tools（对话创作入口）', () => {
       expect(deps.state.current('demo').storyTime).toBe('dawn');
       // C4 正史追加。
       expect(deps.canon.query('demo').map((entry) => entry.id)).toEqual(['evt-1']);
-      // C5 文本落盘（chapter-1 已建并含 1 个场景）。
+      // C5 文本落盘（显式既有章节含 1 个场景）。
       const chapters = await deps.text.listChapters('demo');
       expect(chapters).toHaveLength(1);
       expect(chapters[0].scenes).toHaveLength(1);
       expect(chapters[0].scenes[0].content).toBe('米拉在码头找到铜钥匙。');
       // 文件级证据：重启后数据仍在磁盘上（结构化文档，无需重新上传/初始化）。
       const projectDir = join(root, 'demo');
-      const chapterFile = await readFile(join(projectDir, 'text', 'chapter-1.json'), 'utf8');
+      const chapterFile = await readFile(join(projectDir, 'text', 'chapter-main.json'), 'utf8');
       expect(JSON.parse(chapterFile).scenes[0].content).toBe('米拉在码头找到铜钥匙。');
-      // 可读镜像：docs/chapter-1.md 带段落，便于直接阅读。
-      const docsFile = await readFile(join(projectDir, 'docs', 'chapter-1.md'), 'utf8');
+      // 可读镜像带段落，便于直接阅读。
+      const docsFile = await readFile(join(projectDir, 'docs', 'chapter-main.md'), 'utf8');
       expect(docsFile).toContain('# 正文');
       expect(docsFile).toContain('米拉在码头找到铜钥匙。');
       const canonFile = await readFile(join(projectDir, 'canon', 'canon.jsonl'), 'utf8');
@@ -224,6 +229,20 @@ describe('novel agent tools（对话创作入口）', () => {
     }
   });
 
+  it('I105 proposeContinue with both target ids routes to explicit proposeAt', async () => {
+    const { agent, deps, root } = await setup();
+    try {
+      await seedProject(deps, 'demo');
+      const { candidate } = await agent.proposeContinue('demo', { chapterId: 'chapter-main', sceneId: 'agent-explicit' });
+      expect(candidate.target).toEqual({ projectId: 'demo', chapterId: 'chapter-main', sceneId: 'agent-explicit' });
+      const controller = new AbortController();
+      const legacy = await agent.proposeContinue('demo', controller.signal);
+      expect(legacy.candidate.target.chapterId).toBe('chapter-main');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('reject 零写：无场景、无结构化层写入；重复 reject 幂等', async () => {
     const { agent, deps, root } = await setup();
     try {
@@ -233,7 +252,7 @@ describe('novel agent tools（对话创作入口）', () => {
       expect(outcome).toEqual({ status: 'rejected', candidateId: candidate.id });
       expect(deps.state.current('demo').storyTime).toBe('');
       expect(deps.canon.query('demo')).toHaveLength(0);
-      expect(await deps.text.listChapters('demo')).toHaveLength(0);
+      expect((await deps.text.listChapters('demo'))[0].scenes).toHaveLength(0);
       expect((await agent.adjudicate(candidate.id, 'reject')).status).toBe('rejected');
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -267,8 +286,7 @@ describe('novel agent tools（对话创作入口）', () => {
         keywords: ['北港'], triggerMode: 'keyword', weight: 1, parent: null, mutable: true, status: 'active', supersededBy: null,
       });
       // 一段提到「北港」的最近正文作为触发源（否则无命中，无法验证 active 过滤）。
-      await deps.text.createChapter('demo', { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
-      await deps.text.appendScene('demo', 'chapter-1', {
+      await deps.text.appendScene('demo', 'chapter-main', {
         id: 'scene-1', content: '米拉站在北港的码头上，望着内海西岸。', summary: '抵达北港', beats: ['beat-1'], canonEvents: [], notes: '',
       });
       // 上下文只注入 active 的 north-harbor-v2，绝不注入 rewritten 的 north-harbor。

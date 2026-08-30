@@ -35,6 +35,11 @@ describe('I65 生成队列 UI (R13-6)', () => {
       { id: 'qt-scene-b', sceneId: 'scene-b', chapterId: 'chapter-1', cardTitle: '灯塔守夜', cardPov: 'mira', status: 'failed', candidateId: null, attempts: 1, error: 'backend exploded', budgetUnits: null, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     ],
   };
+  const CHAPTER_WORKSPACE = {
+    chapterList: async () => [{ id: 'chapter-main', index: 1, title: '第一章', pov: 'mira', status: 'draft', sceneCount: 0 }],
+    chapterRead: async () => ({ ok: true, value: { id: 'chapter-main', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [] } }),
+    sceneRead: async () => ({ ok: true, value: { chapter: { id: 'chapter-main', index: 1, title: '第一章', pov: 'mira' }, scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' } } }),
+  };
   const CARDS = [
     { actId: 'act-1', beatId: 'beat-1', beatTitle: '午夜旧灯塔', detailBeat: { id: 'detail-1', title: '发现海图', summary: 's', pov: 'mira', wordTarget: 20, points: [], status: 'writing' } },
     { actId: 'act-1', beatId: 'beat-1', beatTitle: '午夜旧灯塔', detailBeat: { id: 'detail-2', title: '灯塔守夜', summary: 's', pov: 'mira', wordTarget: 20, points: [], status: 'writing' } },
@@ -45,11 +50,11 @@ describe('I65 生成队列 UI (R13-6)', () => {
     let retried: string | undefined;
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
-      { outlineBeatCards: async () => CARDS },
+      { ...CHAPTER_WORKSPACE, outlineBeatCards: async () => CARDS },
       {
         queue: {
           status: async () => ({ ok: true, value: QUEUE_STATUS }),
-          start: async (projectId, input) => { starts.push({ projectId, input }); return { ok: true, value: QUEUE_STATUS }; },
+          startAt: async (projectId, input) => { starts.push({ projectId, input }); return { ok: true, value: QUEUE_STATUS }; },
           pause: async () => ({ ok: true, value: QUEUE_STATUS }),
           resume: async () => ({ ok: true, value: QUEUE_STATUS }),
           cancel: async () => ({ ok: true, value: QUEUE_STATUS }),
@@ -61,6 +66,10 @@ describe('I65 生成队列 UI (R13-6)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-main')?.props?.onClick as () => void)();
+    await flush();
     openQueue(render);
     await flush();
     // 刷新 → ready：运行态 + 预算 + 任务列表（待裁决 + 失败）。
@@ -85,8 +94,35 @@ describe('I65 生成队列 UI (R13-6)', () => {
     (startButton()?.props?.onClick as () => void)();
     await flush();
     expect(starts).toHaveLength(1);
-    const input = (starts[0] as { input: { cardIds?: string[]; maxRetries?: number; stopOnSoftWarnings?: boolean } }).input;
+    const input = (starts[0] as { input: { chapterId: string; cardIds?: string[]; maxRetries?: number; stopOnSoftWarnings?: boolean } }).input;
+    expect(input.chapterId).toBe('chapter-main');
     expect(input.cardIds).toEqual(['detail-1', 'detail-2']);
+  });
+
+  it('未选择章节时本地报错且不调用 startAt/legacy start', async () => {
+    let startAtCalls = 0;
+    let legacyCalls = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      { outlineBeatCards: async () => CARDS },
+      { queue: {
+        status: async () => ({ ok: true, value: QUEUE_STATUS }),
+        startAt: async () => { startAtCalls += 1; return { ok: true, value: QUEUE_STATUS }; },
+        start: async () => { legacyCalls += 1; return { ok: true, value: QUEUE_STATUS }; },
+      } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openQueue(render);
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-start'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(startAtCalls).toBe(0);
+    expect(legacyCalls).toBe(0);
+    expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('error');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-queue-error-text'] !== undefined)?.children?.[0] ?? ''))).toContain('请先选择目标章节');
   });
 
   it('队列 Remote 拒绝时显示错误态并可重试（不 brick 面板）', async () => {

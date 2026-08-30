@@ -44,6 +44,13 @@ const writingProposeInputSchema = z.object({
 }).strict();
 export type WritingProposeInputShape = z.infer<typeof writingProposeInputSchema>;
 
+const writingProposeAtInputSchema = z.object({
+  intent: z.enum(['continue', 'scene-card']),
+  chapterId: z.string().min(1),
+  sceneId: z.string().min(1),
+}).strict();
+export type WritingProposeAtInputShape = z.infer<typeof writingProposeAtInputSchema>;
+
 const adjudicationSchema = z.object({
   status: consistencyStatusSchema,
   violations: consistencyViolationsSchema,
@@ -130,8 +137,13 @@ export const writingAdjudicateInvocation = writingInvocation('adjudicate', [
   param('decision', strictCodec('novel-creation-tool#writingDecision', z.enum(['accept', 'reject', 'rewrite']))),
   param('settings', undefined, true),
 ], strictCodec('novel-creation-tool#writingAdjudicate:result', adjudicationOutcomeSchema));
+export const writingProposeAtInvocation = writingInvocation('proposeAt', [
+  param('projectId', stringCodec),
+  param('input', strictCodec('novel-creation-tool#writingProposeAtInput', writingProposeAtInputSchema)),
+  param('settings', undefined, true),
+], strictCodec('novel-creation-tool#writingProposeAt:result', z.object({ candidate: writingCandidateWireSchema }).strict()));
 
-export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation] as const;
+export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const writingRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

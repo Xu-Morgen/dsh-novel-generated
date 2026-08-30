@@ -15,10 +15,16 @@ import { z } from 'zod';
 import { remoteDescriptorLockBodies, remoteResultShapeBodies, shapeLockBody } from '../src/contract-lock.js';
 import { hostContribution } from '../src/remote.js';
 import { branchInvocations } from '../src/host/remote/branch.js';
-import { writingInvocations } from '../src/host/remote/writing.js';
+import { writingInvocations, writingProposeAtInvocation } from '../src/host/remote/writing.js';
 import { reviewInvocations } from '../src/host/remote/review.js';
 import { c5Invocations } from '../src/host/remote/text.js';
 import { textMutationInvocations } from '../src/host/remote/text-mutation.js';
+import { queueStartAtInvocation } from '../src/host/remote/queue.js';
+import {
+  sceneOutlineBindingImpactInvocation,
+  sceneOutlineBindingInvocations,
+  sceneOutlineBindingReadInvocation,
+} from '../src/host/remote/scene-outline-binding.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -114,8 +120,29 @@ for (const lock of EXISTING_LOCKS) {
 
 /** I103 Stage 18 Remote descriptor/result baseline（计划 §19 I103）。 */
 {
-  const resultDescriptors = [...branchInvocations, ...writingInvocations, ...reviewInvocations, ...c5Invocations, ...textMutationInvocations];
-  const descriptors = remoteDescriptorLockBodies(hostContribution.invocations);
+  const i105DescriptorIds = new Set([
+    ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
+    writingProposeAtInvocation.id,
+    queueStartAtInvocation.id,
+  ]);
+  const descriptorSequence = [
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
+    ...sceneOutlineBindingInvocations,
+    writingProposeAtInvocation,
+    queueStartAtInvocation,
+  ];
+  const resultDescriptors = [
+    ...branchInvocations,
+    ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation),
+    ...reviewInvocations,
+    ...c5Invocations,
+    ...textMutationInvocations,
+    sceneOutlineBindingReadInvocation,
+    sceneOutlineBindingImpactInvocation,
+    writingProposeAtInvocation,
+    queueStartAtInvocation,
+  ];
+  const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);
   write('contracts/stage18/remote-descriptors.json', {
     schemaVersion: 1,

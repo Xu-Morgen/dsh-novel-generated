@@ -67,7 +67,7 @@ export function createQueuePollController(deps: QueuePollDeps): QueuePollHandle 
     void unwrap(target.status(projectId)).then((projection) => {
       inFlight = false;
       if (!deps.isActive()) { clear(); return; }
-      const next = projection as QueueStatusShape;
+      const next = projection;
       deps.onStatus(next);
       if (next.runState === 'running' || next.runState === 'paused') {
         if (timer === undefined) timer = setTimeout(onTimer, deps.intervalMs ?? QUEUE_POLL_INTERVAL_MS);

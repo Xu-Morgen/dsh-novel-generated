@@ -7,6 +7,7 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
   const character = (id: string, name: string) => ({ id, name, kind: 'extra' as const });
   return {
     outline: {
+      contentFingerprint: async () => 'a'.repeat(64),
       navigate: async () => ({ actId: 'act-1', beatId: 'beat-1', title: '第一幕', description: '', prerequisites: [], prerequisitesMet: true, instruction: '继续写作', deviationIds: [] }),
       beatCards: async () => [{ actId: 'act-1', beatId: 'beat-1', beatTitle: '午夜旧灯塔', detailBeat: { id: 'detail-1', title: '发现海图', summary: '发现海图', pov: 'mira', wordTarget: 20, points: ['海图'], status: 'writing' as const } }],
     } as unknown as NextSceneContextDeps['outline'],

@@ -187,14 +187,6 @@ export type ProjectSessionActions = Pick<
   | 'stateDraft'
 >;
 
-/** I63 裁决结果的 Client 投影（最小 owned JSON；与 Host `novelWriting.adjudicate` 对齐）。 */
-export type WritingAdjudicationOutcome =
-  | { readonly status: 'written'; readonly candidateId: string; readonly scene: { readonly chapterId: string; readonly sceneId: string }; readonly layers: readonly string[] }
-  | { readonly status: 'rejected'; readonly candidateId: string }
-  | { readonly status: 'rewritten'; readonly candidateId: string; readonly superseded: string; readonly candidate: { readonly id: string } }
-  | { readonly status: 'generation-rejected' | 'prewrite-rejected'; readonly candidateId: string; readonly adjudication: { readonly status: string } }
-  | { readonly status: 'pending-compensation'; readonly candidateId: string; readonly failedStage: string };
-
 /** I47/I48/I49 数据层：各领域列表与表单态在面板装载后维护，供真表单渲染。 */
 export interface LayerData {
   readonly characters: CharacterLayerState;

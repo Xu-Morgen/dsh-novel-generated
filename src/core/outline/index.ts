@@ -125,6 +125,7 @@ export class OutlineRepository {
   }
 }
 
+export { outlineContentFingerprint } from './fingerprint.js';
 export { OutlineNavigator } from './navigator.js';
 export { OutlineProgressRepository, appendDeviation, assertProgressReferences, reconcileDeviation } from './progress.js';
 export { projectOutlineProgress, type OutlineProgressProjection, type ProjectedAct, type ProjectedBeat, type ProjectedSceneCard, type ProgressConsistency } from './projection.js';

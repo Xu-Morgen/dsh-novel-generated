@@ -83,6 +83,11 @@ const TASKS: readonly StatisticsTaskInput[] = [
 ];
 
 function sources(overrides: Partial<StatisticsSources> = {}): StatisticsSources {
+  const sceneCardMappings = OUTLINE.acts.flatMap((act) => act.beats.flatMap((beat) => beat.detailBeats.map((card) => ({
+    detailBeatId: card.id,
+    sceneId: stableSceneId(act.id, beat.id, card.id),
+    source: 'default' as const,
+  }))));
   return {
     chapters: CHAPTERS,
     outline: OUTLINE,
@@ -90,6 +95,7 @@ function sources(overrides: Partial<StatisticsSources> = {}): StatisticsSources 
     tasks: TASKS,
     queue: { runState: 'paused', consumedUnits: 200 },
     ...overrides,
+    sceneCardMappings: overrides.sceneCardMappings ?? sceneCardMappings,
   };
 }
 
@@ -120,7 +126,7 @@ describe('I72 core/statistics 可重建派生统计', () => {
     expect(projection.chapters[1].units).toBe(9);
   });
 
-  it('目标完成度：B5 场景卡经 stableSceneId 联动 C5 已写正文', () => {
+  it('目标完成度消费 canonical mapping：default、manual override 与 suppressed-default 不误计正文', () => {
     const projection = buildStatistics(sources());
     const detail1 = projection.cards.find((card) => card.cardId === 'detail-1');
     // detail-1 → stableSceneId(act-1, beat-1, detail-1)，正文中不存在 → written 0。
@@ -139,12 +145,28 @@ describe('I72 core/statistics 可重建派生统计', () => {
     expect(linkedCard?.completionRatio).toBe(18 / 500);
     const overview = buildStatisticsOverview(linkedProjection);
     expect(overview.completionRatio).toBe(18 / (500 + 300 + 400));
+
+    const ownership = sources({ sceneCardMappings: [
+      { detailBeatId: 'detail-1', sceneId: 'scene-1', source: 'suppressed' },
+      { detailBeatId: 'detail-2', sceneId: 'scene-1', source: 'manual' },
+      { detailBeatId: 'detail-3', sceneId: stableSceneId('act-1', 'beat-2', 'detail-3'), source: 'default' },
+    ] });
+    const ownedProjection = buildStatistics(ownership);
+    expect(ownedProjection.cards.find((card) => card.cardId === 'detail-1')?.writtenUnits).toBe(0);
+    expect(ownedProjection.cards.find((card) => card.cardId === 'detail-2')?.writtenUnits).toBe(18);
+
     // 超目标夹到 1（不显示 >100% 假进度）。
     const overshoot = sources({
       chapters: [{ ...CHAPTERS[0], scenes: [{ ...CHAPTERS[0].scenes[0], id: stableSceneId('act-1', 'beat-1', 'detail-1'), content: '米'.repeat(700) }] }],
     });
     const overshootCard = buildStatistics(overshoot).cards.find((card) => card.cardId === 'detail-1');
     expect(overshootCard?.completionRatio).toBe(1);
+  });
+
+  it('缺失或重复 canonical mapping fail closed，不回退到 stableSceneId', () => {
+    expect(() => buildStatistics(sources({ sceneCardMappings: [] }))).toThrow(/Missing statistics scene-card mapping/);
+    const mapping = { detailBeatId: 'detail-1', sceneId: 'scene-1', source: 'manual' as const };
+    expect(() => buildStatistics(sources({ sceneCardMappings: [mapping, mapping] }))).toThrow(/Duplicate statistics scene-card mapping/);
   });
 
   it('场景卡状态与节完成度：来自 B5 detailBeats.status 与 C6 completedBeats', () => {
@@ -212,7 +234,7 @@ describe('I72 core/statistics 可重建派生统计', () => {
   });
 
   it('空作品无假进度：无章节/大纲/任务时全部为零且不产 NaN；overview.empty 标记空作品视图', () => {
-    const projection = buildStatistics({ chapters: [], outline: undefined, progress: undefined, tasks: [], queue: { runState: 'idle', consumedUnits: 0 } });
+    const projection = buildStatistics({ chapters: [], outline: undefined, progress: undefined, sceneCardMappings: [], tasks: [], queue: { runState: 'idle', consumedUnits: 0 } });
     expect(projection.chapters).toEqual([]);
     expect(projection.cards).toEqual([]);
     expect(projection.tasks).toEqual([]);

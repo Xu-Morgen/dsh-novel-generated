@@ -177,3 +177,4 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/evidence-bundle-draft-pin-and-negative-scans.json | 2026-08-28-i85-dsh-rc2-upgrade evidence pin-and-negative-scans |
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/gate-input-pack.json | 2026-08-28-i85-dsh-rc2-upgrade gate input pack |
 | 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/proof-bundle.md | 2026-08-28-i85-dsh-rc2-upgrade proof bundle |
+| 2026-08-29 | plan | docs/aegis/plans/2026-08-29-i105-scene-outline-binding.md | I105 SceneOutlineBinding 与候选落点合同实施计划 |

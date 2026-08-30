@@ -6,6 +6,7 @@ import {
 } from '../../core/candidate/index.js';
 import { validateProjectId } from '../../core/io/path.js';
 import { buildContextTrace, type ContextTrace } from '../../core/trace/index.js';
+import type { CandidateTargetSnapshot } from '../../core/schema/candidate-target.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
 import type { OutlineNavigation } from '../../core/schema/outline-progress.js';
 import type { TextRepository } from '../../core/text/index.js';
@@ -13,7 +14,29 @@ import type { ConsistencyViolationView } from '../../core/validate/index.js';
 import type { GenerationSettings } from '../../llm/port/index.js';
 import { createWritingCandidateService, type WritingCandidateRequest } from '../candidate-service.js';
 import type { NextSceneContextProvider, NovelAgentContext } from '../writing-context.js';
-import type { WritingAdjudicationOutcome, WritingProposeInput, WritingProposeIntent } from '../writing-adjudication-service.js';
+import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
+import type { WritingAdjudicationOutcome, WritingProposeAtInput, WritingProposeInput, WritingProposeIntent } from '../writing-adjudication-service.js';
+
+/** Lifecycle 已写完后冻结的 C5 落地计划；仅在同一 Host 进程内支持补偿重试。 */
+export type PendingC5Landing =
+  | {
+    readonly kind: 'rewrite';
+    readonly projectId: string;
+    readonly chapterId: string;
+    readonly sceneId: string;
+    readonly content: string;
+  }
+  | {
+    readonly kind: 'new-scene';
+    readonly projectId: string;
+    readonly chapterId: string;
+    readonly sceneId: string;
+    readonly index: number;
+    readonly content: string;
+    readonly summary: string;
+    readonly beats: readonly string[];
+    readonly expectedFingerprint?: string;
+  };
 
 /** 进程内候选条目（I62 合同；候选不持久化，I65 队列 owner 负责持久化与恢复）。 */
 export interface CandidateEntry {
@@ -24,10 +47,17 @@ export interface CandidateEntry {
   readonly recovery?: { card: DetailBeat; navigation: OutlineNavigation };
   /** I71 生成注入解释（continue/scene-card/rewrite 各自构建；preview 返回）。 */
   readonly trace: ContextTrace;
+  /** Host-only owner snapshot for I105 new-scene candidates; queue recovery is wired in Task2B. */
+  readonly targetSnapshot?: CandidateTargetSnapshot;
   /** preview 计算并缓存的校验结果（与 accept 同源，I20 复判）。 */
   violations?: readonly ConsistencyViolationView[];
   /** accept 落地结果缓存（重复 accept 幂等返回）。 */
   outcome?: WritingAdjudicationOutcome;
+  /**
+   * 五层生命周期已完成、C5 尚未确认落地的进程内补偿点。重试 accept 只能重放
+   * 这份冻结计划；进程重启会丢失候选与本状态，不能宣称持久恢复。
+   */
+  pendingC5?: PendingC5Landing;
   /** 生命周期尝试次数（journal id 唯一：`w-<candidateId>-<attempt>`）。 */
   attempts: number;
 }
@@ -52,8 +82,9 @@ export interface CandidateProduction {
   readonly nextId: (intent: WritingProposeIntent) => string;
   readonly requireEntry: (candidateId: string) => CandidateEntry;
   propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
+  proposeAt(projectId: string, input: WritingProposeAtInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   repropose(entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
-  registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void;
+  registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings; targetSnapshot: CandidateTargetSnapshot }): Promise<void>;
 }
 
 export interface CandidateProductionDeps {
@@ -62,6 +93,7 @@ export interface CandidateProductionDeps {
   readonly onDispose?: (dispose: () => void) => void;
   /** 下一场景上下文装配（与对话 Agent 共用，见 writing-context）。 */
   readonly context: NextSceneContextProvider;
+  readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
   /** A2 生成设置解析（Client/Agent 不传 settings 时惰性解析）。 */
   readonly resolveSettings: () => Promise<GenerationSettings>;
   /** 只读 C5 仓库访问（rewrite 绑定源正文哈希；由组合根注入共享池）。 */
@@ -79,17 +111,95 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
     return entry;
   };
 
-  /** rewrite 后继候选：继承原请求语义（sources/card/navigation/prompt），换新 id 重新生成。 */
-  const repropose = async (entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }> => {
-    const request = entry.request;
-    const next: WritingCandidateRequest = {
-      ...request,
-      id: `${request.id}-r${entry.attempts + 1}`,
-      settings: (settings as GenerationSettings | undefined) ?? request.settings,
+  const prepareNewScene = async (
+    projectId: string,
+    input: WritingProposeAtInput,
+    id: string,
+    resolved: GenerationSettings,
+    signal?: AbortSignal,
+  ) => {
+    // Freeze the three canonical owners before assembling context, then require
+    // target validation to observe that same revision before any generation.
+    const ownerFingerprints = await deps.sceneOutlineBinding.captureOwnerFingerprintTriple(projectId);
+    const built = await deps.context.context(projectId);
+    const card = { ...built.card, wordTarget: built.creation.wordTarget };
+    const targetSnapshot = await deps.sceneOutlineBinding.captureCandidateTarget(
+      projectId,
+      { chapterId: input.chapterId, sceneId: input.sceneId },
+      built.card.id,
+    );
+    if (ownerFingerprints.textFingerprint !== targetSnapshot.textFingerprint
+      || ownerFingerprints.outlineFingerprint !== targetSnapshot.outlineFingerprint
+      || ownerFingerprints.bindingFingerprint !== targetSnapshot.bindingFingerprint
+      || built.outlineFingerprint !== targetSnapshot.outlineFingerprint) {
+      throw new Error('Candidate context changed before target capture');
+    }
+    const base = {
+      id,
+      target: { projectId, chapterId: input.chapterId, sceneId: input.sceneId },
+      card,
+      navigation: built.navigation,
+      settings: resolved,
       signal,
     };
+    const request: WritingCandidateRequest = input.intent === 'continue'
+      ? { ...base, intent: 'continue', sources: built.sources }
+      : { ...base, intent: 'scene-card' };
+    validateCandidateTarget(request.intent, request.target);
+    const trace = input.intent === 'continue'
+      ? built.trace
+      : buildContextTrace({ intent: 'scene-card', pov: card.pov, navigation: built.navigation, card });
+    return { request, context: built, trace, targetSnapshot };
+  };
+
+  const produceNewScene = async (
+    projectId: string,
+    input: WritingProposeAtInput,
+    resolved: GenerationSettings,
+    signal?: AbortSignal,
+  ): Promise<{ readonly candidate: WritingCandidate }> => {
+    const prepared = await prepareNewScene(projectId, input, nextId(input.intent), resolved, signal);
+    const { candidate } = await candidates.propose(prepared.request);
+    entries.set(candidate.id, { candidate, ...prepared, attempts: 0 });
+    return Object.freeze({ candidate });
+  };
+
+  /** Rewrite/new-scene successor generation revalidates and refreshes Host owner tokens first. */
+  const repropose = async (entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }> => {
+    const request = entry.request;
+    const id = `${request.id}-r${entry.attempts + 1}`;
+    const resolved = (settings as GenerationSettings | undefined) ?? request.settings;
+    let next: WritingCandidateRequest;
+    let context = entry.context;
+    let trace = entry.trace;
+    let targetSnapshot: CandidateTargetSnapshot | undefined;
+    if (entry.targetSnapshot !== undefined) {
+      // Preserve the old snapshot assertion, then rebuild through the same
+      // pre-context/post-context owner barrier used by initial production.
+      await deps.sceneOutlineBinding.assertCandidateTargetFresh(request.target.projectId, entry.targetSnapshot);
+      const prepared = await prepareNewScene(request.target.projectId, {
+        intent: request.intent === 'continue' ? 'continue' : 'scene-card',
+        chapterId: entry.targetSnapshot.chapterId,
+        sceneId: entry.targetSnapshot.sceneId,
+      }, id, resolved, signal);
+      next = prepared.request;
+      context = prepared.context;
+      trace = prepared.trace;
+      targetSnapshot = prepared.targetSnapshot;
+    } else {
+      // Legacy rewrite candidates have no target snapshot/context and retain their established path.
+      next = { ...request, id, settings: resolved, signal };
+    }
     const { candidate } = await candidates.propose(next);
-    entries.set(candidate.id, { candidate, request: next, context: entry.context, trace: entry.trace, attempts: entry.attempts + 1 });
+    entries.set(candidate.id, {
+      candidate,
+      request: next,
+      context,
+      recovery: entry.recovery,
+      trace,
+      targetSnapshot,
+      attempts: entry.attempts + 1,
+    });
     return Object.freeze({ candidate });
   };
 
@@ -128,39 +238,49 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
         });
         return Object.freeze({ candidate });
       }
-      // continue / scene-card：经共享上下文装配（I44/I43 prompt 复用）。
-      const built = await deps.context.context(projectId);
-      const card = { ...built.card, wordTarget: built.creation.wordTarget };
-      const request: WritingCandidateRequest = {
-        id: nextId(input.intent),
+      const hasChapter = input.chapterId !== undefined;
+      const hasScene = input.sceneId !== undefined;
+      if (hasChapter !== hasScene) throw new Error('Non-rewrite target requires both chapterId and sceneId; use proposeAt');
+      if (hasChapter && hasScene) {
+        return produceNewScene(projectId, {
+          intent: input.intent,
+          chapterId: input.chapterId!,
+          sceneId: input.sceneId!,
+        }, resolved, signal);
+      }
+      const repository = await deps.ensureOpen(projectId);
+      const chapters = await repository.listChapters();
+      if (chapters.length !== 1) {
+        throw new Error(`Legacy propose requires exactly one existing chapter; found ${chapters.length}. Use proposeAt with an explicit target.`);
+      }
+      const occupiedSceneIds = new Set(chapters.flatMap((chapter) => chapter.scenes.map((scene) => scene.id)));
+      let sceneId: string;
+      do {
+        sceneId = `scene-${Date.now()}-${++sequence}`;
+      } while (occupiedSceneIds.has(sceneId));
+      return produceNewScene(projectId, {
         intent: input.intent,
-        target: { projectId, chapterId: 'chapter-1', sceneId: `scene-${Date.now()}-${++sequence}` },
-        sources: built.sources,
-        card,
-        navigation: built.navigation,
-        settings: resolved,
-        signal,
-      };
-      validateCandidateTarget(request.intent, request.target);
-      const { candidate } = await candidates.propose(request);
-      // I71：continue 注入故事上下文（复用上下文装配的 trace，与 ContextAssembler
-      // 实际选择一致）；scene-card 只注入场景卡/导航 —— 单独构建如实报告零结构层。
-      const trace = input.intent === 'continue'
-        ? built.trace
-        : buildContextTrace({ intent: 'scene-card', pov: card.pov, navigation: built.navigation, card });
-      entries.set(candidate.id, { candidate, request, context: built, trace, attempts: 0 });
-      return Object.freeze({ candidate });
+        chapterId: chapters[0].id,
+        sceneId,
+      }, resolved, signal);
+    },
+    async proposeAt(projectId: string, input: WritingProposeAtInput, settings?: unknown, signal?: AbortSignal) {
+      validateProjectId(projectId);
+      const resolved = (settings as GenerationSettings | undefined) ?? await deps.resolveSettings();
+      return produceNewScene(projectId, input, resolved, signal);
     },
     repropose,
-    registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void {
-      // 严格复验（消费方不得绕过合同）；同 id 重复注册幂等（I65 恢复可重入）。
+    async registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings; targetSnapshot: CandidateTargetSnapshot }): Promise<void> {
+      // Current queue recovery never manufactures owner tokens: parse and verify
+      // the persisted snapshot before the candidate becomes actionable.
       const parsed = parseWritingCandidate(candidate);
       if (entries.has(parsed.id)) return;
-      // I65 队列只编排 scene-card 意图；其余意图 fail-closed（避免伪造候选入账）。
+      // I65 队列只编排 scene-card 意图；其余意图在 owner-token I/O 前 fail-closed。
       if (parsed.intent !== 'scene-card') {
         throw new Error(`Queue recovery supports scene-card candidates only: ${parsed.intent}`);
       }
       validateCandidateTarget(parsed.intent, parsed.target);
+      await deps.sceneOutlineBinding.assertQueueTargetFresh(parsed.target.projectId, recovery.targetSnapshot);
       const request: WritingCandidateRequest = {
         id: parsed.id,
         intent: parsed.intent,
@@ -173,6 +293,7 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
         candidate: parsed,
         request,
         recovery: { card: recovery.card, navigation: recovery.navigation },
+        targetSnapshot: recovery.targetSnapshot,
         // I71：队列恢复的场景卡候选不经 ContextAssembler —— 如实报告无结构层注入。
         trace: buildContextTrace({ intent: 'scene-card', pov: recovery.card.pov, navigation: recovery.navigation, card: recovery.card }),
         attempts: 0,

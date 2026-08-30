@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { entityIdSchema } from '../schema/base.js';
-import { detailBeatSchema } from '../schema/outline.js';
+import { detailBeatSchema, type DetailBeat } from '../schema/outline.js';
 import { writingCandidateSchema } from '../candidate/index.js';
+import { candidateTargetSnapshotSchema } from '../schema/candidate-target.js';
 // I77：队列纯 zod wire 合同（运行态/任务态/配置/设置/导航/任务 id）收拢到
 // core/queue/schema.ts 单一来源，本模块从纯模块导入并 re-export（既有的
 // core/queue/index.js 导出面不变）；task.ts 保留依赖 writingCandidateSchema
@@ -65,48 +66,151 @@ export {
  *   不持有任何 live object；candidate 依赖 node:crypto 只进 Host 图（I63 同）。
  */
 
-/** 单任务持久化记录（candidate-ready 时内联候选 + settings，供重启 rehydrate）。 */
-export const queueTaskSchema = z.object({
+const queueTaskBaseShape = {
   id: queueTaskIdSchema,
   projectId: entityIdSchema,
-  /** 目标章节（I65 与 I63 一致固定为 chapter-1；场景 id 由场景卡稳定派生）。 */
   chapterId: entityIdSchema,
   sceneId: entityIdSchema,
-  /** 场景卡来源路径（act/beat/card），可追溯 + 稳定 scene id 的输入。 */
   actId: entityIdSchema,
   beatId: entityIdSchema,
   cardId: entityIdSchema,
-  /** 场景卡（prompt 重建：I43 buildChapterWritingPrompt 只消费 card + navigation）。 */
   card: detailBeatSchema,
   navigation: queueNavigationSchema,
-  /** I65 队列只编排 scene-card 意图（每任务 = 一张场景卡）。 */
   intent: z.literal('scene-card'),
   status: queueTaskStatusSchema,
   candidateId: z.string().min(1).nullable(),
-  /** 累计运行次数（含失败；retry 归零；maxRetries 据此裁决永久失败）。 */
   attempts: z.number().int().nonnegative(),
   error: z.string().nullable(),
-  /** 该任务候选消耗的写作单位（预算累计；未生成时为 null）。 */
   budgetUnits: z.number().int().nonnegative().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  /** candidate-ready 时内联候选（重启恢复的持久化正文；其余状态为 null）。 */
   candidate: writingCandidateSchema.nullable(),
   settings: queueSettingsSchema.nullable(),
+};
+
+/** I105 current task contract: every row freezes all three canonical owners. */
+export const queueTaskSchema = z.object({
+  version: z.literal(2),
+  ...queueTaskBaseShape,
+  targetSnapshot: candidateTargetSnapshotSchema,
 }).strict();
 export type QueueTaskData = z.infer<typeof queueTaskSchema>;
 
-/** 项目队列账本（一个项目一个 queue-journal.yaml）。 */
+/** Explicit pre-I105 disk shape; accepted only by the migration seam. */
+export const legacyQueueTaskSchema = z.object(queueTaskBaseShape).strict();
+export type LegacyQueueTaskData = z.infer<typeof legacyQueueTaskSchema>;
+export const storedQueueTaskSchema = z.union([queueTaskSchema, legacyQueueTaskSchema.extend({ version: z.literal(1) }).strict()]);
+export type StoredQueueTaskData = z.infer<typeof storedQueueTaskSchema>;
+
+/** I105 current project journal contract. */
 export const queueJournalSchema = z.object({
+  version: z.literal(2),
   projectId: entityIdSchema,
   runState: queueRunStateSchema,
   config: queueConfigSchema,
-  /** 已生成候选累计消耗的写作单位（预算判定基准）。 */
   consumedUnits: z.number().int().nonnegative(),
-  tasks: z.array(queueTaskSchema),
+  tasks: z.array(storedQueueTaskSchema),
   updatedAt: z.string().datetime(),
 }).strict();
 export type QueueJournalData = z.infer<typeof queueJournalSchema>;
+
+/** Fresh canonical owner resolution used by the queue's atomic refresh seam. */
+export interface QueueTaskRefresh {
+  readonly sourceTaskId: string;
+  readonly chapterId: string;
+  readonly sceneId: string;
+  readonly actId: string;
+  readonly beatId: string;
+  readonly card: DetailBeat;
+  readonly navigation: QueueNavigation;
+  readonly targetSnapshot: QueueTaskData['targetSnapshot'];
+  readonly occupied: boolean;
+  readonly updatedAt: string;
+}
+
+/**
+ * Atomically refresh same-card rows and append new rows against one prospective
+ * journal. Current rows are the normal caller; explicit startAt may also upgrade
+ * a failed legacy row. Every refreshed row is rebuilt from a fresh canonical
+ * resolution, resets generation state, and preserves the taskId(sceneId)
+ * invariant. The returned replacement is produced only after journal schema
+ * and project-wide card/id/target uniqueness validation succeed.
+ */
+export function refreshQueueJournal(
+  journal: QueueJournalData,
+  refreshes: readonly QueueTaskRefresh[],
+  additions: readonly QueueTaskData[] = [],
+): QueueJournalData {
+  const bySource = new Map<string, QueueTaskRefresh>();
+  for (const refresh of refreshes) {
+    if (bySource.has(refresh.sourceTaskId)) throw new Error(`Duplicate queue refresh source: ${refresh.sourceTaskId}`);
+    bySource.set(refresh.sourceTaskId, refresh);
+  }
+  const found = new Set<string>();
+  const tasks = journal.tasks.map((stored): StoredQueueTaskData => {
+    const refresh = bySource.get(stored.id);
+    if (refresh === undefined) return stored;
+    found.add(stored.id);
+    if (stored.cardId !== refresh.card.id) throw new Error(`Queue refresh must preserve card identity: ${stored.cardId}`);
+    if (refresh.targetSnapshot.chapterId !== refresh.chapterId
+      || refresh.targetSnapshot.sceneId !== refresh.sceneId
+      || refresh.targetSnapshot.detailBeatId !== stored.cardId) {
+      throw new Error(`Queue refresh target snapshot mismatch: ${stored.cardId}`);
+    }
+    return queueTaskSchema.parse({
+      ...stored,
+      version: 2,
+      id: queueTaskId(refresh.sceneId),
+      chapterId: refresh.chapterId,
+      sceneId: refresh.sceneId,
+      actId: refresh.actId,
+      beatId: refresh.beatId,
+      cardId: refresh.card.id,
+      card: { ...refresh.card },
+      navigation: { ...refresh.navigation },
+      status: refresh.occupied ? 'completed' : 'queued',
+      candidateId: null,
+      attempts: 0,
+      error: null,
+      budgetUnits: null,
+      candidate: null,
+      settings: null,
+      targetSnapshot: refresh.targetSnapshot,
+      updatedAt: refresh.updatedAt,
+    });
+  });
+  for (const sourceTaskId of bySource.keys()) {
+    if (!found.has(sourceTaskId)) throw new Error(`Queue refresh source not found: ${sourceTaskId}`);
+  }
+  tasks.push(...additions.map((task) => queueTaskSchema.parse(task)));
+
+  const cards = new Map<string, string>();
+  const ids = new Set<string>();
+  const targets = new Map<string, string>();
+  for (const task of tasks) {
+    const priorCard = cards.get(task.cardId);
+    if (priorCard !== undefined) throw new Error(`Queue card already claimed by ${priorCard}: ${task.cardId}`);
+    cards.set(task.cardId, task.id);
+    if (ids.has(task.id)) throw new Error(`Queue task id collision: ${task.id}`);
+    ids.add(task.id);
+    const targetKey = `${task.chapterId}\u0000${task.sceneId}`;
+    const priorTarget = targets.get(targetKey);
+    if (priorTarget !== undefined) throw new Error(`Queue target already claimed by ${priorTarget}: ${task.chapterId}/${task.sceneId}`);
+    targets.set(targetKey, task.cardId);
+  }
+  return queueJournalSchema.parse({ ...journal, tasks });
+}
+
+/** Explicit pre-I105 journal shape, never used for current writes. */
+export const legacyQueueJournalSchema = z.object({
+  projectId: entityIdSchema,
+  runState: queueRunStateSchema,
+  config: queueConfigSchema,
+  consumedUnits: z.number().int().nonnegative(),
+  tasks: z.array(legacyQueueTaskSchema),
+  updatedAt: z.string().datetime(),
+}).strict();
+export type LegacyQueueJournalData = z.infer<typeof legacyQueueJournalSchema>;
 
 /** 32bit djb2 变体（纯函数；避免在可被共享导入图引用的模块引入 node:crypto）。 */
 function hash32(input: string, seed: number): number {
@@ -166,9 +270,9 @@ export function countProseUnits(text: string): number {
 
 /** 任务状态机的合法迁移（冻结；非法迁移即 bug，fail-closed）。 */
 const QUEUE_TASK_TRANSITIONS: Readonly<Record<QueueTaskStatus, readonly QueueTaskStatus[]>> = {
-  queued: ['running', 'cancelled'],
+  queued: ['running', 'failed', 'cancelled', 'completed'],
   running: ['queued', 'candidate-ready', 'failed'],
-  'candidate-ready': ['completed', 'queued'],
+  'candidate-ready': ['completed', 'queued', 'failed'],
   failed: ['queued'],
   cancelled: [],
   completed: [],

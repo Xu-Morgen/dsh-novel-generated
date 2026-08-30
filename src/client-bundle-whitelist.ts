@@ -28,6 +28,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/outline.ts',
   'src/core/schema/project-lifecycle.ts',
   'src/core/schema/relationship.ts',
+  'src/core/schema/scene-outline-binding.ts',
   'src/core/schema/rules.ts',
   'src/core/schema/state.ts',
   'src/core/schema/style.ts',

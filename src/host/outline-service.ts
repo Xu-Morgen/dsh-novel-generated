@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
-import { appendDeviation, OutlineNavigator, OutlineProgressRepository, OutlineRepository, reconcileDeviation } from '../core/outline/index.js';
+import { appendDeviation, outlineContentFingerprint, OutlineNavigator, OutlineProgressRepository, OutlineRepository, reconcileDeviation } from '../core/outline/index.js';
 import type { Outline, OutlineBeatCard, OutlineInput } from '../core/schema/outline.js';
 import type { OutlineDeviation, OutlineNavigation, OutlineProgress, OutlineProgressInput } from '../core/schema/outline-progress.js';
 
@@ -11,6 +11,8 @@ export interface NovelOutlineService {
   readiness(projectId: string): Promise<'ready' | 'uninitialized' | 'corrupt'>;
   save(projectId: string, input: OutlineInput): Promise<Outline>;
   read(projectId: string): Promise<Outline>;
+  /** Internal semantic token for canonical parsed B5 content. */
+  contentFingerprint(projectId: string): Promise<string>;
   beatCards(projectId: string): Promise<OutlineBeatCard[]>;
   saveProgress(projectId: string, input: OutlineProgressInput): Promise<OutlineProgress>;
   readProgress(projectId: string): Promise<OutlineProgress>;
@@ -48,6 +50,9 @@ export function createOutlineService(
 
     save: (projectId, input) => get(projectId).outline.save(input),
     read: (projectId) => get(projectId).outline.read(),
+    async contentFingerprint(projectId) {
+      return outlineContentFingerprint(await get(projectId).outline.read());
+    },
     beatCards: (projectId) => get(projectId).outline.beatCards(),
     async saveProgress(projectId, input) {
       const repositoriesForProject = get(projectId);

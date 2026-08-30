@@ -1,4 +1,4 @@
-import type { El, WritingNamespace } from '../shared.js';
+import type { El, UnwrapValue, WritingNamespace } from '../shared.js';
 import { proseParagraphs } from './chapters-shared.js';
 import type { ChaptersEditOps } from './chapters.js';
 
@@ -7,37 +7,12 @@ import type { ChaptersEditOps } from './chapters.js';
  * I63 候选审阅面板的类型、状态工厂与渲染（design §14.9 / R13-4）。
  */
 
-/** I63 候选审阅（R13-4）：正文 + diff + 校验结果的最小 owned JSON（Host preview 投影）。 */
-export interface CandidateValidationShape {
-  readonly status: 'pass' | 'warn' | 'reject';
-  readonly violations: readonly { readonly severity: 'hard' | 'soft'; readonly message: string; readonly references: readonly string[] }[];
-}
+/** I63 preview 的 Client 形状直接派生自 canonical Remote descriptor，禁止手抄漂移。 */
+export type CandidateReviewShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['preview']>>>;
+export type CandidateValidationShape = CandidateReviewShape['validation'];
 /** I71 生成注入解释投影（design §14.10 / R14-6）：只含层/触发/预算摘要，无 secret 内容。 */
-export interface CandidateTraceSectionShape {
-  readonly id: string;
-  readonly characterCount: number;
-  readonly budget: number;
-  readonly truncated: boolean;
-}
-export interface CandidateTraceShape {
-  readonly intent: 'generate' | 'continue' | 'scene-card' | 'rewrite';
-  readonly pov: string;
-  readonly navigation?: { readonly actId: string; readonly beatId: string; readonly title: string };
-  readonly sections: readonly CandidateTraceSectionShape[];
-  readonly triggers: readonly { readonly entryId: string; readonly title: string; readonly matchedKeywords: readonly string[] }[];
-  readonly totals: { readonly characterCount: number; readonly budget: number; readonly truncatedSectionCount: number };
-  readonly rewritePromptCharacters: number;
-  readonly knowledgeVisibleCount: number;
-  readonly sceneCard?: { readonly title: string; readonly pov: string; readonly wordTarget: number };
-}
-export interface CandidateReviewShape {
-  readonly candidateId: string;
-  readonly intent: string;
-  readonly text: string;
-  readonly diff: { readonly kind: 'new-scene' } | { readonly kind: 'replace'; readonly before: string; readonly after: string };
-  readonly validation: CandidateValidationShape;
-  readonly trace?: CandidateTraceShape;
-}
+export type CandidateTraceShape = CandidateReviewShape['trace'];
+export type CandidateTraceSectionShape = CandidateTraceShape['sections'][number];
 
 /** I63 审阅面板 UI 状态机：只有正文/diff/校验结果可见（ready）后才允许裁决。 */
 export type CandidateUiState =
@@ -103,7 +78,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
     const review = ui.review;
     const acting = ui.kind === 'acting' ? ui.action : undefined;
     const diffBlock = review.diff.kind === 'new-scene'
-      ? h('p', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'new-scene' }, '新场景：将追加到「chapter-1」。')
+      ? h('p', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'new-scene' }, `新场景：将追加到「${review.target.chapterId}/${review.target.sceneId}」。`)
       : h('details', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'replace' },
         h('summary', { 'data-novel-candidate-diff-summary': '' }, '局部重写：将替换当前场景正文'),
         h('p', { className: 'nv-candidate__diff-before', 'data-novel-candidate-diff-before': '' }, review.diff.before),

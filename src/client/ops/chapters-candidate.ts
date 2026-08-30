@@ -1,6 +1,5 @@
 import { unwrap } from '../shared.js';
-import type { CandidatePanelState, CandidateReviewShape, ChaptersEditOps } from '../layers/chapters.js';
-import type { WritingAdjudicationOutcome } from '../store/types.js';
+import type { CandidatePanelState, ChaptersEditOps } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type CandidatePort = Pick<OpsPorts, 'workspace' | 'writing'>;
 import type { ChaptersInternal } from './chapters-internal.js';
@@ -16,6 +15,8 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
   const workspace = port.workspace;
   const writing = port.writing;
   const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
+  let targetSequence = 0;
+  const freshSceneId = (): string => `scene-${Date.now()}-${++targetSequence}`;
   // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
   const reloadChapters = (): void => {
     const target = workspace;
@@ -33,22 +34,22 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
     void unwrap(target.preview(candidateId)).then((review) => {
       if (!isActive()) return;
-      candidatePatch({ ui: { kind: 'ready', review: review as CandidateReviewShape } });
+      candidatePatch({ ui: { kind: 'ready', review } });
       onReady();
     }, (cause: Error) => { if (isActive()) candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
   };
   const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
     const target = writing;
     if (!target || projectId === undefined) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
+    const chapterId = snapshot.chapters.selectedChapterId;
+    if (chapterId === undefined) { candidatePatch({ ui: { kind: 'error', message: '请先选择目标章节' } }); return; }
     if (!beginOp(`writing:propose:${intent}`)) return;
     const release = (): void => endOp(`writing:propose:${intent}`);
     candidatePatch({ ui: { kind: 'proposing', intent } });
-    void unwrap(target.propose(projectId, { intent }, undefined)).then((result) => {
+    void unwrap(target.proposeAt(projectId, { intent, chapterId, sceneId: freshSceneId() }, undefined)).then((result) => {
       release();
       if (!isActive()) return;
-      const candidate = (result as { candidate?: { id: string } }).candidate;
-      if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
-      previewAfterPropose(candidate.id, () => undefined);
+      previewAfterPropose(result.candidate.id, () => undefined);
     }, (cause: Error) => { release(); if (!isActive()) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
   };
   const proposeRewrite = (): void => {
@@ -65,9 +66,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt }, undefined)).then((result) => {
       release();
       if (!isActive()) return;
-      const candidate = (result as { candidate?: { id: string } }).candidate;
-      if (!candidate?.id) { candidatePatch({ ui: { kind: 'error', message: '候选生成失败：缺少候选 id' } }); return; }
-      previewAfterPropose(candidate.id, () => undefined);
+      previewAfterPropose(result.candidate.id, () => undefined);
     }, (cause: Error) => { release(); if (!isActive()) return; candidatePatch({ ui: { kind: 'error', message: (cause as Error).message } }); });
   };
   const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
@@ -82,7 +81,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     void unwrap(target.adjudicate(candidateId, decision, undefined)).then((result) => {
       release();
       if (!isActive()) return;
-      const outcome = result as WritingAdjudicationOutcome;
+      const outcome = result;
       if (outcome.status === 'written') {
         candidatePatch({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } });
         reloadChapters();

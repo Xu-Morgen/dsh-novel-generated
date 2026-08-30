@@ -1,13 +1,20 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { checkRemoteContractLock, checkShapeLock } from './contract-lock.js';
 import { hostContribution } from './remote.js';
 import { branchInvocations } from './host/remote/branch.js';
-import { writingInvocations } from './host/remote/writing.js';
+import { writingInvocations, writingProposeAtInvocation } from './host/remote/writing.js';
 import { reviewInvocations } from './host/remote/review.js';
 import { c5Invocations } from './host/remote/text.js';
 import { textMutationInvocations } from './host/remote/text-mutation.js';
+import { queueStartAtInvocation } from './host/remote/queue.js';
+import {
+  sceneOutlineBindingImpactInvocation,
+  sceneOutlineBindingInvocations,
+  sceneOutlineBindingReadInvocation,
+} from './host/remote/scene-outline-binding.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -31,7 +38,28 @@ const remoteLock = JSON.parse(readFileSync(new URL('../contracts/stage18/remote-
   resultSchemaIds: string[];
   resultSchemas: Record<string, unknown>;
 };
-const stage18ResultDescriptors = [...branchInvocations, ...writingInvocations, ...reviewInvocations, ...c5Invocations, ...textMutationInvocations];
+const i105DescriptorIds = new Set([
+  ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
+  writingProposeAtInvocation.id,
+  queueStartAtInvocation.id,
+]);
+const stage18Descriptors = [
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
+  ...sceneOutlineBindingInvocations,
+  writingProposeAtInvocation,
+  queueStartAtInvocation,
+];
+const stage18ResultDescriptors = [
+  ...branchInvocations,
+  ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation),
+  ...reviewInvocations,
+  ...c5Invocations,
+  ...textMutationInvocations,
+  sceneOutlineBindingReadInvocation,
+  sceneOutlineBindingImpactInvocation,
+  writingProposeAtInvocation,
+  queueStartAtInvocation,
+];
 
 const docxSchemas: Record<string, z.ZodType> = {
   UploadStartInput: uploadStartInputSchema,
@@ -90,26 +118,48 @@ describe('contracts/ 形状本体契约锁', () => {
 });
 
 describe('I103 contracts/stage18 Remote descriptor baseline', () => {
-  it('锁定全部既有 Host invocation descriptor 字段与 Branch/Writing/Review/C5 result schema', () => {
-    expect(remoteLock.descriptorIds).toEqual(hostContribution.invocations.map((descriptor) => descriptor.id));
+  it('I105 的前 115 descriptor / 24 result JSON bodies 与 8636685 结构逐字一致', () => {
+    const oldDescriptors = Object.fromEntries(remoteLock.descriptorIds.slice(0, 115).map((id) => [id, remoteLock.descriptors[id]]));
+    const oldResults = Object.fromEntries(remoteLock.resultSchemaIds.slice(0, 24).map((id) => [id, remoteLock.resultSchemas[id]]));
+    expect(createHash('sha256').update(JSON.stringify(oldDescriptors)).digest('hex'))
+      .toBe('15d4da60e3b140b5c1ff70a3fb2043c0c31f7d19c898718b83d2847da437a14b');
+    expect(createHash('sha256').update(JSON.stringify(oldResults)).digest('hex'))
+      .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
+  });
+
+  it('锁定全部 Host invocation descriptor，I105 仅追加 7 methods / 4 unique result entries', () => {
+    expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(checkRemoteContractLock(remoteLock, hostContribution.invocations, stage18ResultDescriptors)).toEqual([]);
+    expect(remoteLock.descriptorIds).toHaveLength(122);
+    expect(remoteLock.resultSchemaIds).toHaveLength(28);
+    expect(remoteLock.descriptorIds.slice(-7)).toEqual([
+      ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
+      writingProposeAtInvocation.id,
+      queueStartAtInvocation.id,
+    ]);
+    expect(remoteLock.resultSchemaIds.slice(-4)).toEqual([
+      sceneOutlineBindingReadInvocation.id,
+      sceneOutlineBindingImpactInvocation.id,
+      writingProposeAtInvocation.id,
+      queueStartAtInvocation.id,
+    ]);
+    expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);
   });
 
   it('负向：descriptor 字段漂移必须失败', () => {
     const drifted = structuredClone(remoteLock);
     const firstId = drifted.descriptorIds[0];
     (drifted.descriptors[firstId] as { method: string }).method = 'drifted-method';
-    expect(checkRemoteContractLock(drifted, hostContribution.invocations, stage18ResultDescriptors).join('\n')).toContain('descriptor baseline');
+    expect(checkRemoteContractLock(drifted, stage18Descriptors, stage18ResultDescriptors).join('\n')).toContain('descriptor baseline');
   });
 
   it('负向：result schema 缺字段或多字段必须失败', () => {
     const missing = structuredClone(remoteLock);
     delete missing.resultSchemas[missing.resultSchemaIds[0]];
-    expect(checkRemoteContractLock(missing, hostContribution.invocations, stage18ResultDescriptors).join('\n')).toContain('result JSON schema');
+    expect(checkRemoteContractLock(missing, stage18Descriptors, stage18ResultDescriptors).join('\n')).toContain('result JSON schema');
 
     const extra = structuredClone(remoteLock);
     extra.resultSchemas['novel-creation-tool/ghost/result'] = {};
-    expect(checkRemoteContractLock(extra, hostContribution.invocations, stage18ResultDescriptors).join('\n')).toContain('result JSON schema');
+    expect(checkRemoteContractLock(extra, stage18Descriptors, stage18ResultDescriptors).join('\n')).toContain('result JSON schema');
   });
 });

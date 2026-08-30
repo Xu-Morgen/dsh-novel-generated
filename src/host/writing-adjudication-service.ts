@@ -10,7 +10,10 @@ import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import type { LifecycleStage } from '../core/lifecycle/index.js';
 import type { ContextTrace } from '../core/trace/index.js';
 import type { GenerationSettings } from '../llm/port/index.js';
+import type { CandidateTargetSelection, CandidateTargetSnapshot } from '../core/schema/candidate-target.js';
 import type { NextSceneContextProvider } from './writing-context.js';
+import type { NovelSceneOutlineBindingService } from './scene-outline-binding-service.js';
+import type { NovelTextMutationService } from './text-service.js';
 import type { NovelStateService } from './state-service.js';
 import type { NovelRelationshipService } from './relationship-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
@@ -60,6 +63,10 @@ export interface WritingProposeInput {
   readonly prompt?: string;
 }
 
+export interface WritingProposeAtInput extends CandidateTargetSelection {
+  readonly intent: 'continue' | 'scene-card';
+}
+
 export type CandidateReviewDiff =
   | { readonly kind: 'new-scene' }
   | { readonly kind: 'replace'; readonly before: string; readonly after: string };
@@ -88,6 +95,8 @@ export interface NovelWritingAdjudicationService {
   open(projectId: string): Promise<void>;
   /** 产生一个可审阅候选（continue/scene-card/rewrite；零写，绑定 target 与 sourceHash）。 */
   propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
+  /** Strict additive explicit target for non-rewrite candidates. */
+  proposeAt(projectId: string, input: WritingProposeAtInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   /** 候选审阅：正文 + diff + 校验结果（I21/I22/I24 探测器经 I20 裁决）。 */
   preview(candidateId: string, signal?: AbortSignal): Promise<CandidateReview>;
   /** 唯一裁决入口：accept 进入标准生命周期并受控写回；reject 零写；rewrite 后继候选。 */
@@ -101,7 +110,7 @@ export interface NovelWritingAdjudicationService {
    * 正常路径同构：pov 判定 / accept 落盘 summary+beats / rewrite 后继候选重建全部
    * 可复用，不引入第二套候选持有。
    */
-  registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void;
+  registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings; targetSnapshot: CandidateTargetSnapshot }): Promise<void>;
 }
 
 export interface WritingAdjudicationServiceDeps {
@@ -110,6 +119,10 @@ export interface WritingAdjudicationServiceDeps {
   readonly onDispose?: (dispose: () => void) => void;
   /** 下一场景上下文装配（与对话 Agent 共用，见 writing-context）。 */
   readonly context: NextSceneContextProvider;
+  /** Task1 canonical binding resolver owns target capture/freshness. */
+  readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
+  /** I104 CAS mutation seam used for the final C5 append. */
+  readonly textMutation: Pick<NovelTextMutationService, 'createSceneMutation'>;
   /** 结构化层写回 owner（既有 Domain Service；低置信 fail-closed）。 */
   readonly state: NovelStateService;
   readonly relationship: NovelRelationshipService;
@@ -143,19 +156,33 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     return repository;
   };
 
-  const production = createCandidateProduction({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose, context: deps.context, resolveSettings: deps.resolveSettings, ensureOpen });
+  const production = createCandidateProduction({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose, context: deps.context, sceneOutlineBinding: deps.sceneOutlineBinding, resolveSettings: deps.resolveSettings, ensureOpen });
   const projection = createValidationProjection({
     rules: deps.rules, canon: deps.canon, relationship: deps.relationship, style: deps.style, knowledge: deps.knowledge,
     consistency: deps.consistency, knowledgeLeak: deps.knowledgeLeak, relationshipStyle: deps.relationshipStyle,
-    entries: production.entries, ensureOpen,
+    entries: production.entries, sceneOutlineBinding: deps.sceneOutlineBinding, ensureOpen,
   });
   const saga = createLandingSaga({
     llm: deps.llm, projectsRoot,
     state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon,
     worldview: deps.worldview, confirmation: deps.confirmation,
-    ensureViolations: projection.ensureViolations, entries: production.entries, ensureOpen,
+    ensureViolations: projection.ensureViolations, sceneOutlineBinding: deps.sceneOutlineBinding, textMutation: deps.textMutation, ensureOpen,
   });
   const ledger = new CandidateAdjudicationLedger();
+  // lifecycle-journal.yaml and all five structured owners are project-scoped.
+  // Serialize adjudication side effects per project; proposal/preview remain
+  // parallel and different projects do not share a global lane.
+  const adjudicationLanes = new Map<string, Promise<void>>();
+  const inProjectLane = <T>(projectId: string, operation: () => Promise<T>): Promise<T> => {
+    const previous = adjudicationLanes.get(projectId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(operation);
+    const tail = run.then(() => undefined, () => undefined);
+    adjudicationLanes.set(projectId, tail);
+    void tail.then(() => {
+      if (adjudicationLanes.get(projectId) === tail) adjudicationLanes.delete(projectId);
+    });
+    return run;
+  };
 
   return Object.freeze({
     async open(projectId: string) {
@@ -163,47 +190,59 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       await production.candidates.open(projectId);
       await ensureOpen(projectId);
     },
-    registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings }): void {
-      production.registerRecoveredCandidate(candidate, recovery);
+    async registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings; targetSnapshot: CandidateTargetSnapshot }): Promise<void> {
+      await production.registerRecoveredCandidate(candidate, recovery);
     },
     async propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal) {
       return production.propose(projectId, input, settings, signal);
+    },
+    async proposeAt(projectId: string, input: WritingProposeAtInput, settings?: unknown, signal?: AbortSignal) {
+      return production.proposeAt(projectId, input, settings, signal);
     },
     async preview(candidateId: string, signal?: AbortSignal) {
       return projection.preview(candidateId, signal);
     },
     async adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal) {
-      const entry = production.requireEntry(candidateId);
-      const candidate = entry.candidate;
-      const projectId = candidate.target.projectId;
-      const status = ledger.statusOf(candidateId);
-      if (decision === 'reject') {
-        if (status === 'rejected') return Object.freeze({ status: 'rejected', candidateId });
-        if (status === 'accepted') throw new Error(`Candidate already accepted: ${candidateId}`);
-        if (status === 'superseded') throw new Error(`Candidate superseded by a successor: ${candidateId}`);
-        ledger.reject(candidateId, projectId);
-        return Object.freeze({ status: 'rejected', candidateId });
-      }
-      if (decision === 'rewrite') {
-        if (status === 'superseded') throw new Error(`Candidate already superseded: ${candidateId}`);
-        if (status === 'accepted') throw new Error(`Accepted candidate cannot be rewritten: ${candidateId}`);
-        const successor = await production.repropose(entry, settings, signal);
-        ledger.supersede(candidateId, successor.candidate.id, projectId);
-        return Object.freeze({ status: 'rewritten', candidateId, superseded: candidateId, candidate: successor.candidate });
-      }
-      // accept
-      if (status === 'accepted') {
-        if (entry.outcome !== undefined) return entry.outcome;
-        throw new Error(`Candidate already accepted: ${candidateId}`);
-      }
-      if (status === 'superseded') throw new Error(`Candidate superseded: 旧候选不可静默接受，请裁决后继候选（${candidateId}）`);
-      if (status === 'rejected') throw new Error(`Candidate already rejected: ${candidateId}`);
-      const outcome = await saga.accept(entry, settings, signal);
-      if (outcome.status === 'written') {
-        ledger.accept(candidateId, projectId);
-        entry.outcome = outcome;
-      }
-      return outcome;
+      const observedEntry = production.requireEntry(candidateId);
+      const observedProjectId = observedEntry.candidate.target.projectId;
+      return inProjectLane(observedProjectId, async () => {
+        // Re-resolve inside the project lane so no status/entry decision relies
+        // on the pre-lane observation used only to choose the lane owner.
+        const entry = production.requireEntry(candidateId);
+        const candidate = entry.candidate;
+        const projectId = candidate.target.projectId;
+        if (projectId !== observedProjectId) throw new Error(`Candidate project changed concurrently: ${candidateId}`);
+        const status = ledger.statusOf(candidateId);
+        if (decision === 'reject') {
+          if (entry.pendingC5 !== undefined) throw new Error(`Candidate ${candidateId} requires C5 compensation; retry accept to resume C5 landing`);
+          if (status === 'rejected') return Object.freeze({ status: 'rejected' as const, candidateId });
+          if (status === 'accepted') throw new Error(`Candidate already accepted: ${candidateId}`);
+          if (status === 'superseded') throw new Error(`Candidate superseded by a successor: ${candidateId}`);
+          ledger.reject(candidateId, projectId);
+          return Object.freeze({ status: 'rejected' as const, candidateId });
+        }
+        if (decision === 'rewrite') {
+          if (entry.pendingC5 !== undefined) throw new Error(`Candidate ${candidateId} requires C5 compensation; retry accept to resume C5 landing`);
+          if (status === 'superseded') throw new Error(`Candidate already superseded: ${candidateId}`);
+          if (status === 'accepted') throw new Error(`Accepted candidate cannot be rewritten: ${candidateId}`);
+          const successor = await production.repropose(entry, settings, signal);
+          ledger.supersede(candidateId, successor.candidate.id, projectId);
+          return Object.freeze({ status: 'rewritten' as const, candidateId, superseded: candidateId, candidate: successor.candidate });
+        }
+        // accept
+        if (status === 'accepted') {
+          if (entry.outcome !== undefined) return entry.outcome;
+          throw new Error(`Candidate already accepted: ${candidateId}`);
+        }
+        if (status === 'superseded') throw new Error(`Candidate superseded: 旧候选不可静默接受，请裁决后继候选（${candidateId}）`);
+        if (status === 'rejected') throw new Error(`Candidate already rejected: ${candidateId}`);
+        const outcome = await saga.accept(entry, settings, signal);
+        if (outcome.status === 'written') {
+          ledger.accept(candidateId, projectId);
+          entry.outcome = outcome;
+        }
+        return outcome;
+      });
     },
   });
 }

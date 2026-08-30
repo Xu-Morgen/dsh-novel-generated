@@ -9,6 +9,7 @@ import type { NovelRelationshipStyleDetectionService } from '../relationship-sty
 import type { NovelRelationshipService } from '../relationship-service.js';
 import type { NovelRuleService } from '../rule-service.js';
 import type { NovelStyleService } from '../style-service.js';
+import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import type { CandidateEntry } from './candidate-production.js';
 import type { CandidateReview, CandidateReviewDiff } from '../writing-adjudication-service.js';
 
@@ -41,6 +42,7 @@ export interface ValidationProjectionDeps {
   readonly knowledgeLeak: NovelKnowledgeLeakDetectionService;
   readonly relationshipStyle: NovelRelationshipStyleDetectionService;
   readonly entries: Map<string, CandidateEntry>;
+  readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
   /** 只读 C5 仓库访问（rewrite 的 before 正文与章节 POV；由组合根注入共享池）。 */
   readonly ensureOpen: (projectId: string) => Promise<TextRepository>;
 }
@@ -120,6 +122,9 @@ export function createValidationProjection(deps: ValidationProjectionDeps): Vali
     ensureViolations,
     async preview(candidateId: string, signal?: AbortSignal) {
       const entry = requireEntry(candidateId);
+      if (entry.targetSnapshot !== undefined) {
+        await deps.sceneOutlineBinding.assertCandidateTargetFresh(entry.candidate.target.projectId, entry.targetSnapshot);
+      }
       const violations = await ensureViolations(entry, signal);
       const candidate = entry.candidate;
       return Object.freeze({

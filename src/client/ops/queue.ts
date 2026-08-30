@@ -2,7 +2,7 @@
 // queue 层编辑动作 = I65 生成队列 ops（R13-6）：范围/配置 + 暂停/继续/取消 + 重试，经 queueNamespace。
 
 import { unwrap } from '../shared.js';
-import type { QueueEditOps, QueueLayerState, QueueStartInputShape, QueueStatusShape, QueueTaskShape } from '../layers/queue.js';
+import type { QueueEditOps, QueueLayerState, QueueStartInputShape } from '../layers/queue.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type QueuePort = Pick<OpsPorts, 'workspace' | 'queueNamespace'>;
 
@@ -33,11 +33,18 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
         if (!target || projectId === undefined) return;
         if (!beginOp(`queue:${method}:${taskId ?? ''}`)) return;
         const release = (): void => endOp(`queue:${method}:${taskId ?? ''}`);
-        const call = method === 'retry' ? target.retry(projectId, taskId as string) : (target[method] as (projectId: string) => Promise<unknown>)(projectId);
+        if (method === 'retry' && taskId === undefined) { release(); return; }
+        const call = method === 'retry'
+          ? target.retry(projectId, taskId!)
+          : method === 'pause'
+            ? target.pause(projectId)
+            : method === 'resume'
+              ? target.resume(projectId)
+              : target.cancel(projectId);
         void unwrap(call).then((projection) => {
           release();
           if (!isActive()) return;
-          const next = projection as QueueStatusShape;
+          const next = projection;
           queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
           // I88：轮询命令发往 Fiber 级控制器（单飞行，不堆积并行轮询链）。
           if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
@@ -53,7 +60,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           void unwrap(target.status(projectId)).then((projection) => {
             release();
             if (!isActive()) return;
-            const next = projection as QueueStatusShape;
+            const next = projection;
             queuePatch({ status: 'ready', projection: next });
             loadCards();
             if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
@@ -70,22 +77,28 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           const target = queueNamespace;
           const state = snapshot.queue;
           if (!target || projectId === undefined || state.acting) return;
+          const chapterId = snapshot.chapters.selectedChapterId;
+          if (chapterId === undefined) {
+            queuePatch({ status: 'error', acting: false, message: '请先选择目标章节' });
+            return;
+          }
           if (!beginOp('queue:start')) return;
           const release = (): void => endOp('queue:start');
           const budget = state.wordBudget.trim();
           const parsedBudget = budget === '' ? undefined : Number.parseInt(budget, 10);
           const parsedRetries = Number.parseInt(state.maxRetries, 10);
           const input: QueueStartInputShape = {
+            chapterId,
             ...(state.selectedCardIds.length > 0 ? { cardIds: [...state.selectedCardIds] } : {}),
             ...(parsedBudget !== undefined && Number.isFinite(parsedBudget) && parsedBudget > 0 ? { wordBudget: parsedBudget } : {}),
             ...(Number.isFinite(parsedRetries) && parsedRetries >= 0 ? { maxRetries: parsedRetries } : {}),
             stopOnSoftWarnings: state.stopOnSoftWarnings,
           };
           queuePatch({ acting: true, message: undefined });
-          void unwrap(target.start(projectId, input)).then((projection) => {
+          void unwrap(target.startAt(projectId, input)).then((projection) => {
             release();
             if (!isActive()) return;
-            const next = projection as QueueStatusShape;
+            const next = projection;
             queuePatch({ acting: false, status: 'ready', projection: next });
             if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
           }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: (cause as Error).message }); });

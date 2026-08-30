@@ -146,10 +146,14 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     };
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
-      {},
+      {
+        chapterList: async () => [{ id: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', sceneCount: 0 }],
+        chapterRead: async () => ({ ok: true, value: { id: 'chapter-1', index: 1, title: '旧灯塔', pov: 'mira', status: 'draft', scenes: [] } }),
+        sceneRead: async () => { throw new Error('unused'); },
+      },
       {
         writing: {
-          propose: async () => ({ ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
+          proposeAt: async () => ({ ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }),
           preview: async () => traceReview,
           adjudicate: async () => { throw new Error('unused'); },
         },
@@ -158,6 +162,8 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
     await flush();

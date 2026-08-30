@@ -1,4 +1,4 @@
-import type { El, QueueNamespace, WorkspaceNamespace } from '../shared.js';
+import type { El, QueueNamespace, UnwrapValue, WorkspaceNamespace } from '../shared.js';
 
 /**
  * I65 可恢复自动生成队列面板（design §14.9「可恢复自动生成队列」/ R13-6）。
@@ -33,38 +33,11 @@ export interface QueueCardShape {
   readonly status: string;
 }
 
-export interface QueueTaskShape {
-  readonly id: string;
-  readonly sceneId: string;
-  readonly chapterId: string;
-  readonly cardTitle: string;
-  readonly cardPov: string;
-  readonly status: 'queued' | 'running' | 'candidate-ready' | 'failed' | 'cancelled' | 'completed';
-  readonly candidateId: string | null;
-  readonly attempts: number;
-  readonly error: string | null;
-  readonly budgetUnits: number | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
-export interface QueueStatusShape {
-  readonly projectId: string;
-  readonly runState: 'idle' | 'running' | 'paused' | 'stopped-hard' | 'stopped-soft' | 'budget-exhausted' | 'completed';
-  readonly config: { readonly wordBudget: number | null; readonly maxRetries: number; readonly stopOnSoftWarnings: boolean };
-  readonly consumedUnits: number;
-  readonly updatedAt: string;
-  readonly error: string | null;
-  readonly tasks: readonly QueueTaskShape[];
-}
-
-export interface QueueStartInputShape {
-  // I91：与 wire `queueStartInputSchema` 对齐（z.array 输出可变数组；readonly 会拒绝写回）。
-  readonly cardIds?: string[];
-  readonly wordBudget?: number | null;
-  readonly maxRetries?: number;
-  readonly stopOnSoftWarnings?: boolean;
-}
+/** Descriptor-derived queue projection; Remote result drift must fail Client compilation. */
+export type QueueStatusShape = UnwrapValue<Awaited<ReturnType<QueueNamespace['startAt']>>>;
+export type QueueTaskShape = QueueStatusShape['tasks'][number];
+/** I105 explicit start input comes directly from the additive descriptor. */
+export type QueueStartInputShape = Parameters<QueueNamespace['startAt']>[1];
 
 export interface QueueLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error';

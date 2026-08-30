@@ -54,6 +54,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     confirmationService,
     projectService,
     textService,
+    sceneOutlineBindingService,
     ruleService,
     styleService,
     knowledgeService,
@@ -203,6 +204,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     projectsRoot: base.projectsRoot,
     text: textService,
     outline: outlineService,
+    sceneOutlineBinding: sceneOutlineBindingService,
     queue: queueService,
   });
   ctx.provide('novelStatistics', defineRemote('novelStatistics', 'novelStatistics', statisticsService, [

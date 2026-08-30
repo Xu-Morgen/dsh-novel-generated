@@ -123,6 +123,34 @@ describe('I85 Tools 真实 ToolRuntime 门（R17-4）', () => {
     }
   });
 
+  it('I105 novel_continue accepts both/neither explicit target fields and rejects half before the service', async () => {
+    const { ctx, tools } = mountToolRuntime();
+    const service = fakeAgentService();
+    service.proposeContinue.mockResolvedValue({
+      candidate: {
+        id: 'cand-1', intent: 'continue', target: { projectId: 'demo', chapterId: 'chapter-main', sceneId: 'scene-next' },
+        prompt: 'p', text: 'text', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    try {
+      const dispose = registerNovelAgentTools(ctx, service);
+      const signal = new AbortController().signal;
+      const implicit = await tools.execute({ callId: CallId('call-target-1'), name: 'novel_continue', arguments: { projectId: 'demo' }, signal });
+      const explicit = await tools.execute({ callId: CallId('call-target-2'), name: 'novel_continue', arguments: { projectId: 'demo', chapterId: 'chapter-main', sceneId: 'scene-next' }, signal });
+      const partial = await tools.execute({ callId: CallId('call-target-3'), name: 'novel_continue', arguments: { projectId: 'demo', chapterId: 'chapter-main' }, signal });
+      expect(implicit.isError).toBe(false);
+      expect(explicit.isError).toBe(false);
+      expect(partial.isError).toBe(true);
+      expect(service.proposeContinue).toHaveBeenCalledTimes(2);
+      expect(service.proposeContinue.mock.calls[0][1]).toBe(signal);
+      expect(service.proposeContinue.mock.calls[1][1]).toEqual({ chapterId: 'chapter-main', sceneId: 'scene-next' });
+      expect(service.proposeContinue.mock.calls[1][2]).toBe(signal);
+      dispose();
+    } finally {
+      await ctx.fiber.dispose();
+    }
+  });
+
   it('枚举越界的 decision 在业务执行前 fail closed', async () => {
     const { ctx, tools } = mountToolRuntime();
     const service = fakeAgentService();
