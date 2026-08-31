@@ -9,6 +9,7 @@ import type { ChaptersEditOps } from './chapters.js';
 
 /** I63 preview 的 Client 形状直接派生自 canonical Remote descriptor，禁止手抄漂移。 */
 export type CandidateReviewShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['preview']>>>;
+export type CandidateLayerPreviewShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['previewLayers']>>>;
 export type CandidateValidationShape = CandidateReviewShape['validation'];
 /** I71 生成注入解释投影（design §14.10 / R14-6）：只含层/触发/预算摘要，无 secret 内容。 */
 export type CandidateTraceShape = CandidateReviewShape['trace'];
@@ -18,8 +19,8 @@ export type CandidateTraceSectionShape = CandidateTraceShape['sections'][number]
 export type CandidateUiState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'proposing'; readonly intent: string }
-  | { readonly kind: 'ready'; readonly review: CandidateReviewShape }
-  | { readonly kind: 'acting'; readonly review: CandidateReviewShape; readonly action: 'accept' | 'reject' | 'rewrite' }
+  | { readonly kind: 'ready'; readonly review: CandidateReviewShape; readonly layerPreview?: CandidateLayerPreviewShape }
+  | { readonly kind: 'acting'; readonly review: CandidateReviewShape; readonly action: 'accept' | 'reject' | 'rewrite'; readonly layerPreview?: CandidateLayerPreviewShape }
   | { readonly kind: 'done'; readonly message: string }
   | { readonly kind: 'error'; readonly message: string };
 
@@ -93,6 +94,17 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
         : h('ul', { className: 'nv-candidate__violations' }, validation.violations.map((violation, index) => h('li', { key: index, 'data-novel-candidate-violation': violation.severity }, `${violation.severity === 'hard' ? '硬' : '软'}冲突：${violation.message}`))),
     );
     const trace = review.trace;
+    const layerPreview = ui.layerPreview;
+    const layerPreviewBlock = layerPreview === undefined
+      ? null
+      : h('details', { className: 'nv-candidate__layer-preview', 'data-novel-candidate-layer-preview': '' },
+        h('summary', { 'data-novel-candidate-layer-preview-summary': '' }, `结构化变更预览（${layerPreview.changes.length} 项）`),
+        layerPreview.changes.length === 0
+          ? h('p', { className: 'nv-candidate__hint', 'data-novel-candidate-layer-preview-empty': '' }, '五层没有需要写回的结构化变化。')
+          : h('ul', { className: 'nv-candidate__layer-preview-list' }, layerPreview.changes.map((change, index) =>
+            h('li', { key: `${change.layer}-${change.entityId}-${index}`, 'data-novel-candidate-layer-change': `${change.layer}:${change.kind}` },
+              `${change.layer}：${change.kind} ${change.entityType}/${change.entityId}（${change.changedFields.join('、')}）`))),
+      );
     const traceBlock = trace === undefined
       ? null
       : h('details', { className: 'nv-candidate__trace', 'data-novel-candidate-trace': '' },
@@ -123,6 +135,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
       proseParagraphs(h, review.text),
       diffBlock,
       validationBlock,
+      layerPreviewBlock,
       traceBlock,
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-accept': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('accept') }, acting === 'accept' ? '正在接受…' : '接受'),

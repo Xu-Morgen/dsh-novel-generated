@@ -118,6 +118,12 @@ function fixtureFor(endpoint: string): unknown {
       return { candidate: { id: 'cand-at-1', intent: 'continue', target: { projectId: 'p1', chapterId: 'chapter-1', sceneId: 'scene-1' }, prompt: '继续写下去', text: '夜色', chunkCount: 1, createdAt: ISO } };
     case 'novelWriting/adjudicate':
       return { status: 'rejected', candidateId: 'cand-1' };
+    case 'novelWriting/previewLayers':
+      return {
+        candidateId: 'cand-1', sourceHash: 'a'.repeat(64),
+        generationBaseline: { kind: 'no-outline-baseline' }, changes: [],
+        validation: { status: 'pass', violations: [] },
+      };
     case 'novelSceneOutlineBinding/read':
     case 'novelSceneOutlineBinding/save':
     case 'novelSceneOutlineBinding/rebind':
@@ -220,6 +226,19 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       const settings = { generation: { temperature: 0.4 } };
       await unwrap(ns.propose('p1', { intent: 'rewrite', chapterId: 'c1', sceneId: 's1', prompt: '重写' }, settings));
       expect(calls[0]).toEqual({ endpoint: 'novelWriting/propose', args: { projectId: 'p1', input: { intent: 'rewrite', chapterId: 'c1', sceneId: 's1', prompt: '重写' }, settings } });
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I110 novelWriting.previewLayers：真实客户端绑定器返回严格五层预览 projection', async () => {
+    const { client, calls, dispose } = await mount(writingRemoteContribution);
+    try {
+      const writing = client.get('remote.novelWriting') as WritingNamespace;
+      const result = await unwrap(writing.previewLayers('cand-1'));
+      expect(result).toMatchObject({ candidateId: 'cand-1', sourceHash: 'a'.repeat(64), changes: [] });
+      expect(calls).toEqual([{ endpoint: 'novelWriting/previewLayers', args: { candidateId: 'cand-1' } }]);
     } finally {
       await dispose();
       await client.fiber.dispose();

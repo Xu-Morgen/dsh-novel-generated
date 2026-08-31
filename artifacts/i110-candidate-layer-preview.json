@@ -1,0 +1,41 @@
+{
+  "iteration": "I110",
+  "requirement": "R18-2b",
+  "remoteMethod": "novelWriting.previewLayers",
+  "previewShape": [
+    "candidateId",
+    "sourceHash",
+    "generationBaseline",
+    "changes",
+    "validation"
+  ],
+  "layers": [
+    "c2",
+    "c1",
+    "c3",
+    "c4",
+    "b2"
+  ],
+  "guarantees": [
+    "legacy-preview-compatible",
+    "strict-hash-only-layer-projection",
+    "candidate-host-only-plan-cache",
+    "accept-replays-frozen-parser-outputs-without-llm",
+    "reject-hard-violation-zero-write",
+    "stale-structural-owner-zero-write",
+    "idempotent-accept",
+    "real-binder-and-client-consumer-fixtures"
+  ],
+  "explicitNonGoals": [
+    "localized-reparse",
+    "plan-persistence",
+    "full-live-layer-snapshot",
+    "prompt-or-parser-schema-change"
+  ],
+  "contractLock": {
+    "descriptorCount": 131,
+    "resultSchemaCount": 37,
+    "additiveSuffix": "novel-creation-tool/novelWriting/previewLayers"
+  },
+  "focusedSuites": "Host service, StructuralPreviewPlan, real binder, Client candidate, contract lock, and parser held-out suites passed"
+}

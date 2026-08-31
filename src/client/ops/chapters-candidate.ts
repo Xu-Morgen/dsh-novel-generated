@@ -29,14 +29,18 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       if (chapterId !== undefined) internal.selectChapter(chapterId);
     }, (cause: Error) => { if (isActive()) act.setChapters('error', [], (cause as Error).message); });
   };
-  // 候选生成后立即预览（正文 + diff + 校验结果），ready 才允许裁决。
+  // 候选生成后先取得兼容的正文审阅，再取得 I110 五层结构化预览；两者
+  // 都完成后才进入 ready，避免作者在 plan 尚未冻结时触发 accept。
   const previewAfterPropose = (candidateId: string, navigationRevision: number, onReady: () => void): void => {
     const target = writing;
     if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
     void unwrap(target.preview(candidateId)).then((review) => {
       if (!isActive()) return;
-      candidatePatchForRevision({ ui: { kind: 'ready', review } }, navigationRevision);
-      onReady();
+      void unwrap(target.previewLayers(candidateId)).then((layerPreview) => {
+        if (!isActive()) return;
+        candidatePatchForRevision({ ui: { kind: 'ready', review, layerPreview } }, navigationRevision);
+        onReady();
+      }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
     }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
   };
   const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
@@ -81,7 +85,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     // I59 双击幂等：同候选同裁决在 Remote 返回前至多提交一次。
     if (!beginOp(`writing:adjudicate:${candidateId}:${decision}`)) return;
     const release = (): void => endOp(`writing:adjudicate:${candidateId}:${decision}`);
-    candidatePatchForRevision({ ui: { kind: 'acting', review: ui.review, action: decision } }, navigationRevision);
+    candidatePatchForRevision({ ui: { kind: 'acting', review: ui.review, layerPreview: ui.layerPreview, action: decision } }, navigationRevision);
     void unwrap(target.adjudicate(candidateId, decision, undefined)).then((result) => {
       release();
       if (!isActive()) return;

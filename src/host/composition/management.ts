@@ -186,6 +186,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     consistency: consistencyDetectionService,
     knowledgeLeak: knowledgeLeakDetectionService,
     relationshipStyle: relationshipStyleDetectionService,
+    outlineGenerationBaseline: baseServices.outlineGenerationBaselineService,
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });
@@ -199,6 +200,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'preview', call: (candidateId: string) => writingAdjudicationService.preview(candidateId) },
     { method: 'adjudicate', call: (candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown) => writingAdjudicationService.adjudicate(candidateId, decision, settings) },
     { method: 'proposeAt', call: (projectId: string, input: WritingProposeAtInput, settings?: unknown) => writingAdjudicationService.proposeAt(projectId, input, settings) },
+    { method: 'previewLayers', call: (candidateId: string) => writingAdjudicationService.previewLayers(candidateId) },
   ], writingInvocations));
   // I64 一致性审校中心（design §14.9 / R13-5）：统一投影规则/正史/知情/关系/风格
   // 五类问题及正文定位；复用 I21/I22/I24 探测器与 I20 判定（不新增第二裁决器）；

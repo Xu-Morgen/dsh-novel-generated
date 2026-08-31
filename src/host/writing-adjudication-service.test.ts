@@ -391,6 +391,71 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     expect(services.canon.query('demo')).toHaveLength(1);
   });
 
+  it('I110 additive preview freezes the five-layer plan and accept replays it without parser calls', async () => {
+    const { service, root, seen, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+    const { candidate } = await service.proposeAt('demo', { intent: 'continue', chapterId: 'chapter-main', sceneId: 'i110-preview' });
+    const generated = seen.length;
+
+    const preview = await service.previewLayers(candidate.id);
+    expect(preview.candidateId).toBe(candidate.id);
+    expect(preview.generationBaseline).toEqual({ kind: 'no-outline-baseline' });
+    expect(preview.changes.map((change) => `${change.layer}:${change.kind}`)).toEqual(['c2:update', 'c4:add']);
+    expect(seen).toHaveLength(generated + 8); // three detectors + five structural parsers
+
+    const accepted = await service.adjudicate(candidate.id, 'accept');
+    expect(accepted.status).toBe('written');
+    expect(seen).toHaveLength(generated + 8); // accept replays frozen outputs; no parser call
+    expect(services.state.current('demo').storyTime).toBe('dawn');
+    expect(services.canon.query('demo').map((event) => event.id)).toEqual(['evt-1']);
+    expect(await service.adjudicate(candidate.id, 'accept')).toBe(accepted);
+  });
+
+  it('I110 hard violation returns an empty layer projection and keeps accept zero-write', async () => {
+    const { service, root, seen, calls, services } = await setup({
+      hard: [{ kind: 'immutable-rule', severity: 'hard', message: '正文违反不可变规则。', references: ['rule-1'] }],
+    });
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+    const { candidate } = await service.proposeAt('demo', { intent: 'continue', chapterId: 'chapter-main', sceneId: 'i110-hard' });
+    const generated = seen.length;
+
+    const preview = await service.previewLayers(candidate.id);
+    expect(preview.validation.status).toBe('reject');
+    expect(preview.changes).toEqual([]);
+    expect(seen).toHaveLength(generated + 3); // only the three validation detectors
+
+    expect((await service.adjudicate(candidate.id, 'accept')).status).toBe('generation-rejected');
+    expect(calls.writers).toEqual([]);
+    expect((await services.text.listChapters('demo'))[0].scenes).toHaveLength(0);
+    expect(services.state.current('demo').storyTime).toBe('');
+    expect(services.canon.query('demo')).toHaveLength(0);
+    expect(seen).toHaveLength(generated + 3); // rejection never invokes the five parsers
+  });
+
+  it('I110 structural owner changes stale a prepared plan before any writer runs', async () => {
+    const { service, root, seen, calls, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+    const { candidate } = await service.proposeAt('demo', { intent: 'continue', chapterId: 'chapter-main', sceneId: 'i110-stale' });
+    await service.previewLayers(candidate.id);
+    const previewed = seen.length;
+
+    await services.relationship.save('demo', {
+      id: 'i110-stale-relationship', from: 'mira', to: 'harbor', type: 'rivalry', affinity: 0, trust: 0,
+      status: 'active', milestones: [], knownTo: [],
+    });
+    await expect(service.adjudicate(candidate.id, 'accept')).rejects.toThrow(/Structural preview c1 baseline is stale/);
+    expect(calls.writers).toEqual([]);
+    expect(services.state.current('demo').storyTime).toBe('');
+    expect(services.canon.query('demo')).toHaveLength(0);
+    expect(seen).toHaveLength(previewed); // stale plans do not reparse or write
+  });
+
   it('C5 CAS failure keeps a process-local frozen landing plan; retry accept resumes only C5 and preserves public written outcome', async () => {
     const { service, root, seen, calls, services } = await setup({ failC5: true });
     roots.push(root);

@@ -14,6 +14,7 @@ import type { CandidateTargetSelection, CandidateTargetSnapshot } from '../core/
 import type { NextSceneContextProvider } from './writing-context.js';
 import type { NovelSceneOutlineBindingService } from './scene-outline-binding-service.js';
 import type { NovelTextMutationService } from './text-service.js';
+import type { NovelOutlineGenerationBaselineService } from './outline-generation-baseline-service.js';
 import type { NovelStateService } from './state-service.js';
 import type { NovelRelationshipService } from './relationship-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
@@ -28,6 +29,7 @@ import type { NovelRelationshipStyleDetectionService } from './relationship-styl
 import { createCandidateProduction } from './writing-adjudication/candidate-production.js';
 import { createValidationProjection } from './writing-adjudication/validation-projection.js';
 import { createLandingSaga } from './writing-adjudication/landing-saga.js';
+import type { StructuralPreviewChange, StructuralPreviewPlan } from './writing-adjudication/structural-preview-plan.js';
 
 /**
  * I63 候选审阅与生成后裁决 Host owner（design §14.9「候选优先」/ R13-4）。
@@ -91,6 +93,15 @@ export interface CandidateReview {
   readonly trace: ContextTrace;
 }
 
+/** I110 Client-safe projection; parser outputs and layer snapshots remain Host-only. */
+export interface WritingLayerPreview {
+  readonly candidateId: string;
+  readonly sourceHash: string;
+  readonly generationBaseline: StructuralPreviewPlan['generationBaseline'];
+  readonly changes: readonly StructuralPreviewChange[];
+  readonly validation: ConsistencyAdjudication;
+}
+
 export type WritingAdjudicationOutcome =
   | { readonly status: 'rejected'; readonly candidateId: string }
   | { readonly status: 'rewritten'; readonly candidateId: string; readonly superseded: string; readonly candidate: WritingCandidate }
@@ -109,6 +120,8 @@ export interface NovelWritingAdjudicationService {
   proposeAt(projectId: string, input: WritingProposeAtInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   /** 候选审阅：正文 + diff + 校验结果（I21/I22/I24 探测器经 I20 裁决）。 */
   preview(candidateId: string, signal?: AbortSignal): Promise<CandidateReview>;
+  /** I110 additive preview：返回有界五层 change projection，并缓存会话 plan。 */
+  previewLayers(candidateId: string, signal?: AbortSignal): Promise<WritingLayerPreview>;
   /** 唯一裁决入口：accept 进入标准生命周期并受控写回；reject 零写；rewrite 后继候选。 */
   adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
   /**
@@ -140,6 +153,8 @@ export interface WritingAdjudicationServiceDeps {
   readonly canon: NovelCanonService;
   readonly worldview: NovelWorldviewService;
   readonly confirmation: NovelConfirmationService;
+  /** I108 baseline owner; optional for legacy direct compositions/tests. */
+  readonly outlineGenerationBaseline?: NovelOutlineGenerationBaselineService;
   /** 校验（I21/I22/I24 探测器输入装配）。 */
   readonly rules: NovelRuleService;
   readonly style: NovelStyleService;
@@ -176,7 +191,8 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     llm: deps.llm, projectsRoot,
     state: deps.state, relationship: deps.relationship, knowledge: deps.knowledge, canon: deps.canon,
     worldview: deps.worldview, confirmation: deps.confirmation,
-    ensureViolations: projection.ensureViolations, sceneOutlineBinding: deps.sceneOutlineBinding, textMutation: deps.textMutation, ensureOpen,
+    ensureViolations: projection.ensureViolations, sceneOutlineBinding: deps.sceneOutlineBinding,
+    outlineGenerationBaseline: deps.outlineGenerationBaseline, textMutation: deps.textMutation, ensureOpen,
   });
   const ledger = new CandidateAdjudicationLedger();
   // lifecycle-journal.yaml and all five structured owners are project-scoped.
@@ -226,6 +242,29 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     },
     async preview(candidateId: string, signal?: AbortSignal) {
       return projection.preview(candidateId, signal);
+    },
+    async previewLayers(candidateId: string, signal?: AbortSignal) {
+      const entry = production.requireEntry(candidateId);
+      const review = await projection.preview(candidateId, signal);
+      if (review.validation.status === 'reject') {
+        delete entry.structuralPreviewPlan;
+        return Object.freeze({
+          candidateId,
+          sourceHash: entry.candidate.target.sourceHash ?? entry.targetSnapshot?.textFingerprint ?? '0'.repeat(64),
+          generationBaseline: { kind: 'no-outline-baseline' as const },
+          changes: Object.freeze([]),
+          validation: review.validation,
+        });
+      }
+      const plan = await saga.prepareStructuralPreviewPlan(entry, undefined, signal);
+      entry.structuralPreviewPlan = plan;
+      return Object.freeze({
+        candidateId,
+        sourceHash: plan.sourceHash,
+        generationBaseline: plan.generationBaseline,
+        changes: plan.changes,
+        validation: review.validation,
+      });
     },
     async adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal) {
       const observedEntry = production.requireEntry(candidateId);

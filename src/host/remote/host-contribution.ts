@@ -7,7 +7,7 @@ import { onboardingInvocations } from './onboarding.js';
 import { onboardingAnalyzerInvocations } from './onboarding-analyzer.js';
 import { llmConfigInvocations } from './llm-config.js';
 import { workbenchSettingsInvocations } from './workbench-settings.js';
-import { writingInvocations } from './writing.js';
+import { writingInvocations, writingPreviewLayersInvocation } from './writing.js';
 import { reviewInvocations } from './review.js';
 import { queueInvocations } from './queue.js';
 import { knowledgeInvocations } from './knowledge.js';
@@ -30,5 +30,5 @@ import { outlineGenerationBaselineInvocations } from './outline-generation-basel
  */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations, ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations, ...timelineInvocations, ...textMutationInvocations, ...sceneOutlineBindingInvocations, ...textDeletionInvocations, ...outlineGenerationBaselineInvocations],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations.filter((descriptor) => descriptor !== writingPreviewLayersInvocation), ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations, ...timelineInvocations, ...textMutationInvocations, ...sceneOutlineBindingInvocations, ...textDeletionInvocations, ...outlineGenerationBaselineInvocations, writingPreviewLayersInvocation],
 };

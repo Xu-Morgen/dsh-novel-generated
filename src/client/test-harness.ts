@@ -161,12 +161,16 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       acceptedLayers: async () => [],
       finalApply: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', appliedLayers: [], skippedLayers: [], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
     })
-    : name === 'remote.novelWriting' ? (writingStub ?? {
-      propose: async () => { throw new Error('未注入 remote.novelWriting.propose'); },
-      proposeAt: async () => { throw new Error('未注入 remote.novelWriting.proposeAt'); },
-      preview: async () => { throw new Error('未注入 remote.novelWriting.preview'); },
-      adjudicate: async () => { throw new Error('未注入 remote.novelWriting.adjudicate'); },
-    })
+    : name === 'remote.novelWriting' ? {
+      propose: writingStub?.propose ?? (async () => { throw new Error('未注入 remote.novelWriting.propose'); }),
+      proposeAt: writingStub?.proposeAt ?? (async () => { throw new Error('未注入 remote.novelWriting.proposeAt'); }),
+      preview: writingStub?.preview ?? (async () => { throw new Error('未注入 remote.novelWriting.preview'); }),
+      previewLayers: (writingStub as { previewLayers?: (candidateId: string) => Promise<unknown> } | undefined)?.previewLayers ?? (async (candidateId: string) => ({
+        candidateId, sourceHash: '0'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' as const }, changes: [],
+        validation: { status: 'pass' as const, violations: [] },
+      })),
+      adjudicate: writingStub?.adjudicate ?? (async () => { throw new Error('未注入 remote.novelWriting.adjudicate'); }),
+    }
     : name === 'remote.novelReview' ? (reviewStub ?? {
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },
       adjudicate: async () => { throw new Error('未注入 remote.novelReview.adjudicate'); },

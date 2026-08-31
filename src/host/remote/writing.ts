@@ -116,6 +116,36 @@ const adjudicationOutcomeSchema = z.discriminatedUnion('status', [
 ]);
 export type WritingAdjudicationOutcomeShape = z.infer<typeof adjudicationOutcomeSchema>;
 
+const structuralPreviewChangeWireSchema = z.object({
+  layer: z.enum(['c2', 'c1', 'c3', 'c4', 'b2']),
+  kind: z.enum(['add', 'update', 'remove']),
+  entityType: z.enum(['state', 'scene', 'character', 'relationship', 'knowledge-entry', 'knowledge-state', 'canon-event', 'world-entry']),
+  entityId: z.string().min(1).max(64),
+  beforeHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  afterHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  beforeIndex: z.number().int().nonnegative().optional(),
+  afterIndex: z.number().int().nonnegative().optional(),
+  changedFields: z.array(z.string().min(1).max(100)).max(40),
+}).strict();
+const structuralPreviewBaselineWireSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('baseline'), generationBaselineId: z.string().min(1).max(64), baselineRevision: z.number().int().positive(),
+    detailBeatId: z.string().min(1).max(64), b5ContentFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    bindingFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  }).strict(),
+  z.object({ kind: z.literal('no-outline-baseline') }).strict(),
+]);
+
+/** Client-safe R18-2 projection; full plan/parser outputs never cross Host. */
+export const writingLayerPreviewSchema = z.object({
+  candidateId: z.string().min(1).max(128),
+  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+  generationBaseline: structuralPreviewBaselineWireSchema,
+  changes: structuralPreviewChangeWireSchema.array().max(512),
+  validation: adjudicationSchema,
+}).strict();
+export type WritingLayerPreviewShape = z.infer<typeof writingLayerPreviewSchema>;
+
 // I75：`param`/`writingInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
 // I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
 const writingInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
@@ -143,7 +173,11 @@ export const writingProposeAtInvocation = writingInvocation('proposeAt', [
   param('settings', undefined, true),
 ], strictCodec('novel-creation-tool#writingProposeAt:result', z.object({ candidate: writingCandidateWireSchema }).strict()));
 
-export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation] as const;
+export const writingPreviewLayersInvocation = writingInvocation('previewLayers', [
+  param('candidateId', stringCodec),
+], strictCodec('novel-creation-tool#writingPreviewLayers:result', writingLayerPreviewSchema));
+
+export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation, writingPreviewLayersInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const writingRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

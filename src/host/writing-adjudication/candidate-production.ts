@@ -16,6 +16,7 @@ import { createWritingCandidateService, type WritingCandidateRequest } from '../
 import type { NextSceneContextProvider, NovelAgentContext } from '../writing-context.js';
 import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import type { WritingAdjudicationOutcome, WritingProposeAtInput, WritingProposeInput, WritingProposeIntent } from '../writing-adjudication-service.js';
+import type { StructuralPreviewPlan } from './structural-preview-plan.js';
 
 /** Lifecycle 已写完后冻结的 C5 落地计划；仅在同一 Host 进程内支持补偿重试。 */
 export type PendingC5Landing =
@@ -51,6 +52,8 @@ export interface CandidateEntry {
   readonly targetSnapshot?: CandidateTargetSnapshot;
   /** preview 计算并缓存的校验结果（与 accept 同源，I20 复判）。 */
   violations?: readonly ConsistencyViolationView[];
+  /** I110 会话态五层 plan；accept 只能重放它，不能重新调用 parser。 */
+  structuralPreviewPlan?: StructuralPreviewPlan;
   /** accept 落地结果缓存（重复 accept 幂等返回）。 */
   outcome?: WritingAdjudicationOutcome;
   /**

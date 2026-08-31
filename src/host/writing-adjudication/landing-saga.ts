@@ -19,14 +19,20 @@ import type { NovelWorldviewService } from '../worldview-service.js';
 import type { NovelConfirmationService } from '../confirmation-service.js';
 import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import type { NovelTextMutationService } from '../text-service.js';
+import type { NovelOutlineGenerationBaselineService } from '../outline-generation-baseline-service.js';
 import type { CandidateEntry, PendingC5Landing } from './candidate-production.js';
 import type { WritingAdjudicationOutcome } from '../writing-adjudication-service.js';
 import {
+  assertStructuralPreviewPlanFresh,
   consumeStructuralPreviewPlan,
+  prepareStructuralPreviewPlan as buildStructuralPreviewPlan,
   type StructuralPreviewChange,
   type StructuralPreviewFreshnessInput,
+  type StructuralPreviewLayerBaseline,
+  type StructuralPreviewOutlineBaseline,
   type StructuralPreviewPlan,
   type StructuralPreviewWriters,
+  structuralPreviewFingerprint,
 } from './structural-preview-plan.js';
 
 /**
@@ -56,6 +62,7 @@ export async function replayStructuralPreviewPlan(
  *    commitSceneVersion 承担 —— I70/R14-5 保留旧正文为非 chosen 分支）；新场景追加。
  */
 export interface LandingSaga {
+  prepareStructuralPreviewPlan(entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<StructuralPreviewPlan>;
   accept(entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
 }
 
@@ -72,6 +79,8 @@ export interface LandingSagaDeps {
   /** 校验结果（与 preview 同源，I20 复判；由校验投影段注入，接受才进入落地）。 */
   readonly ensureViolations: (entry: CandidateEntry, signal?: AbortSignal) => Promise<readonly ConsistencyViolationView[]>;
   readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
+  /** I108 baseline owner; absent only for legacy direct/test composition. */
+  readonly outlineGenerationBaseline?: NovelOutlineGenerationBaselineService;
   readonly textMutation: Pick<NovelTextMutationService, 'createSceneMutation'>;
   /** 只读 C5 仓库访问（新鲜度核对与场景落地；由组合根注入共享池）。 */
   readonly ensureOpen: (projectId: string) => Promise<TextRepository>;
@@ -96,6 +105,88 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
       c4: { canon: [...canonViews] },
       b2: { current: worldview },
     };
+  };
+
+  const generationBaseline = async (entry: CandidateEntry, required: boolean): Promise<StructuralPreviewOutlineBaseline> => {
+    const snapshot = entry.targetSnapshot;
+    if (deps.outlineGenerationBaseline === undefined || snapshot?.detailBeatId === undefined) {
+      return { kind: 'no-outline-baseline' };
+    }
+    const result = await deps.outlineGenerationBaseline.current(entry.candidate.target.projectId, {
+      chapterId: snapshot.chapterId, sceneId: snapshot.sceneId, detailBeatId: snapshot.detailBeatId,
+    });
+    if (result.freshness === 'stale') {
+      throw new Error(`Stale outline generation baseline for candidate ${entry.candidate.id}: ${result.staleReasons.join(', ')}`);
+    }
+    if (result.baseline === null) {
+      if (required) throw new Error(`Candidate ${entry.candidate.id} requires a current outline generation baseline`);
+      return { kind: 'no-outline-baseline' };
+    }
+    const baseline = result.baseline;
+    return {
+      kind: 'baseline', generationBaselineId: baseline.baselineId, baselineRevision: baseline.revision,
+      detailBeatId: baseline.detailBeatId, b5ContentFingerprint: baseline.b5ContentFingerprint,
+      bindingFingerprint: baseline.bindingFingerprint,
+    };
+  };
+
+  const sourceHashFor = async (entry: CandidateEntry, repository: TextRepository): Promise<string> => {
+    const candidate = entry.candidate;
+    if (candidate.target.sourceHash !== undefined) return candidate.target.sourceHash;
+    if (entry.targetSnapshot !== undefined) return entry.targetSnapshot.textFingerprint;
+    return repository.projectFingerprint();
+  };
+
+  const layerBaselinesFor = (inputs: StoryLifecycleParserInputs): StructuralPreviewLayerBaseline[] => [
+    { layer: 'c2', snapshot: inputs.c2.state, fingerprint: structuralPreviewFingerprint(inputs.c2.state) },
+    { layer: 'c1', snapshot: inputs.c1.current, fingerprint: structuralPreviewFingerprint(inputs.c1.current) },
+    { layer: 'c3', snapshot: { entries: inputs.c3.entries, states: inputs.c3.states }, fingerprint: structuralPreviewFingerprint({ entries: inputs.c3.entries, states: inputs.c3.states }) },
+    { layer: 'c4', snapshot: inputs.c4.canon, fingerprint: structuralPreviewFingerprint(inputs.c4.canon) },
+    { layer: 'b2', snapshot: inputs.b2.current, fingerprint: structuralPreviewFingerprint(inputs.b2.current) },
+  ];
+
+  const structuralFreshnessFor = async (
+    entry: CandidateEntry,
+    repository: TextRepository,
+    inputs: StoryLifecycleParserInputs,
+  ): Promise<StructuralPreviewFreshnessInput> => {
+    const baselines = layerBaselinesFor(inputs);
+    return {
+      sourceHash: await sourceHashFor(entry, repository),
+      generationBaseline: await generationBaseline(entry, false),
+      layerFingerprints: Object.fromEntries(baselines.map((baseline) => [baseline.layer, baseline.fingerprint])) as StructuralPreviewFreshnessInput['layerFingerprints'],
+    };
+  };
+
+  /** Parse once into the I109 session plan; this is the only preview parser entrypoint. */
+  const prepareStructuralPreviewPlan = async (
+    entry: CandidateEntry,
+    settings?: unknown,
+    signal?: AbortSignal,
+  ): Promise<StructuralPreviewPlan> => {
+    const candidate = entry.candidate;
+    const projectId = candidate.target.projectId;
+    const repository = await deps.ensureOpen(projectId);
+    const inputs = await buildParserInputs(projectId);
+    const resolved = (settings as GenerationSettings | undefined) ?? entry.request.settings;
+    const outlineBaseline = await generationBaseline(entry, true);
+    const [c2, c1, c3, c4, b2] = await Promise.all([
+      parseC2StateFromNarrative(backend, { prose: candidate.text, ...inputs.c2 }, resolved, signal),
+      parseC1RelationshipsFromNarrative(backend, { prose: candidate.text, ...inputs.c1 }, resolved, signal),
+      parseC3KnowledgeFromNarrative(backend, { prose: candidate.text, ...inputs.c3 }, resolved, signal),
+      parseC4CanonFromNarrative(backend, { prose: candidate.text, ...inputs.c4 }, resolved, signal),
+      parseB2WorldviewFromNarrative(backend, { prose: candidate.text, ...inputs.b2 }, resolved, signal),
+    ]);
+    return buildStructuralPreviewPlan({
+      planId: `preview-${candidate.id}`,
+      projectId,
+      candidateId: candidate.id,
+      sourceHash: await sourceHashFor(entry, repository),
+      generationBaseline: outlineBaseline,
+      layerBaselines: layerBaselinesFor(inputs),
+      parserOutputs: { c2, c1, c3, c4, b2 },
+      createdAt: new Date().toISOString(),
+    });
   };
 
   /** Freeze every value C5 consumes before the first landing attempt. */
@@ -210,16 +301,26 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     if (afterGeneration.status === 'reject') {
       return Object.freeze({ status: 'generation-rejected', candidateId: candidate.id, adjudication: afterGeneration });
     }
-    // 3. 解析 fan-out（I25–I29 真实解析器；prose = 候选正文）。
-    const inputs = await buildParserInputs(projectId);
-    const prose = candidate.text;
-    const [c2, c1, c3, c4, b2] = await Promise.all([
-      parseC2StateFromNarrative(backend, { prose, ...inputs.c2 }, resolved, signal),
-      parseC1RelationshipsFromNarrative(backend, { prose, ...inputs.c1 }, resolved, signal),
-      parseC3KnowledgeFromNarrative(backend, { prose, ...inputs.c3 }, resolved, signal),
-      parseC4CanonFromNarrative(backend, { prose, ...inputs.c4 }, resolved, signal),
-      parseB2WorldviewFromNarrative(backend, { prose, ...inputs.b2 }, resolved, signal),
-    ]);
+    // 3. 解析 fan-out（I25–I29 真实解析器；prose = 候选正文）。已有 I110
+    // plan 只取冻结 outputs；没有 preview 的兼容调用才建立一次即时解析结果。
+    let parserOutputs: StructuralPreviewPlan['parserOutputs'];
+    if (entry.structuralPreviewPlan !== undefined) {
+      const inputs = await buildParserInputs(projectId);
+      const current = await structuralFreshnessFor(entry, repository, inputs);
+      assertStructuralPreviewPlanFresh(entry.structuralPreviewPlan, current);
+      parserOutputs = entry.structuralPreviewPlan.parserOutputs;
+    } else {
+      const inputs = await buildParserInputs(projectId);
+      const prose = candidate.text;
+      const [c2, c1, c3, c4, b2] = await Promise.all([
+        parseC2StateFromNarrative(backend, { prose, ...inputs.c2 }, resolved, signal),
+        parseC1RelationshipsFromNarrative(backend, { prose, ...inputs.c1 }, resolved, signal),
+        parseC3KnowledgeFromNarrative(backend, { prose, ...inputs.c3 }, resolved, signal),
+        parseC4CanonFromNarrative(backend, { prose, ...inputs.c4 }, resolved, signal),
+        parseB2WorldviewFromNarrative(backend, { prose, ...inputs.b2 }, resolved, signal),
+      ]);
+      parserOutputs = { c2, c1, c3, c4, b2 };
+    }
     // 4. I30 受控写回：journal 记录 C2→C1→C3→C4→B2 进度，部分失败显式 pending-compensation。
     const journal = await LifecycleJournal.open(projectDirectory(deps.projectsRoot, projectId));
     // Detector/parser work is asynchronous. Keep this pre-execute rejection,
@@ -257,7 +358,10 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
       afterGenerationViolations: violations,
       beforeWritebackViolations: [],
       journal,
-      parsers: { c2: async () => c2, c1: async () => c1, c3: async () => c3, c4: async () => c4, b2: async () => b2 },
+      parsers: {
+        c2: async () => parserOutputs.c2, c1: async () => parserOutputs.c1,
+        c3: async () => parserOutputs.c3, c4: async () => parserOutputs.c4, b2: async () => parserOutputs.b2,
+      },
       writers: gatedLayerWriters,
     });
     if (result.status === 'generation-rejected' || result.status === 'prewrite-rejected') {
@@ -280,5 +384,5 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     return finishPendingC5(entry);
   };
 
-  return Object.freeze({ accept });
+  return Object.freeze({ prepareStructuralPreviewPlan, accept });
 }

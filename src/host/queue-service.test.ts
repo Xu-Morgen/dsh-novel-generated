@@ -130,6 +130,10 @@ function makeDeps(services: StubServices, projectsRoot: string): QueueServiceDep
           },
         };
       },
+      previewLayers: async (candidateId: string) => ({
+        candidateId, sourceHash: '0'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' as const },
+        changes: [], validation: { status: 'pass' as const, violations: [] },
+      }),
       adjudicate: async (candidateId, decision) => {
         if (decision === 'reject') {
           if (!services.rejectedCandidates.has(candidateId)) {
