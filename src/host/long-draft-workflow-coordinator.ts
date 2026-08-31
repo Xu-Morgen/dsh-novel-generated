@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { assertFreeText } from '../core/onboarding/validate.js';
 import { chunkText, normalizeText } from '../core/text/pipeline.js';
 import {
@@ -6,16 +8,28 @@ import {
   LONG_DRAFT_MAX_BYTES,
   LONG_DRAFT_MAX_CHUNKS,
   longDraftOutlineCandidateSchema,
+  longDraftOutlineAcceptResultSchema,
+  longDraftOutlineApplyProposalSchema,
+  longDraftOutlineGatePayloadSchema,
   longDraftOutlineInputSchema,
   longDraftOutlineParserInputSchema,
   longDraftOutlineProvenanceSchema,
   longDraftReadinessSchema,
+  longDraftOutlineRejectResultSchema,
+  longDraftWorkflowCheckpointEntrySchema,
+  longDraftWorkflowRecoveryItemSchema,
+  longDraftWorkflowRecoverResultSchema,
   longDraftWorkflowBeginResultSchema,
   longDraftWorkflowResultSchema,
   longDraftWorkflowStatusSchema,
   type LongDraftOutlineCandidate,
+  type LongDraftOutlineAcceptResult,
+  type LongDraftOutlineApplyProposal,
   type LongDraftOutlineInput,
+  type LongDraftOutlineRejectResult,
   type LongDraftReadiness,
+  type LongDraftWorkflowCheckpointEntry,
+  type LongDraftWorkflowRecoverResult,
   type LongDraftWorkflowResult,
   type LongDraftWorkflowStatus,
 } from '../core/schema/long-draft.js';
@@ -24,12 +38,15 @@ import { asLlmBackend, type GenerationSettings } from '../llm/port/index.js';
 import { INITIAL_STATE } from '../core/schema/project-lifecycle.js';
 import type { NovelCharacterService } from './character-service.js';
 import type { NovelCanonService } from './canon-service.js';
+import type { NovelConfirmationService } from './confirmation-service.js';
 import type { NovelOutlineService } from './outline-service.js';
+import type { Outline } from '../core/schema/outline.js';
 import type { NovelProjectService } from './project-service.js';
 import type { NovelRelationshipService } from './relationship-service.js';
 import type { NovelStateService } from './state-service.js';
 import type { NovelTextService } from './text-service.js';
 import type { NovelWorldviewService } from './worldview-service.js';
+import { createLongDraftWorkflowCheckpointStore } from './long-draft-workflow-repository.js';
 
 const LONG_DRAFT_KIND = 'long-draft-outline';
 
@@ -40,17 +57,23 @@ export interface LongDraftWorkflowCoordinator {
   status(workflowId: string): LongDraftWorkflowStatus;
   cancel(workflowId: string): Promise<void>;
   result(workflowId: string): LongDraftWorkflowResult;
+  proposeApply(projectId: string, candidate: LongDraftOutlineCandidate): Promise<LongDraftOutlineApplyProposal>;
+  accept(projectId: string, proposalId: string, sourceHash?: string): Promise<LongDraftOutlineAcceptResult>;
+  reject(projectId: string, proposalId: string): Promise<LongDraftOutlineRejectResult>;
+  recover(projectId: string): Promise<LongDraftWorkflowRecoverResult>;
 }
 
 export interface LongDraftWorkflowCoordinatorDeps {
   readonly project: Pick<NovelProjectService, 'openProject'>;
   readonly characters: Pick<NovelCharacterService, 'list'>;
   readonly worldview: Pick<NovelWorldviewService, 'list'>;
-  readonly outline: Pick<NovelOutlineService, 'readiness'>;
+  readonly outline: Pick<NovelOutlineService, 'readiness' | 'read' | 'save'>;
   readonly relationship: Pick<NovelRelationshipService, 'read'>;
   readonly state: Pick<NovelStateService, 'current'>;
   readonly canon: Pick<NovelCanonService, 'query'>;
   readonly text: Pick<NovelTextService, 'open' | 'listChapters'>;
+  readonly confirmation: NovelConfirmationService;
+  readonly projectsRoot?: string;
   readonly llm: unknown;
   readonly onDispose?: (dispose: () => void) => void;
 }
@@ -89,12 +112,16 @@ export function createLongDraftWorkflowCoordinator(
   const openings = new Map<string, Promise<void>>();
   const jobs = new Map<string, WorkflowJob>();
   const sourceTexts = new Map<string, string>();
+  const checkpoints = createLongDraftWorkflowCheckpointStore(deps.projectsRoot ?? join(homedir(), '.dsh', 'novel-projects'));
+  const applyTails = new Map<string, Promise<unknown>>();
   let disposed = false;
 
   const ensureOpen = (projectId: string): Promise<void> => {
     const existing = openings.get(projectId);
     if (existing !== undefined) return existing;
-    const opening = deps.project.openProject(projectId).then(() => deps.text.open(projectId));
+    const opening = deps.project.openProject(projectId)
+      .then(() => Promise.all([deps.text.open(projectId), deps.confirmation.open(projectId)]))
+      .then(() => undefined);
     openings.set(projectId, opening);
     return opening.catch((error) => {
       if (openings.get(projectId) === opening) openings.delete(projectId);
@@ -170,6 +197,65 @@ export function createLongDraftWorkflowCoordinator(
     }
   };
 
+  const readGatePayload = (projectId: string, proposalId: string): LongDraftOutlineCandidate => {
+    const record = deps.confirmation.get(projectId, proposalId);
+    if (record.kind !== LONG_DRAFT_KIND) throw new Error(`Invalid long-draft proposal kind: ${record.kind}`);
+    const payload = longDraftOutlineGatePayloadSchema.parse(record.payload);
+    if (payload.candidate.projectId !== projectId || payload.candidate.candidateId !== proposalId) {
+      throw new Error(`Long-draft proposal belongs to another project: ${proposalId}`);
+    }
+    return payload.candidate;
+  };
+
+  const checkpointFor = async (projectId: string, proposalId: string): Promise<LongDraftWorkflowCheckpointEntry | undefined> =>
+    (await checkpoints.read(projectId)).find((entry) => entry.proposalId === proposalId);
+
+  const updateCheckpoint = (entry: LongDraftWorkflowCheckpointEntry): Promise<LongDraftWorkflowCheckpointEntry> =>
+    checkpoints.upsert(longDraftWorkflowCheckpointEntrySchema.parse(entry));
+
+  const withApplyLock = <T>(projectId: string, proposalId: string, operation: () => Promise<T>): Promise<T> => {
+    const key = `${projectId}:${proposalId}`;
+    const previous = applyTails.get(key) ?? Promise.resolve();
+    const run = previous.then(operation, operation);
+    applyTails.set(key, run.then(() => undefined, () => undefined));
+    return run;
+  };
+
+  const sameOutline = (candidate: LongDraftOutlineCandidate, saved: Outline): boolean => {
+    const { version: _version, ...withoutVersion } = saved;
+    return JSON.stringify(withoutVersion) === JSON.stringify(candidate.outline);
+  };
+
+  const applyAccepted = async (projectId: string, proposalId: string, candidate: LongDraftOutlineCandidate): Promise<LongDraftOutlineAcceptResult> => {
+    const existing = await checkpointFor(projectId, proposalId);
+    if (existing?.status === 'applied') {
+      const saved = await deps.outline.read(projectId);
+      if (!sameOutline(candidate, saved)) throw new Error('Applied long-draft checkpoint does not match outline');
+      return longDraftOutlineAcceptResultSchema.parse({ projectId, proposalId, status: 'already-applied', outline: saved, checkpoint: existing });
+    }
+
+    const readiness = await preflight(projectId);
+    if (readiness.status !== 'ready') throw new Error(`Long draft apply requires an empty project (${readiness.reason}): ${readiness.blockers.join(', ')}`);
+
+    const applying = longDraftWorkflowCheckpointEntrySchema.parse({
+      projectId,
+      proposalId,
+      candidateId: candidate.candidateId,
+      sourceHash: candidate.sourceHash,
+      status: 'applying',
+    });
+    await updateCheckpoint(applying);
+    try {
+      const saved = await deps.outline.save(projectId, { ...candidate.outline, version: 1 });
+      if (!sameOutline(candidate, saved)) throw new Error('Applied long-draft outline verification failed');
+      const applied = await updateCheckpoint({ ...applying, status: 'applied' });
+      return longDraftOutlineAcceptResultSchema.parse({ projectId, proposalId, status: 'applied', outline: saved, checkpoint: applied });
+    } catch (error) {
+      await updateCheckpoint({ ...applying, status: 'failed', error: safeError(error) });
+      throw error;
+    }
+  };
+
   const service: LongDraftWorkflowCoordinator = {
     preflight,
     propose,
@@ -216,6 +302,65 @@ export function createLongDraftWorkflowCoordinator(
         throw new Error(`Long draft outline analysis is not complete: ${job.status}`);
       }
       return longDraftWorkflowResultSchema.parse({ workflowId, candidate: job.candidate });
+    },
+    async proposeApply(projectId, rawCandidate) {
+      await ensureOpen(projectId);
+      const candidate = longDraftOutlineCandidateSchema.parse(rawCandidate);
+      if (candidate.projectId !== projectId) throw new Error(`Long-draft candidate belongs to another project: ${candidate.projectId}`);
+      const readiness = await preflight(projectId);
+      if (readiness.status !== 'ready') throw new Error(`Long draft apply requires an empty project (${readiness.reason}): ${readiness.blockers.join(', ')}`);
+      const existing = deps.confirmation.list(projectId).find((record) => record.id === candidate.candidateId);
+      if (existing !== undefined) {
+        const existingCandidate = readGatePayload(projectId, existing.id);
+        if (JSON.stringify(existingCandidate) !== JSON.stringify(candidate)) throw new Error(`Long-draft proposal id already binds another candidate: ${candidate.candidateId}`);
+        if (existing.status !== 'pending') throw new Error(`Long-draft proposal already ${existing.status}: ${candidate.candidateId}`);
+        const checkpoint = await checkpointFor(projectId, candidate.candidateId);
+        if (checkpoint !== undefined) return longDraftOutlineApplyProposalSchema.parse({ projectId, proposalId: candidate.candidateId, status: 'pending', candidate });
+      }
+      if (existing === undefined) {
+        await deps.confirmation.propose(projectId, {
+          id: candidate.candidateId,
+          kind: LONG_DRAFT_KIND,
+          payload: longDraftOutlineGatePayloadSchema.parse({ candidate }),
+        });
+      }
+      await updateCheckpoint({ projectId, proposalId: candidate.candidateId, candidateId: candidate.candidateId, sourceHash: candidate.sourceHash, status: 'pending' });
+      return longDraftOutlineApplyProposalSchema.parse({ projectId, proposalId: candidate.candidateId, status: 'pending', candidate });
+    },
+    accept(projectId, proposalId, sourceHash) {
+      return withApplyLock(projectId, proposalId, async () => {
+        await ensureOpen(projectId);
+        const candidate = readGatePayload(projectId, proposalId);
+        if (sourceHash !== undefined && sourceHash !== candidate.sourceHash) throw new Error('Long-draft sourceHash changed; proposal is stale');
+        const record = deps.confirmation.get(projectId, proposalId);
+        if (record.status === 'rejected') throw new Error(`Long-draft proposal already rejected: ${proposalId}`);
+        if (record.status === 'pending') {
+          const readiness = await preflight(projectId);
+          if (readiness.status !== 'ready') throw new Error(`Long draft apply requires an empty project (${readiness.reason}): ${readiness.blockers.join(', ')}`);
+          await deps.confirmation.accept(projectId, proposalId);
+        }
+        return applyAccepted(projectId, proposalId, candidate);
+      });
+    },
+    async reject(projectId, proposalId) {
+      await ensureOpen(projectId);
+      const candidate = readGatePayload(projectId, proposalId);
+      const record = await deps.confirmation.reject(projectId, proposalId);
+      const checkpoint = await updateCheckpoint({
+        projectId,
+        proposalId,
+        candidateId: candidate.candidateId,
+        sourceHash: candidate.sourceHash,
+        status: 'rejected',
+      });
+      if (record.kind !== LONG_DRAFT_KIND) throw new Error(`Invalid long-draft proposal kind: ${record.kind}`);
+      return longDraftOutlineRejectResultSchema.parse({ projectId, proposalId, status: 'rejected', checkpoint });
+    },
+    async recover(projectId) {
+      await ensureOpen(projectId);
+      const checkpointEntries = await checkpoints.read(projectId);
+      const items = checkpointEntries.map((checkpoint) => longDraftWorkflowRecoveryItemSchema.parse({ ...checkpoint, candidate: readGatePayload(projectId, checkpoint.proposalId) }));
+      return longDraftWorkflowRecoverResultSchema.parse({ projectId, items });
     },
   };
 

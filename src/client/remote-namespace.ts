@@ -41,6 +41,7 @@ import type { outlineGenerationBaselineRemoteContribution } from '../host/remote
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
 import type { outlineReconciliationRemoteContribution } from '../host/remote/outline-reconciliation.js';
 import type { referenceCorrectionRemoteContribution } from '../host/remote/reference-correction.js';
+import type { longDraftRemoteContribution } from '../remote.js';
 
 /** I86 实证的 DSH RemoteResult 信封合同（review v2.0 §3.1；client 消费经 `unwrap` 解包）。 */
 export type RemoteResult<R> =
@@ -108,3 +109,5 @@ export type OutlineReconciliationNamespace = NamespaceOf<typeof outlineReconcili
 export type ReferenceAuditNamespace = NamespaceOf<typeof referenceAuditRemoteContribution>;
 /** I118 strict semantic reference candidate + shared I11 Gate application. */
 export type ReferenceCorrectionNamespace = NamespaceOf<typeof referenceCorrectionRemoteContribution>;
+/** I120 preview→Gate→apply/recover surface; Client owns only transient guidance state. */
+export type LongDraftNamespace = NamespaceOf<typeof longDraftRemoteContribution>;

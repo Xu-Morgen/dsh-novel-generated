@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, vi } from 'vitest';
 import { createCharacterService } from './character-service.js';
 import { createCanonService } from './canon-service.js';
 import { createConfirmationService } from './confirmation-service.js';
@@ -55,9 +55,11 @@ async function setup() {
     state,
     canon,
     text,
+    confirmation,
+    projectsRoot: root,
     llm,
   });
-  return { root, project, characters, worldview, outline: outlineService, relationship, state, canon, text, coordinator, streamCalls: () => streamCalls, setResponse: (value: unknown) => { response = value; } };
+  return { root, project, characters, worldview, outline: outlineService, relationship, state, canon, text, confirmation, llm, coordinator, streamCalls: () => streamCalls, setResponse: (value: unknown) => { response = value; } };
 }
 
 const input = { sourceHash: 'a'.repeat(64), text: '第一段长稿。\n\n第二段长稿。' };
@@ -108,6 +110,8 @@ describe('I119 LongDraftWorkflowCoordinator', () => {
       state: context.state,
       canon: context.canon,
       text: context.text,
+      confirmation: context.confirmation,
+      projectsRoot: context.root,
       llm: undefined,
     });
     await expect(unavailable.propose('empty', input, settings)).rejects.toThrow(/unavailable|LLM/i);
@@ -137,5 +141,70 @@ describe('I119 LongDraftWorkflowCoordinator', () => {
     await project.openProject('empty');
     expect((await coordinator.preflight('empty')).layers.state).toBe('empty');
     expect(INITIAL_STATE.characters).toHaveLength(0);
+  });
+
+  it('I120 proposes through I11, applies only after the author action, and is idempotent after reopen', async () => {
+    const context = await setup();
+    const candidate = await context.coordinator.propose('empty', input, settings);
+    const proposal = await context.coordinator.proposeApply('empty', candidate);
+    expect(proposal).toMatchObject({ projectId: 'empty', proposalId: candidate.candidateId, status: 'pending' });
+    await expect(context.outline.readiness('empty')).resolves.toBe('uninitialized');
+    expect(context.confirmation.pending('empty').map((record) => record.id)).toEqual([candidate.candidateId]);
+
+    await expect(context.coordinator.accept('empty', proposal.proposalId, 'b'.repeat(64))).rejects.toThrow(/sourceHash changed|stale/i);
+    await expect(context.outline.readiness('empty')).resolves.toBe('uninitialized');
+    const applied = await context.coordinator.accept('empty', proposal.proposalId);
+    expect(applied.status).toBe('applied');
+    await expect(context.outline.readiness('empty')).resolves.toBe('ready');
+    await expect(context.text.listChapters('empty')).resolves.toEqual([]);
+    await expect(context.coordinator.accept('empty', proposal.proposalId)).resolves.toMatchObject({ status: 'already-applied' });
+
+    const reopened = createLongDraftWorkflowCoordinator({
+      project: context.project,
+      characters: context.characters,
+      worldview: context.worldview,
+      outline: context.outline,
+      relationship: context.relationship,
+      state: context.state,
+      canon: context.canon,
+      text: context.text,
+      confirmation: context.confirmation,
+      projectsRoot: context.root,
+      llm: context.llm,
+    });
+    await expect(reopened.recover('empty')).resolves.toMatchObject({ items: [{ proposalId: proposal.proposalId, status: 'applied', candidate: { candidateId: candidate.candidateId } }] });
+    await expect(reopened.accept('empty', proposal.proposalId)).resolves.toMatchObject({ status: 'already-applied' });
+  });
+
+  it('blocks non-empty projects before creating a Gate proposal and rejects without narrative writes', async () => {
+    const context = await setup();
+    const candidate = await context.coordinator.propose('empty', input, settings);
+    await context.project.openProject('empty');
+    await context.characters.create('empty', {
+      id: 'mira', version: 1, name: '米拉', aliases: [], kind: 'protagonist', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [],
+      arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
+    });
+    await expect(context.coordinator.proposeApply('empty', candidate)).rejects.toThrow(/empty project/);
+    expect(context.confirmation.list('empty')).toEqual([]);
+    await expect(context.outline.readiness('empty')).resolves.toBe('uninitialized');
+
+    const clean = await setup();
+    const cleanCandidate = await clean.coordinator.propose('empty', input, settings);
+    const cleanProposal = await clean.coordinator.proposeApply('empty', cleanCandidate);
+    const rejected = await clean.coordinator.reject('empty', cleanProposal.proposalId);
+    expect(rejected).toMatchObject({ status: 'rejected', checkpoint: { status: 'rejected' } });
+    await expect(clean.outline.readiness('empty')).resolves.toBe('uninitialized');
+    await expect(clean.coordinator.recover('empty')).resolves.toMatchObject({ items: [{ status: 'rejected' }] });
+  });
+
+  it('records a failed checkpoint and leaves B5 uninitialized when the atomic outline write fails', async () => {
+    const context = await setup();
+    const candidate = await context.coordinator.propose('empty', input, settings);
+    const proposal = await context.coordinator.proposeApply('empty', candidate);
+    const save = vi.spyOn(context.outline, 'save').mockRejectedValueOnce(new Error('injected outline disk failure'));
+    await expect(context.coordinator.accept('empty', proposal.proposalId)).rejects.toThrow(/disk failure/);
+    save.mockRestore();
+    await expect(context.outline.readiness('empty')).resolves.toBe('uninitialized');
+    await expect(context.coordinator.recover('empty')).resolves.toMatchObject({ items: [{ proposalId: proposal.proposalId, status: 'failed', error: 'injected outline disk failure' }] });
   });
 });

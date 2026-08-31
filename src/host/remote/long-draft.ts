@@ -1,10 +1,15 @@
 import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { GenerationSettingsSchema } from '../../core/schema/generation-settings.js';
 import {
+  longDraftOutlineAcceptResultSchema,
+  longDraftOutlineApplyProposalSchema,
+  longDraftOutlineCandidateSchema,
+  longDraftOutlineRejectResultSchema,
   longDraftOutlineInputSchema,
   longDraftReadinessSchema,
   longDraftWorkflowBeginResultSchema,
   longDraftWorkflowCancelResultSchema,
+  longDraftWorkflowRecoverResultSchema,
   longDraftWorkflowResultSchema,
   longDraftWorkflowStatusSchema,
 } from '../../core/schema/long-draft.js';
@@ -46,6 +51,26 @@ export const longDraftResultInvocation = longDraftInvocation(
   [param('workflowId', stringCodec)],
   strictCodec('novel-creation-tool#longDraftWorkflowResult', longDraftWorkflowResultSchema),
 );
+export const longDraftProposeApplyInvocation = longDraftInvocation(
+  'proposeApply',
+  [projectParameter, param('candidate', strictCodec('novel-creation-tool#longDraftOutlineCandidate', longDraftOutlineCandidateSchema))],
+  strictCodec('novel-creation-tool#longDraftOutlineApplyProposal', longDraftOutlineApplyProposalSchema),
+);
+export const longDraftAcceptInvocation = longDraftInvocation(
+  'accept',
+  [projectParameter, param('proposalId', stringCodec), param('sourceHash', stringCodec, true)],
+  strictCodec('novel-creation-tool#longDraftOutlineAccept', longDraftOutlineAcceptResultSchema),
+);
+export const longDraftRejectInvocation = longDraftInvocation(
+  'reject',
+  [projectParameter, param('proposalId', stringCodec)],
+  strictCodec('novel-creation-tool#longDraftOutlineReject', longDraftOutlineRejectResultSchema),
+);
+export const longDraftRecoverInvocation = longDraftInvocation(
+  'recover',
+  [projectParameter],
+  strictCodec('novel-creation-tool#longDraftWorkflowRecover', longDraftWorkflowRecoverResultSchema),
+);
 
 export const longDraftInvocations = [
   longDraftPreflightInvocation,
@@ -53,6 +78,10 @@ export const longDraftInvocations = [
   longDraftStatusInvocation,
   longDraftCancelInvocation,
   longDraftResultInvocation,
+  longDraftProposeApplyInvocation,
+  longDraftAcceptInvocation,
+  longDraftRejectInvocation,
+  longDraftRecoverInvocation,
 ] as const;
 
 export const longDraftRemoteContribution = remoteContribution(

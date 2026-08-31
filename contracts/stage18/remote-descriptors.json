@@ -156,7 +156,11 @@
     "novel-creation-tool/novelLongDraft/begin",
     "novel-creation-tool/novelLongDraft/status",
     "novel-creation-tool/novelLongDraft/cancel",
-    "novel-creation-tool/novelLongDraft/result"
+    "novel-creation-tool/novelLongDraft/result",
+    "novel-creation-tool/novelLongDraft/proposeApply",
+    "novel-creation-tool/novelLongDraft/accept",
+    "novel-creation-tool/novelLongDraft/reject",
+    "novel-creation-tool/novelLongDraft/recover"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -33093,6 +33097,1815 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelLongDraft/proposeApply": {
+      "id": "novel-creation-tool/novelLongDraft/proposeApply",
+      "service": "novelLongDraft",
+      "namespace": "novelLongDraft",
+      "method": "proposeApply",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "candidate",
+          "wire": "candidate",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#longDraftOutlineCandidate",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "candidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "provenance": {
+                  "type": "object",
+                  "properties": {
+                    "sourceHash": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "byteLength": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 2097152
+                    },
+                    "chunkSize": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 2097152
+                    },
+                    "chunkCount": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1024
+                    },
+                    "chunkIndices": {
+                      "minItems": 1,
+                      "maxItems": 1024,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "required": [
+                    "sourceHash",
+                    "byteLength",
+                    "chunkSize",
+                    "chunkCount",
+                    "chunkIndices"
+                  ],
+                  "additionalProperties": false
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "outline": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "structure": {
+                      "type": "string",
+                      "enum": [
+                        "three-act",
+                        "hero-journey",
+                        "serial",
+                        "free"
+                      ]
+                    },
+                    "logline": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "themes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "acts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "goal": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "beats": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "charactersInvolved": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  }
+                                },
+                                "conflictType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "internal",
+                                    "external",
+                                    "relational",
+                                    "world"
+                                  ]
+                                },
+                                "prerequisites": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  }
+                                },
+                                "optional": {
+                                  "type": "boolean"
+                                },
+                                "detailBeats": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64,
+                                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "summary": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "pov": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "wordTarget": {
+                                        "type": "integer",
+                                        "exclusiveMinimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "points": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "planned",
+                                          "writing",
+                                          "done"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "title",
+                                      "summary",
+                                      "pov",
+                                      "wordTarget",
+                                      "points",
+                                      "status"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title",
+                                "description",
+                                "charactersInvolved",
+                                "conflictType",
+                                "prerequisites",
+                                "optional",
+                                "detailBeats"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "index",
+                          "title",
+                          "goal",
+                          "beats"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "foreshadowing": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "hint": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "payoff": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "unplanted",
+                              "planted",
+                              "payed"
+                            ]
+                          },
+                          "knownBy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "hint",
+                          "payoff",
+                          "status",
+                          "knownBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "endings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "conditions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "conditions",
+                          "description"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "structure",
+                    "logline",
+                    "themes",
+                    "acts",
+                    "foreshadowing",
+                    "endings"
+                  ],
+                  "additionalProperties": false
+                },
+                "rationale": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "candidateId",
+                "projectId",
+                "sourceHash",
+                "provenance",
+                "confidence",
+                "outline",
+                "rationale"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#longDraftOutlineApplyProposal",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "pending"
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "candidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "provenance": {
+                  "type": "object",
+                  "properties": {
+                    "sourceHash": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "byteLength": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 2097152
+                    },
+                    "chunkSize": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 2097152
+                    },
+                    "chunkCount": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1024
+                    },
+                    "chunkIndices": {
+                      "minItems": 1,
+                      "maxItems": 1024,
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  },
+                  "required": [
+                    "sourceHash",
+                    "byteLength",
+                    "chunkSize",
+                    "chunkCount",
+                    "chunkIndices"
+                  ],
+                  "additionalProperties": false
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "outline": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "structure": {
+                      "type": "string",
+                      "enum": [
+                        "three-act",
+                        "hero-journey",
+                        "serial",
+                        "free"
+                      ]
+                    },
+                    "logline": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "themes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "acts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "index": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "goal": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "beats": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "charactersInvolved": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  }
+                                },
+                                "conflictType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "internal",
+                                    "external",
+                                    "relational",
+                                    "world"
+                                  ]
+                                },
+                                "prerequisites": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  }
+                                },
+                                "optional": {
+                                  "type": "boolean"
+                                },
+                                "detailBeats": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64,
+                                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "summary": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "pov": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "wordTarget": {
+                                        "type": "integer",
+                                        "exclusiveMinimum": 0,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "points": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "planned",
+                                          "writing",
+                                          "done"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "title",
+                                      "summary",
+                                      "pov",
+                                      "wordTarget",
+                                      "points",
+                                      "status"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title",
+                                "description",
+                                "charactersInvolved",
+                                "conflictType",
+                                "prerequisites",
+                                "optional",
+                                "detailBeats"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "index",
+                          "title",
+                          "goal",
+                          "beats"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "foreshadowing": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "hint": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "payoff": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "unplanted",
+                              "planted",
+                              "payed"
+                            ]
+                          },
+                          "knownBy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "hint",
+                          "payoff",
+                          "status",
+                          "knownBy"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "endings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "conditions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "conditions",
+                          "description"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "structure",
+                    "logline",
+                    "themes",
+                    "acts",
+                    "foreshadowing",
+                    "endings"
+                  ],
+                  "additionalProperties": false
+                },
+                "rationale": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "candidateId",
+                "projectId",
+                "sourceHash",
+                "provenance",
+                "confidence",
+                "outline",
+                "rationale"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "proposalId",
+            "status",
+            "candidate"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelLongDraft/accept": {
+      "id": "novel-creation-tool/novelLongDraft/accept",
+      "service": "novelLongDraft",
+      "namespace": "novelLongDraft",
+      "method": "accept",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "sourceHash",
+          "wire": "sourceHash",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#longDraftOutlineAccept",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "applied",
+                "already-applied"
+              ]
+            },
+            "outline": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "structure": {
+                  "type": "string",
+                  "enum": [
+                    "three-act",
+                    "hero-journey",
+                    "serial",
+                    "free"
+                  ]
+                },
+                "logline": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "themes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "acts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "goal": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "beats": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "description": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "charactersInvolved": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              }
+                            },
+                            "conflictType": {
+                              "type": "string",
+                              "enum": [
+                                "internal",
+                                "external",
+                                "relational",
+                                "world"
+                              ]
+                            },
+                            "prerequisites": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              }
+                            },
+                            "optional": {
+                              "type": "boolean"
+                            },
+                            "detailBeats": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "summary": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pov": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "wordTarget": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "points": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "planned",
+                                      "writing",
+                                      "done"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "title",
+                                  "summary",
+                                  "pov",
+                                  "wordTarget",
+                                  "points",
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "description",
+                            "charactersInvolved",
+                            "conflictType",
+                            "prerequisites",
+                            "optional",
+                            "detailBeats"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "index",
+                      "title",
+                      "goal",
+                      "beats"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "foreshadowing": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "hint": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "payoff": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "unplanted",
+                          "planted",
+                          "payed"
+                        ]
+                      },
+                      "knownBy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "hint",
+                      "payoff",
+                      "status",
+                      "knownBy"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "endings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "conditions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "conditions",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "structure",
+                "logline",
+                "themes",
+                "acts",
+                "foreshadowing",
+                "endings"
+              ],
+              "additionalProperties": false
+            },
+            "checkpoint": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "candidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "applying",
+                    "applied",
+                    "rejected",
+                    "cancelled",
+                    "failed"
+                  ]
+                },
+                "error": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "projectId",
+                "proposalId",
+                "candidateId",
+                "sourceHash",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "proposalId",
+            "status",
+            "outline",
+            "checkpoint"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelLongDraft/reject": {
+      "id": "novel-creation-tool/novelLongDraft/reject",
+      "service": "novelLongDraft",
+      "namespace": "novelLongDraft",
+      "method": "reject",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#longDraftOutlineReject",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "rejected"
+            },
+            "checkpoint": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "candidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "applying",
+                    "applied",
+                    "rejected",
+                    "cancelled",
+                    "failed"
+                  ]
+                },
+                "error": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                }
+              },
+              "required": [
+                "projectId",
+                "proposalId",
+                "candidateId",
+                "sourceHash",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "proposalId",
+            "status",
+            "checkpoint"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelLongDraft/recover": {
+      "id": "novel-creation-tool/novelLongDraft/recover",
+      "service": "novelLongDraft",
+      "namespace": "novelLongDraft",
+      "method": "recover",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#longDraftWorkflowRecover",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "items": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "proposalId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "candidateId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sourceHash": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "applying",
+                      "applied",
+                      "rejected",
+                      "cancelled",
+                      "failed"
+                    ]
+                  },
+                  "error": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "candidate": {
+                    "type": "object",
+                    "properties": {
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "projectId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "provenance": {
+                        "type": "object",
+                        "properties": {
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "byteLength": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 2097152
+                          },
+                          "chunkSize": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 2097152
+                          },
+                          "chunkCount": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 1024
+                          },
+                          "chunkIndices": {
+                            "minItems": 1,
+                            "maxItems": 1024,
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          }
+                        },
+                        "required": [
+                          "sourceHash",
+                          "byteLength",
+                          "chunkSize",
+                          "chunkCount",
+                          "chunkIndices"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high"
+                        ]
+                      },
+                      "outline": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "structure": {
+                            "type": "string",
+                            "enum": [
+                              "three-act",
+                              "hero-journey",
+                              "serial",
+                              "free"
+                            ]
+                          },
+                          "logline": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "themes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "acts": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "index": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "goal": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "beats": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 64,
+                                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "description": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "charactersInvolved": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 64,
+                                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                        }
+                                      },
+                                      "conflictType": {
+                                        "type": "string",
+                                        "enum": [
+                                          "internal",
+                                          "external",
+                                          "relational",
+                                          "world"
+                                        ]
+                                      },
+                                      "prerequisites": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 64,
+                                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                        }
+                                      },
+                                      "optional": {
+                                        "type": "boolean"
+                                      },
+                                      "detailBeats": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 64,
+                                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                            },
+                                            "title": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            },
+                                            "summary": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            },
+                                            "pov": {
+                                              "type": "string",
+                                              "minLength": 1
+                                            },
+                                            "wordTarget": {
+                                              "type": "integer",
+                                              "exclusiveMinimum": 0,
+                                              "maximum": 9007199254740991
+                                            },
+                                            "points": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string",
+                                                "minLength": 1
+                                              }
+                                            },
+                                            "status": {
+                                              "type": "string",
+                                              "enum": [
+                                                "planned",
+                                                "writing",
+                                                "done"
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "id",
+                                            "title",
+                                            "summary",
+                                            "pov",
+                                            "wordTarget",
+                                            "points",
+                                            "status"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "title",
+                                      "description",
+                                      "charactersInvolved",
+                                      "conflictType",
+                                      "prerequisites",
+                                      "optional",
+                                      "detailBeats"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "index",
+                                "title",
+                                "goal",
+                                "beats"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "foreshadowing": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "hint": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "payoff": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "unplanted",
+                                    "planted",
+                                    "payed"
+                                  ]
+                                },
+                                "knownBy": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "hint",
+                                "payoff",
+                                "status",
+                                "knownBy"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "endings": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "conditions": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title",
+                                "conditions",
+                                "description"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "structure",
+                          "logline",
+                          "themes",
+                          "acts",
+                          "foreshadowing",
+                          "endings"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "candidateId",
+                      "projectId",
+                      "sourceHash",
+                      "provenance",
+                      "confidence",
+                      "outline",
+                      "rationale"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "proposalId",
+                  "candidateId",
+                  "sourceHash",
+                  "status",
+                  "candidate"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "projectId",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -33155,7 +34968,11 @@
     "novel-creation-tool/novelLongDraft/begin",
     "novel-creation-tool/novelLongDraft/status",
     "novel-creation-tool/novelLongDraft/cancel",
-    "novel-creation-tool/novelLongDraft/result"
+    "novel-creation-tool/novelLongDraft/result",
+    "novel-creation-tool/novelLongDraft/proposeApply",
+    "novel-creation-tool/novelLongDraft/accept",
+    "novel-creation-tool/novelLongDraft/reject",
+    "novel-creation-tool/novelLongDraft/recover"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -44458,6 +46275,1282 @@
       "required": [
         "workflowId",
         "candidate"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelLongDraft/proposeApply": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "const": "pending"
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "provenance": {
+              "type": "object",
+              "properties": {
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "byteLength": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 2097152
+                },
+                "chunkSize": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 2097152
+                },
+                "chunkCount": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 1024
+                },
+                "chunkIndices": {
+                  "minItems": 1,
+                  "maxItems": 1024,
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                }
+              },
+              "required": [
+                "sourceHash",
+                "byteLength",
+                "chunkSize",
+                "chunkCount",
+                "chunkIndices"
+              ],
+              "additionalProperties": false
+            },
+            "confidence": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "outline": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "structure": {
+                  "type": "string",
+                  "enum": [
+                    "three-act",
+                    "hero-journey",
+                    "serial",
+                    "free"
+                  ]
+                },
+                "logline": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "themes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "acts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "goal": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "beats": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "description": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "charactersInvolved": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              }
+                            },
+                            "conflictType": {
+                              "type": "string",
+                              "enum": [
+                                "internal",
+                                "external",
+                                "relational",
+                                "world"
+                              ]
+                            },
+                            "prerequisites": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              }
+                            },
+                            "optional": {
+                              "type": "boolean"
+                            },
+                            "detailBeats": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "summary": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "pov": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "wordTarget": {
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "points": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "planned",
+                                      "writing",
+                                      "done"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "title",
+                                  "summary",
+                                  "pov",
+                                  "wordTarget",
+                                  "points",
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "description",
+                            "charactersInvolved",
+                            "conflictType",
+                            "prerequisites",
+                            "optional",
+                            "detailBeats"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "index",
+                      "title",
+                      "goal",
+                      "beats"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "foreshadowing": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "hint": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "payoff": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "unplanted",
+                          "planted",
+                          "payed"
+                        ]
+                      },
+                      "knownBy": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "hint",
+                      "payoff",
+                      "status",
+                      "knownBy"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "endings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "conditions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "description": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "conditions",
+                      "description"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "structure",
+                "logline",
+                "themes",
+                "acts",
+                "foreshadowing",
+                "endings"
+              ],
+              "additionalProperties": false
+            },
+            "rationale": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "candidateId",
+            "projectId",
+            "sourceHash",
+            "provenance",
+            "confidence",
+            "outline",
+            "rationale"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "proposalId",
+        "status",
+        "candidate"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelLongDraft/accept": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "already-applied"
+          ]
+        },
+        "outline": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "version": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "structure": {
+              "type": "string",
+              "enum": [
+                "three-act",
+                "hero-journey",
+                "serial",
+                "free"
+              ]
+            },
+            "logline": {
+              "type": "string",
+              "minLength": 1
+            },
+            "themes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "acts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "goal": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "beats": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "charactersInvolved": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "conflictType": {
+                          "type": "string",
+                          "enum": [
+                            "internal",
+                            "external",
+                            "relational",
+                            "world"
+                          ]
+                        },
+                        "prerequisites": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "optional": {
+                          "type": "boolean"
+                        },
+                        "detailBeats": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              "title": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "summary": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "pov": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "wordTarget": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "points": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "planned",
+                                  "writing",
+                                  "done"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "summary",
+                              "pov",
+                              "wordTarget",
+                              "points",
+                              "status"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "charactersInvolved",
+                        "conflictType",
+                        "prerequisites",
+                        "optional",
+                        "detailBeats"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "index",
+                  "title",
+                  "goal",
+                  "beats"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "foreshadowing": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "hint": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "payoff": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "unplanted",
+                      "planted",
+                      "payed"
+                    ]
+                  },
+                  "knownBy": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "hint",
+                  "payoff",
+                  "status",
+                  "knownBy"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "endings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "conditions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "conditions",
+                  "description"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "structure",
+            "logline",
+            "themes",
+            "acts",
+            "foreshadowing",
+            "endings"
+          ],
+          "additionalProperties": false
+        },
+        "checkpoint": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed"
+              ]
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "projectId",
+            "proposalId",
+            "candidateId",
+            "sourceHash",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "proposalId",
+        "status",
+        "outline",
+        "checkpoint"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelLongDraft/reject": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "const": "rejected"
+        },
+        "checkpoint": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed"
+              ]
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "projectId",
+            "proposalId",
+            "candidateId",
+            "sourceHash",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "proposalId",
+        "status",
+        "checkpoint"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelLongDraft/recover": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "items": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "proposalId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "applying",
+                  "applied",
+                  "rejected",
+                  "cancelled",
+                  "failed"
+                ]
+              },
+              "error": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "candidate": {
+                "type": "object",
+                "properties": {
+                  "candidateId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sourceHash": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "provenance": {
+                    "type": "object",
+                    "properties": {
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "byteLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 2097152
+                      },
+                      "chunkSize": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 2097152
+                      },
+                      "chunkCount": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1024
+                      },
+                      "chunkIndices": {
+                        "minItems": 1,
+                        "maxItems": 1024,
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      }
+                    },
+                    "required": [
+                      "sourceHash",
+                      "byteLength",
+                      "chunkSize",
+                      "chunkCount",
+                      "chunkIndices"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "outline": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "structure": {
+                        "type": "string",
+                        "enum": [
+                          "three-act",
+                          "hero-journey",
+                          "serial",
+                          "free"
+                        ]
+                      },
+                      "logline": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "themes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "acts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "index": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "goal": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "beats": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "charactersInvolved": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64,
+                                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                    }
+                                  },
+                                  "conflictType": {
+                                    "type": "string",
+                                    "enum": [
+                                      "internal",
+                                      "external",
+                                      "relational",
+                                      "world"
+                                    ]
+                                  },
+                                  "prerequisites": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 64,
+                                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                    }
+                                  },
+                                  "optional": {
+                                    "type": "boolean"
+                                  },
+                                  "detailBeats": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 64,
+                                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "summary": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "pov": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "wordTarget": {
+                                          "type": "integer",
+                                          "exclusiveMinimum": 0,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "points": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "status": {
+                                          "type": "string",
+                                          "enum": [
+                                            "planned",
+                                            "writing",
+                                            "done"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "title",
+                                        "summary",
+                                        "pov",
+                                        "wordTarget",
+                                        "points",
+                                        "status"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "title",
+                                  "description",
+                                  "charactersInvolved",
+                                  "conflictType",
+                                  "prerequisites",
+                                  "optional",
+                                  "detailBeats"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "index",
+                            "title",
+                            "goal",
+                            "beats"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "foreshadowing": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "hint": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "payoff": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "unplanted",
+                                "planted",
+                                "payed"
+                              ]
+                            },
+                            "knownBy": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "hint",
+                            "payoff",
+                            "status",
+                            "knownBy"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "endings": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "conditions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "description": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "conditions",
+                            "description"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "structure",
+                      "logline",
+                      "themes",
+                      "acts",
+                      "foreshadowing",
+                      "endings"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "candidateId",
+                  "projectId",
+                  "sourceHash",
+                  "provenance",
+                  "confidence",
+                  "outline",
+                  "rationale"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "projectId",
+              "proposalId",
+              "candidateId",
+              "sourceHash",
+              "status",
+              "candidate"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "projectId",
+        "items"
       ],
       "additionalProperties": false
     }

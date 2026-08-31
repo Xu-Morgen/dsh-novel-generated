@@ -23,6 +23,7 @@ import { DEFAULT_VIEW, isStableView, NAV_GROUPS, resolveWorkbenchView, type Work
 import { GRID_STEP, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_MAX, PANEL_WIDTH_MIN, type WorkbenchActions, type WorkbenchNamespaces, type WorkbenchOps, type WorkbenchState, type WorkbenchViewStates } from './store/types.js';
 import type { UploadProgress } from './upload.js';
 import { analysisPanel, onboardingReview, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingState } from './onboarding.js';
+import { longDraftGuidePanel } from './long-draft-guide.js';
 import { llmSettingsPanel } from './settings.js';
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './panels/index.js';
 import type { OnboardingController, ProjectController, SettingsController, UploadController } from './controllers.js';
@@ -252,7 +253,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
  */
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
   const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
-  const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace } = ns;
+  const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
   const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
   const h = el(React);
   if (!ui.open) return null;
@@ -283,6 +284,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
       h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
     ),
     uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+    longDraftGuidePanel(h, selectedProjectId ?? 'unknown-project', longDraft),
   );
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
@@ -318,7 +320,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
           viewPanel(h, ui.activeView, selectedProjectId, {
-            workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, onboardingNamespace,
+            workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, onboardingNamespace, longDraft,
           }, {
             layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState,
           }, ops, sourceEntry, review, settings, creationSettings),

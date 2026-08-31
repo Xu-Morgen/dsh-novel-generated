@@ -37,8 +37,8 @@ if (JSON.stringify([...dev.caseIds, ...heldOut.caseIds]) !== JSON.stringify(gold
 if (corpus.threshold < 0.8) fail('sample threshold below 80%');
 
 const lock = JSON.parse(read('contracts/stage18/remote-descriptors.json'));
-const descriptorIds = lock.descriptorIds.filter((id) => id.includes('/novelLongDraft/'));
-const resultIds = lock.resultSchemaIds.filter((id) => id.includes('/novelLongDraft/'));
+const descriptorIds = lock.descriptorIds.filter((id) => id.includes('/novelLongDraft/') && /\/(preflight|begin|status|cancel|result)$/.test(id));
+const resultIds = lock.resultSchemaIds.filter((id) => id.includes('/novelLongDraft/') && /\/(preflight|begin|status|cancel|result)$/.test(id));
 if (descriptorIds.length !== 5 || resultIds.length !== 5) fail('I119 descriptor/result contract lock is incomplete');
 
 const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run',

@@ -42,7 +42,7 @@ function el(React: ReactFace): El {
 
 /**
  * I90 client.ts 收敛为纯装配根（review v2.0 §3.5 / 计划 §18 I90）：
- * - Remote 资源清单（16 个 namespace）单份维护于 mount-registry.ts；
+ * - Remote 资源清单（23 个 namespace）单份维护于 mount-registry.ts；
  * - project/onboarding/settings/upload 纯逻辑在 controllers.ts；
  * - Overlay 渲染面（workbenchView 21 形参 → props 对象 + ui 方法表）在 presenter.ts；
  * - 本文件只做：入口契约（factory/apply/slot 注册/store 创建/re-export 常量）+
@@ -284,6 +284,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               referenceAuditNamespace: serviceBag.referenceAudit,
               referenceCorrectionNamespace: serviceBag.referenceCorrection,
               onboardingNamespace: serviceBag.onboarding,
+              longDraft: serviceBag.longDraft,
             },
             ui,
             states: {
@@ -341,7 +342,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           active = false;
           // I90：分析轮询 timer 归 onboarding controller（clearPoll = 旧 clearAnalysisPoll）；
           // namespace 清空由 service bag 生命周期负责（一次性清空，等价迁移前
-          // 16 个 namespace 变量逐项置 undefined）；disposer 释放由 registry 卸载器
+          // 23 个 namespace 变量逐项置 undefined）；disposer 释放由 registry 卸载器
           // 统一做（等价迁移前逐 disposer 变量释放）。
           onboarding.clearPoll();
           queuePoll.stop();

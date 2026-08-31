@@ -1,0 +1,23 @@
+{
+  "iteration": "I120",
+  "requirement": "R18-6b",
+  "guarantees": [
+    "empty-project-preflight-before-Gate-proposal-and-apply",
+    "strict-I11-payload-binds-candidate-project-and-proposal",
+    "sourceHash-stale-accept-fails-with-zero-narrative-write",
+    "rejected-and-cancelled-paths-preserve-uninitialized-B5",
+    "atomic-outline-write-and-minimal-checkpoint-rename",
+    "failed-write-records-recoverable-checkpoint-without-half-outline",
+    "accepted-replay-and-reopen-recovery-are-idempotent",
+    "Client-guidance-keeps-B5-only-and-C5-boundaries-visible",
+    "additive-real-remote-descriptor-and-result-contract-lock"
+  ],
+  "focusedSuites": "I120 Host apply/recovery and Client guidance tests passed",
+  "explicitNonGoals": [
+    "non-empty-outline-overwrite",
+    "C5-import",
+    "ST-support",
+    "outline-merge-or-backup-migration",
+    "chapter-loop"
+  ]
+}

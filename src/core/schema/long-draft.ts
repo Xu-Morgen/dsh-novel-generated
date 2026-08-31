@@ -120,3 +120,80 @@ export const longDraftWorkflowResultSchema = z.object({
   candidate: longDraftOutlineCandidateSchema,
 }).strict();
 export type LongDraftWorkflowResult = z.infer<typeof longDraftWorkflowResultSchema>;
+
+/** I120 I11 payload: the Gate stores the complete candidate for restart-safe replay. */
+export const longDraftOutlineGatePayloadSchema = z.object({
+  candidate: longDraftOutlineCandidateSchema,
+}).strict();
+export type LongDraftOutlineGatePayload = z.infer<typeof longDraftOutlineGatePayloadSchema>;
+
+export const longDraftOutlineApplyProposalSchema = z.object({
+  projectId: entityIdSchema,
+  proposalId: entityIdSchema,
+  status: z.literal('pending'),
+  candidate: longDraftOutlineCandidateSchema,
+}).strict().superRefine((value, context) => {
+  if (value.projectId !== value.candidate.projectId || value.proposalId !== value.candidate.candidateId) {
+    context.addIssue({ code: 'custom', path: ['candidate'], message: 'Apply proposal must bind projectId and proposalId to candidate' });
+  }
+});
+export type LongDraftOutlineApplyProposal = z.infer<typeof longDraftOutlineApplyProposalSchema>;
+
+export const longDraftWorkflowCheckpointStatusSchema = z.enum(['pending', 'applying', 'applied', 'rejected', 'cancelled', 'failed']);
+export type LongDraftWorkflowCheckpointStatus = z.infer<typeof longDraftWorkflowCheckpointStatusSchema>;
+
+/** Minimal Host-owned checkpoint; the full candidate remains in the I11 Gate payload. */
+export const longDraftWorkflowCheckpointEntrySchema = z.object({
+  projectId: entityIdSchema,
+  proposalId: entityIdSchema,
+  candidateId: entityIdSchema,
+  sourceHash: sourceHashSchema,
+  status: longDraftWorkflowCheckpointStatusSchema,
+  error: z.string().trim().min(1).max(500).optional(),
+}).strict().superRefine((value, context) => {
+  if (value.status === 'failed' && value.error === undefined) {
+    context.addIssue({ code: 'custom', path: ['error'], message: 'failed checkpoint requires an error' });
+  }
+  if (value.status !== 'failed' && value.error !== undefined) {
+    context.addIssue({ code: 'custom', path: ['error'], message: 'only failed checkpoints may carry an error' });
+  }
+});
+export type LongDraftWorkflowCheckpointEntry = z.infer<typeof longDraftWorkflowCheckpointEntrySchema>;
+
+export const longDraftWorkflowCheckpointDocumentSchema = z.object({
+  version: z.literal(1),
+  entries: longDraftWorkflowCheckpointEntrySchema.array().max(32),
+}).strict();
+export type LongDraftWorkflowCheckpointDocument = z.infer<typeof longDraftWorkflowCheckpointDocumentSchema>;
+
+export const longDraftWorkflowRecoveryItemSchema = longDraftWorkflowCheckpointEntrySchema.extend({
+  candidate: longDraftOutlineCandidateSchema,
+}).strict().superRefine((value, context) => {
+  if (value.projectId !== value.candidate.projectId || value.proposalId !== value.candidate.candidateId || value.candidateId !== value.candidate.candidateId || value.sourceHash !== value.candidate.sourceHash) {
+    context.addIssue({ code: 'custom', path: ['candidate'], message: 'Recovery item must bind checkpoint and Gate candidate' });
+  }
+});
+export type LongDraftWorkflowRecoveryItem = z.infer<typeof longDraftWorkflowRecoveryItemSchema>;
+
+export const longDraftWorkflowRecoverResultSchema = z.object({
+  projectId: entityIdSchema,
+  items: longDraftWorkflowRecoveryItemSchema.array().max(32),
+}).strict();
+export type LongDraftWorkflowRecoverResult = z.infer<typeof longDraftWorkflowRecoverResultSchema>;
+
+export const longDraftOutlineAcceptResultSchema = z.object({
+  projectId: entityIdSchema,
+  proposalId: entityIdSchema,
+  status: z.enum(['applied', 'already-applied']),
+  outline: outlineSchema,
+  checkpoint: longDraftWorkflowCheckpointEntrySchema,
+}).strict();
+export type LongDraftOutlineAcceptResult = z.infer<typeof longDraftOutlineAcceptResultSchema>;
+
+export const longDraftOutlineRejectResultSchema = z.object({
+  projectId: entityIdSchema,
+  proposalId: entityIdSchema,
+  status: z.literal('rejected'),
+  checkpoint: longDraftWorkflowCheckpointEntrySchema,
+}).strict();
+export type LongDraftOutlineRejectResult = z.infer<typeof longDraftOutlineRejectResultSchema>;

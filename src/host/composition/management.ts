@@ -342,6 +342,8 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     state: stateService,
     canon: canonService,
     text: textService,
+    confirmation: confirmationService,
+    projectsRoot,
     llm,
     onDispose: onFiberDispose,
   });
@@ -351,6 +353,10 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'status', call: (workflowId: string) => longDraftWorkflowCoordinator.status(workflowId) },
     { method: 'cancel', call: async (workflowId: string) => { await longDraftWorkflowCoordinator.cancel(workflowId); return { workflowId, status: 'cancelled' as const }; } },
     { method: 'result', call: (workflowId: string) => longDraftWorkflowCoordinator.result(workflowId) },
+    { method: 'proposeApply', call: (projectId: string, candidate: Parameters<typeof longDraftWorkflowCoordinator.proposeApply>[1]) => longDraftWorkflowCoordinator.proposeApply(projectId, candidate) },
+    { method: 'accept', call: (projectId: string, proposalId: string, sourceHash?: string) => longDraftWorkflowCoordinator.accept(projectId, proposalId, sourceHash) },
+    { method: 'reject', call: (projectId: string, proposalId: string) => longDraftWorkflowCoordinator.reject(projectId, proposalId) },
+    { method: 'recover', call: (projectId: string) => longDraftWorkflowCoordinator.recover(projectId) },
   ], longDraftInvocations));
   // I113 planner + I114 application share one public namespace and one Host
   // owner key; only the five application methods can cross into writers.
