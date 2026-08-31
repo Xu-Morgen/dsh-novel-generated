@@ -4,6 +4,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createBranchService } from './branch-service.js';
 import { TextRepository } from '../core/text/index.js';
+import {
+  branchAggregateSchema,
+  BRANCH_AGGREGATE_MAX_BRANCHES_PER_SCENE,
+} from '../core/schema/branch-aggregate.js';
 
 const roots: string[] = [];
 async function temporaryRoot(): Promise<string> {
@@ -79,5 +83,66 @@ describe('I70 NovelBranchService（design §14.10 / R14-5）', () => {
     await expect(service.diffBranches('demo', 'chapter-1', 'scene-1', 'v-none')).rejects.toThrow(/Unknown branch/);
     // save 失败/未知分支零写。
     expect((await repository.readChapter('chapter-1')).scenes[0].content).toBe('正文');
+  });
+
+  it('I130 aggregate：按章节/场景顺序返回隐含单版本与分支元数据，且不泄漏正文', async () => {
+    const root = await temporaryRoot();
+    const projectDir = join(root, 'demo');
+    const repository = new TextRepository(projectDir);
+    await repository.open();
+    await repository.createChapter({ id: 'chapter-2', index: 2, title: '第二章', pov: 'lin', status: 'revised' });
+    await repository.appendScene('chapter-2', { id: 'scene-2', content: '二章正文泄漏哨兵', summary: '收束', beats: [], canonEvents: [], notes: '' });
+    await repository.createChapter({ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+    await repository.appendScene('chapter-1', { id: 'scene-2b', content: '第二场正文泄漏哨兵', summary: '冲突', beats: [], canonEvents: [], notes: '' });
+    await repository.appendScene('chapter-1', { id: 'scene-1', content: '第一场正文泄漏哨兵', summary: '开场', beats: [], canonEvents: [], notes: '' });
+    await repository.commitSceneVersion('chapter-1', 'scene-1', '第一场新正文泄漏哨兵', '重写版本');
+
+    const service = createBranchService(root);
+    await service.open('demo');
+    const aggregate = await service.aggregate('demo');
+    expect(aggregate.chapters.map((chapter) => chapter.index)).toEqual([1, 2]);
+    expect(aggregate.chapters[0].scenes.map((scene) => scene.index)).toEqual([0, 1]);
+    expect(aggregate.chapters[0].scenes[1]).toMatchObject({
+      id: 'scene-1', index: 1, summary: '开场', versionMode: 'branched',
+    });
+    expect(aggregate.chapters[0].scenes[1].branches).toHaveLength(2);
+    expect(aggregate.chapters[0].scenes[1].branches.filter((branch) => branch.chosen)).toHaveLength(1);
+    expect(aggregate.chapters[0].scenes[0]).toMatchObject({
+      id: 'scene-2b', index: 0, versionMode: 'implicit-single', branches: [],
+    });
+    expect(aggregate.chapters[1].scenes[0]).toMatchObject({ versionMode: 'implicit-single', branches: [] });
+    expect(JSON.stringify(aggregate)).not.toContain('正文泄漏哨兵');
+    expect(JSON.stringify(aggregate)).not.toContain('content');
+    expect(aggregate.chapters[0].scenes[1].branches[0].hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(Object.keys(aggregate.chapters[0].scenes[1].branches[0])).toEqual(['id', 'label', 'chosen', 'charCount', 'hash']);
+  });
+
+  it('I130 aggregate 负向：未知项目、重复/多 chosen/超限版本树均 fail closed', async () => {
+    const root = await temporaryRoot();
+    const emptyService = createBranchService(root);
+    await emptyService.open('empty');
+    expect(await emptyService.aggregate('empty')).toEqual({ projectId: 'empty', chapters: [] });
+
+    const repository = new TextRepository(join(root, 'demo'));
+    await repository.open();
+    await repository.createChapter({ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+    await repository.appendScene('chapter-1', { id: 'scene-1', content: '正文', summary: '开场', beats: [], canonEvents: [], notes: '' });
+    const service = createBranchService(root);
+    await service.open('demo');
+    await expect(service.aggregate('missing')).rejects.toThrow(/not open/);
+
+    const validScene = {
+      id: 'scene-1', index: 0, summary: '开场', versionMode: 'branched' as const,
+      branches: [{ id: 'branch-1', label: '版本', chosen: true, charCount: 2, hash: 'a'.repeat(64) }],
+    };
+    expect(branchAggregateSchema.safeParse({
+      projectId: 'demo', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [{ ...validScene, branches: [validScene.branches[0], validScene.branches[0]] }] }],
+    }).success).toBe(false);
+    expect(branchAggregateSchema.safeParse({
+      projectId: 'demo', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [{ ...validScene, branches: [{ ...validScene.branches[0] }, { ...validScene.branches[0], id: 'branch-2' }] }] }],
+    }).success).toBe(false);
+    expect(branchAggregateSchema.safeParse({
+      projectId: 'demo', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [{ ...validScene, branches: Array.from({ length: BRANCH_AGGREGATE_MAX_BRANCHES_PER_SCENE + 1 }, (_, index) => ({ ...validScene.branches[0], id: `branch-${index + 1}` })) }] }],
+    }).success).toBe(false);
   });
 });

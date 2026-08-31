@@ -1,0 +1,25 @@
+{
+  "iteration": "I130",
+  "requirement": "R18-10a",
+  "guarantees": [
+    "single-host-read-bounded-chapter-scene-branch-metadata-tree",
+    "chapter-and-scene-index-order-is-deterministic",
+    "implicit-single-and-branched-version-modes-are-explicit",
+    "branch-summary-has-no-prose-content",
+    "duplicate-or-multiple-chosen-branches-fail-closed",
+    "unknown-project-and-budget-overflow-fail-closed",
+    "real-repository-and-dsh-client-binder-consumers-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 160,
+    "resultSchemaCount": 66
+  },
+  "focusedSuites": "I130 Host aggregate, real DSH binder, and contract-lock suites passed",
+  "explicitNonGoals": [
+    "choose-or-chooseFresh",
+    "diff",
+    "c5-schema-change",
+    "full-book-snapshot",
+    "client-n-plus-one-aggregation"
+  ]
+}

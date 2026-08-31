@@ -1,5 +1,6 @@
 import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
+import { branchAggregateSchema } from '../../core/schema/branch-aggregate.js';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
 
@@ -12,6 +13,7 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
  * - `save`：给当前正文打命名版本（幂等；不改变正文）；
  * - `choose`：可逆切换 chosen 分支并同步正文（只写 C5，绝不隐式改结构层）；
  * - `diff`：分支 A → 分支 B 的确定性行 diff（B 缺省 = 当前 chosen 分支）。
+ * - `aggregate`：一次性有界的章节→场景→版本元数据树（无正文）；正文仍按需读取。
  *
  * 不变式：所有参数/结果都是最小 owned JSON；Client 不持有任何领域真相与文件
  * 路径；服务端（novelBranches）经 TextRepository（C5 唯一存储 owner）复验与写回，
@@ -56,6 +58,9 @@ export const branchDiffResultWireSchema = z.object({
   lines: z.array(branchDiffLineWireSchema),
 }).strict();
 
+/** I130 canonical aggregate result；复用 core schema，禁止 Remote 自行复制树形状。 */
+export const branchAggregateWireSchema = branchAggregateSchema;
+
 // I75：`param`/`branchInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
 // I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
 const branchInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
@@ -76,6 +81,7 @@ export const branchReadInvocation = branchInvocation('read', [projectParameter, 
 export const branchSaveInvocation = branchInvocation('save', [projectParameter, chapterParameter, sceneParameter, labelParameter], strictCodec('novel-creation-tool#novelBranches:save', branchMutateResultWireSchema));
 export const branchChooseInvocation = branchInvocation('choose', [projectParameter, chapterParameter, sceneParameter, branchIdParameter], strictCodec('novel-creation-tool#novelBranches:choose', branchMutateResultWireSchema));
 export const branchDiffInvocation = branchInvocation('diff', [projectParameter, chapterParameter, sceneParameter, branchIdParameter, toBranchIdParameter], strictCodec('novel-creation-tool#novelBranches:diff', branchDiffResultWireSchema));
+export const branchAggregateInvocation = branchInvocation('aggregate', [projectParameter], strictCodec('novel-creation-tool#novelBranches:aggregate', branchAggregateWireSchema));
 
 export const branchInvocations = [
   branchListInvocation,
@@ -83,6 +89,7 @@ export const branchInvocations = [
   branchSaveInvocation,
   branchChooseInvocation,
   branchDiffInvocation,
+  branchAggregateInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。

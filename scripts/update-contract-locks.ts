@@ -14,7 +14,7 @@ import { z } from 'zod';
 
 import { remoteDescriptorLockBodies, remoteResultShapeBodies, shapeLockBody } from '../src/contract-lock.js';
 import { hostContribution } from '../src/host/remote/host-contribution.js';
-import { branchInvocations } from '../src/host/remote/branch.js';
+import { branchAggregateInvocation, branchInvocations } from '../src/host/remote/branch.js';
 import { writingInvocations, writingPreviewLayersInvocation, writingProposeAtInvocation } from '../src/host/remote/writing.js';
 import { reviewInvocations } from '../src/host/remote/review.js';
 import { c5Invocations, sceneReparsePreviewInvocation } from '../src/host/remote/text.js';
@@ -144,8 +144,9 @@ for (const lock of EXISTING_LOCKS) {
   const i118DescriptorIds = new Set(referenceCorrectionInvocations.map((descriptor) => descriptor.id));
   const i119DescriptorIds = new Set(longDraftInvocations.slice(0, 5).map((descriptor) => descriptor.id));
   const i120DescriptorIds = new Set(longDraftInvocations.slice(5).map((descriptor) => descriptor.id));
+  const i130DescriptorIds = new Set([branchAggregateInvocation.id]);
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -159,10 +160,11 @@ for (const lock of EXISTING_LOCKS) {
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
     ...longDraftInvocations,
+    branchAggregateInvocation,
     ...reviewRepairInvocations,
   ];
   const resultDescriptors = [
-    ...branchInvocations,
+    ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id)),
     ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation),
     ...reviewInvocations,
     ...c5Invocations.filter((descriptor) => descriptor !== sceneReparsePreviewInvocation),
@@ -181,6 +183,7 @@ for (const lock of EXISTING_LOCKS) {
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
     ...longDraftInvocations,
+    branchAggregateInvocation,
     ...reviewRepairInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);

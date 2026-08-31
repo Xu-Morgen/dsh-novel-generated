@@ -12,7 +12,7 @@ import { TypertRegistry } from '@deepseek-ai/dsh-typert-registry';
 import { describe, expect, it } from 'vitest';
 
 import { unwrap } from './client/shared.js';
-import { branchListWireAdapter } from './host/composition/orchestration.js';
+import { branchAggregateWireAdapter, branchListWireAdapter } from './host/composition/orchestration.js';
 import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
@@ -49,6 +49,7 @@ import type { NovelRuleService } from './host/rule-service.js';
 import type { NovelKnowledgeService } from './host/knowledge-service.js';
 import type { NovelConfirmationService } from './host/confirmation-service.js';
 import { INITIAL_STATE } from './core/schema/project-lifecycle.js';
+import { branchAggregateSchema, type BranchAggregate } from './core/schema/branch-aggregate.js';
 import { apply } from './index.js';
 
 /**
@@ -167,6 +168,17 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelBranches/list':
       return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }] };
+    case 'novelBranches/aggregate':
+      return {
+        projectId: 'p1',
+        chapters: [{
+          id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft',
+          scenes: [{
+            id: 'scene-1', index: 0, summary: '开场', versionMode: 'branched',
+            branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'a'.repeat(64) }],
+          }],
+        }],
+      };
     case 'novelText/fingerprint':
       return { fingerprint: 'a'.repeat(64) };
     case 'novelText/chapterCreate':
@@ -691,6 +703,46 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     try {
       const branches = client.get('remote.novelBranches') as { list: (...args: unknown[]) => Promise<unknown> };
       await expect(unwrap(branches.list('p1', 'c1', 's1'))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I130 novelBranches.aggregate：Host 一次聚合经 strict tree codec 与真实 Client binder 往返', async () => {
+    const domainCalls: unknown[][] = [];
+    const domain = {
+      async aggregate(...args: [string]): Promise<BranchAggregate> {
+        domainCalls.push(args);
+        return branchAggregateSchema.parse(fixtureFor('novelBranches/aggregate'));
+      },
+    };
+    const { client, calls, dispose } = await mount(branchRemoteContribution, (endpoint, args) => {
+      if (endpoint !== 'novelBranches/aggregate') return fixtureFor(endpoint);
+      return branchAggregateWireAdapter(domain, String(args.projectId));
+    });
+    try {
+      const branches = client.get('remote.novelBranches') as { aggregate: (...args: unknown[]) => Promise<unknown> };
+      const result = await unwrap(branches.aggregate('p1')) as { projectId: string; chapters: Array<{ scenes: Array<{ branches: Array<{ id: string }> }> }> };
+      expect(result.projectId).toBe('p1');
+      expect(result.chapters[0].scenes[0].branches[0].id).toBe('branch-1');
+      expect(domainCalls).toEqual([['p1']]);
+      expect(calls).toEqual([{ endpoint: 'novelBranches/aggregate', args: { projectId: 'p1' } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it.each([
+    ['缺少 chapters', { projectId: 'p1' }],
+    ['正文泄漏字段', { projectId: 'p1', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '开场', versionMode: 'implicit-single', branches: [], content: '不应出现' }] }] }],
+    ['多 chosen', { projectId: 'p1', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '开场', versionMode: 'branched', branches: [{ id: 'branch-1', label: '一', chosen: true, charCount: 1, hash: 'a'.repeat(64) }, { id: 'branch-2', label: '二', chosen: true, charCount: 1, hash: 'b'.repeat(64) }] }] }] }],
+  ])('I130 novelBranches.aggregate 负向：%s 在真实绑定器 result codec fail closed', async (_label, invalidResult) => {
+    const { client, dispose } = await mount(branchRemoteContribution, (endpoint) => endpoint === 'novelBranches/aggregate' ? invalidResult : fixtureFor(endpoint));
+    try {
+      const branches = client.get('remote.novelBranches') as { aggregate: (...args: unknown[]) => Promise<unknown> };
+      await expect(unwrap(branches.aggregate('p1'))).rejects.toThrow(/rejected "result"/);
     } finally {
       await dispose();
       await client.fiber.dispose();

@@ -5,6 +5,14 @@ import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { TextRepository } from '../core/text/index.js';
 import { diffTextLines, type DiffLine } from '../core/text/diff.js';
 import type { Scene, SceneBranch } from '../core/schema/text.js';
+import {
+  branchAggregateSchema,
+  BRANCH_AGGREGATE_MAX_BRANCHES_PER_SCENE,
+  BRANCH_AGGREGATE_MAX_BYTES,
+  BRANCH_AGGREGATE_MAX_CHAPTERS,
+  BRANCH_AGGREGATE_MAX_SCENES,
+  type BranchAggregate,
+} from '../core/schema/branch-aggregate.js';
 
 /**
  * I70 C5 正文版本/分支 Host facade（design §14.10「正文版本与分支」/ R14-5）。
@@ -19,6 +27,8 @@ import type { Scene, SceneBranch } from '../core/schema/text.js';
  *   scene.content（只写 C5，绝不隐式改 B2/C1/C2/C3/C4）。
  * - `diffBranches` 比较分支 A → 分支 B（B 缺省 = 当前 chosen 分支），输出双方全文
  *   与确定性行 diff；未知分支/缺省分支不存在时 fail closed。
+ * - `aggregate` 只读一次 C5 章节枚举，输出有界的章节→场景→版本元数据树；不携带
+ *   正文，也不把投影注册为第二 owner。预算超出或结构不满足 C5 版本不变式时整体拒绝。
  * - `open` 幂等：目录已存在时只登记 repository；legacy 文档迁移在
  *   TextRepository.open 内完成（坏迁移 fail closed）。
  */
@@ -57,6 +67,8 @@ export interface NovelBranchService {
   chooseBranch(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<{ branches: SceneBranchSummary[]; content: string }>;
   /** 比较分支 A → 分支 B（B 缺省 = 当前 chosen 分支）。 */
   diffBranches(projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string): Promise<BranchDiffResult>;
+  /** 一次性读取的有界版本元数据树；正文仍由 read/diff 按需读取。 */
+  aggregate(projectId: string): Promise<BranchAggregate>;
 }
 
 const hashOf = (content: string): string => createHash('sha256').update(content, 'utf8').digest('hex');
@@ -122,5 +134,56 @@ export function createBranchService(projectsRoot = join(homedir(), '.dsh', 'nove
         lines: Object.freeze(diffTextLines(from.content, to.content)),
       });
     },
+    async aggregate(projectId) {
+      const chapters = await get(projectId).listChapters();
+      if (chapters.length > BRANCH_AGGREGATE_MAX_CHAPTERS) {
+        throw new Error(`Branch aggregate exceeds chapter budget: ${chapters.length}`);
+      }
+
+      let sceneCount = 0;
+      const projectedChapters = chapters
+        .slice()
+        .sort((left, right) => left.index - right.index || compareIds(left.id, right.id))
+        .map((chapter) => ({
+          id: chapter.id,
+          index: chapter.index,
+          title: chapter.title,
+          pov: chapter.pov,
+          status: chapter.status,
+          scenes: chapter.scenes
+            .slice()
+            .sort((left, right) => left.index - right.index || compareIds(left.id, right.id))
+            .map((scene) => {
+              sceneCount += 1;
+              if (sceneCount > BRANCH_AGGREGATE_MAX_SCENES) {
+                throw new Error(`Branch aggregate exceeds scene budget: ${sceneCount}`);
+              }
+              if (scene.branches.length > BRANCH_AGGREGATE_MAX_BRANCHES_PER_SCENE) {
+                throw new Error(`Branch aggregate exceeds branch budget: ${scene.id}`);
+              }
+              const chosenCount = scene.branches.filter((branch) => branch.chosen).length;
+              if (scene.branches.length > 0 && chosenCount !== 1) {
+                throw new Error(`Invalid branch invariant in scene: ${scene.id}`);
+              }
+              return {
+                id: scene.id,
+                index: scene.index,
+                summary: scene.summary,
+                versionMode: scene.branches.length === 0 ? 'implicit-single' as const : 'branched' as const,
+                branches: scene.branches.slice().sort((left, right) => compareIds(left.id, right.id)).map(toSummary),
+              };
+            }),
+        }));
+      const aggregate = branchAggregateSchema.parse({ projectId, chapters: projectedChapters });
+      const bytes = new TextEncoder().encode(JSON.stringify(aggregate)).byteLength;
+      if (bytes > BRANCH_AGGREGATE_MAX_BYTES) {
+        throw new Error(`Branch aggregate exceeds byte budget: ${bytes}`);
+      }
+      return aggregate;
+    },
   };
+}
+
+function compareIds(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
