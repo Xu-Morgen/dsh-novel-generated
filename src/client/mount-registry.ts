@@ -37,6 +37,7 @@ import type {
   TextDeletionNamespace,
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
+  ReferenceCorrectionNamespace,
   WorkspaceNamespace,
   WritingNamespace,
 } from './shared.js';
@@ -57,6 +58,7 @@ import {
 import { sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
 import { outlineReconciliationRemoteContribution } from '../remote.js';
 import { referenceAuditRemoteContribution } from '../remote.js';
+import { referenceCorrectionRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
@@ -91,6 +93,7 @@ export interface RemoteServiceBag {
   textDeletion?: TextDeletionNamespace;
   outlineReconciliation?: OutlineReconciliationNamespace;
   referenceAudit?: ReferenceAuditNamespace;
+  referenceCorrection?: ReferenceCorrectionNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -140,6 +143,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'textDeletion', contribution: textDeletionRemoteContribution, serviceKey: 'remote.novelTextDeletion', label: 'text deletion', bind: bindInto('textDeletion') },
     { key: 'outlineReconciliation', contribution: outlineReconciliationRemoteContribution, serviceKey: 'remote.novelOutlineReconciliation', label: 'outline reconciliation', bind: bindInto('outlineReconciliation') },
     { key: 'referenceAudit', contribution: referenceAuditRemoteContribution, serviceKey: 'remote.novelReferenceAudit', label: 'reference audit', bind: bindInto('referenceAudit') },
+    { key: 'referenceCorrection', contribution: referenceCorrectionRemoteContribution, serviceKey: 'remote.novelReferenceCorrection', label: 'reference correction', bind: bindInto('referenceCorrection') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

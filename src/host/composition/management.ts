@@ -13,6 +13,7 @@ import { createTextChangeImpactService } from '../text-change-impact-service.js'
 import { createOutlineReconciliationPlannerService } from '../outline-reconciliation-planner-service.js';
 import { createOutlineReconciliationService } from '../outline-reconciliation-service.js';
 import { createReferenceAuditService } from '../reference-audit-service.js';
+import { createReferenceCorrectionService } from '../reference-correction-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -26,6 +27,7 @@ import { queueInvocations } from '../remote/queue.js';
 import { textChangeImpactInvocations } from '../remote/text-change-impact.js';
 import { outlineReconciliationInvocations } from '../remote/outline-reconciliation.js';
 import { referenceAuditInvocations } from '../remote/reference-audit.js';
+import { referenceCorrectionInvocations } from '../remote/reference-correction.js';
 import { resolveGenerationSettings as validateGenerationSettings, type GenerationSettings } from '../../llm/port/index.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
@@ -312,6 +314,22 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
   ctx.provide('novelReferenceAudit', defineRemote('novelReferenceAudit', 'novelReferenceAudit', referenceAuditService, [
     { method: 'list', call: (projectId: string, input?: Parameters<typeof referenceAuditService.list>[1]) => referenceAuditService.list(projectId, input) },
   ], referenceAuditInvocations));
+  const referenceCorrectionService = createReferenceCorrectionService({
+    llm,
+    characters: characterService,
+    relationship: relationshipService,
+    knowledge: knowledgeService,
+    canon: canonService,
+    confirmation: confirmationService,
+    audit: referenceAuditService,
+    onDispose: onFiberDispose,
+  });
+  ctx.provide('novelReferenceCorrection', defineRemote('novelReferenceCorrection', 'novelReferenceCorrection', referenceCorrectionService, [
+    { method: 'propose', call: async (projectId: string, input: Parameters<typeof referenceCorrectionService.propose>[1], settings?: GenerationSettings) => referenceCorrectionService.propose(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'accept', call: (projectId: string, proposalId: string) => referenceCorrectionService.accept(projectId, proposalId) },
+    { method: 'reject', call: (projectId: string, proposalId: string) => referenceCorrectionService.reject(projectId, proposalId) },
+    { method: 'pending', call: (projectId: string) => referenceCorrectionService.pending(projectId) },
+  ], referenceCorrectionInvocations));
   // I113 planner + I114 application share one public namespace and one Host
   // owner key; only the five application methods can cross into writers.
   ctx.provide('novelOutlineReconciliation', defineRemote('novelOutlineReconciliation', 'novelOutlineReconciliation', { ...outlineReconciliationPlannerService, ...outlineReconciliationService }, [
@@ -336,5 +354,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     outlineReconciliationPlannerService,
     outlineReconciliationService,
     referenceAuditService,
+    referenceCorrectionService,
   };
 }

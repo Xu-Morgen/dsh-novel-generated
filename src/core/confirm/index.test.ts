@@ -1,6 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -9,7 +8,9 @@ import { ConfirmationGate } from './index.js';
 const execFileAsync = promisify(execFile);
 const roots: string[] = [];
 async function temporaryRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'novel-i11-'));
+  // Keep the fresh-process fixture off a WSL-mounted Windows temp path; the
+  // child tsx loader must be able to reopen the same file-backed Gate store.
+  const root = await mkdtemp(join('/tmp', 'novel-i11-'));
   roots.push(root);
   return root;
 }
@@ -20,14 +21,19 @@ const proposal = { id: 'canon-fix-1', kind: 'canon-correction', payload: { targe
 async function pendingFromFreshProcess(projectDirectory: string): Promise<unknown> {
   const moduleUrl = new URL('./index.ts', import.meta.url).href;
   const script = [
-    `import { ConfirmationGate } from ${JSON.stringify(moduleUrl)};`,
+    `const { ConfirmationGate } = await import(${JSON.stringify(moduleUrl)});`,
     'const gate = await ConfirmationGate.open(process.env.CONFIRMATION_PROJECT);',
-    'process.stdout.write(JSON.stringify(gate.pending()));',
+    `const { writeFile } = await import('node:fs/promises'); await writeFile(process.env.CONFIRMATION_RESULT, JSON.stringify(gate.pending()), 'utf8');`,
   ].join(' ');
-  const { stdout } = await execFileAsync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', script], {
-    env: { ...process.env, CONFIRMATION_PROJECT: projectDirectory },
+  const scriptPath = join(projectDirectory, 'fresh-pending.mjs');
+  const resultPath = join(projectDirectory, 'fresh-result.json');
+  await writeFile(scriptPath, script, 'utf8');
+  await execFileAsync(process.execPath, ['--import', 'tsx', scriptPath], {
+    // The repository may run from a WSL-mounted Windows workspace; force the
+    // child tsx loader's IPC/temp path to a writable native temp directory.
+    env: { ...process.env, CONFIRMATION_PROJECT: projectDirectory, CONFIRMATION_RESULT: resultPath, TMPDIR: '/tmp', TMP: '/tmp', TEMP: '/tmp', VITEST: undefined, VITEST_POOL_ID: undefined, VITEST_WORKER_ID: undefined, NODE_OPTIONS: undefined },
   });
-  return JSON.parse(stdout);
+  return JSON.parse(await readFile(resultPath, 'utf8'));
 }
 
 describe('I11 ConfirmationGate', () => {

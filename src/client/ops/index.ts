@@ -48,6 +48,6 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
     search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, chaptersRef),
     statistics: createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace }),
     timeline: createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace }),
-    referenceReview: createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace }),
+    referenceReview: createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace, referenceCorrectionNamespace: ports.referenceCorrectionNamespace }),
   };
 }

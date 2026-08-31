@@ -91,7 +91,7 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   review: ({ h, projectId, ns, states, ops }) => {
     const { reviewNamespace } = ns;
     const { review: reviewState, referenceReview: referenceReviewState } = states;
-    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review), referenceReviewPanel(h, projectId, ns.referenceAuditNamespace, referenceReviewState, ops.referenceReview));
+    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review), referenceReviewPanel(h, projectId, ns.referenceAuditNamespace, ns.referenceCorrectionNamespace, referenceReviewState, ops.referenceReview));
   },
   // I65：生成队列（写作组）—— 场景卡范围/配置 + 暂停/继续/取消 + 任务列表（R13-6）。
   queue: ({ h, projectId, ns, states, ops }) => {

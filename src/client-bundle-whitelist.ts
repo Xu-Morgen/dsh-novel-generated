@@ -40,6 +40,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/outline-reconciliation-application.ts',
   'src/core/schema/reference-audit.ts',
   'src/core/schema/reference-coordination.ts',
+  'src/core/schema/reference-correction.ts',
   'src/core/schema/upload.ts',
   'src/core/schema/workbench-settings.ts',
   'src/core/schema/worldview.ts',

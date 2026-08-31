@@ -59,6 +59,7 @@ export const CROSS_LAYER_REFERENCE_MATRIX: readonly ReferenceMatrixEntry[] = Obj
 export const referenceAuthorizationSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('candidate-accept'), candidateId: entityIdSchema, status: z.literal('accepted') }).strict(),
   z.object({ kind: z.literal('reparse-accept'), proposalId: entityIdSchema, status: z.literal('accepted') }).strict(),
+  z.object({ kind: z.literal('reference-correction'), proposalId: entityIdSchema, status: z.literal('accepted') }).strict(),
 ]);
 export type ReferenceAuthorization = z.infer<typeof referenceAuthorizationSchema>;
 

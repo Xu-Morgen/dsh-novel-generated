@@ -1,0 +1,28 @@
+{
+  "iteration": "I118",
+  "requirement": "R18-5d",
+  "samples": {
+    "corpus": "samples/i118/cases.json",
+    "dev": "samples/i118/dev.json",
+    "heldOut": 4,
+    "gold": "samples/i118/gold.json",
+    "threshold": 0.8,
+    "total": 12
+  },
+  "guarantees": [
+    "strict-semantic-correction-candidate",
+    "fake-backend-canonical-and-held-out-regression",
+    "candidate-preview-before-I11-decision",
+    "accepted-apply-through-cross-layer-coordinator",
+    "rejected-model-failed-cancelled-and-stale-zero-narrative-write",
+    "accepted-replay-is-idempotent-and-audited",
+    "unknown-IDs-and-illegal-model-output-fail-closed",
+    "real-remote-descriptor-and-result-contract-lock"
+  ],
+  "focusedSuites": "I118 parser/Host/UI plus I117 review regression passed",
+  "explicitNonGoals": [
+    "background-auto-correction",
+    "second-confirmation-mechanism",
+    "free-form-write-command"
+  ]
+}

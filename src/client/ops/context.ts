@@ -1,4 +1,4 @@
-import type { BranchNamespace, ImportExportNamespace, KnowledgeNamespace, ProgressNamespace, QueueNamespace, ReviewNamespace, RuleStyleNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, WorkspaceNamespace, WritingNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace } from '../shared.js';
+import type { BranchNamespace, ImportExportNamespace, KnowledgeNamespace, ProgressNamespace, QueueNamespace, ReviewNamespace, RuleStyleNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, WorkspaceNamespace, WritingNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace } from '../shared.js';
 import type { QueuePollHandle } from '../queue-poll.js';
 import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
 
@@ -49,4 +49,5 @@ export interface OpsPorts {
   textDeletion: TextDeletionNamespace | undefined;
   outlineReconciliation: OutlineReconciliationNamespace | undefined;
   referenceAuditNamespace: ReferenceAuditNamespace | undefined;
+  referenceCorrectionNamespace: ReferenceCorrectionNamespace | undefined;
 }

@@ -22,6 +22,7 @@ export type {
   OutlineGenerationBaselineNamespace,
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
+  ReferenceCorrectionNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 import type {
@@ -43,6 +44,7 @@ import type {
   RemoteResult,
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
+  ReferenceCorrectionNamespace,
 } from './remote-namespace.js';
 
 export type BundleRequire = (spec: string) => unknown;

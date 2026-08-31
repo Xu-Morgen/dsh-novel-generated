@@ -39,6 +39,16 @@ export interface MountOptionsI117 {
   referenceAudit?: { list?: (projectId: string, input?: unknown) => Promise<unknown> };
 }
 
+/** I118 candidate preview + I11 Gate application injection. */
+export interface MountOptionsI118 {
+  referenceCorrection?: {
+    propose?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    accept?: (projectId: string, proposalId: string) => Promise<unknown>;
+    reject?: (projectId: string, proposalId: string) => Promise<unknown>;
+    pending?: (projectId: string) => Promise<unknown>;
+  };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
@@ -48,6 +58,7 @@ export interface MountOptions {
   sceneReparsePreview?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
   outlineReconciliation?: MountOptionsI114['outlineReconciliation'];
   referenceAudit?: MountOptionsI117['referenceAudit'];
+  referenceCorrection?: MountOptionsI118['referenceCorrection'];
 }
 
 export interface WorkspaceOverrides {

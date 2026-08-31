@@ -1,0 +1,13 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "c1-status",
+    "c1-affinity",
+    "c1-known-to",
+    "c3-holder",
+    "c3-status",
+    "c4-append",
+    "mixed-c1-c3",
+    "mixed-c1-c4"
+  ]
+}

@@ -212,6 +212,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           textDeletion: serviceBag.textDeletion,
           outlineReconciliation: serviceBag.outlineReconciliation,
           referenceAuditNamespace: serviceBag.referenceAudit,
+          referenceCorrectionNamespace: serviceBag.referenceCorrection,
         },
       );
 
@@ -281,6 +282,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               textDeletion: serviceBag.textDeletion,
               outlineReconciliation: serviceBag.outlineReconciliation,
               referenceAuditNamespace: serviceBag.referenceAudit,
+              referenceCorrectionNamespace: serviceBag.referenceCorrection,
               onboardingNamespace: serviceBag.onboarding,
             },
             ui,

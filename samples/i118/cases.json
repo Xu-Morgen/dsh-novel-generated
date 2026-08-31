@@ -1,0 +1,100 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": [
+    "c1-status",
+    "c1-affinity",
+    "c1-known-to",
+    "c3-holder",
+    "c3-status",
+    "c4-append",
+    "mixed-c1-c3",
+    "mixed-c1-c4"
+  ],
+  "heldOutCaseIds": [
+    "heldout-c1-type",
+    "heldout-c3-holder",
+    "heldout-c3-status",
+    "heldout-c4-append"
+  ],
+  "cases": [
+    {
+      "id": "c1-status",
+      "instruction": "把米拉和林恩的关系改为紧张。",
+      "markedTargets": [{ "recordId": "audit-c1-status", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "status", "action": "set", "value": "紧张" }] }
+    },
+    {
+      "id": "c1-affinity",
+      "instruction": "将这段关系的亲密度降到 -20，其他关系字段不要动。",
+      "markedTargets": [{ "recordId": "audit-c1-affinity", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "affinity", "action": "set", "value": -20 }] }
+    },
+    {
+      "id": "c1-known-to",
+      "instruction": "让林恩知道这段关系。",
+      "markedTargets": [{ "recordId": "audit-c1-known-to", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" }],
+      "expected": { "confidence": "medium", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "knownTo", "action": "add", "value": "char-lynn" }] }
+    },
+    {
+      "id": "c3-holder",
+      "instruction": "把秘密交给林恩，让他成为这个秘密的知情者。",
+      "markedTargets": [{ "recordId": "audit-c3-holder", "owner": "c3", "entityId": "secret-map", "field": "knowledge-entry" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c3", "entityId": "secret-map", "field": "holders", "action": "add", "value": "char-lynn" }] }
+    },
+    {
+      "id": "c3-status",
+      "instruction": "这个秘密现在应该从隐藏推进为部分揭示。",
+      "markedTargets": [{ "recordId": "audit-c3-status", "owner": "c3", "entityId": "secret-map", "field": "knowledge-entry" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c3", "entityId": "secret-map", "field": "status", "action": "set", "value": "partially-revealed" }] }
+    },
+    {
+      "id": "c4-append",
+      "instruction": "补记一个事实：米拉在北港发现了旧地图。",
+      "markedTargets": [{ "recordId": "audit-c4-append", "owner": "c4", "entityId": "event-map-found", "field": "canon-event" }],
+      "expected": { "confidence": "medium", "operations": [{ "owner": "c4", "entityId": "event-map-found", "field": "canon.append", "action": "append", "value": { "id": "event-map-found", "storyTime": "chapter-2", "kind": "event", "summary": "米拉在北港发现旧地图", "detail": "米拉在北港发现了一张旧地图。", "participants": ["char-mira"], "location": "north-port", "consequences": ["secret-map"], "affectedLayers": ["c3"] } }] }
+    },
+    {
+      "id": "mixed-c1-c3",
+      "instruction": "关系改为冷淡，同时让林恩知道秘密。",
+      "markedTargets": [
+        { "recordId": "audit-mixed-rel", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" },
+        { "recordId": "audit-mixed-knowledge", "owner": "c3", "entityId": "secret-map", "field": "knowledge-entry" }
+      ],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "status", "action": "set", "value": "冷淡" }, { "owner": "c3", "entityId": "secret-map", "field": "holders", "action": "add", "value": "char-lynn" }] }
+    },
+    {
+      "id": "mixed-c1-c4",
+      "instruction": "把关系信任度改为 35，并记录米拉打开了北门。",
+      "markedTargets": [
+        { "recordId": "audit-mixed-trust", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" },
+        { "recordId": "audit-mixed-event", "owner": "c4", "entityId": "event-gate-opened", "field": "canon-event" }
+      ],
+      "expected": { "confidence": "medium", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "trust", "action": "set", "value": 35 }, { "owner": "c4", "entityId": "event-gate-opened", "field": "canon.append", "action": "append", "value": { "id": "event-gate-opened", "storyTime": "chapter-2", "kind": "event", "summary": "米拉打开北门", "detail": "米拉打开了北门。", "participants": ["char-mira"], "location": "north-gate", "consequences": [], "affectedLayers": ["c1"] } }] }
+    },
+    {
+      "id": "heldout-c1-type",
+      "instruction": "把这段关系类型改为 rivalry。",
+      "markedTargets": [{ "recordId": "audit-heldout-type", "owner": "c1", "entityId": "rel-mira-lynn", "field": "relationship" }],
+      "expected": { "confidence": "medium", "operations": [{ "owner": "c1", "entityId": "rel-mira-lynn", "field": "type", "action": "set", "value": "rivalry" }] }
+    },
+    {
+      "id": "heldout-c3-holder",
+      "instruction": "让米拉知道这个秘密。",
+      "markedTargets": [{ "recordId": "audit-heldout-holder", "owner": "c3", "entityId": "secret-map", "field": "knowledge-entry" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c3", "entityId": "secret-map", "field": "holders", "action": "add", "value": "char-mira" }] }
+    },
+    {
+      "id": "heldout-c3-status",
+      "instruction": "将秘密状态推进到 revealed。",
+      "markedTargets": [{ "recordId": "audit-heldout-status", "owner": "c3", "entityId": "secret-map", "field": "knowledge-entry" }],
+      "expected": { "confidence": "high", "operations": [{ "owner": "c3", "entityId": "secret-map", "field": "status", "action": "set", "value": "revealed" }] }
+    },
+    {
+      "id": "heldout-c4-append",
+      "instruction": "补记林恩在钟楼做出决定。",
+      "markedTargets": [{ "recordId": "audit-heldout-event", "owner": "c4", "entityId": "event-lynn-decision", "field": "canon-event" }],
+      "expected": { "confidence": "medium", "operations": [{ "owner": "c4", "entityId": "event-lynn-decision", "field": "canon.append", "action": "append", "value": { "id": "event-lynn-decision", "storyTime": "chapter-3", "kind": "decision", "summary": "林恩在钟楼做出决定", "detail": "林恩在钟楼做出了决定。", "participants": ["char-lynn"], "location": "clock-tower", "consequences": [], "affectedLayers": ["timeline"] } }] }
+    }
+  ]
+}
