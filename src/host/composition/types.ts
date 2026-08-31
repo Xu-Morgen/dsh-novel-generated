@@ -12,6 +12,7 @@ import type { NovelConfirmationService } from '../confirmation-service.js';
 import type { NovelProjectService } from '../project-service.js';
 import type { NovelTextServiceBundle } from '../text-service.js';
 import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
+import type { NovelOutlineGenerationBaselineService } from '../outline-generation-baseline-service.js';
 import type { NovelRuleService } from '../rule-service.js';
 import type { NovelStyleService } from '../style-service.js';
 import type { NovelKnowledgeService } from '../knowledge-service.js';
@@ -76,6 +77,7 @@ export interface BaseServices {
   projectService: NovelProjectService;
   textService: NovelTextServiceBundle;
   sceneOutlineBindingService: NovelSceneOutlineBindingService;
+  outlineGenerationBaselineService: NovelOutlineGenerationBaselineService;
   ruleService: NovelRuleService;
   styleService: NovelStyleService;
   knowledgeService: NovelKnowledgeService;

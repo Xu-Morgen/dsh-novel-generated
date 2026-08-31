@@ -19,6 +19,7 @@ export type {
   TimelineNamespace,
   TextMutationNamespace,
   TextDeletionNamespace,
+  OutlineGenerationBaselineNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 import type {

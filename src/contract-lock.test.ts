@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { checkRemoteContractLock, checkShapeLock } from './contract-lock.js';
-import { hostContribution } from './remote.js';
+import { hostContribution } from './host/remote/host-contribution.js';
 import { branchInvocations } from './host/remote/branch.js';
 import { writingInvocations, writingProposeAtInvocation } from './host/remote/writing.js';
 import { reviewInvocations } from './host/remote/review.js';
@@ -16,6 +16,7 @@ import {
   sceneOutlineBindingReadInvocation,
 } from './host/remote/scene-outline-binding.js';
 import { textDeletionInvocations } from './host/remote/text-deletion.js';
+import { outlineGenerationBaselineInvocations } from './host/remote/outline-generation-baseline.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -45,12 +46,14 @@ const i105DescriptorIds = new Set([
   queueStartAtInvocation.id,
   ...textDeletionInvocations.map((descriptor) => descriptor.id),
 ]);
+const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
   ...textDeletionInvocations,
+  ...outlineGenerationBaselineInvocations,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
@@ -63,6 +66,7 @@ const stage18ResultDescriptors = [
   writingProposeAtInvocation,
   queueStartAtInvocation,
   ...textDeletionInvocations,
+  ...outlineGenerationBaselineInvocations,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -131,19 +135,22 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
   });
 
-  it('锁定全部 Host invocation descriptor，I106 在 I105 后追加 4 methods / 4 unique result entries', () => {
+  it('锁定全部 Host invocation descriptor，I108 在既有基线后追加 4 methods / 4 result entries', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(126);
-    expect(remoteLock.resultSchemaIds).toHaveLength(32);
-    expect(remoteLock.descriptorIds.slice(-11, -4)).toEqual([
+    expect(remoteLock.descriptorIds).toHaveLength(130);
+    expect(remoteLock.resultSchemaIds).toHaveLength(36);
+    expect(remoteLock.descriptorIds.slice(-15, -8)).toEqual([
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
       queueStartAtInvocation.id,
     ]);
-    expect(remoteLock.resultSchemaIds.slice(-4)).toEqual([
+    expect(remoteLock.descriptorIds.slice(-8, -4)).toEqual([
       ...textDeletionInvocations.map((descriptor) => descriptor.id),
     ]);
+    expect(remoteLock.descriptorIds.slice(-4)).toEqual(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
+    expect(remoteLock.resultSchemaIds.slice(-8, -4)).toEqual(textDeletionInvocations.map((descriptor) => descriptor.id));
+    expect(remoteLock.resultSchemaIds.slice(-4)).toEqual(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);
   });
 

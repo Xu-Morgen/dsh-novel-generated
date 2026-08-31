@@ -1,0 +1,54 @@
+{
+  "iteration": "I108",
+  "requirement": "R18-11a",
+  "remoteMethods": {
+    "novelOutlineGenerationBaseline": [
+      "create",
+      "read",
+      "current",
+      "attachGenerated"
+    ]
+  },
+  "eventKinds": [
+    "create",
+    "attach-generated",
+    "finalize",
+    "supersede"
+  ],
+  "ownerEvidence": [
+    "project/chapter/scene/detailBeat",
+    "b5ContentFingerprint",
+    "bindingFingerprint",
+    "sceneCard",
+    "authoringBaseHash"
+  ],
+  "guarantees": [
+    "restart-replay",
+    "idempotent-create",
+    "idempotent-attach",
+    "bounded-authoring-evidence",
+    "live-freshness",
+    "stale-without-write",
+    "target-and-binding-fail-closed",
+    "fake-candidate-consumer",
+    "real-dsh-binder"
+  ],
+  "contractLock": {
+    "descriptorCount": 130,
+    "resultSchemaCount": 36,
+    "preservedPrefix": {
+      "descriptorCount": 126,
+      "resultSchemaCount": 32,
+      "descriptorBodiesSha256": "6be170c2773f0f6f702da052db29189d5692a635d2bbcca6a1af579eb91ac8f2",
+      "resultBodiesSha256": "873089fc753fcadee859b0addd9f60f0728749e7cda7006086623db2d0f93777"
+    }
+  },
+  "explicitNonGoals": [
+    "B5/C5-writeback",
+    "portable-layer-export",
+    "body-diff-analysis",
+    "outline-version-tree",
+    "author-edit-lock"
+  ],
+  "focusedSuites": "passed"
+}

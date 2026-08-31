@@ -36,6 +36,7 @@ import type {
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from '../remote.js';
+import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 
 /** I86 实证的 DSH RemoteResult 信封合同（review v2.0 §3.1；client 消费经 `unwrap` 解包）。 */
 export type RemoteResult<R> =
@@ -93,3 +94,5 @@ export type TimelineNamespace = NamespaceOf<typeof timelineRemoteContribution>;
 export type TextMutationNamespace = NamespaceOf<typeof textMutationRemoteContribution>;
 /** I106 controlled deletion contract; only the chapters management surface consumes it. */
 export type TextDeletionNamespace = NamespaceOf<typeof textDeletionRemoteContribution>;
+/** I108 immutable generation-intent evidence consumed by later candidate flows. */
+export type OutlineGenerationBaselineNamespace = NamespaceOf<typeof outlineGenerationBaselineRemoteContribution>;

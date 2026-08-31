@@ -6,7 +6,8 @@ import { createBranchService, type NovelBranchService } from '../branch-service.
 import { createSearchService } from '../search-service.js';
 import { createStatisticsService, type StatisticsSceneCardFilter, type StatisticsTaskFilter, type NovelStatisticsService } from '../statistics-service.js';
 import { createNovelAgentService, registerNovelAgentTools } from '../../agents/agent-tools.js';
-import { NOVEL_WORKSPACE_NAMESPACE, hostContribution, createWorkspaceEditorService } from '../../remote.js';
+import { NOVEL_WORKSPACE_NAMESPACE, createWorkspaceEditorService } from '../../remote.js';
+import { hostContribution } from '../remote/host-contribution.js';
 import type { KnowledgeChangeInput } from '../../core/knowledge/actions.js';
 import type { RuleInput, RulePatch } from '../../core/schema/rules.js';
 import type { StyleProfileInput } from '../../core/schema/style.js';

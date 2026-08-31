@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
 import { remoteDescriptorLockBodies, remoteResultShapeBodies, shapeLockBody } from '../src/contract-lock.js';
-import { hostContribution } from '../src/remote.js';
+import { hostContribution } from '../src/host/remote/host-contribution.js';
 import { branchInvocations } from '../src/host/remote/branch.js';
 import { writingInvocations, writingProposeAtInvocation } from '../src/host/remote/writing.js';
 import { reviewInvocations } from '../src/host/remote/review.js';
@@ -26,6 +26,7 @@ import {
   sceneOutlineBindingReadInvocation,
 } from '../src/host/remote/scene-outline-binding.js';
 import { textDeletionInvocations } from '../src/host/remote/text-deletion.js';
+import { outlineGenerationBaselineInvocations } from '../src/host/remote/outline-generation-baseline.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -127,12 +128,14 @@ for (const lock of EXISTING_LOCKS) {
     queueStartAtInvocation.id,
     ...textDeletionInvocations.map((descriptor) => descriptor.id),
   ]);
+  const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
     ...textDeletionInvocations,
+    ...outlineGenerationBaselineInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -145,6 +148,7 @@ for (const lock of EXISTING_LOCKS) {
     writingProposeAtInvocation,
     queueStartAtInvocation,
     ...textDeletionInvocations,
+    ...outlineGenerationBaselineInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);
