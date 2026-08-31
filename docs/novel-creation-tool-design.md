@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v2.7
-> 状态：v2.7 当前设计权威；**I1–I102 全部完成**，Stage 18（I103–I128）已按合同地基与功能依赖正式立项；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v2.9
+> 状态：v2.9 当前设计权威；**I1–I105 全部完成**，当前执行 I106；Stage 18（I103–I140）已按合同地基、作者主流程与功能依赖正式立项；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -20,9 +20,11 @@
 | **v2.3（2026-08-27）** | 依据 `docs/novel-creation-tool-architecture-review.md`（v1.0）§9 新增 **Stage 15 架构债务消除（I75–I84）**：共享 Remote 接线层、llm 解析/检测公共基座、契约单一来源、两个 god service 拆分、client.ts 拆分、core 高优先文件拆分与低优先级债务清零；记录 D21–D22。重构只消除复制与接线债务，不改变任何领域契约与公开 Remote/wire 形状。§0.1 宿主基线不变。 |
 | **v2.4（2026-08-28）** | 同步 I1–I84 已完成事实与当前 DSH `0.1.1-rc.2` 运行时观测；新增 **Stage 16 / I85 DSH family 兼容升级**，由专门迭代把项目 pin、selected profile 与 lockfile 从 `0.1.0-rc.7` 切换到 `0.1.1-rc.2`，并补齐真实 base+web+plugin、Client ModuleLoader、Slot、Typert Remote、Tools 与 `ctx.llm` 兼容门；记录 D23。I85 完成前，运行时观测版本不得冒充可复现项目依赖基线。 |
 | **v2.7（2026-08-29）** | 同步 **Stage 17 / I86–I102 已完成**的代码与 Git 事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128** 的 26 个合同地基与垂直切片。记录 D24：既有 Remote invocation 向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 验证的 additive 合同；记录 D25：Stage 18 的持久化、候选、链接、审校、润色与导入边界按 §14.14 冻结。旧 I103–I112 十张大卡与“Stage 18 先于 Stage 17”声明被本版取代。§0.1 宿主基线与既有 13 层叙事模型不变。 |
-| **v2.7 范围修订（2026-08-31）** | 按本地单用户运行边界收缩 I106 与 I118：删除 I106 durable deletion saga/journal/audit/reservation/recovery barrier，改为现有 project write lane 内实时幂等的 binding→C5 删除；I118 退回 Client 会话级逐场景编排，不持久化章节批次。新增横切裁决：多叙事真相层写回必须同一 Host 请求内实时且幂等，派生 mirror/index 继续复用既有 outbox/可重建合同。 |
+| **v2.7 范围修订（2026-08-31）** | 按本地单用户运行边界收缩 I106 与当时编号 I118（v2.8 现 I122）：删除 I106 durable deletion saga/journal/audit/reservation/recovery barrier，改为现有 project write lane 内实时幂等的 binding→C5 删除；章节润色编排退回 Client 会话级逐场景状态，不持久化章节批次。新增横切裁决：多叙事真相层写回必须同一 Host 请求内实时且幂等，派生 mirror/index 继续复用既有 outbox/可重建合同。 |
+| **v2.8（2026-08-31）** | 同步 I103–I105 已完成事实；核查确认现有 C5 分支、C2 快照、B2 版本、B5 `version` 字段与会话级 parser baseline 均不构成可复用的“细纲生成版本化基线”，现有受控写回也明确不自动写 B5。新增 **R18-11 正文变更影响分析与后续细纲调和**，以 I108 建立不可变生成基线，以 I112–I114 交付变更分类、下游影响、调和候选和确认式应用；原 I108–I128 依赖顺延并重编号，Stage 18 扩展为 I103–I132 共 30 个迭代。§0.1 宿主基线与既有 13 层叙事模型不变。 |
+| **v2.9（2026-08-31）** | 将 README 的 12 步作者工作流提升为唯一主要产品、交付和端到端验收流程。新增 R18-12–R18-15 与 I133–I140：按幕/章/全书生成细纲、候选接受为可编辑草稿、最终正文的一次确认式统一定稿、全书完成与一致性门、带目录的单一 TXT/Markdown、作者优先流程壳和产品级 E2E。既有能力按“主流程 / 进阶工具 / 内部诊断”重新裁决暴露边界；§0.1、13 层真相和旧 Remote invocation 保持不变。 |
 
-> **v2.7 supersession / 同步状态**：`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v2.7 为当前执行材料；I1–I102 已完成，当前待执行为 Stage 18 I103–I128。README 仍描述已交付产品与安装方法，不作为后续迭代完成证据。历史 v1.x 文本和旧 I103–I112 大卡只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
+> **v2.9 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v2.9 为当前目标和执行材料；I1–I105 已完成，当前执行 I106，Stage 18 完整范围为 I103–I140。README 的 12 步描述是最终产品目标，不等于尚未执行迭代已经交付。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1077,9 +1079,9 @@ project/
 
 ---
 
-### 14.14 Stage 18 新增功能与合同地基（I103–I128，v2.7）
+### 14.14 Stage 18 新增功能与合同地基（I103–I140，v2.9）
 
-> 定位：Stage 17 / I86–I102 已完成并成为真实代码基线；R18 十项产品需求是 epic，不再与十个实现迭代一一绑定。v2.7 将其拆为 I103–I128，按合同地基→领域 owner→Host/Remote→Client 消费者的依赖顺序执行。Stage 18 保持 §0.1 宿主基线和既有 13 层叙事模型，不建立独立应用、第二文件 owner 或第二裁决器。
+> 定位：Stage 17 / I86–I102 与 Stage 18 / I103–I105 已完成并成为真实代码基线；R18 十五项产品需求是 epic，不与实现迭代一一绑定。v2.9 将 Stage 18 扩展为 I103–I140，按合同地基→领域 owner→Host/Remote→Client 消费者→完整作者流程验收的依赖顺序执行。Stage 18 保持 §0.1 宿主基线和既有 13 层叙事模型，不建立独立应用、第二文件 owner 或第二裁决器。
 >
 > **本地运行与同步边界**：Stage 18 只支持本地单用户、单 Host 进程，不为跨进程竞争、分布式事务或任意崩溃点恢复新增全局协调设施。涉及多个叙事真相层的授权写入必须在同一 Host 请求中同步执行，并以稳定 proposal/candidate/operation ID 幂等；任一层失败时由既有 UoW 返回失败，不创建后台叙事层补写器。派生索引和 Markdown 镜像继续复用既有可重建/outbox 语义。
 
@@ -1093,19 +1095,32 @@ project/
 #### 14.14.2 D25：Stage 18 owner 与行为裁决
 
 - **R18-1 场景/章节管理（I104–I106）**：C5 真相仍由 `TextRepository` 持有；章节/场景 CRUD、元数据与项目级排序在 C5 owner 内串行、预检并提交。ID 永久不变，“重命名”只修改作者元数据。非空章节/场景硬删除先展示绑定/候选/任务/分支影响并经 I11；活动任务/候选或 fingerprint 变化时拒绝，未确认零写，不建立垃圾箱。apply 只在本地 project write lane 内最终复验，使用 proposalId 幂等地先清理绑定、再删除 C5；成功响应前两项必须完成，重复 apply 返回 already-deleted。删除不新增持久 saga、删除 audit、reservation、全局 recovery barrier 或特殊启动恢复路径；失败后由用户重试同一 proposal，最坏安全状态是绑定已解除而正文仍在。既有历史记录不修改，读取时依据目标是否存在投影 stale。Markdown 镜像复用 I104 outbox。场景↔细纲卡仍由独立 Host `SceneOutlineBinding` 项目文档拥有；不改 C5/B5 Schema。候选落点显式携带 chapterId/sceneId，退役生产路径的 `chapter-1` 业务硬编码。
-- **R18-2 生成变更逐层预览（I108–I110）**：writing-adjudication 内新增会话级 `StructuralPreviewPlan`，冻结 C1/C2/C3/C4/B2 parser outputs、源正文 hash 与各层基线；accept 只能重放同一 plan，任一基线变化即 stale/零写。plan 不持久化，Host 重启后必须重新预览；它是候选运行态，不是第 14 层。
-- **R18-3 审校→定位→修复（I124–I125）**：文本锚点采用 UTF-16 半开区间、quote 与 sourceHash；正文变化后旧锚点 stale 并要求重扫，不猜测偏移。修复复用 rewrite candidate 与既有硬冲突裁决。`resolved` 不落 Host 账本：接受后复扫确认问题消失，Client 在当前会话保留 resolved 卡与证据；完整重扫、重开或重启后该卡消失。
-- **R18-4 单章三种润色（I118–I119）**：Client 仅在当前会话按 scene.index 逐个调用既有 rewrite candidate；每个场景使用独立 sourceHash，语言润色、压缩精简、扩写细节共用参数化 pipeline。章节级进度不持久化，不新增 batch journal、pause/resume/cancel 状态机或恢复 coordinator；刷新/重启后作者可重新发起，已接受场景保持。单场景接受继续复用既有 validation→preview→landing，并在同一 Host 请求内实时、幂等完成获授权的多层写回；不承诺整章原子落地，不引入全书批处理。
-- **R18-5 自动引用联动（I111–I114）**：先冻结“可确定性派生镜像 / 作者语义引用 / 禁止自动修改”的维护矩阵。确定性引用在 candidate/reparse 已获授权后、landing UoW commit 前参与同一受控事务，禁止 post-commit 第二写入器；需要 LLM 推断的作者语义只形成修正候选，经 I11 ConfirmationGate 接受后写回，禁止后台静默 LLM 写层。operational audit/outbox 只记录机制状态，不成为叙事层；新 owner 验证后 delete-first 退役旧 `listField` 手填 ID 主路径，不保留双 owner fallback。
-- **R18-6 长稿→大纲与逐章循环（I115–I117）**：长稿拆纲分析和初始化仅允许新建/空作品，Host 在调用 LLM 前完成 readiness preflight，继续遵守 N-7 非空项目 fail closed；拆纲只形成 outline candidate，先样本/held-out、后 prompt/schema、再经 I11 落地。逐章循环适用于所有项目：下一章上下文必须按 chapter.index/scene.index 选择已保存的作者修订正文与当前细纲，禁止文件名顺序、旧草稿或 caller 自建 context fallback。
-- **R18-7 作者术语（I128）**：在全部 Stage 18 UI 完成后统一扫描作者可见正文、aria/title、错误与空态；技术合同名、wire 字段和 `data-novel-*` 锚点保持不变。动态 Host 错误经单一 presentation mapper 映射，技术徽标只在高级视图显示。
-- **R18-8 上下文链接（I120–I123）**：链接由 core `EntityLink/TextAnchor` 合同、Host resolver/可重建派生索引和 Client router/back-stack 共同实现；不进入 C5、Markdown、txt 或可移植归档。sourceHash 不符即 stale；外部编辑回传后按纯正文重新分析重建，不假设 Markdown 携带链接。支持角色、关系、知情、审校、时间线、搜索和场景卡的稳定来源/目标导航，返回恢复来源视图、选择、筛选、模式与焦点。
+- **R18-2 生成变更逐层预览（I109–I111、I135）**：writing-adjudication 内新增会话级 `StructuralPreviewPlan`，冻结 C1/C2/C3/C4/B2 parser outputs、源正文 hash、适用时的 I108 细纲生成基线引用与各层基线；兼容的 candidate 结构化 accept/reparse 只能重放同一 plan。I135 起普通作者主路径先 adopt 为 C5 草稿，作者最终正文再复用同一纯预览组件并汇入 `FinalizationPlan`。按细纲卡生成必须有 baseline，历史未绑定正文的 rewrite/reparse 可显式投影 `no-outline-baseline`，但不得进入 R18-11 的 B5 调和。任一适用基线变化即 stale/零写；plan 不持久化，Host 重启后必须重新预览，它是候选运行态而不是第 14 层。
+- **R18-3 审校→定位→修复（I128–I129）**：文本锚点采用 UTF-16 半开区间、quote 与 sourceHash；正文变化后旧锚点 stale 并要求重扫，不猜测偏移。修复复用 rewrite candidate 与既有硬冲突裁决。`resolved` 不落 Host 账本：接受后复扫确认问题消失，Client 在当前会话保留 resolved 卡与证据；完整重扫、重开或重启后该卡消失。
+- **R18-4 单章三种润色（I122–I123）**：Client 仅在当前会话按 scene.index 逐个调用既有 rewrite candidate；每个场景使用独立 sourceHash，语言润色、压缩精简、扩写细节共用参数化 pipeline。章节级进度不持久化，不新增 batch journal、pause/resume/cancel 状态机或恢复 coordinator；刷新/重启后作者可重新发起，已接受场景保持。单场景接受继续复用既有 validation→preview→landing，并在同一 Host 请求内实时、幂等完成获授权的多层写回；不承诺整章原子落地，不引入全书批处理。
+- **R18-5 自动引用联动（I115–I118）**：先冻结“可确定性派生镜像 / 作者语义引用 / 禁止自动修改”的维护矩阵。确定性引用在 candidate/reparse 已获授权后、landing UoW commit 前参与同一受控事务，禁止 post-commit 第二写入器；需要 LLM 推断的作者语义只形成修正候选，经 I11 ConfirmationGate 接受后写回，禁止后台静默 LLM 写层。operational audit/outbox 只记录机制状态，不成为叙事层；新 owner 验证后 delete-first 退役旧 `listField` 手填 ID 主路径，不保留双 owner fallback。
+- **R18-6 长稿→大纲与逐章循环（I119–I121）**：长稿拆纲分析和初始化仅允许新建/空作品，Host 在调用 LLM 前完成 readiness preflight，继续遵守 N-7 非空项目 fail closed；拆纲只形成 outline candidate，先样本/held-out、后 prompt/schema、再经 I11 落地。逐章循环适用于所有项目：下一章上下文必须按 chapter.index/scene.index 选择已保存的作者修订正文与 I108 当前有效细纲基线，禁止文件名顺序、旧草稿、已失效基线或 caller 自建 context fallback。
+- **R18-7 作者术语（I132、I140）**：I132 先扫描当时已存在的 Stage 18 作者可见正文、aria/title、错误与空态；I140 在最终流程 UI 完成后再做一次全量终检。技术合同名、wire 字段和 `data-novel-*` 锚点保持不变。动态 Host 错误经单一 presentation mapper 映射，技术徽标只在高级视图显示。
+- **R18-8 上下文链接（I124–I127）**：链接由 core `EntityLink/TextAnchor` 合同、Host resolver/可重建派生索引和 Client router/back-stack 共同实现；不进入 C5、Markdown、txt 或可移植归档。sourceHash 不符即 stale；外部编辑回传后按纯正文重新分析重建，不假设 Markdown 携带链接。支持角色、关系、知情、审校、时间线、搜索和场景卡的稳定来源/目标导航，返回恢复来源视图、选择、筛选、模式与焦点。
 - **R18-9 操作模式（I107）**：`ChaptersLayerState.mode` 是唯一 mode owner，取值 writing/candidate/versions/materials；不新增顶层 Workbench view。切场景时候选必须按 target 绑定或清理，隐藏面板不得继续请求或重复注册。
-- **R18-10 版本聚合（I126–I127）**：`TextRepository` 与 `scene.branches` 继续是真相，`NovelBranchService` 只提供有界聚合投影；Host 一次读取并按 chapter.index/scene.index 排序，Client 不做 N+1 聚合。聚合树先 diff 后显式调用新 additive `chooseFresh(..., sourceHash)`，不新增 ConfirmationGate；既有四参数 `choose` invocation 保持不变，`chooseFresh` 拒绝并发陈旧切换。旧场景分支面板保持局部消费者，不成为第二版本 owner。
+- **R18-10 版本聚合（I130–I131）**：`TextRepository` 与 `scene.branches` 继续是真相，`NovelBranchService` 只提供有界聚合投影；Host 一次读取并按 chapter.index/scene.index 排序，Client 不做 N+1 聚合。聚合树先 diff 后显式调用新 additive `chooseFresh(..., sourceHash)`，不新增 ConfirmationGate；既有四参数 `choose` invocation 保持不变，`chooseFresh` 拒绝并发陈旧切换。旧场景分支面板保持局部消费者，不成为第二版本 owner。
+- **R18-11 正文变更影响分析与后续细纲调和（I108、I112–I114）**：`OutlineGenerationBaseline` 是绑定 project/chapter/scene/detailBeat、B5 fingerprint 与冻结场景卡的不可变生成意图快照；B5 `outline.yaml` 仍是唯一当前细纲真相，baseline 不提供第二编辑面、不自动覆盖 B5，B5 或绑定变化只会使旧 baseline stale。作者最终保存正文后，Host 以生成前正文/基线与当前正文形成有界 delta，先确定性排除纯格式噪声，再由 LLM 将其分类为 `wording-only`、`story-fact` 或 `plot-direction` 并给出原文证据；仅后两类可产生未来 detailBeat 影响候选。调和计划逐卡提供 keep、AI replacement、manual replacement 或 pending，禁止修改已完成/当前场景、稳定 ID、幕/节顺序和未授权卡；任何语义调整必须预览并经 I11 后在同一 Host 请求内以 B5 freshness 原子应用。普通保存和 wording-only 不得调整未来 B5 语义；显式“定稿并继续”只允许确定性完成当前绑定卡/C6 进度并创建下一场景的新 baseline，不自动接受下一段正文。
+- **R18-12 范围细纲生成（I133–I134）**：Host `OutlineGenerationScope` 统一表达 act/outline-beat/bound-chapter/all；创作 C5 章节前可选择 B5 中承担章节规划职责的 beat，已有 C5 时 chapter 只能经 `SceneOutlineBinding` 解析为 B5 范围，Client 不复制映射。生成默认只补齐缺失 detailBeat；显式重生成必须保留稳定 ID/顺序并逐卡预览。LLM 只返回范围内候选，作者可编辑、重生成、跳过或交由唯一 I11 proposal 应用；范围外与未授权已有卡不可写。
+- **R18-13 统一定稿（I135–I136）**：新增“接受为草稿”主路径，只把候选逐字落到 C5 供作者修改，不运行五层 parser、作者语义引用联动、B5 调和或 C6 推进；C5 已有的 Markdown 镜像、搜索索引和统计等可重建派生物仍随保存自动维护，不进入确认。既有 candidate `accept` Remote 保持兼容，但从主 UI 退为旧/进阶路径。作者最终保存后，Host 以当前 C5、I108 baseline 和各层 freshness 形成单一 `FinalizationPlan`，聚合 I109–I118 的五层变化/作者语义引用变化、I112–I114 的细纲调和及完成/前进动作。I136 由一个外层 I11 proposal 和一个 Host UoW 应用整份计划；子组件消费已授权计划，不再弹出嵌套确认。
+- **R18-14 全书完成与发布（I137–I138）**：`BookCompletionService` 以 B5/C6/binding/C5 和未决提案为真相判断是否完成，复用既有 detector 对全书有界分片并汇总跨章问题；硬阻断、缺正文、未完成卡或待定调和关闭发布门。`ManuscriptCompiler` 只消费通过门禁的 chosen C5，按 chapter.index/scene.index 编译一份带章节目录的 TXT 和一份 Markdown；不混入设定 sidecar、内部链接、旧分支或技术 ID，不新增 DOCX。
+- **R18-15 作者主流程与产品 E2E（I139–I140）**：新增稳定 `workflow` 视图作为默认入口，以“导入、大纲、细纲、生成基线、正文、定稿同步、全书检查、导出”八个作者阶段承载 README 12 步；同一业务动作只有一个主流程 owner。既有十九项能力不删除，分流到故事资料、进阶工具和设置；内部层编号、fingerprint、索引维护、Gate/UoW 和裸错误不进入普通路径。I140 使用固定 fake LLM 从导入跑到双格式合稿，并覆盖拒绝、stale、失败回滚、重启恢复、POV 过滤和发布门。
 
 #### 14.14.3 产品方向与非目标
 
-产品主路径保持：导入或建立大纲 → AI 推导细纲 → 生成首版正文 → 作者微调保存 → 后续章节消费细纲与修订正文 → Markdown/txt 发布。笔记素材库（N-10）、继续写作首页（N-11）、富文本/专注编辑器（N-12）、DOCX 编译（N-13）、P2 系列（N-14）、非空作品合并导入（N-7）、正文内嵌链接和全书快照/修订线均不进入 Stage 18。
+唯一产品主路径按 README 的 12 步执行：导入思路/梗概/长稿 → AI 大纲候选并由作者确认 → 按幕/章/全书生成细纲 → 作者修改并建立近期场景生成基线 → 每卡生成一份正文候选 → 接受为草稿/重写/手工微调 → 系统分析最终正文并展示确定性派生、五层变化和后续细纲建议 → 作者一次确认 → 当前卡完成并进入下一张 → 下一次只消费有效细纲、最终正文、已确认状态与 POV 可知信息 → 全书一致性检查 → 带目录的单一 TXT/Markdown。
+
+功能暴露分三层：
+
+1. **主要流程**：上述八个作者阶段是默认入口，必须恢复当前作品的当前步骤；所有必需操作均在流程内可达。
+2. **故事资料/进阶工具/设置**：角色、世界观、关系、状态、正史、知情、时间线、审校、版本、搜索、统计、队列、备份和模型设置继续可用，但不与主要流程并列为十九个同权任务。
+3. **内部诊断**：B/C 层号、raw ID、sourceHash/fingerprint/seq、索引 rebuild/drop、ConfirmationGate/UoW 术语和原始异常默认不暴露，不得成为作者完成主流程的手工前置条件。
+
+不另立独立“继续写作”仪表盘；恢复当前步骤属于唯一流程壳本身。笔记素材库（N-10）、富文本/专注编辑器（N-12）、当前阶段 DOCX 编译（N-13）、P2 系列（N-14）、非空作品合并导入（N-7）、正文内嵌链接和全书快照/修订线均不进入 Stage 18。
 
 ---
 

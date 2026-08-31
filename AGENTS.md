@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v2.7
+> 规则版本：v2.9
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -10,9 +10,9 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v2.7）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-requirements.md`（v2.7）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v2.7）—— 执行层，19 个阶段、128 个迭代（I1–I128）；**I1–I102 全部完成**；Stage 18 新增功能与合同地基迭代（I103–I128）已按依赖顺序正式立项，当前从 I103 开始执行；每一步从对应阶段/迭代卡片出发。
+1. `docs/novel-creation-tool-design.md`（v2.9）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v2.9）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v2.9）—— 执行层，19 个阶段、140 个迭代（I1–I140）；**I1–I105 全部完成**；Stage 18 合同地基、作者主流程与新增功能迭代（I103–I140）已按依赖顺序正式立项，当前执行 I106；每一步从对应阶段/迭代卡片出发。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -38,7 +38,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 新增功能的公开合同政策：既有 invocation 的方法名、参数、结果必须向后兼容；允许新增 strict additive Remote 方法/namespace，但必须同步 canonical schema、descriptor/结果 contract lock、adapter 返回类型耦合、真实 DSH binder E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。
-- I1–I102 已完成：I85 已把唯一 DSH family pin 切换为 `0.1.1-rc.2`；Stage 17 修复迭代 I86–I102 已按 review v2.0 完成并成为 Stage 18 的真实基线。**Stage 18 I103–I128** 已于 v2.7 按依赖顺序正式立项：I103 先修 Remote 返回合同基线，I104–I128 交付 R18-1–R18-10；不得恢复“Stage 18 先于 Stage 17”或旧 I103–I112 十张大卡。每迭代单独 commit，验证命令为 `pnpm run verify:i103`–`verify:i128`。
+- I1–I105 已完成：I85 已把唯一 DSH family pin 切换为 `0.1.1-rc.2`；Stage 17 修复迭代 I86–I102 已按 review v2.0 完成并成为 Stage 18 的代码基线；I103–I105 已完成合同门、C5 mutation/排序与 SceneOutlineBinding。**Stage 18 I103–I140** 已于 v2.9 按依赖顺序立项，当前执行 I106；I108 与 I112–I114 交付 R18-11，I133–I140 收口 README 十二步作者主流程，既有 I103–I132 不再重排。不得恢复“Stage 18 先于 Stage 17”、旧 I103–I112 十张大卡或 v2.7 旧编号。每迭代单独 commit，验证命令为 `pnpm run verify:i103`–`verify:i140`。
 
 ## 3. 完成定义（DoD）
 

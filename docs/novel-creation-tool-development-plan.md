@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v2.7
-> 日期：2026-08-29
-> 状态：当前执行权威（**I1–I102 全部完成**；Stage 17 已成为真实代码基线；**Stage 18 合同地基与新增功能 I103–I128 已按依赖顺序立项，当前从 I103 开始**）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v2.7（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.7（需求 ID、验收、迭代覆盖）
+> 版本：v2.9
+> 日期：2026-08-31
+> 状态：当前执行权威（**I1–I105 全部完成**；Stage 17 已成为真实代码基线；**Stage 18 合同地基、作者主流程与新增功能 I103–I140 已按依赖顺序立项，当前执行 I106**）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v2.9（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v2.9（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
@@ -15,11 +15,13 @@
 
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
-- I1–I102 已完成：Stage 15、Stage 16 与 Stage 17 的独立提交、验证与当前源码均存在；I91 typed descriptor、I89 composition split、I94 TextRepository/outbox、I95 chapters slices、I101 narrow ops、I102 schema 单点化是 Stage 18 的真实基线。不得再将 Stage 17 标为待执行，也不得恢复“Stage 18 先行”。
-- 当前排期为 **19 个阶段、128 个迭代（I1–I128）**。唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`；运行时观测、manifest/profile/lockfile 不再存在 rc.7 漂移。
+- I1–I105 已完成：Stage 15、Stage 16 与 Stage 17 的独立提交、验证与当前源码均存在；I103 Remote 返回合同门、I104 C5 mutation/排序与 I105 SceneOutlineBinding 已成为 I106 及后续迭代的真实基线。不得再将 Stage 17 或 I103–I105 标为待执行，也不得恢复“Stage 18 先行”。
+- 当前排期为 **19 个阶段、140 个迭代（I1–I140）**。唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`；运行时观测、manifest/profile/lockfile 不再存在 rc.7 漂移。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
-- v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩 I118 为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
+- v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
+- v2.8（2026-08-31）：同步 I103–I105 已完成事实；核查确认现有各类 version/snapshot/branch 与 parser baseline 均不提供 B5 细纲生成版本化基线，正文受控写回也不自动调整 B5。新增 R18-11，插入 I108 与 I112–I114 四个正式迭代；原 I108–I128 按依赖顺延，Stage 18 扩展为 **I103–I132**。版本化基线只冻结生成意图，不成为第二份 B5 真相；正文语义影响与后续细纲调整只形成候选，经 I11 后才写回。
+- v2.9（2026-08-31）：将 README 12 步作者流程确定为唯一主要交付、最终产品和产品级测试流程。审查发现缺少按幕/章/全书生成细纲、候选接受为草稿、最终正文的一次确认式统一定稿、全书完成/一致性门、带目录的单一全文导出和默认作者流程入口；新增 R18-12–R18-15 与 I133–I140。既有 I103–I132 不再重排，Stage 18 扩展为 **I103–I140**；十九项并列技术导航在 I139 分层收纳，能力保留但不再与主流程争夺默认入口。
 
 ### 0.2 Goal
 
@@ -70,7 +72,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I128）
+### 0.7 全局执行纪律（贯穿 I1–I140）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -1008,13 +1010,17 @@ TDD Route:
 
 ---
 
-## 19. 阶段 18：合同地基与新增功能（R18，I103–I128）
+## 19. 阶段 18：合同地基、作者主流程与新增功能（R18，I103–I140）
 
-**阶段门**：`pnpm run verify:stage-18`。完成时必须串行证明 I103–I128 全绿、`pnpm test`/build 全绿、Stage 18 全部 held-out 与既有五层 parser held-out 全绿、真实 Remote binder/contract-lock/Client DOM/导出零污染回归全绿。
+**阶段门**：`pnpm run verify:stage-18`。完成时必须串行证明 I103–I140 全绿、`pnpm test`/build 全绿、Stage 18 全部 held-out 与既有五层 parser held-out 全绿、真实 Remote binder/contract-lock/Client DOM/单一全文导出回归和 README 12 步产品 E2E 全绿。
 
-> 定位：Stage 17 / I86–I102 已完成；本阶段以其 typed descriptor、composition split、UoW、TextRepository、chapters slices 与 schema 单点化为唯一基线。R18-1–R18-10 是产品 epic，不是十个实现任务；v2.7 将其拆成 26 个按依赖排序的正式迭代。旧 I103–I112 大卡和“Stage 18 先于 Stage 17”声明被本节取代。
+> 定位：Stage 17 / I86–I102 与 Stage 18 / I103–I105 已完成；本阶段以 typed descriptor、composition split、UoW、TextRepository、chapters slices、schema 单点化、C5 mutation 和 SceneOutlineBinding 为真实基线。R18-1–R18-15 是产品 epic，不是实现任务；v2.9 将 Stage 18 扩展为 38 个按依赖排序的正式迭代 I103–I140，当前执行 I106。旧 I103–I112 大卡和 v2.7 I107–I128 编号均被本节取代。
 >
 > **共同合同**：既有 invocation 方法名、参数与结果向后兼容；additive Remote 必须 strict schema、descriptor/adapter 返回类型耦合、contract lock、真实 binder E2E。每个地基切片具备真实消费者夹具；每个 LLM 切片先冻结 dev/held-out/gold 与阈值、再改 prompt/schema，先 fake backend；任何确认复用 I11。每卡必须新增/更新 `scripts/smoke-iN.mjs` 与 `verify:iN`，并具备相关正向与负向验收；零写、dispose、有界投影、held-out、binder 等门只在该卡实际拥有对应写入、生命周期、投影、LLM 或 Remote surface 时强制，不得用人工演示替代。
+>
+> **v2.8 缺口核查结论**：B5 `version` 目前只是被序列化的实体字段，`OutlineRepository.save()` 不提供单调 revision、历史快照或生成锁；C5 branches、C2 snapshots、B2 supersede/version 与会话级 `StructuralPreviewPlan` 各自服务于正文、状态、世界观和 parser 重放，不能替代细纲生成基线。现有 candidate/reparse 默认写回边界固定为 C2→C1→C3→C4→B2，明确不含 B5；I45 灵感方向只有作者选择并经 I11 后才调整 B5/C6，也不是“根据定稿正文自动分析并调和未来细纲”。因此 I108、I112–I114 是新增能力，不得由既有字段改名、caller fallback 或扩张旧 parser writer 冒充。
+
+> **v2.9 十二步流程核查结论**：I37–I38/I50–I53/I119–I120 已覆盖来源导入与大纲候选，I61–I63/I70/I105 已覆盖正文候选、编辑、版本与细纲绑定，I18/I121 已覆盖有效上下文和 POV 知情过滤；但当前需求/设计没有完整覆盖“按幕/章/全书生成细纲”“候选先成为可编辑草稿”“最终正文只确认一次”“全部细纲完成后的全书发布门”“带目录的单一全文”和“默认作者流程入口”。同时 `src/client/nav.ts` 把十九项写作、数据层、索引/统计、队列与设置能力作为同权入口，默认落在角色层；I39 `exportPlainText()` 输出逐章文件而非单一稿件；既有 candidate `accept` 在作者微调前即执行五层写回。I133–I140 专门补齐这些流程缺口并分层收纳过度暴露能力，既有高级能力和旧 invocation 保持兼容，不通过删除功能制造表面简化。
 
 ### I103：Remote 返回合同门与 Branch 基线修复（Stage 18 P0）
 
@@ -1066,77 +1072,117 @@ TDD Route:
 - **明确不做**：不改 Host、候选、Branch 或导航合同，不新增功能面板内容。
 - **验证**：`pnpm run verify:i107`；`artifacts/i107-chapter-modes.json`。
 
-### I108：StructuralPreviewPlan 与五层纯 diff（R18-2a）
+### I108：细纲生成版本化基线（R18-11a）
 
-- **依赖**：I103；**canonical owner**：writing-adjudication `StructuralPreviewPlan` 会话运行态。
-- **目标**：冻结 C2→C1→C3→C4→B2 parser outputs、sourceHash 与各层基线，并生成有界结构化 change set。
-- **兼容/退役**：不持久化 plan，不成为叙事层；重启/候选恢复后必须重新 prepare。既有五层 parser/writer/UoW 仍是唯一执行 owner，不复制解析器。
+- **依赖**：I105、I106；**canonical owner**：Host `OutlineGenerationBaselineRepository`；当前 B5 仍只由 `OutlineRepository` 拥有。
+- **目标**：为每次按细纲卡生成建立不可变 `OutlineGenerationBaseline`，冻结 projectId/chapterId/sceneId/detailBeatId、B5 contentFingerprint、binding fingerprint、场景卡内容、基线 revision 与 authoring base；候选、作者编辑和下一场景均以 baselineId 明确关联同一生成意图。
+- **兼容/退役**：不改变 B5/C5 Schema、既有 `outline.version`、C5 branches 或 C2 snapshots；baseline 是持久的操作证据而非第 14 层、B5 历史编辑器或第二份当前细纲真相。为支持重启后比较，它只保留受大小上限约束的 authoring-base 文本证据与 hash，当前正文仍唯一来自 C5。B5、binding、目标正文 sourceHash 任一变化只使旧 baseline stale，不锁死作者编辑，也不自动覆盖 B5。baseline aggregate 由不可变 create/attach-generated/finalize/supersede 事件投影，已记录事件不得原位改写。
+- **交付物**：strict baseline/event schema、项目级 repository 与 revision、create/read/current/attach-generated additive Remote、fingerprint/freshness、大小与保留上限、真实 SceneOutlineBinding→baseline→fake candidate 消费者夹具、contract lock/binder E2E。
+- **验收**：重启后同一 baseline 可恢复；重复 create/attach 幂等；跨项目、未绑定/悬空 detailBeat、重复当前 baseline、旧 B5/binding/sourceHash、非法结果均 fail closed；冻结场景卡与创建时 B5 逐字段一致；删除目标后只投影 stale；baseline 不进入 B5/C5、Markdown/txt 或 11 层可移植内容。
+- **明确不做**：不分析正文变化、不生成细纲调整、不提供全书大纲版本树、不阻止作者编辑 B5。
+- **验证**：`pnpm run verify:i108`；`artifacts/i108-outline-generation-baseline.json`。
+
+### I109：StructuralPreviewPlan 与五层纯 diff（R18-2a）
+
+- **依赖**：I103、I108；**canonical owner**：writing-adjudication `StructuralPreviewPlan` 会话运行态。
+- **目标**：冻结 C2→C1→C3→C4→B2 parser outputs、sourceHash、适用时的 I108 generationBaselineId 与各层基线，并生成有界结构化 change set。
+- **兼容/退役**：不持久化 plan，不成为叙事层；重启/候选恢复后必须重新 prepare。按细纲卡生成必须绑定有效 baseline；历史未绑定正文的 rewrite/reparse 可显式使用 `no-outline-baseline`，但不得进入 I112/I113。既有五层 parser/writer/UoW 仍是唯一执行 owner，不复制解析器。
 - **交付物**：strict plan/change schema；add/update/remove 与数组顺序语义；大小/条目上限；基线指纹；纯 diff 与 freshness 校验。
 - **验收**：同输入同 diff；层外字段、重复实体、超限、任一基线变化拒绝；投影无正文全集/live object；真实 landing-saga 消费者夹具证明冻结输出可写回。
 - **明确不做**：不接 candidate/reparse Remote 或 Client；不改 prompt/schema。
-- **验证**：`pnpm run verify:i108`，并运行既有五层 parser held-out；`artifacts/i108-structural-preview-plan.json`。
+- **验证**：`pnpm run verify:i109`，并运行既有五层 parser held-out；`artifacts/i109-structural-preview-plan.json`。
 
-### I109：Writing candidate 五层预览接线（R18-2b）
+### I110：Writing candidate 五层预览接线（R18-2b）
 
-- **依赖**：I108；**canonical owner**：candidate-production/validation-projection/landing-saga。
+- **依赖**：I109；**canonical owner**：candidate-production/validation-projection/landing-saga。
 - **目标**：prepare candidate plan、additive 返回五层 preview，并让 accept 重放同一 plan。
 - **兼容/退役**：保留既有 `novelWriting.preview` 结果；通过 additive invocation 暴露 layer preview，旧 Client 不受影响。accept 禁止重新调用 LLM parser。
 - **交付物**：candidate→plan 生命周期、strict Remote、Client candidate 模式预览、接受后实际 delta 回读比较。
 - **验收**：`preview delta == committed delta`；reject/cancel/stale/parser error/hard violation 零写；重复 accept 幂等；真实 binder 与 Client 消费者夹具。
 - **明确不做**：不接 localized reparse，不持久化 plan。
-- **验证**：`pnpm run verify:i109`；既有 parser held-out；`artifacts/i109-candidate-layer-preview.json`。
+- **验证**：`pnpm run verify:i110`；既有 parser held-out；`artifacts/i110-candidate-layer-preview.json`。
 
-### I110：Reparse 五层预览与接受后回扫（R18-2c）
+### I111：Reparse 五层预览与接受后回扫（R18-2c）
 
-- **依赖**：I108、I109；**canonical owner**：controlled text-edit/reparse workflow。
+- **依赖**：I109、I110；**canonical owner**：controlled text-edit/reparse workflow。
 - **目标**：把范围编辑后的五层 plan 展示于 candidate 模式，并在 I11 accept 后重放、写 C5、回扫比较。
 - **兼容/退役**：既有 reparse propose/accept/reject 保留；新增 prepare/read preview seam。Gate 仍是唯一用户确认，plan 不是第二 proposal。
 - **交付物**：reparse preview Remote、Client 展示、source/range/layer freshness、post-commit scan outcome。
 - **验收**：成功路径在 Gate 前展示冻结 preview，accept 后重放同一 plan 且 `preview delta == committed delta`；非法 UTF-16 range、baseHash 错配、Gate pending/rejected、parser/写回失败均零写；五层+C5 UoW 补偿成立；post-scan mismatch 显式 error 不伪报成功。
 - **明确不做**：不改变普通逐字保存“只写 C5”语义。
-- **验证**：`pnpm run verify:i110`；既有 parser held-out；`artifacts/i110-reparse-layer-preview.json`。
+- **验证**：`pnpm run verify:i111`；既有 parser held-out；`artifacts/i111-reparse-layer-preview.json`。
 
-### I111：跨层引用维护矩阵与确定性 coordinator（R18-5a）
+### I112：正文变更分类与下游影响分析（R18-11b）
 
-- **依赖**：I110；**canonical owner**：`CrossLayerReferenceCoordinator`，底层 B3/C1/C3/B5/timeline repositories 不变。
+- **依赖**：I108、I110、I111；**canonical owner**：Host `TextChangeImpactAnalyzer`；C5/B5 repositories 仍分别拥有正文与当前细纲。
+- **目标**：以 baseline 的 authoring base、作者最终保存正文及当前 B5 有界窗口建立 `TextChangeImpactReport`，先确定性识别纯空白/格式变化，再由 LLM 将实质变化分类为 `wording-only`、`story-fact` 或 `plot-direction`，输出正文证据锚点、置信度及可能受影响的未来 detailBeatId。
+- **兼容/退役**：普通正文保存继续只写 C5；分析为显式 finalize/inspect 命令且零写。仅 `story-fact`/`plot-direction` 可进入 I113；`wording-only` 与纯格式变化必须给出“无需调整细纲”。不得复用五层 parser 输出冒充 B5 影响，不得把自由模型文本直接作为写命令。
+- **交付物**：先冻结不少于 12 个 dev/held-out/gold（含纯润色、事实变化、方向变化、混合变化、否定/撤回、长文本预算）与 ≥80% 阈值；strict report/evidence schema；确定性 delta/未来卡窗口；fake backend；prompt/parser；prepare/read/cancel additive Remote；真实 baseline+C5+B5 消费者夹具。
+- **验收**：整体与 held-out ≥80%，纯格式 canonical 100% 不触发语义调整；证据 quote/range/sourceHash 准确；只允许当前绑定卡之后且 status=planned 的卡进入 affected 集；模型非法输出、证据越界、已完成/当前卡、未知 ID、超限、取消、stale baseline/B5/source 均零写并 fail closed；同输入同排序。
+- **明确不做**：不生成 replacement、不修改 B5/C6、不自动调用 I11。
+- **验证**：`pnpm run verify:i112`；`artifacts/i112-text-change-impact.json`。
+
+### I113：后续细纲调和候选与逐卡预览（R18-11c）
+
+- **依赖**：I112；**canonical owner**：Host `OutlineReconciliationPlanner`；候选只引用 I112 report 与当前 B5 freshness。
+- **目标**：针对受影响的未来细纲卡生成有界 `OutlineReconciliationPlan`，逐卡给出保持原样、AI replacement、作者手动 replacement 或暂缓处理四种可裁决路径，并展示 before/after 与正文证据。
+- **兼容/退役**：先候选后写回；AI 只能建议修改未来 `detailBeat` 的 title/summary/pov/wordTarget/points，必须保留 detailBeatId、所属幕/节、数组顺序与 `planned` 状态。keep 不写该卡；manual 必须提交按 canonical schema 校验的 editedValue；pending 不修改 B5，只在 I114 映射为 C6 deviation。禁止删除/新增/重排卡片、修改当前或已完成卡、静默连带改角色/世界观/正史。
+- **交付物**：先冻结不少于 12 个 dev/held-out/gold 与整体/逐分类 ≥80% 阈值；strict plan/item schema、影响范围上限、fake backend、prompt/parser、regenerate-one/read/cancel additive Remote、B5 纯 diff、真实 I112 report→planner→OutlineService dry-run 消费者夹具。
+- **验收**：建议与正文证据/原细纲相符且阈值达标；逐卡 before/after diff 可重现；混合 keep/AI/manual/pending 可表达；重复/未知/非未来 ID、ID/order/status 篡改、越界引用、模型失败、取消、B5 baseline stale 均零写；重生成单卡不得改变其他 plan item。
+- **明确不做**：不应用 B5、不更新当前卡进度、不建立后台自动调纲器。
+- **验证**：`pnpm run verify:i113`；`artifacts/i113-outline-reconciliation-plan.json`。
+
+### I114：确认式细纲调和与“定稿并继续”闭环（R18-11d）
+
+- **依赖**：I107、I108、I113；**canonical owner**：Host `OutlineReconciliationService` + I11 + 既有 B5/C6 UoW；Client 使用 chapters materials 模式。
+- **目标**：在正文定稿后展示影响分类和逐卡调和选择，经唯一 ConfirmationGate 原子应用获授权的未来细纲修改；提供显式“定稿并继续”，幂等完成当前 scene 绑定的 detailBeat/C6 进度并创建下一场景的新 generation baseline。
+- **兼容/退役**：普通“保存正文”永远只写 C5；candidate accept/reparse accept 不自动完成细纲卡。只有用户触发 finalize，且 report 为 wording-only 或所有受影响卡均已选择 keep/AI/manual/pending，才可提交。apply 最终复验 C5 sourceHash、B5 fingerprint、binding 与 plan fingerprint；同一 Host 请求中保存一份新 B5、保存 C6 deviation/progress、finalize baseline，并在下一 detailBeat 已有或可确定性派生合法 target 时创建下一 baseline；无法解析目标则返回 `needs-target`，不创建幽灵章节/场景。失败由既有 UoW 补偿，禁止 post-commit 后台补写。pending 在 C6 记录偏差，若它对应下一目标则阻止生成直至 keep/adjust/manual 解决。
+- **交付物**：strict propose/accept/reject/finalize/continue Remote 与 contract locks；Gate payload；B5/C6/baseline UoW；materials 模式影响摘要、证据跳转、逐卡四态裁决、manual 编辑和下一场景入口；真实 binder/Client E2E。
+- **验收**：未确认、拒绝、缺少逐卡裁决、stale source/B5/binding/plan、跨项目、当前/已完成卡修改、写盘故障均零写或完整补偿；accepted 只修改获授权的未来卡且 stable ID/order 不变；重复 accept/finalize 返回同一结果；wording-only 除当前卡完成标记外零 B5 语义 diff；当前卡只在显式 finalize 后 `writing→done`，仅当所属 beat 的必需 detailBeats 全部 done 时才向 C6 completedBeats 单调追加并推进 currentBeat；下一 baseline 精确冻结调和后的目标卡且下一次生成不消费旧 baseline，`needs-target` 不产生任何虚构 target。
+- **明确不做**：不自动接受正文、不无人值守改大纲、不调整幕/节结构、不建立全书 revision timeline。
+- **验证**：`pnpm run verify:i114`；`artifacts/i114-outline-reconciliation-e2e.json`。
+
+### I115：跨层引用维护矩阵与确定性 coordinator（R18-5a）
+
+- **依赖**：I111；**canonical owner**：`CrossLayerReferenceCoordinator`，底层 B3/C1/C3/B5/timeline repositories 不变。
 - **目标**：逐字段冻结“可确定性派生 / 作者语义候选 / 禁止自动修改”矩阵，并让 coordinator 在 candidate/reparse 已获授权后、landing UoW commit 前参与同一受控事务；禁止 post-commit 第二写入器。
 - **兼容/退役**：C3 只增不退；关系“线性”定义为单一实体版本链而非 affinity/trust 单调数值。禁止后台扫描正文后静默 LLM 写层。
 - **交付物**：维护矩阵、strict change set、base version/hash、幂等 apply、跨 repository UoW/补偿、真实 owner 消费者夹具。
 - **验收**：重复事件幂等；未知/跨项目 ID、知情撤销、并行版本、部分失败拒绝或补偿；未接受 candidate/reparse 不触发；同一 accepted outcome 只应用一次。
 - **明确不做**：不做审查 UI、audit journal 或 LLM 修正。
-- **验证**：`pnpm run verify:i111`；`artifacts/i111-reference-matrix.json`。
+- **验证**：`pnpm run verify:i115`；`artifacts/i115-reference-matrix.json`。
 
-### I112：引用 operational audit/outbox 与审查投影（R18-5b）
+### I116：引用 operational audit/outbox 与审查投影（R18-5b）
 
-- **依赖**：I111；**canonical owner**：独立 Host operational journal/outbox；叙事层仍由原 repositories 拥有。
+- **依赖**：I115；**canonical owner**：独立 Host operational journal/outbox；叙事层仍由原 repositories 拥有。
 - **目标**：记录每次自动引用更新的来源、目标、before/after、状态、失败与重试，并提供按层有界审查投影。
 - **兼容/退役**：journal 是机制数据，可轮转/重建部分投影，不进入 13 层、Markdown 或可移植正文；不得被下游当作引用真相。
 - **交付物**：strict journal schema/repository、原子 append、pending/applied/failed 状态、重启恢复、additive audit Remote。
 - **验收**：成功/失败/重试不丢记录且不重复 apply；corrupt fail closed；有界分页/排序；Client 只得最小 owned JSON；Fiber dispose 后零任务。
 - **明确不做**：不提供错误标记 UI或 LLM 修正。
-- **验证**：`pnpm run verify:i112`；`artifacts/i112-reference-audit.json`。
+- **验证**：`pnpm run verify:i116`；`artifacts/i116-reference-audit.json`。
 
-### I113：自动更新审查 UI 与手填 ID 主路径退役（R18-5c）
+### I117：自动更新审查 UI 与手填 ID 主路径退役（R18-5c）
 
-- **依赖**：I112、I107；**canonical owner**：Client reference-review state/ops；Host audit 只读面。
+- **依赖**：I116、I107；**canonical owner**：Client reference-review state/ops；Host audit 只读面。
 - **目标**：按层查看自动更新、筛选/标记错误，并用名称/实体选择器取代时间线、大纲、关系面板的手填 ID。
 - **兼容/退役**：新选择器消费者验证后 delete-first 删除旧 `listField` ID 主路径，不保留 hidden fallback；既有持久值保留并按 canonical ID 展示。
 - **交付物**：审查面板、错误标记命令、名称选择器、旧入口扫描与 DOM/可访问性测试。
 - **验收**：真实 audit→Client E2E；未知/已删除实体安全显示；旧手填入口与其写操作零引用；错误标记不直接改任何叙事层。
 - **明确不做**：不调用 LLM、不执行修正写回。
-- **验证**：`pnpm run verify:i113`；`artifacts/i113-reference-review-ui.json`。
+- **验证**：`pnpm run verify:i117`；`artifacts/i117-reference-review-ui.json`。
 
-### I114：LLM 引用修正候选与 I11 写回（R18-5d）
+### I118：LLM 引用修正候选与 I11 写回（R18-5d）
 
-- **依赖**：I111–I113；**canonical owner**：reference correction workflow + I11。
+- **依赖**：I115–I117；**canonical owner**：reference correction workflow + I11。
 - **目标**：把作者标记的错误与指令转换为 strict 多层修正候选，预览后经 Gate 应用。
 - **兼容/退役**：不直接复用自由对话文本为写命令；LLM 只产候选，coordinator 仍是确定性 apply owner；不降低 C3 单调和实体引用校验。
 - **交付物**：先提交 dev/held-out/gold（整体准确率≥80%）与 fake backend；prompt/schema；candidate preview；Gate apply/reject；audit lineage。
 - **验收**：非法输出、模型失败/取消、stale base、未知 ID、知情回退、Gate pending/reject 均零写；accepted 幂等并进入 audit；真实模型 held-out 达标。
 - **明确不做**：不建立后台自动修正或第二确认机制。
-- **验证**：`pnpm run verify:i114`；`artifacts/i114-reference-correction.json`。
+- **验证**：`pnpm run verify:i118`；`artifacts/i118-reference-correction.json`。
 
-### I115：长稿→大纲 outline-only 候选与样本门（R18-6a）
+### I119：长稿→大纲 outline-only 候选与样本门（R18-6a）
 
 - **依赖**：I103；**canonical owner**：`LongDraftWorkflowCoordinator` 复用 split-agent/outline parser。
 - **目标**：仅从新建/空作品入口为长稿建立 outline-only strict 输出，不静默丢弃既有 split 的 worldview/detail-beat 结果。
@@ -1144,49 +1190,49 @@ TDD Route:
 - **交付物**：先冻结 dev/held-out/gold（≥80%）和 fake backend；empty-project preflight；outline candidate、sourceHash/provenance、取消/错误状态、additive Remote。
 - **验收**：非空项目在 LLM 前拒绝且零调用/零写；长文分块顺序稳定；非法/超限/取消/模型错误零写；同输入候选绑定一致；真实模型 held-out 达标且不生成未授权 B2/C3 内容。
 - **明确不做**：不写项目、不允许非空项目 apply、不实现逐章循环。
-- **验证**：`pnpm run verify:i115`；`artifacts/i115-long-draft-outline-samples.json`。
+- **验证**：`pnpm run verify:i119`；`artifacts/i119-long-draft-outline-samples.json`。
 
-### I116：空作品拆纲应用、恢复与幂等（R18-6b）
+### I120：空作品拆纲应用、恢复与幂等（R18-6b）
 
-- **依赖**：I115、I105；**canonical owner**：LongDraftWorkflowCoordinator + I11 + OutlineService。
+- **依赖**：I119、I105；**canonical owner**：LongDraftWorkflowCoordinator + I11 + OutlineService。
 - **目标**：仅对新建/空作品提供预览→确认→原子应用，并保存最小 workflow checkpoint 供取消/恢复。
 - **兼容/退役**：N-7 保持：任一非空结构层/C5 内容立即 blocked；不增加合并、备份迁移或逐项覆盖 fallback。
 - **交付物**：readiness preflight、Gate payload、原子 apply/rollback、checkpoint 状态机、Client 引导。
 - **验收**：非空项目、sourceHash 变化、未确认/拒绝/取消、重复 apply、写盘故障均无半初始化；成功只写 B5 所需内容并可重开。
 - **明确不做**：不覆盖已有大纲，不导入原稿为 C5，不支持 ST。
-- **验证**：`pnpm run verify:i116`；`artifacts/i116-long-draft-apply.json`。
+- **验证**：`pnpm run verify:i120`；`artifacts/i120-long-draft-apply.json`。
 
-### I117：通用逐章循环与作者修订正文上下文（R18-6c）
+### I121：通用逐章循环与作者修订正文上下文（R18-6c）
 
-- **依赖**：I106、I116；**canonical owner**：`NextSceneContextProvider` 与 Client workflow state。
-- **目标**：让所有项目按“当前细纲→首版→作者保存→下一章”循环，并证明下一章只消费作者已保存的当前正文。
-- **兼容/退役**：修复 `listChapters()`/context 的叙事排序依赖，统一 chapter.index→scene.index；删除文件名顺序和 caller 自建 history fallback。
+- **依赖**：I106、I114、I120；**canonical owner**：`NextSceneContextProvider` 与 Client workflow state。
+- **目标**：让所有项目按“当前有效细纲基线→首版→作者保存/调和→下一章”循环，并证明下一章只消费作者已保存的当前正文与 I114 产生的当前有效 baseline。
+- **兼容/退役**：修复 `listChapters()`/context 的叙事排序依赖，统一 chapter.index→scene.index；删除文件名顺序、stale baseline 和 caller 自建 history fallback。
 - **交付物**：有界上一章/最近场景选择规则、sourceHash/trace、真实 context-builder→fake writer 消费者夹具、工作流 UI 状态。
-- **验收**：作者修改并保存后下一次 prompt 逐字包含新正文且不含旧草稿；跨章顺序、空章、分支 chosen、预算裁剪、取消/切项目均确定；现有 continue/queue/agent 共用同 owner。
+- **验收**：作者修改并保存后下一次 prompt 逐字包含新正文且不含旧草稿；下一次只消费当前有效 baseline，旧 baseline/B5 fingerprint 变化 fail closed；跨章顺序、空章、分支 chosen、预算裁剪、取消/切项目均确定；现有 continue/queue/agent 共用同 owner。
 - **明确不做**：不做“继续写作首页”或后台自动接受。
-- **验证**：`pnpm run verify:i117`；`artifacts/i117-revised-context.json`。
+- **验证**：`pnpm run verify:i121`；`artifacts/i121-revised-context.json`。
 
-### I118：章节润色逐场景编排（R18-4a）
+### I122：章节润色逐场景编排（R18-4a）
 
-- **依赖**：I106、I108、I117；**canonical owner**：既有 writing-adjudication 单场景 candidate；Client 只持当前会话的 scene 游标和展示状态。
+- **依赖**：I106、I109、I121；**canonical owner**：既有 writing-adjudication 单场景 candidate；Client 只持当前会话的 scene 游标和展示状态。
 - **目标**：按 scene.index 逐个为当前章节创建独立 rewrite candidate，提供最小章节级操作入口。
 - **兼容/退役**：不扩 writing intent enum；使用 `rewrite + polishMode`，每 scene 独立 sourceHash。章节级进度不持久化，刷新/重启后不恢复；已接受正文由既有 C5/branch 真相保留。单场景接受继续经现有 validation→preview→landing，在同一 Host 请求内实时、幂等完成获授权的多层写回。
 - **交付物**：纯函数 scene.index 顺序选择；会话级 currentSceneId/completedCount/error；启动下一场景、停止与重新开始动作；真实 existing candidate 消费者夹具；Fiber dispose 清理会话状态。
 - **验收**：每次至多创建一个场景候选；单 scene stale/失败不修改其他 scene；重复裁决不重复写；刷新后无批次恢复承诺但已接受正文保持；空章/跨项目拒绝；停止后不继续发起 LLM。
 - **明确不做**：不定义三种 prompt、不做全书批量或自动 accept。
-- **验证**：`pnpm run verify:i118`；`artifacts/i118-polish-scene-flow.json`。
+- **验证**：`pnpm run verify:i122`；`artifacts/i122-polish-scene-flow.json`。
 
-### I119：三种润色样本、prompt、UI 与裁决（R18-4b）
+### I123：三种润色样本、prompt、UI 与裁决（R18-4b）
 
-- **依赖**：I118、I107；**canonical owner**：共享 rewrite pipeline + Client 会话级逐场景编排。
+- **依赖**：I122、I107；**canonical owner**：共享 rewrite pipeline + Client 会话级逐场景编排。
 - **目标**：交付语言润色、压缩精简、扩写细节三个参数化模式及逐场景章节 UI。
 - **兼容/退役**：三模式共用一个 schema/service，不建三套 prompt owner；accepted scene 仍经现有 validation→preview→landing。
 - **交付物**：先冻结每模式 dev/held-out/gold（整体及每模式≥80%）与 fake backend；prompt preset；Client 启动/当前场景/逐场景审阅/停止/重新开始。
 - **验收**：三模式意图区分达标；非法输出、取消、模型失败、hard violation、reject 零写；当前会话进度可见；accepted 逐场景版本与正文一致且多层写回实时幂等。
 - **明确不做**：不新增整章自由文本拆分或全书润色。
-- **验证**：`pnpm run verify:i119`；`artifacts/i119-polish-heldout.json`。
+- **验证**：`pnpm run verify:i123`；`artifacts/i123-polish-heldout.json`。
 
-### I120：EntityLink/TextAnchor 与 Client router/back-stack（R18-8a）
+### I124：EntityLink/TextAnchor 与 Client router/back-stack（R18-8a）
 
 - **依赖**：I103、I107；**canonical owner**：core link contract、Host resolver、Client navigation stack。
 - **目标**：建立统一 entity/text target、来源上下文快照、打开/返回协议。
@@ -1194,59 +1240,59 @@ TDD Route:
 - **交付物**：strict EntityLink、UTF-16 TextAnchor、sourceHash、route result/error；back entry 保存 view/mode/selection/filter/focus；Host target existence resolver。
 - **验收**：非法 kind/range/跨项目/未知实体/stale 安全失败；forward/back 状态逐字段恢复；dirty editor 不被静默覆盖；真实 search→router 消费者夹具。
 - **明确不做**：不建来源适配全集、不持久化链接、不改正文。
-- **验证**：`pnpm run verify:i120`；`artifacts/i120-link-router.json`。
+- **验证**：`pnpm run verify:i124`；`artifacts/i124-link-router.json`。
 
-### I121：七类链接来源与目标适配（R18-8b）
+### I125：七类链接来源与目标适配（R18-8b）
 
-- **依赖**：I120、I113；**canonical owner**：各 panel 的薄 link adapter，router 仍唯一导航 owner。
+- **依赖**：I124、I117；**canonical owner**：各 panel 的薄 link adapter，router 仍唯一导航 owner。
 - **目标**：接入角色、关系、知情、审校、时间线、搜索、场景卡的 source→target 与反向返回。
 - **兼容/退役**：adapter 只构造 EntityLink，不查询/复制领域真相；旧 search/review 直接切 activeView 路径在等价验证后退役。
 - **交付物**：七类入口、目标选中/高亮、返回控件、模式协同、可访问性与 DOM 锚点。
 - **验收**：每类至少一条真实 Host projection→Client target E2E；失效实体/过滤变化/切项目安全降级；返回不丢选择、筛选、scroll/focus。
 - **明确不做**：不做文本重链或导出验证。
-- **验证**：`pnpm run verify:i121`；`artifacts/i121-link-adapters.json`。
+- **验证**：`pnpm run verify:i125`；`artifacts/i125-link-adapters.json`。
 
-### I122：文本锚点 stale/relink 与回传重建（R18-8c）
+### I126：文本锚点 stale/relink 与回传重建（R18-8c）
 
-- **依赖**：I120、I121；**canonical owner**：Host derived link index/resolver。
+- **依赖**：I124、I125；**canonical owner**：Host derived link index/resolver。
 - **目标**：正文 sourceHash 变化后拒绝旧 range，并基于纯正文重新分析、生成新锚点。
 - **兼容/退役**：索引位于可删除重建的派生目录，不进入 C5/Markdown/archive；不猜测偏移，不保留 stale range fallback。
 - **交付物**：versioned derived index、build/drop/rebuild、quote disambiguation、编辑/回传 invalidation、重链状态与失败降级。
 - **验收**：相同正文重建确定；重复 quote 不误链；编辑后旧锚点 stale；回传重建前后正文逐字一致；corrupt/drop 后可重建且不泄漏 POV 禁止信息。
 - **明确不做**：默认使用确定性分析；若未来引入 LLM 必须另立样本迭代。
-- **验证**：`pnpm run verify:i122`；`artifacts/i122-link-rebuild.json`。
+- **验证**：`pnpm run verify:i126`；`artifacts/i126-link-rebuild.json`。
 
-### I123：链接导出与 round-trip 零污染（R18-8d）
+### I127：链接导出与 round-trip 零污染（R18-8d）
 
-- **依赖**：I122；**canonical owner**：现有 ImportExport/ExportService。
+- **依赖**：I126；**canonical owner**：现有 ImportExport/ExportService。
 - **目标**：证明 Markdown、txt、可移植归档和恢复均不携带内部 link/index 数据，外部回传只运输纯正文。
 - **兼容/退役**：既有导出字节合同保持；不新增 sidecar、HTML link 或 archive compatibility carrier。
 - **交付物**：导出排除规则、Markdown/txt byte fixture、archive 路径扫描、round-trip→rebuild E2E。
 - **验收**：编辑前后相同正文导出逐字一致；txt/Markdown/archive 零内部 ID/anchor/index；恢复后 link index 不存在但可重建；恶意内嵌 link metadata 被当普通正文或按输入规则拒绝而不执行。
 - **明确不做**：不改变 portable archive 的叙事层内容。
-- **验证**：`pnpm run verify:i123`；`artifacts/i123-link-export-safety.json`。
+- **验证**：`pnpm run verify:i127`；`artifacts/i127-link-export-safety.json`。
 
-### I124：Review 文本锚点与修复候选工作流（R18-3a）
+### I128：Review 文本锚点与修复候选工作流（R18-3a）
 
-- **依赖**：I109、I120–I122；**canonical owner**：ReviewRepairWorkflow；定位归 EntityLink/TextAnchor，候选归 writing-adjudication。
+- **依赖**：I110、I124–I126；**canonical owner**：ReviewRepairWorkflow；定位归 EntityLink/TextAnchor，候选归 writing-adjudication。
 - **目标**：从 review issue 精确打开文本范围，并用 issue evidence 生成 rewrite candidate。
 - **兼容/退役**：review issue additive location/provenance，不改旧 scan/adjudicate/records 结果；旧只有 chapter/scene 的 issue 仍可降级为场景级定位，但不伪造 range。
 - **交付物**：先冻结 repair prompt dev/held-out/gold（≥80%）与 fake backend；稳定 issue fingerprint、anchor、candidate lineage、additive Remote、问题卡入口。
 - **验收**：准确 range；stale hash/错 quote/重复 issue/跨项目/模型失败/取消零写；hard issue 可生成候选但仍不能被非法接受；真实 review→router→candidate E2E。
 - **明确不做**：不持久化 resolved，不修改检测阈值或既有 gold。
-- **验证**：`pnpm run verify:i124`；`artifacts/i124-review-repair.json`。
+- **验证**：`pnpm run verify:i128`；`artifacts/i128-review-repair.json`。
 
-### I125：接受→复扫→会话级 resolved 闭环（R18-3b）
+### I129：接受→复扫→会话级 resolved 闭环（R18-3b）
 
-- **依赖**：I124、I110；**canonical owner**：Client review repair session state；Host scan 仍是真实当前问题投影。
+- **依赖**：I128、I111；**canonical owner**：Client review repair session state；Host scan 仍是真实当前问题投影。
 - **目标**：候选接受后自动重扫；仅当同一 issue fingerprint 不再出现时，在当前会话保留 resolved 卡与证据。
 - **兼容/退役**：不扩 ReviewAuditJournal resolved 状态、不落盘第二真相；完整重扫、重开 panel、切项目或重启后 resolved 卡消失。
 - **交付物**：repair session state machine、scan correlation、resolved view、失败/retry/取消 UI。
 - **验收**：问题仍存在不得 resolved；scan 失败显示不确定状态；重复 accept/scan 幂等；hard conflict、stale candidate、reject 零写；会话清理/dispose 绿。
 - **明确不做**：不提供跨会话解决历史。
-- **验证**：`pnpm run verify:i125`；`artifacts/i125-review-resolved-session.json`。
+- **验证**：`pnpm run verify:i129`；`artifacts/i129-review-resolved-session.json`。
 
-### I126：章节→场景→版本 Host 聚合投影（R18-10a）
+### I130：章节→场景→版本 Host 聚合投影（R18-10a）
 
 - **依赖**：I103、I104；**canonical owner**：NovelBranchService 只读聚合，TextRepository/scene.branches 仍是真相。
 - **目标**：新增一次性有界 aggregate(projectId) Remote，按 chapter.index→scene.index 输出版本元数据树。
@@ -1254,35 +1300,115 @@ TDD Route:
 - **交付物**：strict tree schema/descriptor/lock/adapter、分页/规模预算、空树与隐含单版本语义、真实 repository/binder 消费者夹具。
 - **验收**：无正文泄漏；`branches.length===0 || chosenCount===1`；坏/重复/chosen 多个 fail closed；跨项目/未知 project 拒绝；排序稳定且大作品有界。
 - **明确不做**：不切换版本、不改 C5 Schema、不做全书快照。
-- **验证**：`pnpm run verify:i126`；`artifacts/i126-branch-aggregate.json`。
+- **验证**：`pnpm run verify:i130`；`artifacts/i130-branch-aggregate.json`。
 
-### I127：聚合版本树比较与 freshness 切换（R18-10b）
+### I131：聚合版本树比较与 freshness 切换（R18-10b）
 
-- **依赖**：I107、I126；**canonical owner**：Client versions mode；写入仍调用 BranchService choose。
+- **依赖**：I107、I130；**canonical owner**：Client versions mode；写入仍调用 BranchService choose。
 - **目标**：在 versions 模式展示树、按需 diff，并显式切换任意场景版本。
 - **兼容/退役**：不新增 ConfirmationGate；用户先选择/查看 diff，再调用新 strict additive `chooseFresh(projectId, chapterId, sceneId, branchId, sourceHash)`。既有四参数 `choose` descriptor/行为逐字段不变；`chooseFresh` 陈旧时拒绝。旧局部分支面板保留为场景级消费者，不复制真相。
 - **交付物**：`chooseFresh` schema/descriptor/adapter/contract lock；树展开/选择、按需 branch read/diff、switch/reload、徽标、返回场景与焦点、N+1 请求扫描。
 - **验收**：空/单/多版本 UI；未知 branch、stale source、跨项目、并发切换拒绝；成功后 chosen 唯一且 editor 重载；聚合视图与局部面板等价；隐藏模式零轮询。
 - **明确不做**：不做全书 revision timeline、批量切换或隐式保存。
-- **验证**：`pnpm run verify:i127`；`artifacts/i127-branch-tree-client.json`。
+- **验证**：`pnpm run verify:i131`；`artifacts/i131-branch-tree-client.json`。
 
-### I128：作者术语终检与错误展示层（R18-7）
+### I132：既有 Stage 18 面板作者术语与错误展示层（R18-7）
 
-- **依赖**：I106–I127；**canonical owner**：Client presentation lexicon/error presenter。
-- **目标**：在所有 Stage 18 UI 已存在后统一移除作者可见工程术语，并把动态错误映射为可行动作者语言。
+- **依赖**：I106–I131；**canonical owner**：Client presentation lexicon/error presenter。
+- **目标**：统一移除截至 I131 已存在面板中的作者可见工程术语，并把动态错误映射为可行动作者语言；I139 新增的最终流程壳由 I140 再做全量终检。
 - **兼容/退役**：不改 Host/Remote/wire/schema/存储、`novel_*`、参数名、测试 fixture 或 `data-novel-*`；直接展示 `cause.message` 的作者主路径在 mapper 覆盖后退役，原始技术信息仅高级视图可见。
 - **交付物**：唯一术语表、denylist/allowlist 扫描、`toUserMessage`/错误码映射、advanced view、aria/title/error/empty/loading/success 文案。
-- **验收**：全部作者可见面板机器扫描零禁词；五类动态错误和七类 Stage 18 面板 fixture；技术合同 allowlist 零误改；DOM 锚点快照、可访问性与下一步动作断言全绿。
+- **验收**：截至 I131 的全部作者可见面板机器扫描零禁词；五类动态错误和七类 Stage 18 面板 fixture；技术合同 allowlist 零误改；DOM 锚点快照、可访问性与下一步动作断言全绿。
 - **明确不做**：不建 i18n、多语言框架或改变导航结构。
-- **验证**：`pnpm run verify:i128`；`artifacts/i128-author-lexicon.json`。
+- **验证**：`pnpm run verify:i132`；`artifacts/i132-author-lexicon.json`。
+
+### I133：按幕/章/全书的细纲范围与就绪合同（R18-12a）
+
+- **依赖**：I105、I106、I120；**canonical owner**：`OutlineGenerationScopePlanner` + B5 只读范围解析器。
+- **目标**：建立 act/outline-beat/bound-chapter/all 四种作者选择到稳定 B5 目标集合的唯一 Host 合同，并在调用 LLM 前给出可生成、只补缺失、需显式重生成或不可生成的就绪结果。
+- **兼容/退役**：B5 仍是唯一细纲真相；创作 C5 前以 B5 beat 表达章节规划范围，已有 chapter scope 只能经 SceneOutlineBinding 解析，不允许 Client 以索引、标题或手填 ID 猜测。既有 outline read/save invocation 不变；调用方自建范围和全量覆盖 fallback 禁止。
+- **交付物**：strict `OutlineGenerationScope`/readiness/result schema；act/outline-beat/bound-chapter/all resolver；目标卡 fingerprint、保护集合与 mutation budget；additive Remote/descriptor/contract lock/真实 binder；大规模有界分页消费者夹具。
+- **验收**：三类 scope 均能确定性解析且顺序稳定；未知幕、未绑定章节、空范围、跨项目绑定、stale B5 均在 LLM 前零写失败；默认 mutation budget 只允许新增缺失 detailBeat；范围外、已有稳定 ID 和顺序不可修改。
+- **明确不做**：不调用 LLM、不生成文案、不创建第二份 outline、不提供 Client 编辑面。
+- **验证**：`pnpm run verify:i133`；`artifacts/i133-outline-generation-scope.json`。
+
+### I134：范围细纲候选、作者审阅与确认应用（R18-12b）
+
+- **依赖**：I133；**canonical owner**：`OutlineDetailGenerationService` + outline 步骤候选面板。
+- **目标**：让作者按 I133 冻结范围生成细纲候选，逐卡编辑、重生成、跳过或确认，并以一个 I11 proposal 只应用授权范围。
+- **兼容/退役**：先建立不少于 12 条 dev/held-out 样本和 fake backend，再实现 prompt/schema；既有手工 outline 编辑继续可用。默认只补齐缺失卡；覆盖已有卡必须显式选择重生成并预览，禁止整份 outline replace。
+- **交付物**：范围细纲样本/gold/held-out；strict LLM result parser；会话候选与 source fingerprint；逐卡 diff/编辑 UI；I11 apply；additive Remote 全套合同门。
+- **验收**：held-out ≥80%；candidate 只含授权范围且结构/引用合法；接受前、拒绝、取消、解析失败、B5 stale 零写；混合 edit/regenerate/skip 可重放；apply 后范围外 byte/fingerprint 不变，重复确认幂等。
+- **明确不做**：不生成正文、不自动建立生成基线、不改已完成细纲卡、不做后台批量生成。
+- **验证**：`pnpm run verify:i134`；`artifacts/i134-scoped-detail-outline.json`。
+
+### I135：候选接受为草稿与统一定稿计划（R18-13a）
+
+- **依赖**：I110、I114、I118、I134；**canonical owner**：writing-adjudication draft seam + `FinalizationPlanBuilder`。
+- **目标**：把“接受候选供作者微调”与“确认最终正文带来的叙事变化”拆开：前者仅受控落地 C5 草稿，后者从作者最终保存文本生成一份统一定稿计划。
+- **兼容/退役**：既有 candidate `accept` invocation 与结果保持兼容，但主 UI 改用 additive `adoptDraft`；`adoptDraft` 不运行五层 parser、引用写回、B5 调和或 C6 推进。I109–I118/I114 的 diff 与 apply owner 被组合，不复制 parser、调和或引用规则。
+- **交付物**：strict draft adoption/`FinalizationPlan` schema；candidate/baseline/sourceHash/freshness 锁；五层结构 diff、确定性引用、未来细纲选择和完成/下一步的统一投影；additive Remote/contract lock/真实 binder；作者汇总预览消费者夹具。
+- **验收**：adopt 后只有目标 C5 chosen 正文及既有可重建镜像/索引/统计随保存变化，C1/C2/C3/C4/B2/B5/C6 均不变；作者再编辑后 plan 只消费最终保存正文；wording-only 不含 B5 mutation；plan 有界、可解释且一份覆盖全部待确认叙事真相变化；stale/无 baseline/未绑定均 fail closed 或显式降级，禁止伪造调和。
+- **明确不做**：本迭代不应用 plan、不自动完成当前卡、不删除兼容 accept。
+- **验证**：`pnpm run verify:i135`；`artifacts/i135-finalization-plan.json`。
+
+### I136：一次确认式定稿、调和与自动前进（R18-13b）
+
+- **依赖**：I135；**canonical owner**：`FinalizationCoordinator` + 既有 I11 ConfirmationGate/UoW。
+- **目标**：用一个 proposal、一次作者裁决和一个 Host 请求应用 I135 全部授权变化，随后幂等完成当前细纲卡并建立下一张有效生成基线。
+- **兼容/退役**：I114 的 standalone reconciliation 可继续独立使用；主流程通过其已授权内部 apply seam 组合，不产生嵌套 Gate。旧 candidate accept 不改，但从普通作者主路径退役；Client 不逐个调用各层 writer。
+- **交付物**：统一 proposal payload/授权 token；Finalization UoW 与 operation ID；五层、引用、B5/C6、baseline 的有序 apply；单一汇总确认 UI；`needs-target`/stale/partial-failure 作者结果。
+- **验收**：整个流程只出现一次确认；拒绝、取消、sourceHash/B5/层 freshness 变化与任一步失败均不伪装完成且可用同一 operation 幂等重试；成功后结构变化等于预览、当前卡完成、下一 baseline 唯一；无合法下一张返回 `needs-target`，不得创建幽灵章节/场景或自动接受下一份正文。
+- **明确不做**：不后台定稿、不自动裁决作者语义、不跨多个细纲卡批量接受正文。
+- **验证**：`pnpm run verify:i136`；`artifacts/i136-one-confirm-finalization.json`。
+
+### I137：全书完成门与发布就绪一致性检查（R18-14a）
+
+- **依赖**：I121、I128、I136；**canonical owner**：`BookCompletionService` + review detector 聚合器。
+- **目标**：所有必需细纲卡完成后才建立全书发布就绪门，复用既有确定性/LLM 检测器对 chosen 正文做有界跨章一致性检查。
+- **兼容/退役**：既有按当前范围的 review scan 保持不变；新增 additive book readiness/scan，不以 Client N+1 拼装。完成状态来自 B5/C6/binding/C5 与未决提案，不新增可手改的“全书完成”标志。
+- **交付物**：completion/readiness schema；分页章节快照与全书 issue 聚合；未完成/缺正文/待裁决/硬阻断/警告分类；发布门 UI；Remote/contract lock/真实 binder；既有 detector held-out 累积回归。
+- **验收**：未完成卡、缺 binding/正文、pending finalization/reconciliation、硬违规均关闭导出门；全书顺序与范围无遗漏/重复；软警告可显式留存裁决但不静默消失；重开后从真相重算一致；大项目内存/结果有界，扫描失败不修改正文或故事状态。
+- **明确不做**：不自动改正文、不新增全书快照、不做全书一键润色。
+- **验证**：`pnpm run verify:i137`；`artifacts/i137-book-readiness.json`。
+
+### I138：带目录的单一 TXT/Markdown 全文编译（R18-14b）
+
+- **依赖**：I127、I137；**canonical owner**：`ManuscriptCompiler` + `novelImportExport` adapter。
+- **目标**：在 I137 发布门通过后，按真实章节/场景顺序编译一份完整 TXT 或 Markdown，并自动生成章节目录。
+- **兼容/退役**：I39 现有 per-chapter 纯文本/项目归档导出保持兼容，新增 `compileManuscript` 主流程方法；原每章文件导出退到进阶/兼容入口，不冒充完整交稿。正文仍只来自 chosen C5，Client 不拼接文件。
+- **交付物**：compile options/result canonical schema；确定性标题/目录/换行规则；TXT/Markdown renderer；发布门 receipt freshness；additive Remote/contract lock/真实 binder；下载 UI。
+- **验收**：两种格式各恰好一个主稿；章节/场景顺序、标题与正文逐字正确，目录锚点/页内标题一致；旧分支、设定 sidecar、内部链接/ID/技术元数据零混入；stale receipt/阻断门拒绝；同一输入重复编译 byte-stable。
+- **明确不做**：不实现 DOCX/PDF/EPUB，不做排版引擎或外部发布平台上传。
+- **验证**：`pnpm run verify:i138`；`artifacts/i138-single-manuscript.json`。
+
+### I139：作者优先的唯一创作流程壳与功能分层（R18-15a）
+
+- **依赖**：I132、I134、I136–I138；**canonical owner**：Client `workflow` route/store/presenter + nav registry。
+- **目标**：新增并默认进入“创作流程”，以导入、大纲、细纲、生成基线、正文、定稿同步、全书检查、导出八个阶段承载 README 12 步；重开作品恢复当前阶段与场景。
+- **兼容/退役**：既有 WorkbenchViewId、Remote、DOM deep-link 和十九项能力不删除；角色/世界观/关系/状态/正史/知情/时间线进入“故事资料”，审校/版本/搜索/统计/队列/备份进入“进阶工具”，模型/创作设置进入“设置”。`characters` 默认落点和十九项同权一级导航退役；同一动作只保留一个主流程 owner。
+- **交付物**：additive `workflow` view 与 `DEFAULT_VIEW` 迁移；阶段 readiness/next-action 投影；分层导航与返回上下文；主流程聚合现有 panel/action 的薄适配；窄屏、键盘、aria 与重开恢复测试。
+- **验收**：新建/导入/写作中/待定稿/全书完成作品分别落到正确阶段；所有 12 步无需进入进阶工具即可完成；既有能力仍可达且 deep-link 不断；普通流程零 raw ID、fingerprint、索引 rebuild/drop、Gate/UoW、层编号和重复确认；隐藏进阶面板零请求。
+- **明确不做**：不复制领域逻辑、不建立独立继续写作首页、不删除高级能力、不改变 DSH Slot shell。
+- **验证**：`pnpm run verify:i139`；`artifacts/i139-primary-workflow-shell.json`。
+
+### I140：README 十二步完整产品流程 E2E 与最终术语门（R18-7、R18-15b）
+
+- **依赖**：I139；**canonical owner**：产品级验收 harness（test-only）+ 全量作者术语门。
+- **目标**：用固定 fake LLM 和真实 Host/Remote/Client harness 从来源导入跑到单一全文导出，把 README 12 步作为最终产品完成定义，而非模块清单。
+- **兼容/退役**：不改领域语义或公开合同；新增 `verify:product-flow` 作为 README 主流程验收入口。I132 的局部术语结论由本迭代全量扫描收口，失败即 Stage 18 未完成。
+- **交付物**：成功主路径 E2E；拒绝/重写/手改、stale baseline/sourceHash、一次确认拒绝与失败回滚、重启恢复、POV 知情过滤、无下一目标、全书阻断和双格式合稿负向矩阵；全量 denylist/allowlist；`artifacts/i140-primary-author-workflow.json`。
+- **验收**：12 步按顺序全部产生作者可观察证据；步骤 6 adopt 前后与步骤 8 单次确认的写边界精确；步骤 10 上下文只含有效四类输入；步骤 11 阻断门有效；步骤 12 两种单稿内容/目录正确；所有作者可见主流程和进阶入口零禁词，技术合同 allowlist 无误改；`pnpm test`/build/全部 Stage 18 held-out 累积全绿。
+- **明确不做**：不以 mock UI 截图代替 Host 行为，不引入新功能，不降低样本阈值或修改 gold。
+- **验证**：`pnpm run verify:i140`；`pnpm run verify:product-flow`；`artifacts/i140-primary-author-workflow.json`。
 
 ---
 
 ## 20. 完成线
 
-I1–I102 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复。
+I1–I105 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I105 完成 Remote 返回合同门、C5 mutation/排序与 SceneOutlineBinding。
 
-v2.7 当前排期：**Stage 18 合同地基与新增功能 I103–I128** 按编号顺序执行，I103 为第一项。I103 未完成前不得新增 Stage 18 Remote；任一迭代未达 DoD 不得进入下一迭代。
+v2.9 当前排期：**Stage 18 合同地基、作者主流程与新增功能 I103–I140** 按依赖顺序执行，当前为 I106。I103 合同前置门已经通过；任一后续迭代未达 DoD 不得进入下一迭代。
 
 I74 完成时还必须证明：
 
@@ -1325,16 +1451,20 @@ Stage 17（review v2 修复迭代 I86–I102）完成时还必须证明：
 - 单 acting 互锁 / OpsContext / workspace-service 收敛（I101）；onboarding schema 与 extension kind 单点化（I102）；
 - 领域行为等价：I1–I85 全部既有验收在修复后保持绿，公开 Remote/wire 契约形状不变（I100 兼容迁移除外）。
 
-Stage 18（I103–I128）完成时还必须证明：
+Stage 18（I103–I140）完成时还必须证明：
 
 - 既有 invocation 的方法、参数、结果逐字段向后兼容；所有 additive Remote 有 strict schema、返回类型耦合、contract lock 与真实 binder E2E，`novelBranches.list` 基线漂移已修复且无 caller fallback；
 - C5 CRUD/排序、SceneOutlineBinding 与候选落点具有单一 owner；本地硬删除在同一请求内实时、幂等完成 binding→C5，Gate 前失败零写且中途技术失败可用同一 proposal 重试；C5/B5 Schema 保持已裁决边界；
-- candidate/reparse 的五层 preview 与实际 writeback delta 一致，plan stale/restart 行为明确且未产生持久第二真相；
+- generation baseline 可重启恢复但不成为第二份 B5 真相；candidate/reparse 的五层 preview 与实际 writeback delta 一致，plan stale/restart 行为明确且未产生持久第二真相；
+- 正文变化被区分为纯格式/措辞、故事事实与剧情方向；只有具证据的后两类可产生未来细纲调和候选，B5 任何语义调整均逐卡预览、经 I11 且 freshness/UoW 受控；“定稿并继续”只确定性推进当前卡/C6 并创建下一有效 baseline；
 - 自动引用、LLM 修正、长稿拆纲与三种润色均遵守样本优先、fake backend、I11、未确认零写和真实 held-out 阈值；
 - EntityLink/派生索引不进入 C5、Markdown、txt 或归档，七类跳转、返回上下文、stale/relink 与 round-trip 全绿；
 - review repair 的 sourceHash/range 闭环成立，resolved 只存在于当前 Client 会话且不会伪造 Host 历史；
-- 四模式、版本聚合、freshness switch 和术语终检在真实 Client harness 下成立，隐藏面板零请求，作者可见禁词归零且技术合同未误改；
-- `pnpm test`、build、I103–I128 全部 verify、`verify:stage-18`、全部 Stage 18/既有 parser held-out、Fiber dispose 与 source-of-truth 安全门全绿。
+- 四模式、版本聚合、freshness switch 和术语门在真实 Client harness 下成立，隐藏面板零请求，作者可见禁词归零且技术合同未误改；
+- act/chapter/all 范围细纲候选只修改授权范围；候选接受为草稿时只有 C5 改变，作者最终正文形成单一 FinalizationPlan 并只经一次 I11 确认完成五层、引用、B5/C6 与下一 baseline 的受控写回；
+- 全部细纲完成后全书一致性与发布就绪门成立；正式导出按真实顺序生成带目录的单一 TXT/Markdown，不混入旧分支、设定 sidecar、内部链接或技术 ID；
+- `workflow` 是默认作者入口，README 12 步无需进入进阶工具即可完成；既有十九项能力分层保留而不与主流程并列，产品 E2E 覆盖拒绝、stale、失败回滚、重启、POV 与发布阻断；
+- `pnpm test`、build、I103–I140 全部 verify、`verify:product-flow`、`verify:stage-18`、全部 Stage 18/既有 parser held-out、Fiber dispose 与 source-of-truth 安全门全绿。
 
 语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎、C3 revealAt 直接引用时间线节点 id 的联动，以及 review v2.0 其余中-低/低项（validator 骨架、仓储 primitive、import 格式 descriptor 等）继续后置为 backlog；公开 Remote 服务的破坏性改名（`novelImport`/`novelImportExport`/`novelExport` 三服务合并）已由 **I100** 立项（兼容迁移，见 §18）。
 
@@ -1358,8 +1488,8 @@ Stage 18（I103–I128）完成时还必须证明：
 - **修复迭代范围风险（v2.5）**：I86–I102 以 review v2.0 中级以上问题为界，禁止顺手夹带中-低/低项或新功能；I100 属公开 Remote 契约迁移，必须带兼容期与退役文档，禁止静默破坏既有调用方；审查证据行号以文件路径与职责为准。
 - **契约漂移风险**：I77/I78 改变 wire 形状推导方式时，必须以 strict codec wire smoke 证明形状等价；禁止继续在接线层以补丁掩盖契约不匹配。I103 起把 result 类型、descriptor lock 与真实 binder 纳入同一门，additive 不等于可跳过兼容审查。
 - **Stage 18 本地持久化风险**：SceneOutlineBinding 与 reference audit 是明确的 Host owner；章节润色进度和删除操作不新增持久 journal。非空 C5 硬删除只能经 I11，并在现有本地 project write lane 内最终复验、同步幂等清理 binding/C5；禁止 caller 侧级联、后台叙事层补写或无影响报告删除。
-- **Stage 18 自动化风险**：StructuralPreviewPlan 与章节润色编排只在会话内存在；reference LLM、long-draft、polish、review repair 均只产候选，任何失败/取消/未确认零写。获授权的多层叙事内容写回必须在同一 Host 请求内实时且幂等，不得以“自动联动”恢复后台静默写层。
-- **Stage 18 派生数据与退役**：EntityLink/index、resolved session state 和 aggregate tree 不得成为第二真相；新 router/选择器验证后删除旧 direct-jump/手填 ID 主路径，不保留双 owner fallback。Markdown/txt/archive 零链接 sidecar。
+- **Stage 18 自动化风险**：StructuralPreviewPlan 与章节润色编排只在会话内存在；generation baseline 虽持久但仅是不可变生成意图证据，不得成为 B5 第二真相。detail-outline、impact/reconciliation、reference LLM、long-draft、polish、review repair 均只产候选，任何失败/取消/未确认零写；wording-only 不得触发 B5 语义修改，未来细纲调整不得越过当前/已完成卡或改 stable ID/order。候选“接受为草稿”只写 C5；获授权的最终多层叙事内容写回必须由单一 FinalizationPlan 在一次 I11 后、同一 Host 请求内实时且幂等完成，不得嵌套确认或以“自动联动”恢复后台静默写层。
+- **Stage 18 派生数据与退役**：EntityLink/index、resolved session state 和 aggregate tree 不得成为第二真相；新 router/选择器验证后删除旧 direct-jump/手填 ID 主路径，不保留双 owner fallback。主流程不得把十九项技术面板继续作为同权入口；单一 Markdown/txt 稿件和 archive 均零链接 sidecar，per-chapter 文本导出仅保留为进阶兼容入口。
 - **大文件拆分风险**：I82/I83 拆 `client.ts` 时保持 DOM 契约与既有测试锚点不变，测试迁移分批提交；禁止一迭代内同时改实现与语义。
 - **范围蔓延风险**：重构迭代禁止夹带新功能或领域语义调整；超范围想法记 backlog。
 - **命名统一风险**：I84 只统一内部命名，公开 Remote 服务名不动；需改名的破坏性变更另行立项走兼容迁移。

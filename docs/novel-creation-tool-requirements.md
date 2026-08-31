@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.7
-> 日期：2026-08-29（2026-08-31 Stage 18 范围修订）
+> 版本：v2.9
+> 日期：2026-08-31
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.7：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24 与 D25。
-2. 本文件 v2.7：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.7：I1–I102 的完成事实及 Stage 18（I103–I128）执行卡片、owner、依赖、交付物与命令细节。
-4. `AGENTS.md` v2.7：执行纪律。
+1. `docs/novel-creation-tool-design.md` v2.9：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24 与 D25。
+2. 本文件 v2.9：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v2.9：I1–I105 的完成事实及 Stage 18（I103–I140）执行卡片、owner、依赖、交付物与命令细节。
+4. `AGENTS.md` v2.9：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I102 全部完成**；Stage 17（I86–I102）已成为当前代码基线。Stage 18（I103–I128）按 `design.md` §14.14 的合同地基与依赖顺序正式立项，当前从 I103 开始；旧 I103–I112 十张大卡及“Stage 18 先行”顺序已被 v2.7 取代。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
+- 当前迭代身份：**I1–I105 全部完成**；Stage 17（I86–I102）已成为当前代码基线，Stage 18 的 I103–I105 已按各自 verify 完成，当前执行 I106。Stage 18（I103–I140）按 `design.md` §14.14 的合同地基与依赖顺序正式立项；旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R18 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -32,7 +32,7 @@
 3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有 LLM 调用只能走 Host 的 `ctx.llm`；禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
 4. 硬检测器：canonical 违规样本 **100% 命中**且整体准确率 **≥90%**；正史解析器准确率 **≥85%**；其他 LLM 模块准确率 **≥80%**。
 5. 样本、held-out 子集和 gold 均为不可变验收资产；不得为过关修改样本、held-out、gold 或阈值。dev 可用于调优，held-out 只用于收尾验收。
-6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`；I114—`pnpm run verify:i114`；I115—`pnpm run verify:i115`；I119—`pnpm run verify:i119`；I124—`pnpm run verify:i124`。I108–I110 复用既有五层 parser 时仍须运行对应既有 held-out 回归，不得以“未改 prompt”跳过集成回归。
+6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`；I112—`pnpm run verify:i112`；I113—`pnpm run verify:i113`；I118—`pnpm run verify:i118`；I119—`pnpm run verify:i119`；I123—`pnpm run verify:i123`；I128—`pnpm run verify:i128`；I134—`pnpm run verify:i134`。I109–I111 与 I135–I137 复用既有 parser/detector 时仍须运行对应既有 held-out 回归，不得以“未改 prompt”跳过集成回归。
 7. 所有用户确认复用 I11 ConfirmationGate。未确认不得写回；重复确认必须幂等。
 8. 每个迭代只有在对应 `verify:iN` 通过后才可完成；每个阶段只有在全部迭代验证和 `verify:stage-N` 通过后才可完成。
 
@@ -58,7 +58,7 @@
 | Stage 15 架构债务消除 | I75–I84 | `pnpm run verify:stage-15` |
 | Stage 16 DSH family 兼容升级 | I85 | `pnpm run verify:stage-16` |
 | Stage 17 架构债务修复（review v2.0 立项） | I86–I102 | `pnpm run verify:stage-17` |
-| Stage 18 合同地基与新增功能（R18） | I103–I128 | `pnpm run verify:stage-18` |
+| Stage 18 合同地基、作者主流程与新增功能（R18） | I103–I140 | `pnpm run verify:stage-18` |
 
 ---
 
@@ -455,11 +455,11 @@
 
 ---
 
-## R18. Stage 18 新增功能需求（I103–I128）
+## R18. Stage 18 作者主流程与新增功能需求（I103–I140）
 
-> 定位：R18-1–R18-10 是稳定产品需求 ID，不等同于实现迭代。v2.7（2026-08-29）在 Stage 17 / I86–I102 已完成的真实基线上，将原十张大卡拆为 I103–I128；I103 是全部新增公开合同的前置门，I104–I128 覆盖十项需求。既有 invocation 向后兼容，允许经过 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；§0.1 宿主基线与 13 层叙事模型不变。
+> 定位：R18-1–R18-15 是稳定产品需求 ID，不等同于实现迭代。v2.9（2026-08-31）把 README 的 12 步作者工作流提升为唯一主要交付流程，并在 v2.8 的 I103–I132 之后追加 I133–I140；I103 是全部新增公开合同的前置门且已经通过，当前执行 I106。既有 invocation 向后兼容，允许经过 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；§0.1 宿主基线与 13 层叙事模型不变。
 >
-> 产品方向：**建立/导入大纲 → AI 推导细纲 → 自动生成首版正文 → 作者微调保存 → 下一章消费细纲和作者修订正文 → Markdown/txt 发布**。正文保持轻量纯文本；不立项继续写作首页、富文本/专注编辑器、笔记素材库或 DOCX 编译。
+> 产品方向：**导入思路/梗概/长稿 → 审阅 AI 大纲候选 → 按幕/章/全书生成并修改细纲 → 建立近期场景生成基线 → 每卡生成正文候选 → 接受为草稿/重写/手改 → 分析最终正文 → 一次确认结构化变化与后续细纲调和 → 完成当前卡并进入下一张 → 仅消费有效正文/状态/POV 知情 → 全书一致性检查 → 带目录的单一 TXT/Markdown**。正文保持轻量纯文本；DOCX 编译仍为未来可选项。
 >
 > Stage 18 只面向本地单用户、单 Host 进程运行，不为多用户、跨进程并发或分布式事务建立额外基础设施。凡一次操作同时修改多个叙事真相层，必须在同一 Host 请求内实时完成，并以稳定 proposal/candidate/operation ID 保证重复调用幂等；失败不得留下后台异步补写叙事层的任务。派生索引与 Markdown 镜像继续遵守各自既有可重建/outbox 合同，不提升为叙事真相层。
 
@@ -472,15 +472,28 @@
 | ID | 需求与已裁决行为 | 可机器验收与边界 | 计划迭代 |
 |---|---|---|---|
 | R18-1 | 场景/章节完整 CRUD、元数据、项目级排序；GUI 绑定场景与细纲卡并选择候选落点。绑定由独立 Host `SceneOutlineBinding` 持久化，不改 C5/B5 Schema。非空硬删除必须展示影响并经 I11，不提供垃圾箱。删除按本地单进程模型实现，不新增持久 deletion saga、删除账本、全局 recovery barrier 或 reservation。 | CRUD/排序重开一致；多章排序无中间重复 index；未确认、fingerprint 变化、活动任务/候选时删除零写；确认后同一请求内幂等清理 binding 并删除 C5，重复 apply 不重复副作用；Markdown 镜像复用 I104 outbox；既有历史记录保留，读取时按目标存在性投影 stale；重复/悬空/跨项目绑定拒绝；candidate-production、queue task targeting 与相关 Client projection 不再业务硬编码 `chapter-1`。 | I104–I106 |
-| R18-2 | 接受 writing candidate 或 reparse 前展示 C1/C2/C3/C4/B2 结构化 diff；会话内冻结 parser outputs 与全部基线，accept 精确重放。Host 重启后旧预览失效并重新生成。 | `preview delta == committed delta`；sourceHash/任一层基线变化、parser 失败、取消、拒绝均零写；结果有界且无 live object/完整层泄漏；candidate 与 reparse 消费者夹具分别成立。 | I108–I110 |
-| R18-3 | Review 问题定位到稳定文本锚点并发起 rewrite 修复候选；接受后复扫。resolved 不持久化，当前 Client 会话保留 resolved 卡，完整重扫/重开后消失。 | UTF-16 range/quote/sourceHash 定位准确；stale 锚点拒绝；硬冲突阻止接受；复扫确认问题消失后才显示 resolved；无 Host resolved 第二真相。 | I124–I125 |
-| R18-4 | 当前章节提供语言润色、压缩精简、扩写细节；Client 在当前会话内按 scene.index 逐个创建独立 rewrite candidate，不建立持久章节批次或恢复状态机。 | 每场景绑定独立 sourceHash；三模式均先候选零写；接受/拒绝/失败只影响对应场景；重复裁决沿用既有 candidate 幂等；刷新或重启后不恢复章节级进度，已接受正文保持；硬约束仍执行；不承诺整章原子提交或全书批量。 | I118–I119 |
-| R18-5 | 确定性引用在写回获授权后、landing UoW commit 前参与同一事务；禁止 post-commit 第二写入器。需要语义推断的引用只生成 I11 修正候选。提供 operational audit、错误标记与 LLM 修正回路，验证新 owner 后退役旧手填 ID 主路径。 | 维护矩阵逐字段区分派生/作者语义/禁止自动项；幂等、单调知情、未知 ID、跨项目、失败补偿负测；后台 LLM 零静默写；旧 `listField` ID 输入零主路径引用。 | I111–I114 |
-| R18-6 | 长稿拆纲和初始化仅用于新建/空作品；非空项目在调用 LLM 前继续按 N-7 fail closed。逐章循环适用于所有项目，下一章消费当前细纲与按叙事顺序选择的作者已保存正文。 | 拆纲样本/held-out ≥80%，fake backend 先行，I11 接受前零写；非空项目拒绝；取消/恢复/重复 apply 幂等；context 消费 chapter.index/scene.index 顺序且不注入旧草稿。 | I115–I117 |
-| R18-7 | 全部 Stage 18 UI 完成后，将作者可见工程术语映射为作者语言；动态错误经单一 presentation mapper；技术徽标仅高级视图。 | denylist/allowlist 机器扫描；aria/title/error/empty state 覆盖；`novel_*`、wire 字段、测试夹具和 `data-novel-*` 锚点不变。 | I128 |
-| R18-8 | 角色、关系、知情、审校、时间线、搜索、场景卡之间稳定导航，返回恢复上下文。链接为可重建派生数据，不进入 C5、Markdown、txt 或归档；回传后重新分析。 | 每类 source→target 与返回 E2E；sourceHash stale 安全降级；正文/导出逐字不污染；txt/Markdown/归档零内部链接；回传重建不改原文。 | I120–I123 |
+| R18-2 | 兼容的 writing candidate 结构化 accept 或 reparse 在写回前展示 C1/C2/C3/C4/B2 diff；会话内冻结 parser outputs、适用时的 I108 细纲基线引用与全部层基线，并精确重放。I135 起普通作者候选主路径先 adopt 为 C5 草稿，最终正文的五层 diff 复用同一纯预览组件并汇入 FinalizationPlan。按细纲卡生成必须有 baseline；历史未绑定正文可显式无 baseline，但不得进入 B5 调和。 | `preview delta == committed delta`；sourceHash、适用的细纲基线或任一层基线变化、parser 失败、取消、拒绝均零写；无 baseline 路径不能伪造 B5 impact；结果有界且无 live object/完整层泄漏；legacy candidate、reparse 与 finalization 三类消费者夹具分别成立。 | I109–I111、I135 |
+| R18-3 | Review 问题定位到稳定文本锚点并发起 rewrite 修复候选；接受后复扫。resolved 不持久化，当前 Client 会话保留 resolved 卡，完整重扫/重开后消失。 | UTF-16 range/quote/sourceHash 定位准确；stale 锚点拒绝；硬冲突阻止接受；复扫确认问题消失后才显示 resolved；无 Host resolved 第二真相。 | I128–I129 |
+| R18-4 | 当前章节提供语言润色、压缩精简、扩写细节；Client 在当前会话内按 scene.index 逐个创建独立 rewrite candidate，不建立持久章节批次或恢复状态机。 | 每场景绑定独立 sourceHash；三模式均先候选零写；接受/拒绝/失败只影响对应场景；重复裁决沿用既有 candidate 幂等；刷新或重启后不恢复章节级进度，已接受正文保持；硬约束仍执行；不承诺整章原子提交或全书批量。 | I122–I123 |
+| R18-5 | 确定性引用在写回获授权后、landing UoW commit 前参与同一事务；禁止 post-commit 第二写入器。需要语义推断的引用只生成 I11 修正候选。提供 operational audit、错误标记与 LLM 修正回路，验证新 owner 后退役旧手填 ID 主路径。 | 维护矩阵逐字段区分派生/作者语义/禁止自动项；幂等、单调知情、未知 ID、跨项目、失败补偿负测；后台 LLM 零静默写；旧 `listField` ID 输入零主路径引用。 | I115–I118 |
+| R18-6 | 长稿拆纲和初始化仅用于新建/空作品；非空项目在调用 LLM 前继续按 N-7 fail closed。逐章循环适用于所有项目，下一章消费当前有效细纲生成基线与按叙事顺序选择的作者已保存正文。 | 拆纲样本/held-out ≥80%，fake backend 先行，I11 接受前零写；非空项目拒绝；取消/恢复/重复 apply 幂等；context 消费 chapter.index/scene.index 顺序及当前 baseline，且不注入旧草稿或 stale baseline。 | I119–I121 |
+| R18-7 | 作者可见工程术语必须映射为作者语言；动态错误经单一 presentation mapper；技术徽标仅高级视图。I132 先覆盖既有 Stage 18 面板，I140 对最终主流程再次做全量终检。 | denylist/allowlist 机器扫描；aria/title/error/empty state 覆盖；`novel_*`、wire 字段、测试夹具和 `data-novel-*` 锚点不变。 | I132、I140 |
+| R18-8 | 角色、关系、知情、审校、时间线、搜索、场景卡之间稳定导航，返回恢复上下文。链接为可重建派生数据，不进入 C5、Markdown、txt 或归档；回传后重新分析。 | 每类 source→target 与返回 E2E；sourceHash stale 安全降级；正文/导出逐字不污染；txt/Markdown/归档零内部链接；回传重建不改原文。 | I124–I127 |
 | R18-9 | 章节区按 writing/candidate/versions/materials 四种互斥模式展示，由 `ChaptersLayerState.mode` 单一拥有，不新增顶层 view。 | 四模式互斥；切场景时候选按 target 清理/绑定；隐藏面板零请求/零重复注册；焦点、快捷键、既有 DOM 锚点和窄屏行为保持。 | I107 |
-| R18-10 | Host 聚合全部章节→场景→版本的只读树，Client 可比较并显式切换任意场景版本；不做全书快照/修订线。 | Host 单次聚合、按 chapter.index/scene.index 排序、无正文泄漏；`branches.length===0 || chosenCount===1`；diff 后调用新 additive `chooseFresh(..., sourceHash)`，既有四参数 choose 不变；旧局部分支面板无第二 owner。 | I126–I127 |
+| R18-10 | Host 聚合全部章节→场景→版本的只读树，Client 可比较并显式切换任意场景版本；不做全书快照/修订线。 | Host 单次聚合、按 chapter.index/scene.index 排序、无正文泄漏；`branches.length===0 || chosenCount===1`；diff 后调用新 additive `chooseFresh(..., sourceHash)`，既有四参数 choose 不变；旧局部分支面板无第二 owner。 | I130–I131 |
+| R18-11 | 生成前以不可变 `OutlineGenerationBaseline` 冻结 project/chapter/scene/detailBeat、B5 fingerprint 和目标场景卡；作者最终保存正文后，按有界文本 delta 将变化分为 wording-only、story-fact、plot-direction，后两类才可生成对未来细纲的逐卡调和候选。B5 仍是唯一当前细纲真相，任何 AI 调整必须逐卡预览并经 I11；普通保存、纯措辞修改和未确认提案不得调整未来 B5 语义，显式 finalize 只可确定性更新当前卡完成状态。 | baseline 重启恢复且 B5/binding/sourceHash 变化时 stale；分类与调和 held-out 均 ≥80% 且证据锚点准确；已完成/当前/未授权卡、稳定 ID、幕/节顺序不可改；keep/manual/AI/pending 可混合裁决；apply 在同一 Host 请求中按 B5 freshness 原子写回，失败/拒绝零写；“定稿并继续”幂等完成当前绑定卡/C6 并创建下一张有效 baseline，不自动接受正文。 | I108、I112–I114 |
+| R18-12 | 作者可选择某一幕、某一章或全书生成细纲候选。Host 范围合同支持幕、B5 章节规划节拍、已绑定 C5 章节和全书，并统一解析为稳定 act/beat/detailBeat 集合；已绑定章节只能通过 SceneOutlineBinding 解析，不允许 Client 猜测。默认只补齐缺失细纲，已有卡、范围外内容、稳定 ID 和顺序受保护；显式重生成仍需逐卡预览并经 I11。 | act/outline-beat/bound-chapter/all 正向夹具；未知、未绑定、空范围和 stale source 负向；LLM 样本/held-out ≥80%；作者可编辑、重生成、跳过或确认；确认前 B5 零写，应用后只有授权范围发生变化。 | I133–I134 |
+| R18-13 | 写作候选的主要作者路径必须先“接受为草稿”：只把候选保存到 C5 供作者微调，不提前解析或写回 C1/C2/C3/C4/B2/B5/C6；可重建的正文镜像、索引和统计随 C5 保存自动更新，不进入作者确认。作者保存最终正文后，Host 形成一份统一 `FinalizationPlan`，汇总五层结构变化、作者语义引用变化、未来细纲调和和完成/前进动作，并只要求一次 I11 确认。既有 candidate `accept` invocation 保持兼容但不再是主 UI 路径。 | adopt 后只有 C5 及其可重建派生物变化且正文逐字一致；final plan 绑定最终 sourceHash、generation baseline 与各层 freshness；一份预览覆盖全部叙事真相变化；一次 Gate/一个 Host 请求幂等应用，拒绝、stale、取消或任一子操作失败均不得半应用；不得嵌套第二次作者确认。 | I135–I136 |
+| R18-14 | 全部必需细纲卡完成后，系统运行全书一致性与发布就绪检查；未完成卡、待裁决变化、阻断问题或缺失正文关闭正式导出门。通过后按章节/场景真实顺序生成章节目录和单一完整 TXT/Markdown，正文逐字保持；DOCX 不在当前范围。 | 完成门与跨章检查覆盖角色、状态、关系、知情、正史、硬规则、绑定和顺序；阻断/警告分级；编译结果含确定性目录/标题/正文且每种格式恰好一个主稿；重复导出 byte-stable（允许受控元数据除外）；零内部链接、技术 ID 和设定 sidecar 混入正文。 | I137–I138 |
+| R18-15 | 创作台默认暴露唯一作者流程“导入 → 大纲 → 细纲 → 生成基线 → 正文 → 定稿同步 → 全书检查 → 导出”，并恢复当前作品的当前步骤。角色/世界观/关系/状态/正史/知情/时间线/审校/版本/搜索/统计/队列/备份/模型设置保留为故事资料、进阶工具或设置；内部 ID、fingerprint、索引维护、Gate/UoW 与层编号不进入普通主路径。最终产品必须有覆盖 README 12 步的固定 fake LLM E2E。 | 默认视图为流程而非任一技术层；每个主步骤只有一个 owner/入口，进阶入口不丢能力；普通路径零手填技术 ID/索引操作/重复确认；端到端覆盖成功、拒绝、stale、硬阻断、失败回滚、重开恢复、POV 过滤、完成门和双格式合稿；产物可查。 | I139–I140 |
+
+### R18 作者功能暴露边界
+
+| 暴露层级 | 功能 | 约束 |
+|---|---|---|
+| 主要流程 | 来源导入、大纲候选、范围细纲、生成基线、逐卡正文、最终正文分析与一次确认、全书检查、单稿导出 | 默认可达、连续导航、恢复当前步骤；不得要求作者理解内部层编号或技术 ID。 |
+| 故事资料/进阶工具 | 角色、世界观、关系、状态、正史、知情、时间线、审校、版本、搜索、统计、生成队列、备份、LLM 设置 | 保留全部能力但不与 12 步并列；同一业务动作只有一个主流程 owner。 |
+| 内部/诊断 | 原始 B/C 层徽标、sourceHash/fingerprint/seq、ConfirmationGate/UoW、索引 rebuild/drop、裸 Remote 名与原始错误 | 普通作者界面不可见、不可作为必填输入；只允许高级诊断按需查看。 |
 
 ---
 
@@ -492,13 +505,13 @@
 | N-2 | 向量检索 | 语义向量检索和 B2 `vector` trigger 延后；当前使用关键词/正则/全文与 I40 精确 SQLite 索引。文件始终是 source of truth。 |
 | N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM、浏览器直读/直写作品文件或 DSH 之外的受支持主路径。I51 文件选择器只允许把受限用户输入运输到 Host 临时区，Client 不解析且不成为文件 owner。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
-| N-5 | 自动强制改写大纲 | 偏差先记录；接受新方向或调整细纲必须由用户选择并经 ConfirmationGate。 |
+| N-5 | 自动强制改写大纲 | 偏差先记录；R18-11 只允许系统分析影响并生成逐卡调和候选。接受新方向或调整未来细纲必须由用户逐卡选择并经 ConfirmationGate；wording-only、普通保存、未确认和后台扫描均不得修改未来 B5 语义，只有显式 finalize 可确定性推进当前卡完成状态。 |
 | N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
 | N-7 | 已有非空作品合并导入 | Stage 10 仅初始化新建/空作品；不静默合并或覆盖已有六层。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
 | N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
 | N-9 | 重构改变领域契约与产品能力 | Stage 15（I75–I84）重构只消除复制与接线债务：不改变任何领域契约、公开 Remote/wire 形状、LLM 样本/gold/阈值与产品功能；公开服务改名属破坏性变更，另行立项走兼容迁移。 |
 | N-10 | 作者笔记/批注/素材库 | P1.6 作者裁决：不在本项目考虑范围。产品只做「按大纲/细纲/关系/时间线/人物/知情自动创作 + 微调发布」，不承载资料收集。 |
-| N-11 | 继续写作首页 / 恢复现场 | P0.1 作者裁决：非必须，不立项。 |
+| N-11 | 独立“继续写作”仪表盘 | 不另建与创作流程竞争的首页；R18-15 的唯一流程壳必须恢复当前作品、当前步骤与选中场景，这属于主流程连续性而非第二个首页。 |
 | N-12 | 富文本/专注写作编辑器 | P0.3 作者裁决：正文编辑非重要内容，保持轻量 textarea 编辑（微调即发布），不立项。 |
 | N-13 | 正式 DOCX 交稿编译 | P1.11 作者裁决：Markdown 交付可接受，DOCX 编译不做。 |
 | N-14 | P2 系列（C2 items/factions/globalFlags 扩展、语义向量检索、写作计划/截止日/日更节奏） | 作者裁决：P2 全部暂不考虑；items/factions/globalFlags 与向量检索分别维持 N-8/N-2 的后置定位。 |
@@ -507,6 +520,6 @@
 
 ## 结论
 
-**直接结论：I1–I102 已完成。v2.0–v2.4 交付 Host/Client 产品闭环、作品启动、正文写作、能力可达性、时间线、Stage 15 架构债务消除与 Stage 16 DSH family `0.1.1-rc.2` 兼容升级；Stage 17 / I86–I102 已完成 Remote binder、组合根、UoW、TextRepository、Client 切片与 schema 单点化修复。Stage 18 / I103–I128 是当前待执行排期：先建立返回合同与 contract-lock 门，再按 R18-1–R18-10 的依赖顺序交付新增能力。**
+**直接结论：I1–I105 已完成。v2.0–v2.4 交付 Host/Client 产品闭环、作品启动、正文写作、能力可达性、时间线、Stage 15 架构债务消除与 Stage 16 DSH family `0.1.1-rc.2` 兼容升级；Stage 17 / I86–I102 已完成 Remote binder、组合根、UoW、TextRepository、Client 切片与 schema 单点化修复，I103–I105 已完成 Stage 18 合同门、C5 mutation/排序和 SceneOutlineBinding。Stage 18 / I103–I140 是当前排期，当前执行 I106，并按 R18-1–R18-15 的依赖顺序交付 README 规定的 12 步作者主流程。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
