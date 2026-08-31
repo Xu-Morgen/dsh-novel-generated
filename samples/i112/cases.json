@@ -1,0 +1,94 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": [
+    "wording-punctuation",
+    "wording-tense",
+    "format-whitespace",
+    "fact-key",
+    "fact-negation",
+    "direction-alliance",
+    "direction-route",
+    "mixed-fact-style"
+  ],
+  "heldOutCaseIds": [
+    "heldout-wording",
+    "heldout-fact",
+    "heldout-direction",
+    "heldout-format"
+  ],
+  "cases": [
+    {
+      "id": "wording-punctuation",
+      "before": "米拉推开门。",
+      "after": "米拉推开门！",
+      "expected": { "classification": "wording-only", "pureFormatting": false, "affectedDetailBeatIds": [] }
+    },
+    {
+      "id": "wording-tense",
+      "before": "她沿着堤岸走向灯塔。",
+      "after": "她快步沿着堤岸走向灯塔。",
+      "expected": { "classification": "wording-only", "pureFormatting": false, "affectedDetailBeatIds": [] }
+    },
+    {
+      "id": "format-whitespace",
+      "before": "第一段。\n第二段。",
+      "after": "第一段。\n\n第二段。",
+      "expected": { "classification": "wording-only", "pureFormatting": true, "affectedDetailBeatIds": [] }
+    },
+    {
+      "id": "fact-key",
+      "before": "米拉在码头找到一张旧地图。",
+      "after": "米拉在码头找到一把铜钥匙和一张旧地图。",
+      "expected": { "classification": "story-fact", "pureFormatting": false, "affectedDetailBeatIds": ["detail-2"] }
+    },
+    {
+      "id": "fact-negation",
+      "before": "钟楼里藏着一枚银币。",
+      "after": "钟楼里没有藏着那枚银币。",
+      "expected": { "classification": "story-fact", "pureFormatting": false, "affectedDetailBeatIds": ["detail-2"] }
+    },
+    {
+      "id": "direction-alliance",
+      "before": "林恩答应帮助米拉穿过北门。",
+      "after": "林恩背叛米拉，带守卫封锁了北门。",
+      "expected": { "classification": "plot-direction", "pureFormatting": false, "affectedDetailBeatIds": ["detail-3", "detail-4"] }
+    },
+    {
+      "id": "direction-route",
+      "before": "他们今晚从北门进入内城。",
+      "after": "他们改道穿过盐沼，三天后才抵达内城。",
+      "expected": { "classification": "plot-direction", "pureFormatting": false, "affectedDetailBeatIds": ["detail-3", "detail-4"] }
+    },
+    {
+      "id": "mixed-fact-style",
+      "before": "米拉看见灯塔熄灭。",
+      "after": "米拉终于看见远处的灯塔熄灭，港口随之陷入黑暗。",
+      "expected": { "classification": "story-fact", "pureFormatting": false, "affectedDetailBeatIds": ["detail-2"] }
+    },
+    {
+      "id": "heldout-wording",
+      "before": "雨落在旧石阶上。",
+      "after": "细雨落在旧石阶上。",
+      "expected": { "classification": "wording-only", "pureFormatting": false, "affectedDetailBeatIds": [] }
+    },
+    {
+      "id": "heldout-fact",
+      "before": "守门人认识米拉。",
+      "after": "守门人不认识米拉。",
+      "expected": { "classification": "story-fact", "pureFormatting": false, "affectedDetailBeatIds": ["detail-2"] }
+    },
+    {
+      "id": "heldout-direction",
+      "before": "米拉决定留在北港等待援军。",
+      "after": "米拉决定离开北港，独自前往荒原。",
+      "expected": { "classification": "plot-direction", "pureFormatting": false, "affectedDetailBeatIds": ["detail-3", "detail-4"] }
+    },
+    {
+      "id": "heldout-format",
+      "before": "她说：\"走吧。\"",
+      "after": "她说：\"走吧。\"\n",
+      "expected": { "classification": "wording-only", "pureFormatting": true, "affectedDetailBeatIds": [] }
+    }
+  ]
+}

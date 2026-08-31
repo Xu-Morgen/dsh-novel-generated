@@ -22,11 +22,13 @@ import { sceneOutlineBindingRemoteContribution } from './host/remote/scene-outli
 import { workspaceRemoteContribution } from './host/remote/editor.js';
 import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
+import { textChangeImpactRemoteContribution } from './host/remote/text-change-impact.js';
 import type {
   QueueNamespace,
   SceneOutlineBindingNamespace,
   TextMutationNamespace,
   TextDeletionNamespace,
+  TextChangeImpactNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
@@ -169,6 +171,22 @@ function fixtureFor(endpoint: string): unknown {
       return { status: 'already-deleted', proposalId: 'delete-proposal-1', fingerprint: 'd'.repeat(64) };
     case 'novelTextDeletion/reject':
       return { status: 'rejected', proposalId: 'delete-proposal-1' };
+    case 'novelTextChangeImpact/prepare':
+      return { impactId: 'impact-1', status: 'ready' };
+    case 'novelTextChangeImpact/read':
+      return {
+        impactId: 'impact-1', projectId: 'p1', baselineId: 'baseline-1', chapterId: 'chapter-1', sceneId: 'scene-1',
+        baselineSourceHash: 'a'.repeat(64), finalSourceHash: 'b'.repeat(64),
+        delta: {
+          beforeHash: 'a'.repeat(64), afterHash: 'b'.repeat(64), beforeLength: 1, afterLength: 1,
+          beforeRange: { start: 0, end: 1 }, afterRange: { start: 0, end: 1 }, beforeQuote: 'a', afterQuote: 'b', pureFormatting: false,
+        },
+        classification: 'story-fact', confidence: 'high',
+        evidence: [{ sourceHash: 'b'.repeat(64), beforeRange: { start: 0, end: 1 }, afterRange: { start: 0, end: 1 }, beforeQuote: 'a', afterQuote: 'b' }],
+        eligibleFutureDetailBeatIds: ['detail-2'], affectedDetailBeatIds: ['detail-2'], rationale: '事实变化', analyzedAt: ISO,
+      };
+    case 'novelTextChangeImpact/cancel':
+      return { impactId: 'impact-1', status: 'cancelled' };
     case 'novelQueue/startAt':
       return {
         projectId: 'p1', runState: 'idle',
@@ -352,6 +370,26 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     }
   });
 
+  it('I112 text-change-impact namespace uses strict prepare/read/cancel and exact wire args', async () => {
+    const mounted = await mount(textChangeImpactRemoteContribution);
+    try {
+      const impact = mounted.client.get('remote.novelTextChangeImpact') as TextChangeImpactNamespace;
+      const prepared = await unwrap(impact.prepare('p1', { baselineId: 'baseline-1', finalSourceHash: 'b'.repeat(64) }, undefined));
+      expect(prepared).toEqual({ impactId: 'impact-1', status: 'ready' });
+      const report = await unwrap(impact.read('p1', 'impact-1'));
+      expect(report).toMatchObject({ classification: 'story-fact', affectedDetailBeatIds: ['detail-2'] });
+      await expect(unwrap(impact.cancel('p1', 'impact-1'))).resolves.toEqual({ impactId: 'impact-1', status: 'cancelled' });
+      expect(mounted.calls).toEqual([
+        { endpoint: 'novelTextChangeImpact/prepare', args: { projectId: 'p1', input: { baselineId: 'baseline-1', finalSourceHash: 'b'.repeat(64) } } },
+        { endpoint: 'novelTextChangeImpact/read', args: { projectId: 'p1', impactId: 'impact-1' } },
+        { endpoint: 'novelTextChangeImpact/cancel', args: { projectId: 'p1', impactId: 'impact-1' } },
+      ]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
   it('I105 strict binder negatives reject missing/extra/invalid inputs before RPC', async () => {
     const bindingMount = await mount(sceneOutlineBindingRemoteContribution);
     try {
@@ -399,6 +437,7 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     ['binding-impact', sceneOutlineBindingRemoteContribution, 'remote.novelSceneOutlineBinding', 'impact', ['p1', { kind: 'scene', sceneId: 'scene-1' }]],
     ['proposeAt', writingRemoteContribution, 'remote.novelWriting', 'proposeAt', ['p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' }, undefined]],
     ['startAt', queueRemoteContribution, 'remote.novelQueue', 'startAt', ['p1', { chapterId: 'chapter-1', cardIds: [] }]],
+    ['text-impact-read', textChangeImpactRemoteContribution, 'remote.novelTextChangeImpact', 'read', ['p1', 'impact-1']],
   ])('I105 malformed %s result is rejected by the real Client binder', async (_label, contribution, service, method, args) => {
     const mounted = await mount(contribution, () => ({ malformed: true }));
     try {

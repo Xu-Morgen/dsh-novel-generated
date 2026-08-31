@@ -27,6 +27,7 @@ import {
 } from '../src/host/remote/scene-outline-binding.js';
 import { textDeletionInvocations } from '../src/host/remote/text-deletion.js';
 import { outlineGenerationBaselineInvocations } from '../src/host/remote/outline-generation-baseline.js';
+import { textChangeImpactInvocations } from '../src/host/remote/text-change-impact.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -131,8 +132,9 @@ for (const lock of EXISTING_LOCKS) {
   const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
   const i110DescriptorIds = new Set([writingPreviewLayersInvocation.id]);
   const i111DescriptorIds = new Set([sceneReparsePreviewInvocation.id]);
+  const i112DescriptorIds = new Set(textChangeImpactInvocations.map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -140,6 +142,7 @@ for (const lock of EXISTING_LOCKS) {
     ...outlineGenerationBaselineInvocations,
     writingPreviewLayersInvocation,
     sceneReparsePreviewInvocation,
+    ...textChangeImpactInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -155,6 +158,7 @@ for (const lock of EXISTING_LOCKS) {
     ...outlineGenerationBaselineInvocations,
     writingPreviewLayersInvocation,
     sceneReparsePreviewInvocation,
+    ...textChangeImpactInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

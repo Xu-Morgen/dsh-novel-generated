@@ -1,0 +1,53 @@
+{
+  "iteration": "I112",
+  "requirement": "R18-11b",
+  "remoteNamespace": "novelTextChangeImpact",
+  "reportShape": [
+    "impactId",
+    "projectId",
+    "baselineId",
+    "chapterId",
+    "sceneId",
+    "baselineSourceHash",
+    "finalSourceHash",
+    "delta",
+    "classification",
+    "confidence",
+    "evidence",
+    "eligibleFutureDetailBeatIds",
+    "affectedDetailBeatIds",
+    "rationale",
+    "analyzedAt"
+  ],
+  "classifications": [
+    "wording-only",
+    "story-fact",
+    "plot-direction"
+  ],
+  "guarantees": [
+    "frozen-12-case-corpus-with-4-held-out-cases-and-80-percent-threshold",
+    "deterministic-whitespace-delta-and-exact-UTF16-evidence",
+    "only-planned-cards-after-current-binding-enter-bounded-window",
+    "pure-formatting-skips-semantic-LLM-classification",
+    "illegal-model-output-evidence-and-unknown-card-fail-closed",
+    "stale-B5-binding-source-hash-and-cancel-zero-write",
+    "real-baseline-C5-B5-consumer-fixture",
+    "real-DSH-client-binder-strict-Remote-fixture"
+  ],
+  "explicitNonGoals": [
+    "replacement-generation",
+    "B5-or-C6-write",
+    "ConfirmationGate",
+    "five-layer-parser-output-as-impact"
+  ],
+  "contractLock": {
+    "descriptorCount": 135,
+    "resultSchemaCount": 41,
+    "additiveSuffix": [
+      "novel-creation-tool/novelTextChangeImpact/prepare",
+      "novel-creation-tool/novelTextChangeImpact/read",
+      "novel-creation-tool/novelTextChangeImpact/cancel"
+    ]
+  },
+  "focusedSuites": "frozen parser samples, Host baseline consumer, real binder, and contract lock suites passed"
+}
