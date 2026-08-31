@@ -16,6 +16,8 @@ export interface WritingWorkflowState {
   readonly sourceHash?: string;
   /** 当前生成基线的 opaque id；只供本次状态关联，不构成 Client 真相。 */
   readonly baselineId?: string;
+  /** I136 候选与定稿计划之间的短暂关联；正文/计划真相仍由 Host 持有。 */
+  readonly candidateId?: string;
   readonly recentSceneCount?: number;
   readonly traceSectionCount?: number;
   readonly message?: string;

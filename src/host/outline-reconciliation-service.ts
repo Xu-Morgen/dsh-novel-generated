@@ -10,6 +10,8 @@ import {
   outlineReconciliationDecisionSchema,
   outlineReconciliationFinalizeInputSchema,
   outlineReconciliationFinalizeResultSchema,
+  outlineReconciliationAuthorizedApplyInputSchema,
+  outlineCompletionAuthorizedInputSchema,
   outlineReconciliationGatePayloadSchema,
   outlineReconciliationProposeInputSchema,
   outlineReconciliationProposeResultSchema,
@@ -19,6 +21,8 @@ import {
   type OutlineReconciliationDecision,
   type OutlineReconciliationFinalizeInput,
   type OutlineReconciliationFinalizeResult,
+  type OutlineReconciliationAuthorizedApplyInput,
+  type OutlineCompletionAuthorizedInput,
   type OutlineReconciliationGatePayload,
   type OutlineReconciliationProposeInput,
   type OutlineReconciliationProposeResult,
@@ -171,6 +175,10 @@ export interface NovelOutlineReconciliationService {
   reject(projectId: string, proposalId: string): Promise<OutlineReconciliationRejectResult>;
   finalize(projectId: string, input: OutlineReconciliationFinalizeInput): Promise<OutlineReconciliationFinalizeResult>;
   continue(projectId: string, input: OutlineReconciliationFinalizeInput): Promise<OutlineReconciliationContinueResult>;
+  /** I136 internal seam: the outer finalization Gate has already authorized the decisions. */
+  applyAuthorized(projectId: string, input: OutlineReconciliationAuthorizedApplyInput): Promise<OutlineReconciliationContinueResult>;
+  /** I136 wording-only seam: complete the current card without opening a child Gate. */
+  completeAuthorized(projectId: string, input: OutlineCompletionAuthorizedInput): Promise<OutlineReconciliationContinueResult>;
 }
 
 export function createOutlineReconciliationService(deps: {
@@ -186,6 +194,7 @@ export function createOutlineReconciliationService(deps: {
   const applied = new Map<string, AppliedState>();
   const finalized = new Map<string, OutlineReconciliationFinalizeResult>();
   const continued = new Map<string, OutlineReconciliationContinueResult>();
+  const authorizedCompleted = new Map<string, OutlineReconciliationContinueResult>();
 
   const run = <T>(projectId: string, operation: () => Promise<T>): Promise<T> => {
     const previous = lanes.get(projectId) ?? Promise.resolve();
@@ -199,6 +208,7 @@ export function createOutlineReconciliationService(deps: {
     applied.clear();
     finalized.clear();
     continued.clear();
+    authorizedCompleted.clear();
   });
 
   const readPlan = (projectId: string, planId: string): OutlineReconciliationPlan => deps.planner.read(projectId, planId);
@@ -301,11 +311,11 @@ export function createOutlineReconciliationService(deps: {
     return outlineReconciliationGatePayloadSchema.parse(record.payload);
   };
 
-  const finalizeInternal = async (projectId: string, input: OutlineReconciliationFinalizeInput): Promise<OutlineReconciliationFinalizeResult> => {
+  const finalizeInternal = async (projectId: string, input: OutlineReconciliationFinalizeInput, authorizedPayload?: OutlineReconciliationGatePayload): Promise<OutlineReconciliationFinalizeResult> => {
     const parsed = outlineReconciliationFinalizeInputSchema.parse(input);
     const prior = finalized.get(parsed.planId);
     if (prior !== undefined) return outlineReconciliationFinalizeResultSchema.parse({ ...prior, status: 'already-finalized' });
-    const payload = acceptedPayload(projectId, parsed.planId);
+    const payload = authorizedPayload ?? acceptedPayload(projectId, parsed.planId);
     if (payload.finalSourceHash !== parsed.finalSourceHash) throw new Error('Final source hash does not match accepted reconciliation proposal');
     const plan = readPlan(projectId, parsed.planId);
     const before = await snapshot(projectId, plan, parsed.finalSourceHash, true);
@@ -357,6 +367,107 @@ export function createOutlineReconciliationService(deps: {
     }
   };
 
+  const authorizedPayload = async (projectId: string, input: OutlineReconciliationAuthorizedApplyInput): Promise<OutlineReconciliationGatePayload> => {
+    const parsed = outlineReconciliationAuthorizedApplyInputSchema.parse(input);
+    const plan = readPlan(projectId, parsed.planId);
+    const current = await snapshot(projectId, plan, parsed.finalSourceHash, true);
+    const decisions = decisionsFor(plan, parsed.decisions);
+    const desired = outlineWithDecisions(current.outline, plan, decisions);
+    return outlineReconciliationGatePayloadSchema.parse({
+      projectId, planId: plan.planId, proposalId: `finalize-${parsed.operationId}`,
+      planRevision: plan.revision, planFingerprint: fingerprint(plan), reportId: plan.reportId,
+      baselineId: plan.baselineId, baselineSourceHash: plan.baselineSourceHash,
+      finalSourceHash: parsed.finalSourceHash, b5ContentFingerprint: plan.b5ContentFingerprint,
+      expectedB5ContentFingerprint: outlineContentFingerprint(desired), bindingFingerprint: plan.bindingFingerprint,
+      decisions: plan.items.map((item) => decisions.get(item.detailBeatId)!),
+    });
+  };
+
+  const continueFromFinalResult = async (
+    projectId: string,
+    parsed: OutlineReconciliationFinalizeInput,
+    finalResult: OutlineReconciliationFinalizeResult,
+  ): Promise<OutlineReconciliationContinueResult> => {
+    const outline = await deps.outline.read(projectId);
+    const cards = cardsOf(outline);
+    const currentIndex = cards.findIndex((card) => card.detailBeat.id === finalResult.current.detailBeatId);
+    const next = cards.slice(currentIndex + 1).find((card) => card.detailBeat.status === 'planned');
+    if (next === undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'no-next-card' });
+    const progress = await deps.outline.readProgress(projectId);
+    const pending = progress.deviations.find((deviation) => deviation.id === deviationIdFor(parsed.planId, next.detailBeat.id) && !deviation.reconciled);
+    if (pending !== undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'blocked-pending', detailBeatId: next.detailBeat.id });
+    const binding = await deps.binding.read(projectId);
+    const owned = binding.effective.find((item) => item.detailBeatId === next.detailBeat.id);
+    if (owned === undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-binding' });
+    try {
+      const chapter = await deps.text.readChapter(projectId, owned.chapterId);
+      if (!chapter.scenes.some((scene) => scene.id === owned.sceneId)) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-scene' });
+      const nextBaseline = await deps.baseline.create(projectId, { chapterId: owned.chapterId, sceneId: owned.sceneId, detailBeatId: next.detailBeat.id });
+      const result = outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'continued', next: { chapterId: owned.chapterId, sceneId: owned.sceneId, detailBeatId: next.detailBeat.id, baselineId: nextBaseline.baseline.baselineId } });
+      continued.set(parsed.planId, result);
+      return result;
+    } catch (cause) {
+      if (isMissingTarget(cause)) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-scene' });
+      throw cause;
+    }
+  };
+
+  const continueInternal = async (
+    projectId: string,
+    parsed: OutlineReconciliationFinalizeInput,
+    payload: OutlineReconciliationGatePayload,
+  ): Promise<OutlineReconciliationContinueResult> => {
+    const cached = continued.get(parsed.planId);
+    if (cached !== undefined) return cached;
+    return continueFromFinalResult(projectId, parsed, await finalizeInternal(projectId, parsed, payload));
+  };
+
+  const completeAuthorized = async (projectId: string, rawInput: OutlineCompletionAuthorizedInput): Promise<OutlineReconciliationContinueResult> => {
+    const input = outlineCompletionAuthorizedInputSchema.parse(rawInput);
+    const cached = authorizedCompleted.get(input.operationId);
+    if (cached !== undefined) return cached;
+    const baselineResult = await deps.baseline.read(projectId, input.baselineId);
+    const baseline = baselineResult.baseline;
+    if (baseline.projectId !== projectId) throw new Error('Authorized completion baseline belongs to another project');
+    if (baseline.status === 'superseded') throw new Error(`Cannot complete superseded baseline: ${baseline.baselineId}`);
+    const invalidStale = baselineResult.staleReasons.filter((reason) => reason !== 'source-changed');
+    if (invalidStale.length > 0) throw new Error(`Stale authorized completion baseline: ${invalidStale.join(', ')}`);
+    const chapter = await deps.text.readChapter(projectId, baseline.chapterId);
+    const scene = chapter.scenes.find((item) => item.id === baseline.sceneId);
+    if (scene === undefined || textContentHash(scene.content) !== input.finalSourceHash) throw new Error('Authorized completion final C5 source is stale');
+    const [outline, progress, b5Fingerprint, binding] = await Promise.all([
+      deps.outline.read(projectId), deps.outline.readProgress(projectId), deps.outline.contentFingerprint(projectId), deps.binding.read(projectId),
+    ]);
+    if (b5Fingerprint !== baseline.b5ContentFingerprint) throw new Error('Authorized completion B5 is stale');
+    if (binding.fingerprint !== baseline.bindingFingerprint) throw new Error('Authorized completion binding is stale');
+    const owned = binding.effective.find((item) => item.chapterId === baseline.chapterId && item.sceneId === baseline.sceneId && item.detailBeatId === baseline.detailBeatId);
+    if (owned === undefined) throw new Error('Authorized completion target binding is stale');
+    const target = targetCard(cardsOf(outline), baseline.detailBeatId);
+    const currentLocation = outline.acts.flatMap((act) => act.beats.map((beat) => ({ act, beat }))).find(({ beat }) => beat.id === target.beatId);
+    if (currentLocation === undefined || progress.currentBeat !== target.beatId) throw new Error('Current C6 beat is not the authorized completion target');
+    if (target.detailBeat.status !== 'writing' && target.detailBeat.status !== 'done') throw new Error('Authorized completion target must be writing before finalize');
+    const completedOutline: Outline = target.detailBeat.status === 'done' ? outline : {
+      ...outline,
+      acts: outline.acts.map((act) => ({ ...act, beats: act.beats.map((beat) => ({ ...beat, detailBeats: beat.detailBeats.map((detailBeat) => detailBeat.id === target.detailBeat.id ? { ...detailBeat, status: 'done' as const } : detailBeat) })) })),
+    };
+    const completedProgress = nextProgress(completedOutline, progress, target.beatId);
+    const result = outlineReconciliationFinalizeResultSchema.parse({
+      projectId, planId: input.operationId, baselineId: baseline.baselineId, status: baseline.status === 'finalized' ? 'already-finalized' : 'finalized',
+      current: { chapterId: baseline.chapterId, sceneId: baseline.sceneId, detailBeatId: baseline.detailBeatId, status: 'done' },
+      progress: completedProgress, b5ContentFingerprint: outlineContentFingerprint(completedOutline),
+    });
+    try {
+      if (!same(outline, completedOutline)) await deps.outline.save(projectId, completedOutline);
+      if (!same(progress, completedProgress)) await deps.outline.saveProgress(projectId, completedProgress);
+      if (baseline.status !== 'finalized') await deps.baseline.finalize(projectId, baseline.baselineId, input.finalSourceHash);
+    } catch (cause) {
+      throw new Error('Authorized completion failed; retry the same operation', { cause });
+    }
+    const continuedResult = await continueFromFinalResult(projectId, { planId: input.operationId, finalSourceHash: input.finalSourceHash }, result);
+    authorizedCompleted.set(input.operationId, continuedResult);
+    return continuedResult;
+  };
+
   const service: NovelOutlineReconciliationService = {
     propose: (projectId, rawInput) => run(projectId, async () => {
       const input = outlineReconciliationProposeInputSchema.parse(rawInput);
@@ -399,32 +510,14 @@ export function createOutlineReconciliationService(deps: {
     finalize: (projectId, input) => run(projectId, () => finalizeInternal(projectId, input)),
     continue: (projectId, input) => run(projectId, async () => {
       const parsed = outlineReconciliationFinalizeInputSchema.parse(input);
-      const cached = continued.get(parsed.planId);
-      if (cached !== undefined) return cached;
-      const finalResult = await finalizeInternal(projectId, parsed);
-      const outline = await deps.outline.read(projectId);
-      const cards = cardsOf(outline);
-      const currentIndex = cards.findIndex((card) => card.detailBeat.id === finalResult.current.detailBeatId);
-      const next = cards.slice(currentIndex + 1).find((card) => card.detailBeat.status === 'planned');
-      if (next === undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'no-next-card' });
-      const progress = await deps.outline.readProgress(projectId);
-      const pending = progress.deviations.find((deviation) => deviation.id === deviationIdFor(parsed.planId, next.detailBeat.id) && !deviation.reconciled);
-      if (pending !== undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'blocked-pending', detailBeatId: next.detailBeat.id });
-      const binding = await deps.binding.read(projectId);
-      const owned = binding.effective.find((item) => item.detailBeatId === next.detailBeat.id);
-      if (owned === undefined) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-binding' });
-      try {
-        const chapter = await deps.text.readChapter(projectId, owned.chapterId);
-        if (!chapter.scenes.some((scene) => scene.id === owned.sceneId)) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-scene' });
-        const nextBaseline = await deps.baseline.create(projectId, { chapterId: owned.chapterId, sceneId: owned.sceneId, detailBeatId: next.detailBeat.id });
-        const result = outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'continued', next: { chapterId: owned.chapterId, sceneId: owned.sceneId, detailBeatId: next.detailBeat.id, baselineId: nextBaseline.baseline.baselineId } });
-        continued.set(parsed.planId, result);
-        return result;
-      } catch (cause) {
-        if (isMissingTarget(cause)) return outlineReconciliationContinueResultSchema.parse({ ...finalResult, status: 'needs-target', reason: 'missing-scene' });
-        throw cause;
-      }
+      return continueInternal(projectId, parsed, acceptedPayload(projectId, parsed.planId));
     }),
+    applyAuthorized: (projectId, input) => run(projectId, async () => {
+      const authorized = outlineReconciliationAuthorizedApplyInputSchema.parse(input);
+      const payload = await authorizedPayload(projectId, authorized);
+      return continueInternal(projectId, { planId: authorized.planId, finalSourceHash: authorized.finalSourceHash }, payload);
+    }),
+    completeAuthorized: (projectId, input) => run(projectId, () => completeAuthorized(projectId, input)),
   };
   return service;
 }

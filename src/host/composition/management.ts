@@ -19,6 +19,7 @@ import { createLongDraftWorkflowCoordinator } from '../long-draft-workflow-coord
 import { createOutlineDetailGenerationService } from '../outline-detail-generation-service.js';
 import { createOutlineDetailGenerationRemote } from '../outline-detail-generation-adapter.js';
 import { createFinalizationPlanBuilder } from '../finalization-plan-builder.js';
+import { createFinalizationCoordinator } from '../finalization-coordinator.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -410,6 +411,21 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     reconciliation: outlineReconciliationPlannerService,
     onDispose: onFiberDispose,
   });
+  const finalizationCoordinator = createFinalizationCoordinator({
+    planBuilder: finalizationPlanBuilder,
+    text: textService,
+    state: stateService,
+    relationship: relationshipService,
+    knowledge: knowledgeService,
+    canon: canonService,
+    worldview: worldviewService,
+    outline: outlineService,
+    binding: sceneOutlineBindingService,
+    baseline: outlineGenerationBaselineService,
+    reconciliation: outlineReconciliationService,
+    confirmation: confirmationService,
+    onDispose: onFiberDispose,
+  });
   // I135 keeps legacy candidate.adjudicate intact while making draft adoption
   // and the zero-write finalization summary additive methods on one namespace.
   ctx.provide('novelWriting', defineRemote('novelWriting', 'novelWriting', writingAdjudicationService, [
@@ -422,6 +438,9 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'prepareFinalizationPlan', call: async (projectId: string, input: Parameters<typeof finalizationPlanBuilder.prepare>[1], settings?: unknown) => finalizationPlanBuilder.prepare(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
     { method: 'readFinalizationPlan', call: (projectId: string, planId: string) => finalizationPlanBuilder.read(projectId, planId) },
     { method: 'cancelFinalizationPlan', call: (projectId: string, planId: string) => finalizationPlanBuilder.cancel(projectId, planId) },
+    { method: 'proposeFinalization', call: (projectId: string, input: Parameters<typeof finalizationCoordinator.propose>[1]) => finalizationCoordinator.propose(projectId, input) },
+    { method: 'acceptFinalization', call: (projectId: string, proposalId: string) => finalizationCoordinator.accept(projectId, proposalId) },
+    { method: 'rejectFinalization', call: (projectId: string, proposalId: string) => finalizationCoordinator.reject(projectId, proposalId) },
   ], writingInvocations));
   return {
     timelineService,
@@ -439,5 +458,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     outlineDetailGenerationService,
     reviewRepairService,
     finalizationPlanBuilder,
+    finalizationCoordinator,
   };
 }

@@ -6,6 +6,10 @@ import { consistencyStatusSchema, consistencyViolationsSchema } from '../../core
 import {
   draftAdoptionResultSchema,
   finalizationCancelResultSchema,
+  finalizationApplyResultSchema,
+  finalizationProposalInputSchema,
+  finalizationProposeResultSchema,
+  finalizationRejectResultSchema,
   finalizationPlanSchema,
   finalizationPrepareInputSchema,
 } from '../../core/schema/finalization.js';
@@ -203,7 +207,21 @@ export const writingCancelFinalizationPlanInvocation = writingInvocation('cancel
   param('planId', stringCodec),
 ], strictCodec('novel-creation-tool#writingFinalizationPlan:cancel', finalizationCancelResultSchema));
 
-export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation, writingPreviewLayersInvocation, writingAdoptDraftInvocation, writingPrepareFinalizationPlanInvocation, writingReadFinalizationPlanInvocation, writingCancelFinalizationPlanInvocation] as const;
+/** I136 one outer Gate: proposal payload includes every reconciliation decision. */
+export const writingProposeFinalizationInvocation = writingInvocation('proposeFinalization', [
+  param('projectId', stringCodec),
+  param('input', strictCodec('novel-creation-tool#writingFinalizationProposalInput', finalizationProposalInputSchema)),
+], strictCodec('novel-creation-tool#writingFinalizationProposal:result', finalizationProposeResultSchema));
+export const writingAcceptFinalizationInvocation = writingInvocation('acceptFinalization', [
+  param('projectId', stringCodec),
+  param('proposalId', stringCodec),
+], strictCodec('novel-creation-tool#writingFinalizationApply:result', finalizationApplyResultSchema));
+export const writingRejectFinalizationInvocation = writingInvocation('rejectFinalization', [
+  param('projectId', stringCodec),
+  param('proposalId', stringCodec),
+], strictCodec('novel-creation-tool#writingFinalizationReject:result', finalizationRejectResultSchema));
+
+export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation, writingPreviewLayersInvocation, writingAdoptDraftInvocation, writingPrepareFinalizationPlanInvocation, writingReadFinalizationPlanInvocation, writingCancelFinalizationPlanInvocation, writingProposeFinalizationInvocation, writingAcceptFinalizationInvocation, writingRejectFinalizationInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const writingRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

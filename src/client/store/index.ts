@@ -190,12 +190,17 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       // I107：导航世代随章节/场景改变；候选与版本结果属于旧目标时必须丢弃，
       // 管理面草稿则保留，避免模式切换或读取新场景抹掉未保存编辑（R18-9）。
       chaptersSelectChapter: (d, chapterId: string) => {
+        const previousWorkflow = d.chapters.workflow;
+        const preserveFinalizationContext = previousWorkflow.status === 'saved'
+          && previousWorkflow.candidateId !== undefined
+          && previousWorkflow.chapterId === chapterId;
+        const nextRevision = d.chapters.navigationRevision + 1;
         d.chapters = {
           ...d.chapters,
           selectedChapterId: chapterId,
           selectedSceneId: undefined,
-          navigationRevision: d.chapters.navigationRevision + 1,
-          workflow: freshWritingWorkflow(d.chapters.navigationRevision + 1),
+          navigationRevision: nextRevision,
+          workflow: preserveFinalizationContext ? { ...previousWorkflow, navigationRevision: nextRevision } : freshWritingWorkflow(nextRevision),
           polish: freshPolishSession(d.chapters.navigationRevision + 1),
           chapter: { status: 'loading' },
           scene: { status: 'idle' },
@@ -204,11 +209,17 @@ export function createWorkbenchStore(defineStore: DefineStore) {
         };
       },
       chaptersSelectScene: (d, sceneId: string) => {
+        const previousWorkflow = d.chapters.workflow;
+        const preserveFinalizationContext = previousWorkflow.status === 'saved'
+          && previousWorkflow.candidateId !== undefined
+          && previousWorkflow.chapterId === d.chapters.selectedChapterId
+          && previousWorkflow.sceneId === sceneId;
+        const nextRevision = d.chapters.navigationRevision + 1;
         d.chapters = {
           ...d.chapters,
           selectedSceneId: sceneId,
-          navigationRevision: d.chapters.navigationRevision + 1,
-          workflow: freshWritingWorkflow(d.chapters.navigationRevision + 1),
+          navigationRevision: nextRevision,
+          workflow: preserveFinalizationContext ? { ...previousWorkflow, navigationRevision: nextRevision } : freshWritingWorkflow(nextRevision),
           polish: freshPolishSession(d.chapters.navigationRevision + 1),
           scene: { status: 'loading' },
           candidate: freshCandidatePanel(),

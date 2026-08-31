@@ -4,8 +4,8 @@ import type { ChapterMetadataPatch, SceneMetadataPatch } from '../../core/schema
 import type { TextDeletionTarget } from '../../core/schema/text-deletion.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
 import type { OutlineReconciliationChoice } from '../../core/schema/outline-reconciliation.js';
-import type { OutlineReconciliationPanelState } from '../layers/chapters.js';
-import type { ChapterManagementDraft, ChapterManagementState, ChaptersEditOps, SceneManagementDraft } from '../layers/chapters.js';
+import type { FinalizationPanelState, OutlineReconciliationPanelState, ChapterManagementDraft, ChapterManagementState, ChaptersEditOps, SceneManagementDraft } from '../layers/chapters.js';
+import type { FinalizationApplyResult, FinalizationPlan } from '../../core/schema/finalization.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 
 type ManagementPort = Pick<OpsPorts, 'workspace' | 'writing' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
@@ -22,6 +22,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
   const chapterDraft = (value: Partial<ChapterManagementDraft>): void => patch({ chapterDraft: { ...snapshot.chapters.management.chapterDraft, ...value } });
   const sceneDraft = (value: Partial<SceneManagementDraft>): void => patch({ sceneDraft: { ...snapshot.chapters.management.sceneDraft, ...value } });
   const reconciliationPatch = (value: Partial<OutlineReconciliationPanelState>): void => patch({ reconciliation: { ...snapshot.chapters.management.reconciliation, ...value } });
+  const finalizationPatch = (value: Partial<FinalizationPanelState>): void => patch({ finalization: { ...snapshot.chapters.management.finalization, ...value } });
 
   const reloadTree = (key: string): void => {
     const workspace = port.workspace;
@@ -353,6 +354,98 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     }, (cause: Error) => { endOp('chapters:reconciliation:continue'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
+  const prepareFinalization = (): void => {
+    const writing = port.writing;
+    const workflow = snapshot.chapters.workflow;
+    if (!writing || projectId === undefined || workflow.candidateId === undefined || workflow.sourceHash === undefined || !beginOp('chapters:finalization:prepare')) return;
+    finalizationPatch({ status: 'loading', message: undefined, proposalId: undefined, operationId: undefined, result: undefined });
+    void unwrap(writing.prepareFinalizationPlan(projectId, { candidateId: workflow.candidateId, finalSourceHash: workflow.sourceHash }, undefined)).then((value) => {
+      endOp('chapters:finalization:prepare');
+      if (!isActive()) return;
+      const plan = value as FinalizationPlan;
+      const decisions = Object.fromEntries(plan.reconciliation.items.map((item) => [item.detailBeatId, item.choice]));
+      const manualValues = Object.fromEntries(plan.reconciliation.items.map((item) => [item.detailBeatId, item.manualValue ?? item.before]));
+      finalizationPatch({ status: 'ready', planId: plan.planId, plan, decisions, manualValues, proposalId: undefined, operationId: undefined, result: undefined, message: undefined });
+    }, (cause: Error) => {
+      endOp('chapters:finalization:prepare');
+      if (isActive()) finalizationPatch({ status: 'error', message: toUserMessage(cause) });
+    });
+  };
+
+  const finalizationChoice = (detailBeatId: string, choice: OutlineReconciliationChoice): void => {
+    const plan = snapshot.chapters.management.finalization.plan;
+    if (plan === undefined || !plan.reconciliation.items.some((item) => item.detailBeatId === detailBeatId) || snapshot.chapters.management.finalization.proposalId !== undefined) return;
+    finalizationPatch({ decisions: { ...snapshot.chapters.management.finalization.decisions, [detailBeatId]: choice }, message: undefined });
+  };
+
+  const finalizationManualPatch = (detailBeatId: string, value: Partial<DetailBeat>): void => {
+    const current = snapshot.chapters.management.finalization.manualValues[detailBeatId];
+    const item = snapshot.chapters.management.finalization.plan?.reconciliation.items.find((candidate) => candidate.detailBeatId === detailBeatId);
+    if (current === undefined || item === undefined || snapshot.chapters.management.finalization.proposalId !== undefined) return;
+    finalizationPatch({ manualValues: { ...snapshot.chapters.management.finalization.manualValues, [detailBeatId]: { ...current, ...value, id: detailBeatId, status: 'planned' } } });
+  };
+
+  const finalizationDecisions = () => {
+    const current = snapshot.chapters.management.finalization;
+    const items = current.plan?.reconciliation.items ?? [];
+    return items.map((item) => {
+      const choice = current.decisions[item.detailBeatId] ?? item.choice;
+      return choice === 'manual'
+        ? { detailBeatId: item.detailBeatId, choice, manualValue: current.manualValues[item.detailBeatId] ?? item.manualValue ?? item.before }
+        : { detailBeatId: item.detailBeatId, choice };
+    });
+  };
+
+  const proposeFinalization = (): void => {
+    const writing = port.writing;
+    const current = snapshot.chapters.management.finalization;
+    if (!writing || projectId === undefined || current.plan === undefined || current.status !== 'ready' || !beginOp('chapters:finalization:propose')) return;
+    finalizationPatch({ status: 'proposing', message: undefined });
+    void unwrap(writing.proposeFinalization(projectId, { planId: current.plan.planId, decisions: finalizationDecisions() })).then((value) => {
+      endOp('chapters:finalization:propose');
+      if (!isActive()) return;
+      const result = value as { proposalId: string; operationId: string };
+      finalizationPatch({ status: 'pending', proposalId: result.proposalId, operationId: result.operationId, message: '定稿摘要已冻结，请确认是否同步。' });
+    }, (cause: Error) => {
+      endOp('chapters:finalization:propose');
+      if (isActive()) finalizationPatch({ status: 'error', message: toUserMessage(cause) });
+    });
+  };
+
+  const acceptFinalization = (): void => {
+    const writing = port.writing;
+    const current = snapshot.chapters.management.finalization;
+    if (!writing || projectId === undefined || current.proposalId === undefined || (current.status !== 'pending' && current.status !== 'partial-failure') || !beginOp('chapters:finalization:accept')) return;
+    finalizationPatch({ status: 'applying', message: undefined });
+    void unwrap(writing.acceptFinalization(projectId, current.proposalId)).then((value) => {
+      endOp('chapters:finalization:accept');
+      if (!isActive()) return;
+      const result = value as FinalizationApplyResult;
+      if (result.status === 'partial-failure') finalizationPatch({ status: 'partial-failure', result, message: `定稿同步在${result.failedStage}处中断，可重试。` });
+      else if (result.status === 'stale') finalizationPatch({ status: 'stale', result, message: '正文或相关素材已变化，请重新分析最终正文。' });
+      else if (result.status === 'needs-target') finalizationPatch({ status: 'needs-target', result, message: '当前正文已定稿，但暂时没有合法的下一目标。' });
+      else if (result.next.status === 'needs-target') finalizationPatch({ status: 'needs-target', result, message: '当前正文已定稿，但暂时没有合法的下一目标。' });
+      else finalizationPatch({ status: 'done', result, message: result.status === 'already-applied' ? '定稿此前已同步，重复操作已安全收敛。' : '定稿同步完成。' });
+    }, (cause: Error) => {
+      endOp('chapters:finalization:accept');
+      if (isActive()) finalizationPatch({ status: 'partial-failure', message: toUserMessage(cause) });
+    });
+  };
+
+  const rejectFinalization = (): void => {
+    const writing = port.writing;
+    const current = snapshot.chapters.management.finalization;
+    if (!writing || projectId === undefined || current.proposalId === undefined || current.status !== 'pending' || !beginOp('chapters:finalization:reject')) return;
+    finalizationPatch({ status: 'proposing', message: undefined });
+    void unwrap(writing.rejectFinalization(projectId, current.proposalId)).then(() => {
+      endOp('chapters:finalization:reject');
+      if (isActive()) finalizationPatch({ status: 'idle', proposalId: undefined, operationId: undefined, message: '已拒绝本次定稿，正文与结构均未改变。' });
+    }, (cause: Error) => {
+      endOp('chapters:finalization:reject');
+      if (isActive()) finalizationPatch({ status: 'error', message: toUserMessage(cause) });
+    });
+  };
+
   return {
     chapterDraft,
     sceneDraft,
@@ -382,5 +475,11 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     reconciliationReject,
     reconciliationFinalize,
     reconciliationContinue,
-  } satisfies Pick<ChaptersEditOps, 'chapterDraft' | 'sceneDraft' | 'managementPatch' | 'createChapter' | 'updateChapter' | 'createScene' | 'updateScene' | 'reorder' | 'refreshManagement' | 'bindingSave' | 'bindingRebind' | 'bindingUnbind' | 'chooseDeleteTarget' | 'refreshDeleteImpact' | 'cancelDeleteQueue' | 'rejectDeleteCandidates' | 'proposeDelete' | 'applyDelete' | 'rejectDelete' | 'reconciliationPlanId' | 'reconciliationRead' | 'reconciliationChoice' | 'reconciliationManualPatch' | 'reconciliationPropose' | 'reconciliationAccept' | 'reconciliationReject' | 'reconciliationFinalize' | 'reconciliationContinue'>;
+    prepareFinalization,
+    finalizationChoice,
+    finalizationManualPatch,
+    proposeFinalization,
+    acceptFinalization,
+    rejectFinalization,
+  } satisfies Pick<ChaptersEditOps, 'chapterDraft' | 'sceneDraft' | 'managementPatch' | 'createChapter' | 'updateChapter' | 'createScene' | 'updateScene' | 'reorder' | 'refreshManagement' | 'bindingSave' | 'bindingRebind' | 'bindingUnbind' | 'chooseDeleteTarget' | 'refreshDeleteImpact' | 'cancelDeleteQueue' | 'rejectDeleteCandidates' | 'proposeDelete' | 'applyDelete' | 'rejectDelete' | 'reconciliationPlanId' | 'reconciliationRead' | 'reconciliationChoice' | 'reconciliationManualPatch' | 'reconciliationPropose' | 'reconciliationAccept' | 'reconciliationReject' | 'reconciliationFinalize' | 'reconciliationContinue' | 'prepareFinalization' | 'finalizationChoice' | 'finalizationManualPatch' | 'proposeFinalization' | 'acceptFinalization' | 'rejectFinalization'>;
 }

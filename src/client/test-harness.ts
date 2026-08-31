@@ -16,7 +16,7 @@ export { factory };
 
 import type { FakeNode } from "./test-harness/types.js";
 import { collect } from "./test-harness/dom-helpers.js";
-import { makeWorkspace, type MountOptions, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
+import { makeWorkspace, type MountOptions, type MountOptionsI136, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
 
 /** Fake React: `createElement` only — any JSX runtime use would fail to compile/run. */
 export const fakeReact = {
@@ -24,7 +24,7 @@ export const fakeReact = {
     ({ tag, props, children }),
 };
 
-export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}, mountOptions: MountOptions = {}) {
+export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}, mountOptions: MountOptions & MountOptionsI136 = {}) {
   const registrations: Record<string, Array<{ options: Record<string, unknown>; component: () => unknown }>> = {};
   const overlayCleanups: Array<() => void> = [];
   const footerCleanups: Array<() => void> = [];
@@ -125,7 +125,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const analyzer = mountOptions.onboardingAnalyzer;
   const onboardingStub = mountOptions.onboarding;
   const workbenchSettingsStub = mountOptions.workbenchSettings;
-  const writingStub = mountOptions.writing;
+  const writingStub = mountOptions.writing as (MountOptions['writing'] & MountOptionsI136['writing']) | undefined;
   const reviewStub = mountOptions.review;
   const reviewRepairStub = mountOptions.reviewRepair;
   const queueStub = mountOptions.queue;
@@ -179,6 +179,9 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       prepareFinalizationPlan: writingStub?.prepareFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.prepareFinalizationPlan'); }),
       readFinalizationPlan: writingStub?.readFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.readFinalizationPlan'); }),
       cancelFinalizationPlan: writingStub?.cancelFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.cancelFinalizationPlan'); }),
+      proposeFinalization: writingStub?.proposeFinalization ?? (async () => { throw new Error('未注入 remote.novelWriting.proposeFinalization'); }),
+      acceptFinalization: writingStub?.acceptFinalization ?? (async () => { throw new Error('未注入 remote.novelWriting.acceptFinalization'); }),
+      rejectFinalization: writingStub?.rejectFinalization ?? (async () => { throw new Error('未注入 remote.novelWriting.rejectFinalization'); }),
     }
     : name === 'remote.novelReview' ? (reviewStub ?? {
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },
@@ -358,5 +361,5 @@ export function cleanupClientTestEnv(): void {
 // I95 兼容重导出（拆分后外部符号入口不变）。
 export { collect, layerButtons } from "./test-harness/dom-helpers.js";
 export { I56_LAYERS, analyzerStub, openOnboardingReview } from "./test-harness/onboarding-fixtures.js";
-export { makeWorkspace, READY_MODEL, type MountOptions, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
+export { makeWorkspace, READY_MODEL, type MountOptions, type MountOptionsI136, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
 export type { FakeNode } from "./test-harness/types.js";

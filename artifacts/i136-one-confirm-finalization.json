@@ -1,0 +1,34 @@
+{
+  "iteration": "I136",
+  "requirement": "R18-13b",
+  "guarantees": [
+    "one-finalization-proposal-and-one-author-confirmation",
+    "authorized-five-layer-application-without-nested-gates",
+    "ordered-current-card-completion-and-next-baseline",
+    "deterministic-operation-id-with-already-applied-convergence",
+    "stale-and-partial-failure-results-remain-visible-and-retryable",
+    "no-generation-baseline-returns-needs-target-without-ghost-content",
+    "client-summary-confirmation-consumer-and-real-binder-pass"
+  ],
+  "applicationOrder": [
+    "c2",
+    "c1",
+    "c3",
+    "c4",
+    "b2",
+    "b5",
+    "c6",
+    "baseline"
+  ],
+  "remoteLock": {
+    "descriptorCount": 178,
+    "resultSchemaCount": 84
+  },
+  "focusedSuites": "FinalizationCoordinator, FinalizationPlanBuilder, author Client flow, real binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "background-finalization",
+    "automatic-semantic-judgment",
+    "multi-card-batch-acceptance",
+    "legacy-candidate-accept-removal"
+  ]
+}

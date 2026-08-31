@@ -46,6 +46,8 @@ export interface FiveLayerWritebackOptions {
    * 决策，B2 恒提案（含空 ops）。
    */
   readonly skipEmptyB2Proposal?: boolean;
+  /** I136 outer finalization Gate authorization; prevents a nested B2 Gate. */
+  readonly authorizedFinalization?: boolean;
 }
 
 /**
@@ -66,30 +68,41 @@ export function buildFiveLayerWriters(
     ops.some((operation) => operation.confidence === 'low');
   return {
     c2: async (parsed) => {
-      if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C2 operations require ConfirmationGate');
+      if (lowConfidence(parsed.ops) && options.authorizedFinalization !== true) throw new Error('Low-confidence C2 operations require ConfirmationGate');
       await deps.state.transaction(projectId, (draft) => applyC2StateOperationsToDraft(draft as StateDraft, parsed.ops));
     },
     c1: async (parsed) => {
-      if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C1 operations require ConfirmationGate');
+      if (lowConfidence(parsed.ops) && options.authorizedFinalization !== true) throw new Error('Low-confidence C1 operations require ConfirmationGate');
       const next = materializeC1RelationshipOperations(await deps.relationship.read(projectId), parsed.ops);
       await deps.relationship.saveAll(projectId, next);
     },
     c3: async (parsed) => {
-      if (lowConfidence(parsed.ops)) throw new Error('Low-confidence C3 operations require ConfirmationGate');
+      if (lowConfidence(parsed.ops) && options.authorizedFinalization !== true) throw new Error('Low-confidence C3 operations require ConfirmationGate');
       const next = materializeC3KnowledgeOperations(await deps.knowledge.read(projectId), parsed.ops);
       await deps.knowledge.saveAll(projectId, next.entries, next.states);
     },
     c4: async (parsed) => {
-      if (parsed.ops.some((operation) => operation.confidence === 'low' || operation.op === 'supersede')) {
+      if (options.authorizedFinalization !== true && parsed.ops.some((operation) => operation.confidence === 'low' || operation.op === 'supersede')) {
         throw new Error('Low-confidence or supersede C4 operations require ConfirmationGate');
       }
       for (const operation of parsed.ops) {
-        if (operation.op !== 'append') throw new Error('C4 supersede operations require ConfirmationGate');
-        await deps.canon.append(projectId, operation.event);
+        if (operation.op === 'append') await deps.canon.append(projectId, operation.event);
+        else if (options.authorizedFinalization === true) await deps.canon.supersede(projectId, operation.targetId, operation.correction);
+        else throw new Error('C4 supersede operations require ConfirmationGate');
       }
     },
     b2: async (parsed) => {
-      if (options.skipEmptyB2Proposal === true && parsed.ops.length === 0) return;
+      if (parsed.ops.length === 0 && (options.skipEmptyB2Proposal === true || options.authorizedFinalization === true)) return;
+      if (options.authorizedFinalization === true) {
+        for (const operation of parsed.ops) {
+          await deps.worldview.rewrite(projectId, operation.targetId, {
+            ...operation.replacement,
+            status: 'active',
+            supersededBy: null,
+          });
+        }
+        return;
+      }
       // B2 改写 confirmation-first：先经 I11 Gate 提出并接受，再经既有改写服务落盘。
       const b2ProposalId = `${proposalId}-b2`;
       await deps.confirmation.propose(projectId, {

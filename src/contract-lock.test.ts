@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { checkRemoteContractLock, checkShapeLock } from './contract-lock.js';
 import { hostContribution } from './host/remote/host-contribution.js';
 import { branchAggregateInvocation, branchChooseFreshInvocation, branchInvocations } from './host/remote/branch.js';
-import { writingInvocations, writingAdoptDraftInvocation, writingCancelFinalizationPlanInvocation, writingPrepareFinalizationPlanInvocation, writingPreviewLayersInvocation, writingProposeAtInvocation, writingReadFinalizationPlanInvocation } from './host/remote/writing.js';
+import { writingAcceptFinalizationInvocation, writingInvocations, writingAdoptDraftInvocation, writingCancelFinalizationPlanInvocation, writingPrepareFinalizationPlanInvocation, writingPreviewLayersInvocation, writingProposeAtInvocation, writingProposeFinalizationInvocation, writingReadFinalizationPlanInvocation, writingRejectFinalizationInvocation } from './host/remote/writing.js';
 import { reviewInvocations } from './host/remote/review.js';
 import { c5Invocations, sceneReparsePreviewInvocation } from './host/remote/text.js';
 import { textMutationInvocations } from './host/remote/text-mutation.js';
@@ -74,8 +74,13 @@ const i135DescriptorIds = new Set([
   writingReadFinalizationPlanInvocation.id,
   writingCancelFinalizationPlanInvocation.id,
 ]);
+const i136DescriptorIds = new Set([
+  writingProposeFinalizationInvocation.id,
+  writingAcceptFinalizationInvocation.id,
+  writingRejectFinalizationInvocation.id,
+]);
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
@@ -98,10 +103,13 @@ const stage18Descriptors = [
   writingPrepareFinalizationPlanInvocation,
   writingReadFinalizationPlanInvocation,
   writingCancelFinalizationPlanInvocation,
+  writingProposeFinalizationInvocation,
+  writingAcceptFinalizationInvocation,
+  writingRejectFinalizationInvocation,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
-  ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation && !i135DescriptorIds.has(descriptor.id)),
+  ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id)),
   ...reviewInvocations,
   ...c5Invocations.filter((descriptor) => descriptor !== sceneReparsePreviewInvocation),
   ...textMutationInvocations,
@@ -128,6 +136,9 @@ const stage18ResultDescriptors = [
   writingPrepareFinalizationPlanInvocation,
   writingReadFinalizationPlanInvocation,
   writingCancelFinalizationPlanInvocation,
+  writingProposeFinalizationInvocation,
+  writingAcceptFinalizationInvocation,
+  writingRejectFinalizationInvocation,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -199,8 +210,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(175);
-    expect(remoteLock.resultSchemaIds).toHaveLength(81);
+    expect(remoteLock.descriptorIds).toHaveLength(178);
+    expect(remoteLock.resultSchemaIds).toHaveLength(84);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -224,6 +235,9 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       writingPrepareFinalizationPlanInvocation.id,
       writingReadFinalizationPlanInvocation.id,
       writingCancelFinalizationPlanInvocation.id,
+      writingProposeFinalizationInvocation.id,
+      writingAcceptFinalizationInvocation.id,
+      writingRejectFinalizationInvocation.id,
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -246,6 +260,9 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       writingPrepareFinalizationPlanInvocation.id,
       writingReadFinalizationPlanInvocation.id,
       writingCancelFinalizationPlanInvocation.id,
+      writingProposeFinalizationInvocation.id,
+      writingAcceptFinalizationInvocation.id,
+      writingRejectFinalizationInvocation.id,
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

@@ -168,6 +168,12 @@ function fixtureFor(endpoint: string): unknown {
       return finalizationPlan;
     case 'novelWriting/cancelFinalizationPlan':
       return { projectId: 'p1', planId: 'final-plan-1', status: 'cancelled' };
+    case 'novelWriting/proposeFinalization':
+      return { projectId: 'p1', planId: 'final-plan-1', proposalId: 'finalization-proposal-1', operationId: 'finalization-operation-1', status: 'pending' };
+    case 'novelWriting/acceptFinalization':
+      return { projectId: 'p1', planId: 'final-plan-1', proposalId: 'finalization-proposal-1', operationId: 'finalization-operation-1', status: 'needs-target', reason: 'no-generation-baseline', appliedStages: [] };
+    case 'novelWriting/rejectFinalization':
+      return { projectId: 'p1', planId: 'final-plan-1', proposalId: 'finalization-proposal-1', operationId: 'finalization-operation-1', status: 'rejected' };
     case 'novelWorkspace/sceneReparsePreview':
       return {
         proposalId: 'scene-reparse-1', range: { start: 1, end: 2 }, replacement: 'x',
@@ -669,6 +675,9 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     ['prepare-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'prepareFinalizationPlan', ['p1', { candidateId: 'cand-1', finalSourceHash: 'a'.repeat(64) }, undefined]],
     ['read-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'readFinalizationPlan', ['p1', 'final-plan-1']],
     ['cancel-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'cancelFinalizationPlan', ['p1', 'final-plan-1']],
+    ['propose-finalization', writingRemoteContribution, 'remote.novelWriting', 'proposeFinalization', ['p1', { planId: 'final-plan-1', decisions: [] }]],
+    ['accept-finalization', writingRemoteContribution, 'remote.novelWriting', 'acceptFinalization', ['p1', 'finalization-proposal-1']],
+    ['reject-finalization', writingRemoteContribution, 'remote.novelWriting', 'rejectFinalization', ['p1', 'finalization-proposal-1']],
     ['startAt', queueRemoteContribution, 'remote.novelQueue', 'startAt', ['p1', { chapterId: 'chapter-1', cardIds: [] }]],
     ['text-impact-read', textChangeImpactRemoteContribution, 'remote.novelTextChangeImpact', 'read', ['p1', 'impact-1']],
     ['outline-reconciliation-read', outlineReconciliationRemoteContribution, 'remote.novelOutlineReconciliation', 'read', ['p1', 'reconcile-1']],

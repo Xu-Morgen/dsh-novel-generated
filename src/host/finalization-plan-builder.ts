@@ -11,6 +11,7 @@ import {
 } from '../core/schema/finalization.js';
 import type { OutlineGenerationBaselineReadResult } from '../core/schema/outline-generation-baseline.js';
 import type { OutlineReconciliationPlan } from '../core/schema/outline-reconciliation.js';
+import type { StructuralPreviewPlan } from './writing-adjudication/structural-preview-plan.js';
 import type { TextChangeImpactReport } from '../core/schema/text-change-impact.js';
 import type { GenerationSettings } from '../llm/port/index.js';
 import type { NovelOutlineGenerationBaselineService } from './outline-generation-baseline-service.js';
@@ -25,7 +26,15 @@ import type { NovelWritingAdjudicationService } from './writing-adjudication-ser
 export interface NovelFinalizationPlanBuilder {
   prepare(projectId: string, input: FinalizationPrepareInput, settings: GenerationSettings, signal?: AbortSignal): Promise<FinalizationPlan>;
   read(projectId: string, planId: string): FinalizationPlan;
+  /** Host-only handoff for I136; it exposes the frozen parser replay, never a Remote. */
+  readForApplication(projectId: string, planId: string): FinalizationApplicationContext;
   cancel(projectId: string, planId: string): Promise<{ projectId: string; planId: string; status: 'cancelled' }>;
+}
+
+export interface FinalizationApplicationContext {
+  readonly plan: FinalizationPlan;
+  readonly structural: StructuralPreviewPlan;
+  readonly reconciliationPlan?: OutlineReconciliationPlan;
 }
 
 interface PlanSession {
@@ -33,6 +42,8 @@ interface PlanSession {
   readonly planId: string;
   status: 'ready' | 'cancelled' | 'failed';
   plan?: FinalizationPlan;
+  structural?: StructuralPreviewPlan;
+  reconciliationPlan?: OutlineReconciliationPlan;
   error?: unknown;
 }
 
@@ -165,13 +176,14 @@ export function createFinalizationPlanBuilder(deps: {
     if (generationBaseline.kind === 'baseline' && currentB5 !== generationBaseline.b5ContentFingerprint) throw new Error('Finalization B5 freshness changed');
 
     let report: TextChangeImpactReport | undefined;
+    let reconciliationPlan: OutlineReconciliationPlan | undefined;
     let reconciliation: FinalizationPlan['reconciliation'];
     if (baselineResult === undefined) {
       reconciliation = { status: 'degraded', reason: 'no-generation-baseline', items: [] };
     } else {
       const impactReady = await deps.impact.prepare(projectId, { baselineId: baselineResult.baseline.baselineId, finalSourceHash: input.finalSourceHash }, settings, signal);
       report = deps.impact.read(projectId, impactReady.impactId);
-      const reconciliationPlan = report.classification === 'wording-only' || report.affectedDetailBeatIds.length === 0
+      reconciliationPlan = report.classification === 'wording-only' || report.affectedDetailBeatIds.length === 0
         ? undefined
         : await deps.reconciliation.prepare(projectId, { report }, settings, signal);
       reconciliation = reconciliationProjection(report, reconciliationPlan);
@@ -185,7 +197,7 @@ export function createFinalizationPlanBuilder(deps: {
       completion: { current: { detailBeatId: generationBaseline.kind === 'baseline' ? generationBaseline.detailBeatId : null, status: 'unchanged' }, next: { status: 'deferred', reason: 'application-owned-by-i136' } },
       degradedReasons, createdAt: new Date().toISOString(),
     });
-    sessions.set(planId, { projectId, planId, status: 'ready', plan });
+    sessions.set(planId, { projectId, planId, status: 'ready', plan, structural, reconciliationPlan });
     return plan;
   };
 
@@ -196,6 +208,18 @@ export function createFinalizationPlanBuilder(deps: {
       if (session.status === 'ready' && session.plan !== undefined) return session.plan;
       if (session.status === 'failed') throw session.error instanceof Error ? session.error : new Error(`Finalization plan failed: ${planId}`);
       throw new Error(`Finalization plan is cancelled: ${planId}`);
+    },
+    readForApplication(projectId: string, planId: string) {
+      const session = readSession(projectId, planId);
+      if (session.status === 'failed') throw session.error instanceof Error ? session.error : new Error(`Finalization plan failed: ${planId}`);
+      if (session.status !== 'ready' || session.plan === undefined || session.structural === undefined) {
+        throw new Error(`Finalization plan is not ready: ${planId}`);
+      }
+      return Object.freeze({
+        plan: session.plan,
+        structural: session.structural,
+        ...(session.reconciliationPlan === undefined ? {} : { reconciliationPlan: session.reconciliationPlan }),
+      });
     },
     async cancel(projectId: string, planId: string) {
       const session = readSession(projectId, planId);

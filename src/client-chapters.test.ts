@@ -600,3 +600,62 @@ describe('I114 正文变化与细纲调和 Client 消费 (R18-11d)', () => {
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-reconciliation-state'] === 'pending')).toBe(true);
   });
 });
+
+describe('I136 一次确认式定稿 Client 主路径 (R18-13b)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+  const plan = {
+    planId: 'finalization-plan-1', projectId: 'fixture-project', candidateId: 'candidate-1', chapterId: 'chapter-1', sceneId: 'scene-1',
+    draftSourceHash: 'a'.repeat(64), finalSourceHash: 'a'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' },
+    layerFingerprints: { c2: 'a'.repeat(64), c1: 'b'.repeat(64), c3: 'c'.repeat(64), c4: 'd'.repeat(64), b2: 'e'.repeat(64) },
+    layerChanges: [{ layer: 'c1', kind: 'update', entityType: 'relationship', entityId: 'relationship-1', beforeHash: 'b'.repeat(64), afterHash: 'c'.repeat(64), changedFields: ['affinity'] }],
+    references: { deterministic: [], semanticCandidates: [], forbiddenAutomatic: [] },
+    reconciliation: { status: 'none', items: [] },
+    completion: { current: { detailBeatId: null, status: 'unchanged' }, next: { status: 'deferred', reason: 'application-owned-by-i136' } },
+    degradedReasons: ['no-generation-baseline'], createdAt: '2026-08-31T00:00:00.000Z',
+  };
+
+  it('候选接受为草稿后，正文区只开放一次确认式定稿入口', async () => {
+    const calls: string[] = [];
+    const m = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', sceneCount: 1 }],
+      chapterRead: async () => ({ ok: true, value: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '开场' }] } }),
+      sceneRead: async () => ({ ok: true, value: { chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira' }, scene: { id: 'scene-1', index: 0, summary: '开场', content: '原文', beats: [], canonEvents: [], notes: '' } } }),
+    }, {
+      writing: {
+        proposeAt: async () => ({ candidate: { id: 'candidate-1' } }),
+        preview: async () => ({ candidateId: 'candidate-1', intent: 'continue', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, text: '候选正文', diff: { kind: 'new-scene' }, validation: { status: 'pass', violations: [] }, trace: undefined }),
+        previewLayers: async () => ({ candidateId: 'candidate-1', sourceHash: 'a'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' }, changes: [], validation: { status: 'pass', violations: [] } }),
+        adoptDraft: async () => ({ projectId: 'fixture-project', candidateId: 'candidate-1', chapterId: 'chapter-1', sceneId: 'scene-1', status: 'adopted', sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64) }),
+        prepareFinalizationPlan: async () => { calls.push('prepare'); return plan; },
+        proposeFinalization: async () => { calls.push('propose'); return { projectId: 'fixture-project', planId: plan.planId, proposalId: 'proposal-1', operationId: 'operation-1', status: 'pending' }; },
+        acceptFinalization: async () => { calls.push('accept'); return { projectId: 'fixture-project', planId: plan.planId, proposalId: 'proposal-1', operationId: 'operation-1', status: 'needs-target', reason: 'no-generation-baseline', appliedStages: [] }; },
+        rejectFinalization: async () => { calls.push('reject'); return { projectId: 'fixture-project', planId: plan.planId, proposalId: 'proposal-1', operationId: 'operation-1', status: 'rejected' }; },
+      },
+    });
+    await flush();
+    const render = () => m.registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-candidate-propose-continue'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-candidate-adopt-draft'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'writing')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-finalization-prepare'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-finalization'] !== undefined)?.props?.['data-novel-finalization-state']).toBe('ready');
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-finalization-propose'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual(['prepare', 'propose']);
+    expect(collect(render(), 'button').filter((node) => node.props?.['data-novel-finalization-accept'] !== undefined)).toHaveLength(1);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-finalization-accept'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual(['prepare', 'propose', 'accept']);
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-finalization'] !== undefined)?.props?.['data-novel-finalization-state']).toBe('needs-target');
+  });
+});

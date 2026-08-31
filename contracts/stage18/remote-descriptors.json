@@ -177,7 +177,10 @@
     "novel-creation-tool/novelWriting/adoptDraft",
     "novel-creation-tool/novelWriting/prepareFinalizationPlan",
     "novel-creation-tool/novelWriting/readFinalizationPlan",
-    "novel-creation-tool/novelWriting/cancelFinalizationPlan"
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan",
+    "novel-creation-tool/novelWriting/proposeFinalization",
+    "novel-creation-tool/novelWriting/acceptFinalization",
+    "novel-creation-tool/novelWriting/rejectFinalization"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -40979,6 +40982,695 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelWriting/proposeFinalization": {
+      "id": "novel-creation-tool/novelWriting/proposeFinalization",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "proposeFinalization",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#writingFinalizationProposalInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "decisions": {
+                  "maxItems": 32,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "choice": {
+                        "type": "string",
+                        "enum": [
+                          "keep",
+                          "ai",
+                          "manual",
+                          "pending"
+                        ]
+                      },
+                      "manualValue": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "detailBeatId",
+                      "choice"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "planId",
+                "decisions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationProposal:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "pending"
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelWriting/acceptFinalization": {
+      "id": "novel-creation-tool/novelWriting/acceptFinalization",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "acceptFinalization",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationApply:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "appliedStages": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "c2",
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b2",
+                      "b5",
+                      "c6",
+                      "baseline"
+                    ]
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "applied",
+                    "already-applied"
+                  ]
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "done"
+                    }
+                  },
+                  "required": [
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "next": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "const": "continued"
+                        },
+                        "chapterId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "sceneId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "detailBeatId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "baselineId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "chapterId",
+                        "sceneId",
+                        "detailBeatId",
+                        "baselineId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "const": "needs-target"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "no-next-card",
+                            "missing-binding",
+                            "missing-scene",
+                            "no-generation-baseline",
+                            "pending-reconciliation"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "reason"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "proposalId",
+                "operationId",
+                "appliedStages",
+                "status",
+                "current",
+                "next"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "appliedStages": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "c2",
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b2",
+                      "b5",
+                      "c6",
+                      "baseline"
+                    ]
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "const": "partial-failure"
+                },
+                "failedStage": {
+                  "type": "string",
+                  "enum": [
+                    "c2",
+                    "c1",
+                    "c3",
+                    "c4",
+                    "b2",
+                    "b5",
+                    "c6",
+                    "baseline"
+                  ]
+                },
+                "error": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 240
+                },
+                "retryable": {
+                  "type": "boolean",
+                  "const": true
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "proposalId",
+                "operationId",
+                "appliedStages",
+                "status",
+                "failedStage",
+                "error",
+                "retryable"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "appliedStages": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "c2",
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b2",
+                      "b5",
+                      "c6",
+                      "baseline"
+                    ]
+                  }
+                },
+                "status": {
+                  "type": "string",
+                  "const": "needs-target"
+                },
+                "reason": {
+                  "type": "string",
+                  "const": "no-generation-baseline"
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "proposalId",
+                "operationId",
+                "appliedStages",
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "operationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "stale"
+                },
+                "reasons": {
+                  "minItems": 1,
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "source-changed",
+                      "b5-changed",
+                      "binding-changed",
+                      "layer-changed",
+                      "plan-changed",
+                      "target-missing"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "proposalId",
+                "operationId",
+                "status",
+                "reasons"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "novel-creation-tool/novelWriting/rejectFinalization": {
+      "id": "novel-creation-tool/novelWriting/rejectFinalization",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "rejectFinalization",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationReject:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "rejected",
+                "already-rejected"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -41062,7 +41754,10 @@
     "novel-creation-tool/novelWriting/adoptDraft",
     "novel-creation-tool/novelWriting/prepareFinalizationPlan",
     "novel-creation-tool/novelWriting/readFinalizationPlan",
-    "novel-creation-tool/novelWriting/cancelFinalizationPlan"
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan",
+    "novel-creation-tool/novelWriting/proposeFinalization",
+    "novel-creation-tool/novelWriting/acceptFinalization",
+    "novel-creation-tool/novelWriting/rejectFinalization"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -58286,6 +58981,471 @@
       "required": [
         "projectId",
         "planId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/proposeFinalization": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "const": "pending"
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "proposalId",
+        "operationId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/acceptFinalization": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "appliedStages": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2",
+                  "b5",
+                  "c6",
+                  "baseline"
+                ]
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "applied",
+                "already-applied"
+              ]
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "done"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "next": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "continued"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "baselineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "baselineId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "needs-target"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "no-next-card",
+                        "missing-binding",
+                        "missing-scene",
+                        "no-generation-baseline",
+                        "pending-reconciliation"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "appliedStages",
+            "status",
+            "current",
+            "next"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "appliedStages": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2",
+                  "b5",
+                  "c6",
+                  "baseline"
+                ]
+              }
+            },
+            "status": {
+              "type": "string",
+              "const": "partial-failure"
+            },
+            "failedStage": {
+              "type": "string",
+              "enum": [
+                "c2",
+                "c1",
+                "c3",
+                "c4",
+                "b2",
+                "b5",
+                "c6",
+                "baseline"
+              ]
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            },
+            "retryable": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "appliedStages",
+            "status",
+            "failedStage",
+            "error",
+            "retryable"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "appliedStages": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2",
+                  "b5",
+                  "c6",
+                  "baseline"
+                ]
+              }
+            },
+            "status": {
+              "type": "string",
+              "const": "needs-target"
+            },
+            "reason": {
+              "type": "string",
+              "const": "no-generation-baseline"
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "appliedStages",
+            "status",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "stale"
+            },
+            "reasons": {
+              "minItems": 1,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "source-changed",
+                  "b5-changed",
+                  "binding-changed",
+                  "layer-changed",
+                  "plan-changed",
+                  "target-missing"
+                ]
+              }
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "operationId",
+            "status",
+            "reasons"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "novel-creation-tool/novelWriting/rejectFinalization": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "rejected",
+            "already-rejected"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "proposalId",
+        "operationId",
         "status"
       ],
       "additionalProperties": false

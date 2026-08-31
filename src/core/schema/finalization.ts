@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { entityIdSchema } from './base.js';
 import { detailBeatSchema } from './outline.js';
 import { outlineReconciliationChoiceSchema } from './outline-reconciliation.js';
+import { outlineReconciliationDecisionSchema, type OutlineReconciliationDecision } from './outline-reconciliation-application.js';
 
 const fingerprintSchema = z.string().regex(/^[a-f0-9]{64}$/);
 
@@ -177,3 +178,99 @@ export const finalizationCancelResultSchema = z.object({
   status: z.literal('cancelled'),
 }).strict();
 export type FinalizationCancelResult = z.infer<typeof finalizationCancelResultSchema>;
+
+/** One outer I11 decision; child layer owners never receive a second proposal. */
+export const finalizationProposalInputSchema = z.object({
+  planId: entityIdSchema,
+  decisions: outlineReconciliationDecisionSchema.array().max(32),
+}).strict();
+export type FinalizationProposalInput = z.infer<typeof finalizationProposalInputSchema>;
+
+/** The opaque authorization token persisted in the shared I11 record. */
+export const finalizationGatePayloadSchema = z.object({
+  projectId: entityIdSchema,
+  planId: entityIdSchema,
+  proposalId: entityIdSchema,
+  operationId: entityIdSchema,
+  planFingerprint: fingerprintSchema,
+  finalSourceHash: fingerprintSchema,
+  layerFingerprints: finalizationLayerFingerprintsSchema,
+  generationBaseline: finalizationGenerationBaselineSchema,
+  decisions: outlineReconciliationDecisionSchema.array().max(32),
+}).strict();
+export type FinalizationGatePayload = z.infer<typeof finalizationGatePayloadSchema>;
+
+export const finalizationProposeResultSchema = z.object({
+  projectId: entityIdSchema,
+  planId: entityIdSchema,
+  proposalId: entityIdSchema,
+  operationId: entityIdSchema,
+  status: z.literal('pending'),
+}).strict();
+export type FinalizationProposeResult = z.infer<typeof finalizationProposeResultSchema>;
+
+export const finalizationRejectResultSchema = z.object({
+  projectId: entityIdSchema,
+  planId: entityIdSchema,
+  proposalId: entityIdSchema,
+  operationId: entityIdSchema,
+  status: z.enum(['rejected', 'already-rejected']),
+}).strict();
+export type FinalizationRejectResult = z.infer<typeof finalizationRejectResultSchema>;
+
+const finalizationCurrentSchema = z.object({
+  chapterId: entityIdSchema,
+  sceneId: entityIdSchema,
+  detailBeatId: entityIdSchema,
+  status: z.literal('done'),
+}).strict();
+const finalizationNextSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('continued'),
+    chapterId: entityIdSchema,
+    sceneId: entityIdSchema,
+    detailBeatId: entityIdSchema,
+    baselineId: entityIdSchema,
+  }).strict(),
+  z.object({ status: z.literal('needs-target'), reason: z.enum(['no-next-card', 'missing-binding', 'missing-scene', 'no-generation-baseline', 'pending-reconciliation']) }).strict(),
+]);
+
+const finalizationAppliedFields = {
+  projectId: entityIdSchema,
+  planId: entityIdSchema,
+  proposalId: entityIdSchema,
+  operationId: entityIdSchema,
+  appliedStages: z.enum(['c2', 'c1', 'c3', 'c4', 'b2', 'b5', 'c6', 'baseline']).array().max(8),
+} as const;
+
+export const finalizationApplyResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    ...finalizationAppliedFields,
+    status: z.enum(['applied', 'already-applied']),
+    current: finalizationCurrentSchema,
+    next: finalizationNextSchema,
+  }).strict(),
+  z.object({
+    ...finalizationAppliedFields,
+    status: z.literal('partial-failure'),
+    failedStage: z.enum(['c2', 'c1', 'c3', 'c4', 'b2', 'b5', 'c6', 'baseline']),
+    error: z.string().trim().min(1).max(240),
+    retryable: z.literal(true),
+  }).strict(),
+  z.object({
+    ...finalizationAppliedFields,
+    status: z.literal('needs-target'),
+    reason: z.literal('no-generation-baseline'),
+  }).strict(),
+  z.object({
+    projectId: entityIdSchema,
+    planId: entityIdSchema,
+    proposalId: entityIdSchema,
+    operationId: entityIdSchema,
+    status: z.literal('stale'),
+    reasons: z.enum(['source-changed', 'b5-changed', 'binding-changed', 'layer-changed', 'plan-changed', 'target-missing']).array().min(1).max(8),
+  }).strict(),
+]);
+export type FinalizationApplyResult = z.infer<typeof finalizationApplyResultSchema>;
+
+export type { OutlineReconciliationDecision };

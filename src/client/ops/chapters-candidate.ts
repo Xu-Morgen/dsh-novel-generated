@@ -59,7 +59,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
         const generationBaseline = layerPreview.generationBaseline.kind === 'baseline'
           ? layerPreview.generationBaseline.generationBaselineId
           : undefined;
-        workflowPatchForRevision({ status: 'ready', sceneId: review.target.sceneId, sourceHash: review.target.sourceHash, baselineId: generationBaseline, traceSectionCount: review.trace?.sections.length, message: '候选已就绪，请审阅正文与变更。' }, navigationRevision);
+        workflowPatchForRevision({ status: 'ready', candidateId, sceneId: review.target.sceneId, sourceHash: review.target.sourceHash, baselineId: generationBaseline, traceSectionCount: review.trace?.sections.length, message: '候选已就绪，请审阅正文与变更。' }, navigationRevision);
         onReady();
       }, (cause: Error) => { if (isActive() && guard()) { const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); } });
     }, (cause: Error) => { if (isActive() && guard()) { const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); } });
@@ -275,7 +275,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       if (polish.status === 'running' && polish.currentSceneId === result.sceneId && polish.chapterId === result.chapterId) {
         polishPatchForRevision(completePolishScene(polish, result.sceneId), navigationRevision);
       }
-      workflowPatchForRevision({ status: 'saved', projectId, chapterId: result.chapterId, sceneId: result.sceneId, sourceHash: result.sourceHash, message: '草稿已保存；请编辑正文后再生成定稿预览。' }, navigationRevision);
+      workflowPatchForRevision({ status: 'saved', candidateId: result.candidateId, projectId, chapterId: result.chapterId, sceneId: result.sceneId, sourceHash: result.sourceHash, message: '草稿已保存；请编辑正文后再生成定稿预览。' }, navigationRevision);
       // 润色会话必须保留当前游标；普通候选接受仍刷新章节投影。
       if (snapshot.chapters.polish.status !== 'running') reloadChapters();
     }, (cause: Error) => {

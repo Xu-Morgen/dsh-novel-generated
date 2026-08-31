@@ -91,6 +91,23 @@ export const outlineReconciliationFinalizeInputSchema = z.object({
 }).strict();
 export type OutlineReconciliationFinalizeInput = z.infer<typeof outlineReconciliationFinalizeInputSchema>;
 
+/** I136 Host-only handoff: the outer finalization Gate already authorized these decisions. */
+export const outlineReconciliationAuthorizedApplyInputSchema = z.object({
+  planId: entityIdSchema,
+  finalSourceHash: fingerprintSchema,
+  operationId: entityIdSchema,
+  decisions: outlineReconciliationDecisionSchema.array().max(32),
+}).strict();
+export type OutlineReconciliationAuthorizedApplyInput = z.infer<typeof outlineReconciliationAuthorizedApplyInputSchema>;
+
+/** I136 Host-only completion handoff for wording-only plans without a B5 child plan. */
+export const outlineCompletionAuthorizedInputSchema = z.object({
+  baselineId: entityIdSchema,
+  finalSourceHash: fingerprintSchema,
+  operationId: entityIdSchema,
+}).strict();
+export type OutlineCompletionAuthorizedInput = z.infer<typeof outlineCompletionAuthorizedInputSchema>;
+
 const finalizationResult = {
   projectId: entityIdSchema,
   planId: entityIdSchema,

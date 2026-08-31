@@ -69,6 +69,16 @@ export interface MountOptionsI134 {
   };
 }
 
+/** I136 one-confirm finalization namespace injection for author-flow tests. */
+export interface MountOptionsI136 {
+  writing?: {
+    proposeFinalization?: (projectId: string, input: unknown) => Promise<unknown>;
+    acceptFinalization?: (projectId: string, proposalId: string) => Promise<unknown>;
+    rejectFinalization?: (projectId: string, proposalId: string) => Promise<unknown>;
+    previewLayers?: (candidateId: string) => Promise<unknown>;
+  };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];

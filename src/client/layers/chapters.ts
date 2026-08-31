@@ -5,6 +5,7 @@ import type { ChapterStatus } from '../../core/schema/text.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
 import type { OutlineReconciliationChoice, OutlineReconciliationPlan } from '../../core/schema/outline-reconciliation.js';
 import type { OutlineReconciliationContinueResult, OutlineReconciliationFinalizeResult } from '../../core/schema/outline-reconciliation-application.js';
+import type { FinalizationApplyResult, FinalizationPlan } from '../../core/schema/finalization.js';
 import { versionsPanel, branchPanel, freshBranchPanel, type BranchPanelState } from './branch.js';
 import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from './candidate.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
@@ -81,6 +82,20 @@ export interface OutlineReconciliationPanelState {
   readonly continueResult?: OutlineReconciliationContinueResult;
   readonly message?: string;
 }
+
+/** I136 单一确认式定稿状态；计划与结果均只是 Host 投影，不是 Client 真相。 */
+export type FinalizationUiStatus = 'idle' | 'loading' | 'ready' | 'proposing' | 'pending' | 'applying' | 'done' | 'stale' | 'partial-failure' | 'needs-target' | 'error';
+export interface FinalizationPanelState {
+  readonly status: FinalizationUiStatus;
+  readonly planId: string;
+  readonly plan?: FinalizationPlan;
+  readonly decisions: Readonly<Record<string, OutlineReconciliationChoice>>;
+  readonly manualValues: Readonly<Record<string, DetailBeat>>;
+  readonly proposalId?: string;
+  readonly operationId?: string;
+  readonly result?: FinalizationApplyResult;
+  readonly message?: string;
+}
 export interface ChapterManagementState {
   readonly status: ChapterManagementStatus;
   readonly message?: string;
@@ -92,6 +107,8 @@ export interface ChapterManagementState {
   readonly deletion: { readonly status: ChapterDeletionStatus; readonly target?: TextDeletionTarget; readonly impact?: TextDeletionImpact; readonly proposalId?: string; readonly message?: string };
   /** I114 materials-mode reconciliation state; the plan is a Host-owned read projection. */
   readonly reconciliation: OutlineReconciliationPanelState;
+  /** I136 author main path: one summary, one confirmation, one Host application. */
+  readonly finalization: FinalizationPanelState;
 }
 
 export interface ChaptersLayerState {
@@ -181,6 +198,12 @@ export interface ChaptersEditOps {
   reconciliationReject(): void;
   reconciliationFinalize(): void;
   reconciliationContinue(): void;
+  prepareFinalization(): void;
+  finalizationChoice(detailBeatId: string, choice: OutlineReconciliationChoice): void;
+  finalizationManualPatch(detailBeatId: string, patch: Partial<DetailBeat>): void;
+  proposeFinalization(): void;
+  acceptFinalization(): void;
+  rejectFinalization(): void;
   startPolish(mode?: PolishMode): void;
   nextPolishScene(): void;
   stopPolish(): void;
@@ -207,6 +230,7 @@ export function freshChapters(): ChaptersLayerState {
       binding: { status: 'idle', manual: [], effective: [] },
       deletion: { status: 'idle' },
       reconciliation: { status: 'idle', planId: '', decisions: {}, manualValues: {} },
+      finalization: { status: 'idle', planId: '', decisions: {}, manualValues: {} },
     },
   };
 }
@@ -230,6 +254,80 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
   },
     h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, labels[state.status]),
     state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
+  );
+}
+
+function finalizationPanel(h: El, state: FinalizationPanelState, workflow: WritingWorkflowState, ops: ChaptersEditOps): unknown {
+  const plan = state.plan;
+  const busy = state.status === 'loading' || state.status === 'proposing' || state.status === 'applying';
+  const canPrepare = workflow.candidateId !== undefined && workflow.sourceHash !== undefined && !busy;
+  const decisionFor = (detailBeatId: string, fallback: OutlineReconciliationChoice): OutlineReconciliationChoice => state.decisions[detailBeatId] ?? fallback;
+  const message = state.message === undefined ? null : h('p', {
+    className: state.status === 'error' || state.status === 'stale' || state.status === 'partial-failure' ? 'nv-error' : 'nv-chapters__item-meta',
+    'data-novel-finalization-message': '',
+    role: state.status === 'error' || state.status === 'stale' || state.status === 'partial-failure' ? 'alert' : 'status',
+  }, state.message);
+  const summary = plan === undefined ? null : h('div', { className: 'nv-chapters__finalization-summary', 'data-novel-finalization-summary': '' },
+    h('p', { className: 'nv-chapters__item-meta' }, `最终正文已保存。将同步 ${plan.layerChanges.length} 项结构变化，并处理 ${plan.references.semanticCandidates.length} 项需要作者留意的关联变化。`),
+    h('p', { className: 'nv-chapters__item-meta' }, plan.reconciliation.status === 'ready'
+      ? `后续细纲有 ${plan.reconciliation.items.length} 张卡可选择。`
+      : plan.reconciliation.status === 'degraded' ? '当前正文暂时没有可安全推进的后续细纲。' : '当前正文不需要调整后续细纲。'),
+  );
+  const reconciliation = plan?.reconciliation.status === 'ready'
+    ? h('div', { className: 'nv-chapters__finalization-reconciliation', 'data-novel-finalization-reconciliation': '' },
+      plan.reconciliation.items.map((item) => {
+        const choice = decisionFor(item.detailBeatId, item.choice);
+        const manual = state.manualValues[item.detailBeatId] ?? item.manualValue ?? item.before;
+        return h('article', { key: item.detailBeatId, className: 'nv-chapters__reconciliation-card', 'data-novel-finalization-card': item.detailBeatId },
+          h('h5', { className: 'nv-editor__title' }, `${item.position + 1}. ${item.before.title}`),
+          h('p', { className: 'nv-chapters__item-meta' }, item.rationale),
+          h('div', { className: 'nv-editor__actions', 'data-novel-finalization-choices': item.detailBeatId },
+            (['keep', 'ai', 'manual', 'pending'] as const).map((option) => h('button', {
+              key: option, type: 'button', className: 'nv-btn' + (choice === option ? ' is-active' : ''),
+              'data-novel-finalization-choice': option, 'aria-pressed': choice === option,
+              disabled: busy || state.proposalId !== undefined,
+              onClick: () => ops.finalizationChoice(item.detailBeatId, option),
+            }, option === 'keep' ? '保留当前细纲' : option === 'ai' ? '采用建议' : option === 'manual' ? '手动调整' : '暂不决定'))),
+          choice === 'manual' ? h('div', { className: 'nv-chapters__reconciliation-manual', 'data-novel-finalization-manual': item.detailBeatId },
+            managementInput(h, '手动标题', manual.title, (value) => ops.finalizationManualPatch(item.detailBeatId, { title: value }), 'finalization-manual-title'),
+            managementInput(h, '手动摘要', manual.summary, (value) => ops.finalizationManualPatch(item.detailBeatId, { summary: value }), 'finalization-manual-summary'),
+          ) : null,
+        );
+      }),
+    ) : null;
+  let actions: unknown;
+  if (state.status === 'idle' || state.status === 'error' || state.status === 'stale') {
+    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-prepare': '', disabled: !canPrepare, onClick: () => ops.prepareFinalization() }, '分析最终正文');
+  } else if (state.status === 'ready') {
+    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-propose': '', disabled: plan === undefined, onClick: () => ops.proposeFinalization() }, '提交一次确认');
+  } else if (state.status === 'pending') {
+    actions = h('div', { className: 'nv-editor__actions', 'data-novel-finalization-pending': '' },
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-accept': '', onClick: () => ops.acceptFinalization() }, '确认并同步定稿'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-finalization-reject': '', onClick: () => ops.rejectFinalization() }, '拒绝本次定稿'),
+    );
+  } else if (state.status === 'partial-failure') {
+    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-retry': '', onClick: () => ops.acceptFinalization() }, '重试同步定稿');
+  } else if (state.status === 'done' || state.status === 'needs-target') {
+    actions = h('p', { className: 'nv-chapters__item-meta', 'data-novel-finalization-complete': '' }, state.status === 'needs-target' ? '当前正文已定稿，请选择或创建下一张细纲卡后继续。' : '当前正文已定稿，并已同步可安全推进的后续状态。');
+  } else {
+    actions = null;
+  }
+  const statusText = state.status === 'idle' ? '保存最终正文后，可在此一次确认定稿同步。'
+    : state.status === 'loading' ? '正在整理最终正文与结构变化…'
+      : state.status === 'proposing' ? '正在准备一次确认…'
+        : state.status === 'applying' ? '正在同步定稿…'
+          : state.status === 'pending' ? '定稿摘要已准备好，请确认是否同步。'
+            : state.status === 'stale' ? '正文或相关素材已变化，请重新分析。'
+              : state.status === 'partial-failure' ? '同步未完整结束，可以沿用同一确认重试。'
+                : state.status === 'needs-target' ? '定稿完成，但暂时没有合法的下一目标。'
+                  : state.status === 'done' ? '定稿同步完成。' : '请检查定稿摘要。';
+  return h('section', { className: 'nv-chapters__finalization', 'data-novel-finalization': '', 'data-novel-finalization-state': state.status },
+    h('h4', { className: 'nv-editor__title' }, '最终正文定稿'),
+    h('p', { className: 'nv-chapters__item-meta', 'data-novel-finalization-status': state.status, role: 'status', 'aria-live': 'polite' }, statusText),
+    summary,
+    reconciliation,
+    h('div', { className: 'nv-editor__actions' }, actions),
+    message,
   );
 }
 
@@ -464,7 +562,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
   } else if (state.chapter.status === 'ready' && state.chapter.read !== undefined && scenes.length === 0) {
     body = h('p', { className: 'nv-chapters__empty', 'data-novel-chapters-empty': '' }, '本章暂无场景正文（空章）。');
   } else if (state.scene.status === 'ready' && state.scene.item !== undefined) {
-    body = state.editor.mode === 'edit'
+    const sceneBody = state.editor.mode === 'edit'
       ? sceneEditorPanel(h, state.editor, ops)
       : h('div', { className: 'nv-chapters__read', 'data-novel-scene-read': '' },
         proseParagraphs(h, state.scene.item.content),
@@ -472,6 +570,10 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
           h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-edit': '', onClick: () => ops.startEdit() }, '编辑正文'),
         ),
       );
+    body = h('div', { className: 'nv-chapters__writing-body', 'data-novel-writing-body': '' },
+      sceneBody,
+      state.mode === 'writing' ? finalizationPanel(h, state.management.finalization, state.workflow, ops) : null,
+    );
   } else {
     body = h('p', { className: 'nv-chapters__empty' }, '选择左侧章节与场景后阅读正文。');
   }

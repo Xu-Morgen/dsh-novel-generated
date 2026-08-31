@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { remoteDescriptorLockBodies, remoteResultShapeBodies, shapeLockBody } from '../src/contract-lock.js';
 import { hostContribution } from '../src/host/remote/host-contribution.js';
 import { branchAggregateInvocation, branchChooseFreshInvocation, branchInvocations } from '../src/host/remote/branch.js';
-import { writingInvocations, writingAdoptDraftInvocation, writingCancelFinalizationPlanInvocation, writingPrepareFinalizationPlanInvocation, writingPreviewLayersInvocation, writingProposeAtInvocation, writingReadFinalizationPlanInvocation } from '../src/host/remote/writing.js';
+import { writingAcceptFinalizationInvocation, writingInvocations, writingAdoptDraftInvocation, writingCancelFinalizationPlanInvocation, writingPrepareFinalizationPlanInvocation, writingPreviewLayersInvocation, writingProposeAtInvocation, writingProposeFinalizationInvocation, writingReadFinalizationPlanInvocation, writingRejectFinalizationInvocation } from '../src/host/remote/writing.js';
 import { reviewInvocations } from '../src/host/remote/review.js';
 import { c5Invocations, sceneReparsePreviewInvocation } from '../src/host/remote/text.js';
 import { textMutationInvocations } from '../src/host/remote/text-mutation.js';
@@ -156,8 +156,13 @@ for (const lock of EXISTING_LOCKS) {
     writingReadFinalizationPlanInvocation.id,
     writingCancelFinalizationPlanInvocation.id,
   ]);
+  const i136DescriptorIds = new Set([
+    writingProposeFinalizationInvocation.id,
+    writingAcceptFinalizationInvocation.id,
+    writingRejectFinalizationInvocation.id,
+  ]);
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -180,10 +185,13 @@ for (const lock of EXISTING_LOCKS) {
     writingPrepareFinalizationPlanInvocation,
     writingReadFinalizationPlanInvocation,
     writingCancelFinalizationPlanInvocation,
+    writingProposeFinalizationInvocation,
+    writingAcceptFinalizationInvocation,
+    writingRejectFinalizationInvocation,
   ];
   const resultDescriptors = [
     ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
-    ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation && !i135DescriptorIds.has(descriptor.id)),
+    ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id)),
     ...reviewInvocations,
     ...c5Invocations.filter((descriptor) => descriptor !== sceneReparsePreviewInvocation),
     ...textMutationInvocations,
@@ -210,6 +218,9 @@ for (const lock of EXISTING_LOCKS) {
     writingPrepareFinalizationPlanInvocation,
     writingReadFinalizationPlanInvocation,
     writingCancelFinalizationPlanInvocation,
+    writingProposeFinalizationInvocation,
+    writingAcceptFinalizationInvocation,
+    writingRejectFinalizationInvocation,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);
