@@ -8,6 +8,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
   LAYER_PATHS, exportPlainText, exportProject, parseArchive, serializeArchive,
+  DERIVED_EXPORT_DIRECTORIES,
   type ArchiveMode, type PortableArchive,
 } from '../core/export/index.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
@@ -150,6 +151,9 @@ export function createImportExportService(
       await rollback(directory, snapshots);
       throw error;
     }
+    // Restored C5/settings invalidate any pre-existing rebuildable cache; the
+    // portable payload never carries links or indexes themselves.
+    await Promise.all(DERIVED_EXPORT_DIRECTORIES.map((derivedDirectory) => rm(join(directory, derivedDirectory), { recursive: true, force: true })));
     return Object.freeze({ projectId, status: 'imported', written: written.sort(), conflicts: [] });
   };
 

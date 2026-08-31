@@ -1,0 +1,18 @@
+{
+  "iteration": "I127",
+  "requirement": "R18-8d",
+  "guarantees": [
+    "full-and-template-portable-archives-exclude-links-and-search-derived-stores",
+    "portable-archive-rejects-derived-path-carriers-before-write",
+    "txt-and-markdown-export-read-only-pure-prose-and-settings",
+    "restore-removes-target-derived-stores-before-fresh-rebuild",
+    "restored-c5-can-rebuild-link-index-without-transported-internal-data"
+  ],
+  "focusedSuites": "I127 export/restore safety, I126 link rebuild, and Host invalidation regression suites passed",
+  "explicitNonGoals": [
+    "portable-sidecar",
+    "html-link-carrier",
+    "portable-content-semantic-change",
+    "llm-relink-analysis"
+  ]
+}

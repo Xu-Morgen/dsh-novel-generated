@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { ConfirmationGate } from '../confirm/index.js';
 import { readYaml } from '../io/yaml.js';
@@ -8,6 +8,9 @@ export const PORTABLE_FORMAT = 'novel-creation-tool.portable';
 export const PORTABLE_VERSION = 1;
 export const ARCHIVE_MODES = ['full-project', 'shareable-template'] as const;
 export type ArchiveMode = (typeof ARCHIVE_MODES)[number];
+
+/** Rebuildable stores are never portable carriers and are removed on import. */
+export const DERIVED_EXPORT_DIRECTORIES = ['.links', '.search'] as const;
 
 /**
  * I39 可移植档案覆盖的 11 层路径（B1–B5 + C1–C6 落地文件）。
@@ -131,6 +134,10 @@ export async function importProject(archive: PortableArchive, targetDirectory: s
     await writeFile(join(root, path), content, 'utf8');
     written.push(path);
   }
+  // Imported C5/settings are the only portable truth. Any target-side
+  // rebuildable cache is stale against the imported content and must not
+  // survive as an accidental link/index carrier.
+  for (const derivedDirectory of DERIVED_EXPORT_DIRECTORIES) await rm(join(root, derivedDirectory), { recursive: true, force: true });
   return { status: 'imported', written: written.sort(), conflicts };
 }
 
@@ -146,6 +153,7 @@ function validateArchive(value: unknown): asserts value is PortableArchive {
   if (!archive.project || typeof archive.project !== 'object' || !archive.files || typeof archive.files !== 'object') throw new Error('Portable archive is missing project or files');
   for (const [path, content] of Object.entries(archive.files as Record<string, unknown>)) {
     if (!path || path.startsWith('/') || path.includes('..') || typeof content !== 'string') throw new Error(`Invalid portable file: ${path}`);
+    if (path.split('/').some((segment) => (DERIVED_EXPORT_DIRECTORIES as readonly string[]).includes(segment))) throw new Error(`Invalid portable file: derived path ${path}`);
   }
 }
 

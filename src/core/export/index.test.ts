@@ -22,12 +22,20 @@ async function fixture(): Promise<string> {
 describe('I39 portable export/import', () => {
   it('exports versioned full and template archives with stable semantic round-trip', async () => {
     const source = await fixture();
+    await mkdir(join(source, '.links'), { recursive: true });
+    await writeFile(join(source, '.links', 'index.json'), '{"internal":"must not travel"}');
+    await mkdir(join(source, '.search'), { recursive: true });
+    await writeFile(join(source, '.search', 'index.json'), '{"derived":"must not travel"}');
     const full = await exportProject(source);
     const template = await exportProject(source, 'shareable-template');
     expect(Object.keys(full.files)).toContain('text/chapter.json');
+    expect(Object.keys(full.files).some((path) => path.includes('.links') || path.includes('.search'))).toBe(false);
     expect(Object.keys(template.files)).not.toContain('text/chapter.json');
     const parsed = parseArchive(serializeArchive(full));
     expect(semanticallyEqual(full, parsed)).toBe(true);
+    const plainText = await exportPlainText(source);
+    expect(JSON.stringify(plainText)).not.toContain('must not travel');
+    expect(JSON.stringify(plainText)).not.toContain('derived must not travel');
   });
 
   it('exports complete C5 text and readable settings', async () => {
@@ -41,6 +49,21 @@ describe('I39 portable export/import', () => {
     expect(() => parseArchive('{"format":"wrong","version":1}')).toThrow(/Unsupported/);
     const archive = await exportProject(await fixture());
     expect(() => parseArchive(serializeArchive({ ...archive, files: { '../escape': 'bad' } }))).toThrow(/Invalid portable file/);
+    expect(() => serializeArchive({ ...archive, files: { '.links/index.json': 'internal link metadata' } })).toThrow(/derived path/);
+    expect(() => serializeArchive({ ...archive, files: { 'text/.search/index.json': 'internal search metadata' } })).toThrow(/derived path/);
+  });
+
+  it('import removes target rebuildable stores so restored content requires a fresh rebuild', async () => {
+    const source = await fixture();
+    const target = await root();
+    await mkdir(join(target, '.links'), { recursive: true });
+    await writeFile(join(target, '.links', 'index.json'), 'stale');
+    await mkdir(join(target, '.search'), { recursive: true });
+    await writeFile(join(target, '.search', 'index.json'), 'stale');
+    await importProject(await exportProject(source), target);
+    await expect(readFile(join(target, '.links', 'index.json'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(target, '.search', 'index.json'), 'utf8')).rejects.toThrow();
+    expect((await exportPlainText(target))['chapter.txt']).toBe('开头\n结尾');
   });
 
   it('fails closed for a missing project root', async () => {

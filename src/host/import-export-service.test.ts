@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ProjectRepository } from '../core/project/index.js';
 import { parseArchive, semanticallyEqual, serializeArchive, type PortableArchive } from '../core/export/index.js';
 import { createImportExportService, type NovelImportExportService } from './import-export-service.js';
+import { createLinkIndexService } from './link-index-service.js';
+import { createTextService } from './text-service.js';
 
 /**
  * I69 导入导出与备份 Host owner 测试（design §14.10「导入、导出与备份」/ R14-4）。
@@ -31,7 +33,10 @@ async function createSourceProject(root: string): Promise<string> {
   await writeFile(join(dir, 'outline-progress.yaml'), 'outlineId: outline\ncurrentAct: ""\ncurrentBeat: ""\ncompletedBeats: []\ndeviations: []\ntensionLevel: 0\n');
   await writeFile(join(dir, 'relationships.yaml'), 'version: 1\npairs: []\n');
   await writeFile(join(dir, 'knowledge.yaml'), 'version: 1\nentries: []\n');
-  await writeFile(join(dir, 'text', 'chapter.json'), JSON.stringify({ id: 'chapter', version: 1, title: '第一章', scenes: [{ id: 'scene', index: 0, content: '开头\n结尾' }] }));
+  await writeFile(join(dir, 'text', 'chapter.json'), JSON.stringify({
+    id: 'chapter', index: 1, title: '第一章', pov: 'mira', status: 'draft',
+    scenes: [{ id: 'scene', index: 0, content: '开头\n结尾', summary: '开场', beats: [], canonEvents: [], notes: '', branches: [] }],
+  }));
   await writeFile(join(dir, 'rules', 'rule.yaml'), 'version: 1\nitems: [{ id: "r1", priority: 10, content: "禁用 AI 词汇" }]\n');
   await writeFile(join(dir, 'characters', 'mira.yaml'), 'version: 1\nentries: [{ id: "mira", name: "米拉" }]\n');
   return dir;
@@ -67,15 +72,44 @@ describe('I69 import/export service', () => {
     // project.name 元数据一致（restore 不写 project.yaml，作品身份归目标所有）。
     const target = new ProjectRepository(targetRoot);
     await target.createProject({ projectId: 'source', name: '源作品' });
+    await mkdir(join(targetRoot, 'source', '.links'), { recursive: true });
+    await writeFile(join(targetRoot, 'source', '.links', 'index.json'), 'stale link index');
+    await mkdir(join(targetRoot, 'source', '.search'), { recursive: true });
+    await writeFile(join(targetRoot, 'source', '.search', 'index.json'), 'stale search index');
     const restoreService = createImportExportService(targetRoot);
     const restored = await restoreService.restore('source', source.content);
     expect(restored.status).toBe('imported');
     if (restored.status === 'imported') expect(restored.written).toContain('outline.yaml');
+    await expect(readFile(join(targetRoot, 'source', '.links', 'index.json'), 'utf8')).rejects.toThrow();
+    await expect(readFile(join(targetRoot, 'source', '.search', 'index.json'), 'utf8')).rejects.toThrow();
 
     const reexported = await restoreService.exportArchive('source', 'full-project');
     const original = parseArchive(source.content);
     const round = parseArchive(reexported.content);
     expect(semanticallyEqual(original, round)).toBe(true);
+  });
+
+  it('round-trip 后不恢复链接内部数据，但可从纯正文重建索引', async () => {
+    const sourceRoot = await tempRoot('source-links');
+    const targetRoot = await tempRoot('target-links');
+    await createSourceProject(sourceRoot);
+    const sourceService = createImportExportService(sourceRoot);
+    const archive = (await sourceService.exportArchive('source', 'full-project')).content;
+
+    await new ProjectRepository(targetRoot).createProject({ projectId: 'source', name: '源作品' });
+    const restoreService = createImportExportService(targetRoot);
+    await expect(restoreService.restore('source', archive)).resolves.toMatchObject({ status: 'imported' });
+    await expect(readFile(join(targetRoot, 'source', '.links', 'index.json'), 'utf8')).rejects.toThrow();
+
+    const text = createTextService(targetRoot);
+    await text.open('source');
+    const links = createLinkIndexService({ projectsRoot: targetRoot, text });
+    const rebuilt = await links.build('source', [{
+      id: 'restored-link', chapterId: 'chapter', sceneId: 'scene', quote: '开头',
+    }]);
+    expect(rebuilt.issues).toEqual([]);
+    expect(rebuilt.index.records[0]).toMatchObject({ status: 'ready', link: { anchor: { quote: '开头' } } });
+    await expect(readFile(join(targetRoot, 'source', '.links', 'index.json'), 'utf8')).resolves.toContain('restored-link');
   });
 
   it('shareable-template 排除 C5 正文文本，round-trip 语义等价', async () => {
