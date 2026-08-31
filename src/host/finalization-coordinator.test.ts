@@ -116,4 +116,16 @@ describe('I136 FinalizationCoordinator', () => {
     expect(calls.completed).toBe(0);
     expect(calls.writes).toBe(0);
   });
+
+  it('one confirmation rejection leaves the finalization plan and every writer untouched', async () => {
+    const { service, calls } = fixture();
+    const proposed = await service.propose(projectId, { planId: 'finalization-plan-1', decisions: [] });
+
+    expect(await service.reject(projectId, proposed.proposalId)).toMatchObject({ status: 'rejected', planId: 'finalization-plan-1' });
+    expect(calls.accepted).toBe(0);
+    expect(calls.completed).toBe(0);
+    expect(calls.writes).toBe(0);
+    expect(await service.reject(projectId, proposed.proposalId)).toMatchObject({ status: 'already-rejected' });
+    expect(calls.rejected).toBe(1);
+  });
 });
