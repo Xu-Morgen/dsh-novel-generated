@@ -24,6 +24,7 @@ import { GRID_STEP, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL
 import type { UploadProgress } from './upload.js';
 import { analysisPanel, onboardingReview, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingState } from './onboarding.js';
 import { longDraftGuidePanel } from './long-draft-guide.js';
+import { advancedError, toUserMessage } from './presentation.js';
 import { llmSettingsPanel } from './settings.js';
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './panels/index.js';
 import type { OnboardingController, ProjectController, SettingsController, UploadController } from './controllers.js';
@@ -215,9 +216,13 @@ function groupNav(h: El, activeView: WorkbenchViewId, activateView: (view: Workb
       onClick: () => activateView(item.view),
     },
       h('span', { className: 'nv-workbench__nav-item-label' }, item.label),
-      item.badge === undefined ? null : h('span', { className: 'nv-workbench__nav-item-badge', 'data-novel-nav-badge': item.badge }, item.badge),
+      item.badge === undefined ? null : h('span', { className: 'nv-workbench__nav-item-badge nv-advanced-only', 'data-novel-nav-badge': item.badge, 'aria-hidden': 'true' }, item.badge),
     )),
   )),
+  h('details', { className: 'nv-workbench__advanced', 'data-novel-advanced-view': '' },
+    h('summary', null, '查看技术信息'),
+    h('ul', null, NAV_GROUPS.flatMap((group) => group.items.filter((item) => item.badge !== undefined).map((item) => h('li', { key: item.view }, `${item.label}：${item.badge}`)))),
+  ),
   );
 }
 
@@ -260,8 +265,8 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const ready = status.status === 'ready' && workspace !== undefined;
   const effectiveStatus: WorkspaceStatus['status'] = ready ? 'ready'
     : status.status === 'error' ? 'error' : status.status;
-  const message = status.status === 'error' ? status.message
-    : (effectiveStatus === 'error' ? '创作台远程服务不可用' : undefined);
+  const message = status.status === 'error' ? toUserMessage(status.message)
+    : (effectiveStatus === 'error' ? '创作台暂时不可用，请稍后重试。' : undefined);
   const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
   let sourceText = '';
   const sourceEntry = selectedProjectId === undefined ? null : h('section', { className: 'nv-onboarding-entry', 'data-novel-onboarding-entry': '' },
@@ -291,7 +296,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
       routerState.error === undefined ? null : h('div', { className: 'nv-workbench__router-error', 'data-novel-router-error': routerState.error.code, role: 'alert' },
-        h('span', null, routerState.error.message),
+        h('span', null, toUserMessage(routerState.error.message)),
         h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-router-error-dismiss': '', onClick: () => ops.router.dismissError() }, '知道了'),
       ),
       routerState.backStack.length > 0 ? h('button', {
@@ -343,8 +348,8 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     : effectiveStatus === 'ready' && (selectedProjectId === undefined || browsing)
       ? h('section', { className: 'nv-workbench__state nv-workbench__state--chooser', 'data-novel-project-chooser': '', ...(browsing ? { 'data-novel-project-browsing': '' } : {}) },
         browsing ? h('button', { type: 'button', className: 'nv-workbench__nav-item', 'data-novel-browse-cancel': '', onClick: () => ui.cancelBrowse() }, '返回当前作品') : null,
-        projectError !== undefined ? h('p', { className: 'nv-workbench__project-error', 'data-novel-project-error': '', role: 'alert' }, projectError) : null,
-        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.activeView === 'settings' ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.activateView('settings') }, 'LLM 设置'),
+      projectError !== undefined ? h('div', { className: 'nv-workbench__project-error', 'data-novel-project-error': '', role: 'alert' }, advancedError(h, projectError, '作品打开失败，请刷新后再试。', { 'data-novel-project-error': '' })) : null,
+        h('button', { type: 'button', className: 'nv-workbench__nav-item' + (ui.activeView === 'settings' ? ' is-active' : ''), 'data-novel-settings-nav': '', onClick: () => ui.activateView('settings') }, 'AI 设置'),
         ui.activeView === 'settings'
           ? (settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null)
           : h('div', { className: 'nv-workbench__chooser' },
@@ -379,7 +384,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
       // I59 异步状态可播报（R12-6）：loading→error 文案变化由 aria-live=polite 播报，
       // error 时 role=alert 以 assertive 覆盖。
       'aria-live': 'polite',
-    }, effectiveStatus === 'loading' ? '正在装载创作台…' : message);
+    }, effectiveStatus === 'loading' ? '正在装载创作台…' : effectiveStatus === 'error' ? advancedError(h, status.status === 'error' ? status.message : message ?? '') : message);
   return h('section', {
     className: 'nv-workbench',
     // UI 打磨：nav 宽度经 CSS 变量下发，resizer 拖拽更新 store → 根节点变量 → 侧栏宽度；

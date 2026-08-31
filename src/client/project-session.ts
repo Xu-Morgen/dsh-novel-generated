@@ -1,5 +1,6 @@
 import type { WorkspaceNamespace } from './shared.js';
 import { unwrap } from './shared.js';
+import { toUserMessage } from './presentation.js';
 import { emptyOutline, type OutlineShape } from './layers/outline.js';
 import type { StateSnapshotShape } from './layers/state.js';
 import type { ProjectSessionActions } from './store/types.js';
@@ -39,9 +40,9 @@ export function reloadProject(
   actions.setState('loading', []);
   actions.setCanon('loading', []);
   actions.setChapters('loading', []);
-  void unwrap(workspace.chapterList(projectId)).then((list) => dispatch((x) => x.setChapters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setChapters('error', [], cause.message)));
-  void unwrap(workspace.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], cause.message)));
-  void unwrap(workspace.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], cause.message)));
+  void unwrap(workspace.chapterList(projectId)).then((list) => dispatch((x) => x.setChapters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setChapters('error', [], toUserMessage(cause))));
+  void unwrap(workspace.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], toUserMessage(cause))));
+  void unwrap(workspace.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], toUserMessage(cause))));
   if (layers?.outline === 'uninitialized') {
     dispatch((x) => {
       x.setOutline('ready', emptyOutline());
@@ -59,15 +60,15 @@ export function reloadProject(
           x.outlineDraft({ selectedActId: actId, selectedBeatId: beatId });
         }
       });
-    }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, cause.message)));
+    }, (cause: Error) => dispatch((x) => x.setOutline('error', undefined, toUserMessage(cause))));
   }
-  void unwrap(workspace.relationshipRead(projectId)).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], cause.message)));
+  void unwrap(workspace.relationshipRead(projectId)).then((list) => dispatch((x) => x.setRelationship('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setRelationship('error', [], toUserMessage(cause))));
   void unwrap(workspace.stateSnapshots(projectId)).then((snapshots) => {
     dispatch((x) => {
       const list = snapshots as unknown as StateSnapshotShape[];
       x.setState('ready', list);
       if (list.length > 0) x.stateDraft({ selectedSeq: list[list.length - 1].seq, fromSeq: list[0].seq, toSeq: list.length > 1 ? list[list.length - 1].seq : undefined });
     });
-  }, (cause: Error) => dispatch((x) => x.setState('error', [], cause.message)));
-  void unwrap(workspace.canonQuery(projectId, undefined)).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], cause.message)));
+  }, (cause: Error) => dispatch((x) => x.setState('error', [], toUserMessage(cause))));
+  void unwrap(workspace.canonQuery(projectId, undefined)).then((events) => dispatch((x) => x.setCanon('ready', events as unknown[])), (cause: Error) => dispatch((x) => x.setCanon('error', [], toUserMessage(cause))));
 }

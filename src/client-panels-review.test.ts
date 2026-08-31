@@ -72,7 +72,7 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
     expect(issues.map((n) => n.props?.['data-novel-review-issue'])).toEqual(['iss-rule', 'iss-canon', 'iss-know', 'iss-rel', 'iss-style']);
     expect(issues.map((n) => n.props?.['data-novel-review-issue-severity'])).toEqual(['hard', 'hard', 'hard', 'soft', 'soft']);
     expect(collect(render(), 'span').some((n) => n.props?.['data-novel-review-issue-category'] === 'relationship')).toBe(true);
-    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-review-issue-meta'] !== undefined)?.children?.[0] ?? ''))).toContain('定位：第 chapter-1 章 / 场景 scene-1');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-review-issue-meta'] !== undefined)?.children?.[0] ?? ''))).toContain('可定位到相关章节与场景');
     // 硬冲突存在 → 硬阻断提示可见。
     expect(collect(render(), 'p').some((n) => n.props?.['data-novel-review-hard-block'] !== undefined)).toBe(true);
   });

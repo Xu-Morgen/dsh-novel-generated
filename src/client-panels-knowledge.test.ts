@@ -121,7 +121,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
     expect(proposed).toEqual([{ kind: 'reveal', entryId: 'k-1', holders: ['mira'], status: 'revealed' }]);
     // 提案进入待确认列表（Gate pending；确认前 C3 零写由 Host 保证）。
     expect(collect(render(), 'li').some((n) => n.props?.['data-novel-knowledge-pending-item'] === 'kprop-1')).toBe(true);
-    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('提案已提交待确认（kprop-1）');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('提案已提交待确认：揭示');
   });
 
   it('确认应用：accept 提交 proposalId，投影刷新、pending 移除、已生效幂等提示', async () => {
@@ -185,7 +185,7 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
     await flush();
     expect(rejected).toEqual(['kprop-2']);
     expect(collect(render(), 'li').some((n) => n.props?.['data-novel-knowledge-pending-item'] === 'kprop-2')).toBe(false);
-    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('已拒绝提案 kprop-2（C3 零写）');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('已拒绝提案，未修改知情记录');
   });
 
   it('Host 拒绝逆向 status 提案时展示错误信息且面板不 brick；已知情角色不出现在 holder 勾选', async () => {
@@ -215,6 +215,6 @@ describe('I66 知情与揭示管理面 UI (R14-1)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-knowledge-propose'] === 'holder-add')?.props?.onClick as () => void)();
     await flush();
     expect(knowledgePanel(render())?.props?.['data-novel-knowledge-state']).toBe('ready');
-    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('cannot regress');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-knowledge-message'] !== undefined)?.children?.[0] ?? ''))).toContain('操作未完成，请重试');
   });
 })

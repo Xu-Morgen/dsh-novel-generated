@@ -15,15 +15,15 @@ export function longDraftGuidePanel(h: El, projectId: string, namespace: LongDra
     'data-novel-long-draft-guide': '',
     'data-novel-long-draft-state': namespace === undefined ? 'unavailable' : 'host-ready',
   },
-  h('h3', { className: 'nv-panel__title' }, '长稿拆纲（仅生成 B5）'),
-  h('p', { className: 'nv-panel__hint' }, '长稿会先生成可审阅的大纲候选；只有空作品可继续，确认经 I11 Gate 后才写入 B5，不会把原文写入 C5。'),
+  h('h3', { className: 'nv-panel__title' }, '长稿拆纲（仅生成大纲）'),
+  h('p', { className: 'nv-panel__hint' }, '长稿会先生成可审阅的大纲候选；只有空作品可继续，确认后才写入大纲，不会把原文写入正文。'),
   h('ol', { className: 'nv-onboarding-long-draft-guide__steps' },
-    h('li', null, '粘贴或上传原文，生成 outline-only 候选。'),
-    h('li', null, '检查候选与来源指纹，确认或拒绝。'),
-    h('li', null, '应用后可从 Host checkpoint 恢复，重复确认不会重复写入。'),
+    h('li', null, '粘贴或上传原文，生成大纲候选。'),
+    h('li', null, '检查候选与来源标记，确认或拒绝。'),
+    h('li', null, '应用后可从中断处继续，重复确认不会重复写入。'),
   ),
   namespace === undefined
-    ? h('p', { className: 'nv-editor__error', 'data-novel-long-draft-error': '', role: 'alert' }, '长稿拆纲 Remote 未挂载。')
-    : h('small', { className: 'nv-panel__hint', 'data-novel-long-draft-project': projectId }, '当前路径由 Host 校验作品是否为空。'),
+    ? h('p', { className: 'nv-editor__error', 'data-novel-long-draft-error': '', role: 'alert' }, '长稿拆纲功能暂时不可用，请稍后重试。')
+    : h('small', { className: 'nv-panel__hint', 'data-novel-long-draft-project': projectId }, '当前路径会检查作品是否为空。'),
   );
 }

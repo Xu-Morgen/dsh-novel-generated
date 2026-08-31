@@ -2,6 +2,7 @@
 // knowledge 层编辑动作 = I66 知情与揭示管理面 ops（R14-1）：刷新/双视图/选中/提案草稿 + Gate 确认，经 knowledgeNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { KnowledgeApplyOutcomeShape, KnowledgeBusy, KnowledgeEditOps, KnowledgeLayerState, KnowledgeProjectionShape, KnowledgeProposalShape, KnowledgeProposeOutcomeShape, KnowledgeViewId } from '../layers/knowledge.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type KnowledgePort = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace'>;
@@ -29,7 +30,7 @@ export function createKnowledgeOps(runtime: OpsRuntime, port: KnowledgePort): Kn
             // I77：pending wire 契约即裸数组（组合根不再包 envelope）。
             const pending = (pendingList as KnowledgeProposalShape[] | undefined) ?? [];
             knowledgePatch({ status: 'ready', projection: projection as KnowledgeProjectionShape, pending, message: undefined });
-          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ status: 'error', message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ status: 'error', message: toUserMessage(cause) }); });
         },
         setView(view: KnowledgeViewId) { knowledgePatch({ view, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' } }); },
         selectFact(entryId: string) {
@@ -70,14 +71,14 @@ export function createKnowledgeOps(runtime: OpsRuntime, port: KnowledgePort): Kn
               busy: { ...snapshot.knowledge.busy, propose: false },
               selectedEntryId: undefined,
               draft: { holders: [], status: '', revealAt: '' },
-              message: `提案已提交待确认（${result.proposalId}）：${result.kind === 'reveal' ? '揭示' : 'holder 变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效（知情只增不退）。`,
+              message: `提案已提交待确认：${result.kind === 'reveal' ? '揭示' : '持有者变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效。`,
             });
             // 刷新待确认提案列表（Gate pending 持久化）。
             void unwrap(target.pending(projectId)).then((pendingList) => {
               if (!isActive()) return;
               knowledgePatch({ pending: (pendingList as KnowledgeProposalShape[] | undefined) ?? [] });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, propose: false }, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, propose: false }, message: toUserMessage(cause) }); });
         },
         accept(proposalId: string): void {
           const target = knowledgeNamespace;
@@ -95,10 +96,10 @@ export function createKnowledgeOps(runtime: OpsRuntime, port: KnowledgePort): Kn
               projection: result.projection,
               pending,
               message: result.applied
-                ? `已确认并应用揭示 / holder 变更（知情只增不退，已同步 holders 与角色知情状态）。`
-                : '该变更此前已生效（幂等确认，未重复写 C3）。',
+                ? `已确认并应用揭示 / 知情变更（知情只增不退，已同步角色知情状态）。`
+                : '该变更此前已生效（未重复改稿）。',
             });
-          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, accept: false }, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, accept: false }, message: toUserMessage(cause) }); });
         },
         reject(proposalId: string): void {
           const target = knowledgeNamespace;
@@ -112,9 +113,9 @@ export function createKnowledgeOps(runtime: OpsRuntime, port: KnowledgePort): Kn
             knowledgePatch({
               busy: { ...snapshot.knowledge.busy, accept: false },
               pending: snapshot.knowledge.pending.filter((proposal) => proposal.proposalId !== proposalId),
-              message: `已拒绝提案 ${proposalId}（C3 零写）。`,
+              message: '已拒绝提案，未修改知情记录。',
             });
-          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, accept: false }, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; knowledgePatch({ busy: { ...snapshot.knowledge.busy, accept: false }, message: toUserMessage(cause) }); });
         },
         dismiss() { knowledgePatch({ status: 'idle', projection: undefined, message: undefined, selectedEntryId: undefined, draft: { holders: [], status: '', revealAt: '' }, pending: [], busy: {} }); },
       };

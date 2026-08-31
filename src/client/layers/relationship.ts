@@ -1,4 +1,5 @@
 import { characterText, type El, type WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { entityMultiSelect, entitySelect, type EntityOption } from '../entity-selectors.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import { relationshipTypeSchema, type RelationshipType } from '../../core/schema/relationship.js';
@@ -53,7 +54,7 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
     ),
     h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '保存'))),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'relationship'),
-    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, editor.error) : null,
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, toUserMessage(editor.error)) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'ready' }, h('div', { className: 'nv-editor__columns' }, list, detail));
 }

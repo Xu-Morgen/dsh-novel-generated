@@ -2,6 +2,7 @@
 // rule-style 层编辑动作 = I67 规则与文风 ops（R14-2）：刷新/规则选中与新建/表单草稿/保存，经 ruleStyleNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { freshRuleDraft, freshStyleDraft } from '../layers/rule-style.js';
 import type { RuleDraftShape, RuleShape, RuleStyleEditOps, RuleStyleLayerState, RuleStyleProjectionShape, StyleDraftShape, StyleShape } from '../layers/rule-style.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -36,7 +37,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             if (!isActive()) return;
             const result = projection as RuleStyleProjectionShape;
             ruleStylePatch({ status: 'ready', projection: result, styleDraft: styleDraftFrom(result.style), message: undefined });
-          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ status: 'error', message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ status: 'error', message: toUserMessage(cause) }); });
         },
         selectRule(ruleId: string): void {
           const target = ruleStyleNamespace;
@@ -52,7 +53,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             release();
             if (!isActive()) return;
             ruleStylePatch({ editingRuleId: ruleId, ruleDraft: ruleDraftFrom(rule as RuleShape), message: undefined });
-          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ message: toUserMessage(cause) }); });
         },
         newRule(): void {
           const editing = snapshot.ruleStyle.editingRuleId === '__new__';
@@ -91,7 +92,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
               const result = projection as RuleStyleProjectionShape;
               ruleStylePatch({ projection: result, status: 'ready' });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: toUserMessage(cause) }); });
         },
         setStyleDraft(patch: Partial<StyleDraftShape>): void {
           ruleStylePatch({ styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
@@ -120,7 +121,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
               const result = projection as RuleStyleProjectionShape;
               ruleStylePatch({ projection: result, status: 'ready', styleDraft: styleDraftFrom(result.style) });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: toUserMessage(cause) }); });
         },
         dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
       };

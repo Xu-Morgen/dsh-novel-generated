@@ -369,7 +369,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     expect(chooseCalls).toHaveLength(2);
     expect(sceneReads).toBe(2);
     expect(aggregateReads).toBe(2);
-    expect(collect(versionPanel() ?? {}, 'p').some((node) => node.children?.[0] === 'Stale branch source')).toBe(true);
+    expect(collect(versionPanel() ?? {}, 'p').some((node) => node.children?.[0] === '内容已发生变化，请刷新后再试。')).toBe(true);
   });
 });
 

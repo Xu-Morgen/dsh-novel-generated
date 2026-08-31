@@ -1,4 +1,5 @@
 import type { El, RuleStyleNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 
 /**
  * I67 B1 规则与 B4 文风控制面面板（design §14.10「B1/B4 控制面」/ R14-2）。
@@ -153,7 +154,7 @@ function ruleCard(h: El, rule: RuleShape, selected: boolean, ops: RuleStyleEditO
 
 function ruleForm(h: El, draft: RuleDraftShape, acting: boolean, isNew: boolean, ops: RuleStyleEditOps): unknown {
   return h('div', { className: 'nv-rulestyle__form', 'data-novel-rule-form': isNew ? '__new__' : draft.id },
-    h('p', { className: 'nv-rulestyle__form-title', 'data-novel-rule-form-title': '' }, isNew ? '新建规则（B1）' : `编辑规则：${draft.id}`),
+    h('p', { className: 'nv-rulestyle__form-title', 'data-novel-rule-form-title': '' }, isNew ? '新建规则' : `编辑规则：${draft.id}`),
     !isNew ? null : h('label', { className: 'nv-field' },
       h('span', { className: 'nv-field__label' }, '规则 ID（稳定标识，保存后不可改）'),
       h('input', { type: 'text', className: 'nv-field__input', 'data-novel-rule-edit-id': '', value: draft.id, onChange: (event: { target: { value: string } }) => ops.setRuleDraft({ id: event.target.value }) }),
@@ -202,7 +203,7 @@ function ruleForm(h: El, draft: RuleDraftShape, acting: boolean, isNew: boolean,
 function styleForm(h: El, style: StyleShape | null, draft: StyleDraftShape, acting: boolean, ops: RuleStyleEditOps): unknown {
   return h('div', { className: 'nv-rulestyle__style', 'data-novel-style-form': '' },
     style === null
-      ? h('p', { className: 'nv-rulestyle__hint', 'data-novel-style-uninitialized': '' }, '风格档案尚未初始化（I3 占位）。填写并保存后，它将作为生成与检测读取的 B4 真相。')
+      ? h('p', { className: 'nv-rulestyle__hint', 'data-novel-style-uninitialized': '' }, '风格档案尚未初始化。填写并保存后，它会用于后续生成与检查。')
       : h('p', { className: 'nv-rulestyle__hint', 'data-novel-style-version': '' }, `当前版本 v${style.version}（${style.name}）`),
     h('label', { className: 'nv-field' },
       h('span', { className: 'nv-field__label' }, '档案名称'),
@@ -261,14 +262,14 @@ export function ruleStylePanel(h: El, projectId: string, namespace: RuleStyleNam
   const busy = state.acting || state.status === 'loading';
   let body: unknown;
   if (!available) {
-    body = h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-unavailable': '' }, '规则与文风服务不可用（novelRuleStyleManager Remote 未挂载）。');
+    body = h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-unavailable': '' }, '规则与文风功能暂时不可用，请稍后重试。');
   } else if (state.status === 'idle') {
-    body = h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-idle': '' }, '尚未装载。点击「刷新」查看 B1 规则与 B4 风格档案。');
+    body = h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-idle': '' }, '尚未读取内容。点击「刷新」查看规则与风格档案。');
   } else if (state.status === 'loading') {
     body = h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-loading': '', role: 'status', 'aria-live': 'polite' }, '正在装载规则与文风…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-rulestyle__error', 'data-novel-rule-style-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', { 'data-novel-rule-style-error-text': '' }, state.message ?? '规则与文风读取失败'),
+      h('p', { 'data-novel-rule-style-error-text': '' }, toUserMessage(state.message ?? '规则与文风读取失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-rule-style-retry': '', onClick: () => ops.refresh() }, '重试'),
     );
   } else {
@@ -278,11 +279,11 @@ export function ruleStylePanel(h: El, projectId: string, namespace: RuleStyleNam
     const editing = state.ruleDraft;
     body = h('div', { className: 'nv-rulestyle__ready', 'data-novel-rule-style-ready': '' },
       h('p', { className: 'nv-rulestyle__summary', 'data-novel-rule-style-summary': '', role: 'status', 'aria-live': 'polite' },
-        `共 ${rules.length} 条规则（immutable ${rules.filter((rule) => rule.immutable).length} 条；启用 ${rules.filter((rule) => rule.active).length} 条）`),
+        `共 ${rules.length} 条规则（不可变 ${rules.filter((rule) => rule.immutable).length} 条；启用 ${rules.filter((rule) => rule.active).length} 条）`),
       h('div', { className: 'nv-rulestyle__section', 'data-novel-rules-section': '' },
-        h('h4', { className: 'nv-rulestyle__section-title' }, 'B1 规则（冲突时优先级高者胜）'),
+        h('h4', { className: 'nv-rulestyle__section-title' }, '硬性规则（冲突时优先级高者胜）'),
         rules.length === 0
-          ? h('p', { className: 'nv-rulestyle__empty', 'data-novel-rules-empty': '' }, '尚无规则。新建第一条规则后，它将进入生成上下文与检测读取的同一 Host 真相。')
+          ? h('p', { className: 'nv-rulestyle__empty', 'data-novel-rules-empty': '' }, '尚无规则。新建第一条规则后，它会用于后续生成与检查。')
           : h('ul', { className: 'nv-rulestyle__rules', 'data-novel-rules-list': '' },
             rules.map((rule) => ruleCard(h, rule, rule.id === state.editingRuleId, ops))),
         state.editingRuleId === '__new__' || state.editingRuleId === undefined
@@ -291,7 +292,7 @@ export function ruleStylePanel(h: El, projectId: string, namespace: RuleStyleNam
         editing === undefined ? null : ruleForm(h, editing, state.acting, state.editingRuleId === '__new__', ops),
       ),
       h('div', { className: 'nv-rulestyle__section', 'data-novel-style-section': '' },
-        h('h4', { className: 'nv-rulestyle__section-title' }, 'B4 文风档案（人称 / 时态 / POV / 禁用表达）'),
+        h('h4', { className: 'nv-rulestyle__section-title' }, '文风档案（人称 / 时态 / 视角 / 禁用表达）'),
         styleForm(h, style, state.styleDraft, state.acting, ops),
       ),
       state.message === undefined ? null
@@ -299,8 +300,8 @@ export function ruleStylePanel(h: El, projectId: string, namespace: RuleStyleNam
     );
   }
   return h('section', { className: 'nv-rulestyle', 'data-novel-rule-style-panel': '', 'data-novel-rule-style-state': state.status },
-    h('h3', { className: 'nv-editor__title' }, '规则与文风（B1 / B4）'),
-    h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-desc': '' }, '编辑硬性规则（优先级 / immutable）与全局风格（人称、时态、POV、禁用表达）；所有校验由 Host 完成，保存后生成与检测读取同一份真相。'),
+    h('h3', { className: 'nv-editor__title' }, '规则与文风'),
+    h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-desc': '' }, '编辑硬性规则（优先级 / 不可变）与全局风格（人称、时态、视角、禁用表达）；保存后生成与检查会使用同一份内容。'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-rule-style-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),

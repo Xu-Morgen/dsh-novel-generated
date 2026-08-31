@@ -2,6 +2,7 @@
 // progress 层编辑动作 = I68 进度与灵感 ops（R14-3）：刷新/偏差记录与调和/灵感时刻/选定→Gate 提案→确认/拒绝，经 progressNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { ProgressApplyOutcomeShape, ProgressAuditRecordShape, ProgressDirectionShape, ProgressEditOps, ProgressLayerState, ProgressPendingProposalShape, ProgressProjectionShape, ProgressSelectOutcomeShape } from '../layers/progress.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type ProgressPort = Pick<OpsPorts, 'progressNamespace'>;
@@ -32,7 +33,7 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
             audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] } | undefined)?.records ?? [],
             message: undefined,
           });
-        }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ status: 'error', message: toUserMessage(cause) }); });
       };
       return {
         refresh,
@@ -46,8 +47,8 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
             release();
             if (!isActive()) return;
             const result = outcome as { projectId: string; directions: ProgressDirectionShape[] };
-            progressPatch({ inspiring: false, directions: result.directions, message: `灵感时刻产出 ${result.directions.length} 个方向（零写；选定并经确认后才会调整 B5/C6）。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ inspiring: false, message: (cause as Error).message }); });
+            progressPatch({ inspiring: false, directions: result.directions, message: `灵感时刻产出 ${result.directions.length} 个方向（不会直接改稿；选定并确认后才会应用调整）。` });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ inspiring: false, message: toUserMessage(cause) }); });
         },
         setPrompt(value: string) { progressPatch({ prompt: value }); },
         selectDirection(directionId: string) {
@@ -71,13 +72,13 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
             progressPatch({
               acting: false,
               selectedDirectionId: undefined,
-              message: `方向「${result.direction.title}」已提交待确认（${result.proposalId}）。确认后只改授权的 B5/C6；拒绝则零写。`,
+              message: `方向「${result.direction.title}」已提交待确认。确认后才会应用授权调整；拒绝则不会改稿。`,
             });
             void unwrap(target.pending(projectId)).then((pendingEnvelope) => {
               if (!isActive()) return;
               progressPatch({ pending: (pendingEnvelope as { proposals?: ProgressPendingProposalShape[] }).proposals ?? [] });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         accept(proposalId: string): void {
           const target = progressNamespace;
@@ -95,10 +96,10 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
               pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
               audit: result.audit,
               message: result.applied
-                ? '已确认并应用灵感方向（只改授权的 B5 立意/主题与 C6 偏差记录）。'
-                : '该方向此前已应用（幂等确认，未重复写 B5/C6）。',
+                ? '已确认并应用灵感方向（只改授权的大纲立意/主题与偏差记录）。'
+                : '该方向此前已应用（未重复改稿）。',
             });
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         reject(proposalId: string): void {
           const target = progressNamespace;
@@ -112,13 +113,13 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
             progressPatch({
               acting: false,
               pending: snapshot.progress.pending.filter((proposal) => proposal.proposalId !== proposalId),
-              message: `已拒绝方向提案 ${proposalId}（B5/C6 零写）。`,
+              message: '已拒绝方向提案（未改稿）。',
             });
             void unwrap(target.audit(projectId)).then((auditEnvelope) => {
               if (!isActive()) return;
               progressPatch({ audit: (auditEnvelope as { records?: ProgressAuditRecordShape[] }).records ?? [] });
             }, () => undefined);
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         setDeviationDraft(patch: Partial<{ planned: string; actual: string; reason: string }>) {
           progressPatch({ deviationDraft: { ...snapshot.progress.deviationDraft, ...patch } });
@@ -138,8 +139,8 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
           })).then((projection) => {
             release();
             if (!isActive()) return;
-            progressPatch({ acting: false, projection: projection as ProgressProjectionShape, deviationDraft: { planned: '', actual: '', reason: '' }, message: '偏差已记录（只写 C6；B5 未改变）。' });
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+            progressPatch({ acting: false, projection: projection as ProgressProjectionShape, deviationDraft: { planned: '', actual: '', reason: '' }, message: '偏差已记录，大纲未改变。' });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         reconcileDeviation(deviationId: string): void {
           const target = progressNamespace;
@@ -150,8 +151,8 @@ export function createProgressOps(runtime: OpsRuntime, port: ProgressPort): Prog
           void unwrap(target.reconcileDeviation(projectId, deviationId)).then((projection) => {
             release();
             if (!isActive()) return;
-            progressPatch({ acting: false, projection: projection as ProgressProjectionShape, message: `偏差 ${deviationId} 已标记为调和（只写 C6）。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: (cause as Error).message }); });
+            progressPatch({ acting: false, projection: projection as ProgressProjectionShape, message: '偏差已标记为调和。' });
+          }, (cause: Error) => { release(); if (!isActive()) return; progressPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         dismiss() { progressPatch({ status: 'idle', projection: undefined, message: undefined, directions: undefined, inspiring: false, prompt: '', selectedDirectionId: undefined, pending: [], audit: [], deviationDraft: { planned: '', actual: '', reason: '' }, acting: false }); },
       };

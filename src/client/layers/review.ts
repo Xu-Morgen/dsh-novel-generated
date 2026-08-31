@@ -1,4 +1,5 @@
 import type { El, ReviewNamespace } from '../shared.js';
+import { advancedReference, toUserMessage } from '../presentation.js';
 import { filterReviewIssues } from '../../core/review/issue.js';
 import { contextLinkButton, textContextLink, type ContextLinkSink } from '../link-adapters.js';
 import { freshReviewRepairSession, type ReviewRepairSessionState } from '../review-repair-session.js';
@@ -105,6 +106,13 @@ export function freshReview(): ReviewLayerState {
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   rule: '规则', canon: '正史', knowledge: '知情', relationship: '关系', style: '风格',
 };
+const KIND_LABELS: Readonly<Record<string, string>> = {
+  'immutable-rule': '不可违反的规则',
+  'canon-conflict': '正史冲突',
+  'knowledge-leak': '知情边界问题',
+  'relationship-drift': '关系变化偏离',
+  'style-deviation': '文风偏离',
+};
 const SEVERITY_LABELS: Readonly<Record<string, string>> = { hard: '硬', soft: '软' };
 const STATUS_LABELS: Readonly<Record<string, string>> = {
   open: '未处理', continued: '已继续', 'rewrite-requested': '已请求重写',
@@ -140,13 +148,13 @@ function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: 
       h('span', { className: 'nv-review__issue-title' },
         h('span', { className: 'nv-review__badge nv-review__badge--' + issue.severity, 'data-novel-review-issue-badge': issue.severity }, SEVERITY_LABELS[issue.severity] ?? issue.severity),
         h('span', { className: 'nv-review__badge', 'data-novel-review-issue-category': issue.category }, CATEGORY_LABELS[issue.category] ?? issue.category),
-        h('span', { className: 'nv-review__issue-kind', 'data-novel-review-issue-kind': '' }, issue.kind),
+        h('span', { className: 'nv-review__issue-kind', 'data-novel-review-issue-kind': '' }, KIND_LABELS[issue.kind] ?? '待处理问题'),
       ),
       h('p', { className: 'nv-review__issue-message', 'data-novel-review-issue-message': '' }, issue.message),
       h('p', { className: 'nv-review__issue-meta', 'data-novel-review-issue-meta': '' },
         issue.location === undefined ? '无正文定位'
-          : `定位：第 ${issue.location.chapterId} 章 / 场景 ${issue.location.sceneId}`,
-        issue.references.length === 0 ? null : ` · 引用：${issue.references.join('、')}`,
+          : '可定位到相关章节与场景',
+        issue.references.length === 0 ? null : ` · 关联内容 ${issue.references.length} 项`,
         ` · 状态：${STATUS_LABELS[issue.status] ?? issue.status}`,
       ),
       issue.location === undefined ? null : h('div', { className: 'nv-review__issue-actions' },
@@ -175,7 +183,7 @@ function repairSessionPanel(h: El, session: ReviewRepairSessionState, ops: Revie
   const canRetryScan = session.status === 'uncertain' || session.status === 'unresolved';
   return h('section', { className: 'nv-review__repair-candidate', 'data-novel-review-repair-candidate': candidate.candidate.id },
     h('h4', null, session.status === 'resolved' ? '修复已确认（当前会话）' : '修复候选（待作者审阅）'),
-    h('p', { className: 'nv-review__issue-meta' }, `问题指纹：${candidate.issueFingerprint} · 目标：${candidate.target.chapterId}/${candidate.target.sceneId}`),
+    h('p', { className: 'nv-review__issue-meta' }, '已锁定需要修复的正文位置', advancedReference(h, '查看问题定位', `${candidate.target.chapterId}/${candidate.target.sceneId}`), advancedReference(h, '查看问题标识', candidate.issueFingerprint)),
     candidate.anchor === undefined ? null : h('p', { className: 'nv-review__issue-meta' }, `精确引文：${candidate.anchor.quote}`),
     h('pre', { className: 'nv-review__repair-text' }, candidate.candidate.text),
     session.status === 'accepting'
@@ -184,8 +192,8 @@ function repairSessionPanel(h: El, session: ReviewRepairSessionState, ops: Revie
         ? h('p', { className: 'nv-review__repair-status', role: 'status', 'aria-live': 'polite' }, '候选已接受，正在复扫…')
         : session.status === 'resolved'
           ? h('div', { className: 'nv-review__repair-resolved', 'data-novel-review-repair-resolved': candidate.issueId },
-            h('p', null, session.message ?? '复扫未发现同一问题。'),
-            h('p', { className: 'nv-review__issue-meta' }, `证据：候选 ${session.resolved?.candidateId ?? candidate.candidate.id} · 复扫 ${session.resolved?.rescannedAt ?? '未知时间'}`),
+            h('p', null, toUserMessage(session.message ?? '复扫未发现同一问题。')),
+            h('p', { className: 'nv-review__issue-meta' }, '已记录本次修复并确认原问题消失。', advancedReference(h, '查看复扫证据', `${session.resolved?.candidateId ?? candidate.candidate.id} · ${session.resolved?.rescannedAt ?? '未知时间'}`)),
           )
           : session.status === 'unresolved'
             ? h('p', { className: 'nv-review__repair-warning', 'data-novel-review-repair-unresolved': '', role: 'alert' }, session.message ?? '同一问题仍存在，未标记为已解决。')
@@ -220,7 +228,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
   const busy = state.status === 'scanning' || state.acting || repairBusy;
   let body: unknown;
   if (!available) {
-    body = h('p', { className: 'nv-review__hint', 'data-novel-review-unavailable': '' }, '审校服务不可用（novelReview Remote 未挂载）。');
+    body = h('p', { className: 'nv-review__hint', 'data-novel-review-unavailable': '' }, '审校功能暂时不可用，请稍后重试。');
   } else if (state.status === 'idle') {
     body = h('p', { className: 'nv-review__hint', 'data-novel-review-idle': '' }, '尚未审校。点击「刷新审校」对全部正文运行规则/正史/知情/关系/风格检查。');
   } else if (state.status === 'scanning') {
@@ -232,7 +240,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
       : h('p', { className: 'nv-review__hint', 'data-novel-review-scanning': '', role: 'status', 'aria-live': 'polite' }, '正在审校全部场景…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-review__error', 'data-novel-review-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', null, state.message ?? '审校失败'),
+      h('p', null, toUserMessage(state.message ?? '审校失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-retry': '', onClick: () => ops.scan() }, '重试'),
     );
   } else {

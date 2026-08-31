@@ -2,6 +2,7 @@
 // timeline 层编辑动作 = 方案 A 剧情时间线 ops（design §8 相关角色对）：刷新/自建/节点选择/编辑/手动设当前/保存，经 timelineNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { TimelineEditOps, TimelineLayerState, TimelineShape } from '../layers/timeline.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type TimelinePort = Pick<OpsPorts, 'timelineNamespace'>;
@@ -21,7 +22,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
           release();
           if (!isActive()) return;
           timelinePatch({ status: 'ready', timeline: (timeline ?? undefined) as TimelineShape | undefined, selectedId: undefined, dirty: false, saving: false, saveMessage: '', error: '', message: undefined });
-        }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', message: toUserMessage(cause) }); });
       };
       return {
         refresh: load,
@@ -35,7 +36,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
             release();
             if (!isActive()) return;
             timelinePatch({ status: 'ready', timeline: timeline as TimelineShape, selectedId: undefined, dirty: false, saving: false, saveMessage: '已从大纲生成时间线骨架', error: '', message: undefined });
-          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', error: (cause as Error).message, message: undefined }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', error: toUserMessage(cause), message: undefined }); });
         },
         select(nodeId: string) {
           timelinePatch({ selectedId: nodeId, dirty: false, error: '', saveMessage: '' });
@@ -58,7 +59,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
             release();
             if (!isActive()) return;
             timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saveMessage: nodeId === null ? '已恢复自动锚定' : '已设为当前时间点', error: '' });
-          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ error: toUserMessage(cause) }); });
         },
         save(): void {
           const target = timelineNamespace;
@@ -71,7 +72,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
             release();
             if (!isActive()) return;
             timelinePatch({ timeline: timeline as TimelineShape, dirty: false, saving: false, saveMessage: '已保存', error: '' });
-          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ saving: false, error: (cause as Error).message, saveMessage: '' }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ saving: false, error: toUserMessage(cause), saveMessage: '' }); });
         },
       };
 }

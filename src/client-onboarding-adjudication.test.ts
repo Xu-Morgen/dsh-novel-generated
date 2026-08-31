@@ -69,7 +69,7 @@ describe('I56 six-layer adjudication correctness (R12-3)', () => {
     await flush();
     expect(calls).toEqual([]);
     const error = collect(render(), 'p').find((node) => node.props?.['data-novel-onboarding-error'] !== undefined);
-    expect(String(error?.children?.[0] ?? '')).toContain('不是合法 JSON');
+    expect(String(error?.children?.[0] ?? '')).toContain('结构化内容格式不正确');
   });
 
   it('打回重生成 opens a feedback panel and submits the user feedback', async () => {

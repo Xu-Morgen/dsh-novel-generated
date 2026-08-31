@@ -1,4 +1,5 @@
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { BranchPanelState, ChaptersEditOps } from '../layers/chapters.js';
 import type { BranchAggregate, BranchAggregateScene } from '../../core/schema/branch-aggregate.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -28,7 +29,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     }, (cause: Error) => {
       release();
       if (!isActive()) return;
-      branchesPatch({ aggregate: { status: 'error', message: (cause as Error).message } });
+      branchesPatch({ aggregate: { status: 'error', message: toUserMessage(cause) } });
     });
   };
   const findVersionScene = (tree: BranchAggregate | undefined, chapterId: string, sceneId: string): BranchAggregateScene | undefined =>
@@ -55,7 +56,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     }, (cause: Error) => {
       release();
       if (!isActive()) return;
-      branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } });
+      branchesPatch({ diff: { status: 'error', lines: [], message: toUserMessage(cause) } });
     });
   };
   const versionChoose = (chapterId: string, sceneId: string, branchId: string): void => {
@@ -88,7 +89,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
     }, (cause: Error) => {
       release();
       if (!isActive()) return;
-      branchesPatch({ acting: false, message: (cause as Error).message });
+      branchesPatch({ acting: false, message: toUserMessage(cause) });
     });
   };
   // 注意：branchesLoad 必须显式接收 chapterId/sceneId —— makeOps 渲染闭包
@@ -105,7 +106,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
       release();
       if (!isActive()) return;
       branchesPatch({ status: 'ready', list: result.branches, message: undefined });
-    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ status: 'error', message: (cause as Error).message }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
   const branchSave = (): void => {
     const target = branchNamespace;
@@ -122,7 +123,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
       release();
       if (!isActive()) return;
       branchesPatch({ acting: false, status: 'ready', list: result.branches, labelDraft: '', message: '已存档当前版本' });
-    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: toUserMessage(cause) }); });
   };
   const branchChoose = (branchId: string): void => {
     const target = branchNamespace;
@@ -139,7 +140,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
       branchesPatch({ acting: false, status: 'ready', list: result.branches, message: '已切换版本（只改正文，未同步结构层；如需同步请显式重解析）' });
       // 切换后正文变化：重载场景，让编辑器以新原文初始化（baseHash 随之更新）。
       if (result.content !== snapshot.chapters.editor.original && sceneId !== undefined) internal.loadScene(sceneId, chapterId);
-    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: (cause as Error).message }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ acting: false, message: toUserMessage(cause) }); });
   };
   const branchDiff = (branchId: string): void => {
     const target = branchNamespace;
@@ -153,7 +154,7 @@ export function createBranchOps(runtime: OpsRuntime, port: BranchPort, internal:
       release();
       if (!isActive()) return;
       branchesPatch({ diff: { status: 'ready', fromLabel: result.from.label, toLabel: result.to.label, lines: result.lines } });
-    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ diff: { status: 'error', lines: [], message: (cause as Error).message } }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; branchesPatch({ diff: { status: 'error', lines: [], message: toUserMessage(cause) } }); });
   };
   const branchCloseDiff = (): void => branchesPatch({ diff: { status: 'idle', lines: [] }, versionDiffTarget: undefined });
 

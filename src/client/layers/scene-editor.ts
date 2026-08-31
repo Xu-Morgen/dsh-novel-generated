@@ -1,4 +1,5 @@
 import type { El, UnwrapValue, WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import type { ChaptersEditOps } from './chapters.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
@@ -88,12 +89,12 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
   let reparsePanel: unknown;
   if (state.reparse.kind === 'idle') {
     reparsePanel = h('p', { className: 'nv-chapters__reparse-hint', 'data-novel-scene-reparse-hint': '' },
-      '可选：保存并重解析将把本次修改经 ConfirmationGate 同步到结构层（C2/C1/C3/C4/B2）。');
+      '可选：保存并重解析会在确认后同步更新相关结构信息。');
   } else if (state.reparse.kind === 'proposed') {
     reparsePanel = h('div', { className: 'nv-chapters__reparse nv-chapters__reparse--proposed', 'data-novel-scene-reparse-proposed': '', role: 'status', 'aria-live': 'polite' },
       h('p', { className: 'nv-chapters__reparse-status' }, '重解析提案已发起，确认后才会同步结构层。'),
       state.reparse.preview === undefined
-        ? h('p', { className: 'nv-chapters__reparse-preview-error', 'data-novel-scene-reparse-preview-error': '' }, state.reparse.previewError ?? '正在准备五层变更预览…')
+        ? h('p', { className: 'nv-chapters__reparse-preview-error', 'data-novel-scene-reparse-preview-error': '' }, toUserMessage(state.reparse.previewError ?? '正在准备五层变更预览…'))
         : h('details', { className: 'nv-chapters__reparse-preview', 'data-novel-scene-reparse-preview': '' },
           h('summary', { 'data-novel-scene-reparse-preview-summary': '' }, `五层结构化变更预览（${state.reparse.preview.changes.length} 项）`),
           state.reparse.preview.changes.length === 0

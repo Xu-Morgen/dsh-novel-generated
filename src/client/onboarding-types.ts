@@ -37,12 +37,12 @@ export type OnboardingNamespace = NamespaceOf<typeof onboardingRemoteContributio
 export type OnboardingAnalyzerNamespace = NamespaceOf<typeof onboardingAnalyzerRemoteContribution>;
 
 export const ONBOARDING_LAYERS: readonly { id: OnboardingLayerId; label: string }[] = [
-  { id: 'characters', label: '角色（B3）' },
-  { id: 'worldview', label: '世界观（B2）' },
-  { id: 'outline', label: '大纲（B5）' },
-  { id: 'relationship', label: '关系（C1）' },
-  { id: 'state', label: '状态（C2）' },
-  { id: 'canon', label: '正史（C4）' },
+  { id: 'characters', label: '角色' },
+  { id: 'worldview', label: '世界观' },
+  { id: 'outline', label: '大纲' },
+  { id: 'relationship', label: '关系' },
+  { id: 'state', label: '状态' },
+  { id: 'canon', label: '正史' },
 ];
 
 /** I57 analysis lifecycle: the client mirrors the Host job status while

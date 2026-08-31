@@ -1,4 +1,5 @@
 import { characterText, type El, type TimelineNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { entityMultiSelect, type EntityOption } from '../entity-selectors.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
@@ -51,17 +52,17 @@ export function timelinePanel(
   knowledgeOptions: readonly EntityOption[] = [],
   links?: ContextLinkSink,
 ): unknown {
-  if (namespace === undefined) return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'error', role: 'alert' }, '时间线服务不可用（novelTimeline Remote 未挂载）。');
+  if (namespace === undefined) return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'error', role: 'alert' }, '时间线功能暂时不可用，请稍后重试。');
   if (state.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'loading' }, '正在加载时间线…');
   const timeline = state.timeline;
   if (timeline === undefined || timeline.nodes.length === 0) {
     return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'idle' },
-      h('p', { className: 'nv-outline__nodetail', 'data-novel-timeline-empty': '' }, '尚未装载时间线：先「刷新」读取已自建文档，或「从大纲生成时间线」（B5 就绪后自动展开有序剧情时间轴）。'),
+      h('p', { className: 'nv-outline__nodetail', 'data-novel-timeline-empty': '' }, '尚未读取时间线：先「刷新」读取已保存内容，或「从大纲生成时间线」。'),
       h('div', { className: 'nv-editor__toolbar' },
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-timeline-refresh': '', onClick: ops.refresh }, '刷新'),
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-timeline-ensure': '', onClick: ops.ensure }, '从大纲生成时间线'),
       ),
-      state.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'timeline', role: 'alert' }, state.error) : null,
+      state.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'timeline', role: 'alert' }, toUserMessage(state.error)) : null,
     );
   }
   const current = timeline.currentNodeId;
@@ -85,7 +86,7 @@ export function timelinePanel(
     ),
     h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-timeline-save': '', onClick: ops.save, disabled: !state.dirty || state.saving }, saveButtonLabel(state.saving, '保存'))),
     renderSaveStatus(h, saveStatusLine(state.saving, state.saveMessage, state.error), 'timeline'),
-    state.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'timeline', role: 'alert' }, state.error) : null,
+    state.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'timeline', role: 'alert' }, toUserMessage(state.error)) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'ready' }, h('div', { className: 'nv-editor__columns' }, list, detail));
 }

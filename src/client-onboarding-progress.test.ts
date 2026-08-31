@@ -119,7 +119,7 @@ describe('I57 初始化进度、取消、重试与应用刷新 (R12-4)', () => {
     await flush();
     // 失败：可读错误 + 重试按钮，UI 未砖化（按钮仍可用）。
     const error = collect(render(), 'p').find((node) => node.props?.['data-novel-analysis-error'] !== undefined);
-    expect(String(error?.children?.[0] ?? '')).toContain('不符合六层候选契约');
+    expect(String(error?.children?.[0] ?? '')).toContain('创作服务返回了无法使用的内容');
     const retry = collect(render(), 'button').find((node) => node.props?.['data-novel-analysis-retry'] === '');
     expect(retry).toBeDefined();
     failed = false;

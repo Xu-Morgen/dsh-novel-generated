@@ -49,11 +49,10 @@ export function workbenchSettingsPanel(
   return h('section', { className: 'nv-panel nv-settings', 'data-novel-workbench-settings': '', 'data-novel-layer-state': 'ready' },
     h('h3', { className: 'nv-editor__title' }, '创作设置'),
     h('p', { className: 'nv-settings__hint' },
-      '通用创作参数，保存在本地 DSH（~/.dsh/novel-settings/workbench-settings.yaml），跨会话生效；' +
-      '对话续写（novel_continue）与后续生成入口共用。'),
+      '通用创作参数会保存在本地，跨会话生效；后续续写与生成入口共用。'),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '每次输出目标字数（wordTarget）'),
+        h('span', { className: 'nv-field__label' }, '每次输出目标字数'),
         h('input', { type: 'number', className: 'nv-field__input', 'data-novel-workbench-word-target': '', min: WORKBENCH_WORD_TARGET_MIN, max: WORKBENCH_WORD_TARGET_MAX, step: 100, value: draft.wordTarget, onChange: (event: { target: { value: string } }) => mutate({ wordTarget: Number(event.target.value) }) }),
         h('span', { className: 'nv-settings__hint' }, '续写时以此为目标字数；单次建议 500–2000，长章节可上调。'),
       ),
@@ -65,7 +64,7 @@ export function workbenchSettingsPanel(
     ),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-open-project-folder': '', disabled: namespace === undefined || projectId === undefined, onClick: () => openFolder?.() },
-        projectId === undefined ? '打开落地文件夹（请先选择作品）' : `打开落地文件夹（${projectId}）`),
+        projectId === undefined ? '打开作品文件夹（请先选择作品）' : '打开作品文件夹'),
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workbench-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
     ),
     // I59 保存状态（R12-6）：保存中/已保存/失败三态可播报；saved/failed 行保留既有

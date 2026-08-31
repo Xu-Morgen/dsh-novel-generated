@@ -2,6 +2,7 @@
 // statistics 层编辑动作 = I72 写作进度面板 ops（R14-7）：概览/筛选/章节详情/重建/删除派生统计，经 statisticsNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { StatisticsNamespace } from '../shared.js';
 import type { ChapterDetailShape, SceneCardsResultShape, StatisticsBusy, StatisticsEditOps, StatisticsLayerState, StatisticsOverviewShape, StatisticsStatsShape, TasksResultShape } from '../layers/statistics.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -28,7 +29,7 @@ export function createStatisticsOps(runtime: OpsRuntime, port: StatisticsPort): 
           onResult(result as T);
           busyPatch(busyKey, false);
           statisticsPatch({ status: 'ready' });
-        }, (cause: Error) => { release(); if (!isActive()) return; busyPatch(busyKey, false); statisticsPatch({ status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; busyPatch(busyKey, false); statisticsPatch({ status: 'error', message: toUserMessage(cause) }); });
       };
       const loadCards = (filters: { actId: string; beatId: string; status: string }): void => {
         // I86：wire 契约为位置参数 [projectId, actId, beatId, status, limit]（descriptor
@@ -68,7 +69,7 @@ export function createStatisticsOps(runtime: OpsRuntime, port: StatisticsPort): 
             loadOverview();
             loadCards({ actId: snapshot.statistics.cardActId, beatId: snapshot.statistics.cardBeatId, status: snapshot.statistics.cardStatus });
             loadTasks(snapshot.statistics.taskStatus);
-            statisticsPatch({ message: `已从 C5/B5/C6/任务记录重建派生统计（章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}，零写结构层）。` });
+            statisticsPatch({ message: `已从正文、大纲、进度与任务记录重建统计（章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}，不会改动作品结构）。` });
           });
         },
         drop(): void {

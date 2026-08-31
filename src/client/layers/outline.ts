@@ -1,4 +1,5 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { entityMultiSelect, type EntityOption } from '../entity-selectors.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import {
@@ -113,6 +114,6 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
       h('div', { className: 'nv-outline__main' }, actPanel, beatPanel),
     ),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'outline'),
-    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'outline', role: 'alert' }, editor.error) : null,
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'outline', role: 'alert' }, toUserMessage(editor.error)) : null,
   );
 }

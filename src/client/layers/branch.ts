@@ -1,4 +1,5 @@
 import type { El, BranchNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { ChaptersEditOps } from './chapters.js';
 import type { BranchAggregate } from '../../core/schema/branch-aggregate.js';
 
@@ -74,12 +75,12 @@ export function branchPanel(h: El, projectId: string, branches: BranchNamespace 
   const unavailable = branches === undefined || projectId === undefined;
   let body: unknown;
   if (unavailable) {
-    body = h('p', { className: 'nv-branch__hint', 'data-novel-branch-unavailable': '' }, '版本服务不可用（novelBranches Remote 未挂载）。');
+    body = h('p', { className: 'nv-branch__hint', 'data-novel-branch-unavailable': '' }, '版本功能暂时不可用，请稍后重试。');
   } else if (state.status === 'loading') {
     body = h('p', { className: 'nv-branch__hint', 'data-novel-branch-loading': '' }, '正在读取版本…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-branch__error', 'data-novel-branch-error': '', role: 'alert' },
-      h('p', { className: 'nv-chapters__error-text' }, state.message ?? '版本读取失败'),
+      h('p', { className: 'nv-chapters__error-text' }, toUserMessage(state.message ?? '版本读取失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-branch-retry': '', onClick: () => ops.branchesLoad() }, '重试'),
     );
   } else {
@@ -158,7 +159,7 @@ export function versionsPanel(h: El, projectId: string, branches: BranchNamespac
   const unavailable = branches === undefined || projectId === undefined;
   let body: unknown;
   if (unavailable) {
-    body = h('p', { className: 'nv-branch__hint', 'data-novel-version-unavailable': '' }, '版本服务不可用（novelBranches Remote 未挂载）。');
+    body = h('p', { className: 'nv-branch__hint', 'data-novel-version-unavailable': '' }, '版本功能暂时不可用，请稍后重试。');
   } else if (state.aggregate.status === 'loading') {
     body = h('p', { className: 'nv-branch__hint', 'data-novel-version-loading': '' }, '正在读取版本树…');
   } else if (state.aggregate.status === 'error') {
@@ -215,7 +216,7 @@ export function versionsPanel(h: El, projectId: string, branches: BranchNamespac
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-diff-close': '', onClick: () => ops.branchCloseDiff() }, '关闭对比'),
       );
     }
-    body = h('div', { className: 'nv-version-tree__body' }, chapterNodes, state.message === undefined ? null : h('p', { className: 'nv-branch__hint nv-branch__message', 'data-novel-version-message': '', role: 'status', 'aria-live': 'polite' }, state.message), diffBlock);
+  body = h('div', { className: 'nv-version-tree__body' }, chapterNodes, state.message === undefined ? null : h('p', { className: 'nv-branch__hint nv-branch__message', 'data-novel-version-message': '', role: 'status', 'aria-live': 'polite' }, state.message), diffBlock);
   }
   return h('section', { className: 'nv-branch nv-version-tree-panel', 'data-novel-version-panel': '', 'data-novel-version-state': state.aggregate.status },
     h('h3', { className: 'nv-editor__title' }, '版本树'), body,

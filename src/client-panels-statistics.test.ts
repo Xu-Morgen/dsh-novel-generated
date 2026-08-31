@@ -77,7 +77,7 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
     expect(String(collect(render(), 'div').find((n) => n.props?.['data-novel-statistics-queue'] !== undefined)?.children?.[0] ?? '')).toContain('任务 2 个');
     expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-pov-row'] === 'mira')).toBe(true);
     expect(collect(render(), 'li').some((n) => n.props?.['data-novel-statistics-chapter'] === 'chapter-1')).toBe(true);
-    expect(statisticsMessage(render)).toContain('重建派生统计');
+    expect(statisticsMessage(render)).toContain('重建统计');
   });
 
   it('空作品视图：empty 标记时明确提示统计为零，不显示假进度', async () => {

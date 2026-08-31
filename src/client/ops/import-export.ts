@@ -2,6 +2,7 @@
 // import-export 层编辑动作 = I69 导入导出与备份 ops（R14-4）：导出下载/恢复/N-7 说明/导入预览，经 importExportNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { downloadText, MAX_RESTORE_FILE_BYTES } from '../layers/import-export.js';
 import type { ImportExportBusy, ImportExportEditOps, ImportExportLayerState, ImportExportPreviewShape, ImportExportRestoreResultShape } from '../layers/import-export.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -47,7 +48,7 @@ export function createImportExportOps(runtime: OpsRuntime, port: ImportExportPor
             const result = outcome as { fileName: string; mode: string; fileCount: number; content: string };
             downloadText(result.fileName, result.content);
             iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, message: `已导出 ${result.fileCount} 个文件（${result.mode}），开始下载 ${result.fileName}。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: toUserMessage(cause) }); });
         },
         exportText(): void {
           const target = importExportNamespace;
@@ -67,7 +68,7 @@ export function createImportExportOps(runtime: OpsRuntime, port: ImportExportPor
               downloadText(base, content);
             }
             iePatch({ busy: { ...snapshot.importExport.busy, exportText: false }, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: toUserMessage(cause) }); });
         },
         restore(): void {
           const target = importExportNamespace;
@@ -85,7 +86,7 @@ export function createImportExportOps(runtime: OpsRuntime, port: ImportExportPor
             } else {
               iePatch({ busy: { ...state.busy, restore: false }, restoreResult: result, message: undefined });
             }
-          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...state.busy, restore: false }, restoreError: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...state.busy, restore: false }, restoreError: toUserMessage(cause) }); });
         },
         previewImport(): void {
           const target = importExportNamespace;
@@ -99,7 +100,7 @@ export function createImportExportOps(runtime: OpsRuntime, port: ImportExportPor
             if (!isActive()) return;
             const result = outcome as ImportExportPreviewShape;
             iePatch({ busy: { ...state.busy, preview: false }, preview: result, message: `导入预览完成：${result.chunks.length} 块（零写）。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: toUserMessage(cause) }); });
         },
         dismiss() { iePatch({ status: 'idle', message: undefined, error: undefined, busy: {}, preview: undefined, restoreFileName: undefined, restoreRaw: undefined, restoreResult: undefined, restoreError: undefined, importText: '', importFileName: undefined }); },
       };

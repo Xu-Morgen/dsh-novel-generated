@@ -1,4 +1,5 @@
 import type { El, KnowledgeNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /**
@@ -170,14 +171,14 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
   const busy = (state.busy.propose === true || state.busy.accept === true) || state.status === 'loading';
   let body: unknown;
   if (!available) {
-    body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-unavailable': '' }, '知情与揭示服务不可用（novelKnowledgeManager Remote 未挂载）。');
+    body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-unavailable': '' }, '知情与揭示功能暂时不可用，请稍后重试。');
   } else if (state.status === 'idle') {
-    body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-idle': '' }, '尚未装载。点击「刷新」按事实与角色查看 C3 知情与揭示。');
+    body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-idle': '' }, '尚未读取内容。点击「刷新」按事实与角色查看知情与揭示。');
   } else if (state.status === 'loading') {
     body = h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-loading': '', role: 'status', 'aria-live': 'polite' }, '正在装载知情与揭示…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-knowledge__error', 'data-novel-knowledge-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', { 'data-novel-knowledge-error-text': '' }, state.message ?? '知情与揭示读取失败'),
+      h('p', { 'data-novel-knowledge-error-text': '' }, toUserMessage(state.message ?? '知情与揭示读取失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-retry': '', onClick: () => ops.refresh() }, '重试'),
     );
   } else {
@@ -197,7 +198,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
       ),
       state.view === 'facts'
         ? (projection?.entries.length === 0
-          ? h('p', { className: 'nv-knowledge__empty', 'data-novel-knowledge-empty': '' }, '尚无 C3 事实（初始化不推断知情；可在六层初始化后经正文解析或手动录入建立）。')
+          ? h('p', { className: 'nv-knowledge__empty', 'data-novel-knowledge-empty': '' }, '尚无事实（初始化不推断知情；可在六层初始化后经正文解析或手动录入建立）。')
           : h('div', { 'data-novel-knowledge-view': 'facts' },
             h('ul', { className: 'nv-knowledge__facts', 'data-novel-knowledge-facts': '' },
               (projection?.entries ?? []).map((fact) => factCard(h, projectId, fact, nameOf, fact.id === state.selectedEntryId, ops, links))),
@@ -270,7 +271,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
     );
   }
   return h('section', { className: 'nv-knowledge', 'data-novel-knowledge-panel': '', 'data-novel-knowledge-state': state.status },
-    h('h3', { className: 'nv-editor__title' }, '知情与揭示（C3）'),
+    h('h3', { className: 'nv-editor__title' }, '知情与揭示'),
     h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-desc': '' }, '按事实与角色查看 holders / revealPlan / status；揭示与 holder 变更须经确认（Gate）后生效，知情只增不退。'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),

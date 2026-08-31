@@ -24,13 +24,13 @@ function find(node: unknown, attribute: string): NodeShape | undefined {
 }
 
 describe('I120 long-draft Client guidance', () => {
-  it('explains Host empty-project gating, I11 confirmation, B5-only apply, and recovery', () => {
+  it('explains empty-project gating, outline review, confirmation, and recovery', () => {
     const tree = longDraftGuidePanel(h, 'fixture-project', {} as LongDraftNamespace);
     expect(find(tree, 'data-novel-long-draft-guide')?.props['data-novel-long-draft-state']).toBe('host-ready');
     const text = JSON.stringify(tree);
-    expect(text).toContain('I11 Gate');
-    expect(text).toContain('C5');
-    expect(text).toContain('checkpoint');
+    expect(text).toContain('大纲候选');
+    expect(text).toContain('确认后才写入大纲');
+    expect(text).toContain('从中断处继续');
   });
 
   it('shows a fail-closed unavailable state when the Remote is not mounted', () => {

@@ -1,4 +1,5 @@
 import type { El, QueueNamespace, UnwrapValue, WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 
 /**
  * I65 可恢复自动生成队列面板（design §14.9「可恢复自动生成队列」/ R13-6）。
@@ -122,11 +123,11 @@ function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps): unknown {
       h('span', { className: 'nv-queue__badge nv-queue__badge--' + status, 'data-novel-queue-task-badge': status }, QUEUE_TASK_STATUS_LABELS[status] ?? status),
     ),
     h('p', { className: 'nv-queue__task-meta', 'data-novel-queue-task-meta': '' },
-      `场景 ${task.sceneId} · 尝试 ${task.attempts}`,
+      `场景任务 · 第 ${task.attempts} 次尝试`,
       task.budgetUnits === null ? '' : ` · ${task.budgetUnits} 单位`,
       status === 'candidate-ready' ? ' · 请在正文面板裁决该候选' : '',
     ),
-    task.error === null ? null : h('p', { className: 'nv-queue__task-error', 'data-novel-queue-task-error': '' }, task.error),
+    task.error === null ? null : h('p', { className: 'nv-queue__task-error', 'data-novel-queue-task-error': '' }, toUserMessage(task.error)),
     status === 'failed'
       ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-retry': task.id, onClick: () => ops.retry(task.id) }, '重试')
       : null,
@@ -145,12 +146,12 @@ export function queuePanel(h: El, projectId: string, queue: QueueNamespace | und
   const paused = runState === 'paused';
   let body: unknown;
   if (!available) {
-    body = h('p', { className: 'nv-queue__hint', 'data-novel-queue-unavailable': '' }, '生成队列服务不可用（novelQueue Remote 未挂载）。');
+    body = h('p', { className: 'nv-queue__hint', 'data-novel-queue-unavailable': '' }, '生成队列功能暂时不可用，请稍后重试。');
   } else if (state.status === 'loading') {
     body = h('p', { className: 'nv-queue__hint', 'data-novel-queue-loading': '', role: 'status', 'aria-live': 'polite' }, '正在装载生成队列…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-queue__error', 'data-novel-queue-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', { 'data-novel-queue-error-text': '' }, state.message ?? '队列状态读取失败'),
+      h('p', { 'data-novel-queue-error-text': '' }, toUserMessage(state.message ?? '队列状态读取失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-refresh': '', onClick: () => ops.refresh() }, '重试'),
     );
   } else {

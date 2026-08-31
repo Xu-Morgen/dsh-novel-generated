@@ -1,4 +1,5 @@
 import { type El, type WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 
 export interface StateSnapshotShape { seq: number; storyTime: string; scene?: { location?: string }; [key: string]: unknown; }
 export interface StateDiffShape { fromSeq: number; toSeq: number; changes: Array<{ path: string; before: unknown; after: unknown }>; }
@@ -19,7 +20,7 @@ export function stateLayer(h: El, _projectId: string, _workspace: WorkspaceNames
     selected === undefined ? h('p', { className: 'nv-outline__nodetail' }, '\u4ece\u5de6\u4fa7\u65f6\u95f4\u7ebf\u9009\u62e9\u4e00\u4e2a\u5feb\u7167\uff0c\u6216\u9009\u62e9\u4e00\u4e2a\u56de\u6eda\u76ee\u6807\u3002') : h('div', { className: 'nv-form' }, h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '\u6545\u4e8b\u65f6\u95f4'), h('input', { type: 'text', className: 'nv-field__input', value: selected.storyTime ?? '', disabled: true })), h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '\u573a\u666f\u5730\u70b9'), h('input', { type: 'text', className: 'nv-field__input', value: selected.scene?.location ?? '', disabled: true }))),
     h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn', 'data-novel-state-diff': '', onClick: ops.showDiff, disabled: editor.fromSeq === undefined || editor.toSeq === undefined }, '\u6bd4\u5bf9\u6240\u9009\u5feb\u7167'), h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-state-rollback': '', onClick: ops.rollback, disabled: editor.selectedSeq === undefined }, '\u56de\u6eda\u5230\u6b64\u5feb\u7167')),
     editor.diff === undefined ? null : h('div', { className: 'nv-state__diff', 'data-novel-state-diff-view': '' }, h('h4', { className: 'nv-outline__subtitle' }, `diff seq ${editor.diff.fromSeq} \u2192 ${editor.diff.toSeq}`), editor.diff.changes.length === 0 ? h('p', { className: 'nv-outline__nodetail' }, '\u4e24\u5feb\u7167\u65e0\u5dee\u5f02\u3002') : h('ul', { className: 'nv-state__diff-list' }, editor.diff.changes.map((change) => h('li', { key: change.path, className: 'nv-state__diff-row', 'data-novel-state-diff-row': change.path }, h('code', { className: 'nv-state__diff-path' }, change.path), h('span', { className: 'nv-state__diff-before' }, displayValue(change.before)), h('span', { className: 'nv-state__diff-arrow' }, '\u2192'), h('span', { className: 'nv-state__diff-after' }, displayValue(change.after)))))),
-    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'state', role: 'alert' }, editor.error) : null,
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'state', role: 'alert' }, toUserMessage(editor.error)) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'state', 'data-novel-layer-state': 'ready' }, h('div', { className: 'nv-editor__columns' }, timeline, detail));
 }

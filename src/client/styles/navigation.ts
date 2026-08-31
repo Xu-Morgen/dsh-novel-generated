@@ -276,6 +276,43 @@ export const NAVIGATION_STYLES = `
   border-color: var(--nv-cinnabar);
 }
 
+/* I132：工程层编号只在用户主动展开的高级信息中可见，普通导航保持作者语言。 */
+.nv-advanced-only {
+  display: none !important;
+}
+
+.nv-workbench__advanced,
+.nv-advanced-details {
+  color: var(--nv-ink-dim);
+  font-size: 12px;
+}
+
+.nv-workbench__advanced summary,
+.nv-advanced-details summary {
+  cursor: pointer;
+  color: var(--nv-ink-faint);
+}
+
+.nv-workbench__advanced ul {
+  margin: var(--nv-grid) 0 0;
+  padding-left: calc(var(--nv-grid) * 2);
+}
+
+.nv-advanced-error {
+  display: grid;
+  gap: var(--nv-grid);
+}
+
+.nv-advanced-error > .nv-editor__error {
+  margin: 0;
+}
+
+.nv-advanced-details__content {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
 .nv-workbench__content {
   flex: none;
   min-width: 0;

@@ -1,5 +1,6 @@
 import type { El, WorkspaceNamespace } from './shared.js';
 import { unwrap } from './shared.js';
+import { toUserMessage } from './presentation.js';
 import { sha256Hex } from './sha256.js';
 
 /**
@@ -67,7 +68,7 @@ export async function uploadDocx(workspace: WorkspaceNamespace, file: File, repo
     return finalized;
   } catch (error) {
     try { await unwrap(workspace.uploadCancel(uploadId)); } catch {}
-    report({ phase: 'error', message: (error as Error).message });
+    report({ phase: 'error', message: toUserMessage(error, '文件上传未完成，请重试。') });
     throw error;
   }
 }
@@ -82,7 +83,7 @@ export function uploadPicker(h: El, workspace: WorkspaceNamespace | undefined, o
     onChange: (event: { target: { files: FileList | null } }) => {
       const file = event.target.files?.[0];
       if (!file || !workspace) return;
-      uploadDocx(workspace, file, onProgress).then(onResult, (error: Error) => onError(error.message));
+      uploadDocx(workspace, file, onProgress).then(onResult, (error: Error) => onError(toUserMessage(error, '文件上传未完成，请重试。')));
     },
   });
 }

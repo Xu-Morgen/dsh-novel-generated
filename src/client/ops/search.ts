@@ -2,6 +2,7 @@
 // search 层编辑动作 = I71 全局搜索与上下文追踪 ops（R14-6）：搜索/引用/跳转/重建/删除派生索引，经 searchNamespace；正文命中经共享 chapters ops ref 跳转。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { RemoteResult } from '../remote-namespace.js';
 import type { SearchEditOps, SearchHitShape, SearchLayerState, SearchResultShape, SearchStatsShape } from '../layers/search.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -30,7 +31,7 @@ export function createSearchOps(runtime: OpsRuntime, port: SearchPort, router: R
           if (!isActive()) return;
           onResult(result as T);
           searchPatch({ acting: false, status: 'ready' });
-        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, status: 'error', message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, status: 'error', message: toUserMessage(cause) }); });
       };
       const runStats = (): void => {
         const target = searchNamespace;
@@ -42,7 +43,7 @@ export function createSearchOps(runtime: OpsRuntime, port: SearchPort, router: R
           release();
           if (!isActive()) return;
           searchPatch({ acting: false, stats: stats as SearchStatsShape, message: undefined });
-        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: toUserMessage(cause) }); });
       };
       return {
         setQuery(value: string) { searchPatch({ query: value, message: undefined }); },
@@ -71,7 +72,7 @@ export function createSearchOps(runtime: OpsRuntime, port: SearchPort, router: R
             release();
             if (!isActive()) return;
             searchPatch({ acting: false, stats: stats as SearchStatsShape, message: `已从六层 live source-of-truth 重建派生索引（${(stats as SearchStatsShape).totalEntries} 条，零写结构层）。` });
-          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         drop(): void {
           const target = searchNamespace;
@@ -83,7 +84,7 @@ export function createSearchOps(runtime: OpsRuntime, port: SearchPort, router: R
             release();
             if (!isActive()) return;
             searchPatch({ acting: false, stats: stats as SearchStatsShape, results: undefined, references: undefined, message: '已删除派生索引（可随时重建，不写任何结构层）。' });
-          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: toUserMessage(cause) }); });
         },
         // I124：Search 只提供 Host projection；统一目标转换与前进/返回由 Router owner 处理。
         jumpTo(hit: SearchHitShape): void {

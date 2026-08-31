@@ -1,4 +1,5 @@
 import type { El, ImportExportNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 
 /**
  * I69 导入导出与备份面板（design §14.10「导入、导出与备份」/ R14-4）。
@@ -74,8 +75,8 @@ export function freshImportExport(): ImportExportLayerState {
 }
 
 export const IMPORT_EXPORT_MODE_LABELS: Readonly<Record<string, string>> = {
-  'full-project': '全项目包（B1–B5 + C1–C6 共 11 层）',
-  'shareable-template': '可分享模板（不含正文文本 C5）',
+  'full-project': '全项目包（设定、结构与正文）',
+  'shareable-template': '可分享设定模板（不含正文）',
 };
 
 export const MAX_RESTORE_FILE_BYTES = 10 * 1024 * 1024;
@@ -139,7 +140,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-export-text': '', disabled: !available || busy, onClick: () => ops.exportText() }, state.busy.exportText === true ? '导出中…' : '导出纯文本'),
       ),
       state.exportMode === 'shareable-template'
-        ? h('p', { className: 'nv-settings__hint', 'data-novel-ie-shareable-note': '' }, '可分享模板排除 C5 正文文本，其余十层照常包含，适合分享设定模板。')
+        ? h('p', { className: 'nv-settings__hint', 'data-novel-ie-shareable-note': '' }, '可分享模板不含正文，其余设定与结构照常包含，适合分享创作设定。')
         : null,
     ),
 
@@ -172,8 +173,8 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
     h('div', { className: 'nv-progress__section', 'data-novel-import-export-import': '' },
       h('h4', { className: 'nv-progress__section-title' }, '通用导入预览（I37 管线，零写）'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-import-desc': '' },
-        '选择或粘贴 txt/md 文本，预览 Host 归一化与确定性分块结果；本面板不写任何层。' +
-        '（docx 导入走「六层初始化」上传链路；I38 拆分 agent 属生成管线 Host 侧能力。）'),
+        '选择或粘贴 txt/md 文本，预览整理后的内容与分块结果；本面板不会直接改动作品。' +
+        '（docx 导入请使用「六层初始化」入口。）'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '源文本格式'),
         h('select', { className: 'nv-field__input', 'data-novel-ie-import-format': '', value: state.importFormat, disabled: busy, onChange: (event: { target: { value: string } }) => ops.setImportFormat(event.target.value as 'txt' | 'md') },
@@ -208,6 +209,6 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
 
     state.message === undefined ? null
       : h('p', { className: 'nv-settings__ok', 'data-novel-ie-message': '', role: 'status', 'aria-live': 'polite' }, state.message),
-    state.error ? h('p', { className: 'nv-settings__error', 'data-novel-ie-error': '', role: 'alert', 'aria-live': 'assertive' }, state.error) : null,
+    state.error ? h('p', { className: 'nv-settings__error', 'data-novel-ie-error': '', role: 'alert', 'aria-live': 'assertive' }, toUserMessage(state.error)) : null,
   );
 }

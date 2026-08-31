@@ -1,4 +1,5 @@
 import type { El, ProgressNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 
 /**
  * I68 C6 进度与灵感方向落地面板（design §14.10「C6 与灵感落地」/ R14-3）。
@@ -168,9 +169,9 @@ export const PROGRESS_SCENE_STATUS_LABELS: Readonly<Record<string, string>> = {
 
 function consistencyFindings(projection: ProgressProjectionShape): string[] {
   const findings: string[] = [];
-  if (projection.consistency.currentBeatCompleted) findings.push('当前节同时出现在「已完成节」中（C6 执行态自相矛盾，请先修正 completedBeats 或 currentBeat）。');
+  if (projection.consistency.currentBeatCompleted) findings.push('当前节同时出现在「已完成节」中，请先修正完成记录。');
   for (const beatId of projection.consistency.completedBeatsWithOpenScenes) {
-    findings.push(`已完成节「${beatId}」仍有未完成场景卡（完成状态与 B5 场景卡不一致，请在大纲编辑器把场景卡标为已完成）。`);
+    findings.push(`已完成节「${beatId}」仍有未完成场景卡，请在大纲编辑器补齐完成状态。`);
   }
   if (projection.consistency.navigationTargetAllScenesDone) {
     findings.push('导航目标节的全部场景卡已完成，但该节尚未标记为完成（可在完成状态中跟进）。');
@@ -230,14 +231,14 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
   const busy = state.acting || state.status === 'loading' || state.inspiring;
   let body: unknown;
   if (!available) {
-    body = h('p', { className: 'nv-progress__hint', 'data-novel-progress-unavailable': '' }, '进度与灵感服务不可用（novelOutlineProgress Remote 未挂载）。');
+    body = h('p', { className: 'nv-progress__hint', 'data-novel-progress-unavailable': '' }, '进度与灵感功能暂时不可用，请稍后重试。');
   } else if (state.status === 'idle') {
     body = h('p', { className: 'nv-progress__hint', 'data-novel-progress-idle': '' }, '尚未装载。点击「刷新」查看当前幕/节/场景卡进度与灵感方向。');
   } else if (state.status === 'loading') {
     body = h('p', { className: 'nv-progress__hint', 'data-novel-progress-loading': '', role: 'status', 'aria-live': 'polite' }, '正在装载进度与灵感…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-progress__error', 'data-novel-progress-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', { 'data-novel-progress-error-text': '' }, state.message ?? '进度与灵感读取失败'),
+      h('p', { 'data-novel-progress-error-text': '' }, toUserMessage(state.message ?? '进度与灵感读取失败')),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-progress-retry': '', onClick: () => ops.refresh() }, '重试'),
     );
   } else {
@@ -249,9 +250,9 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
     body = h('div', { className: 'nv-progress__ready', 'data-novel-progress-ready': '' },
       // 导航与完成状态（当前幕/节/场景卡 + 一致性）。
       h('div', { className: 'nv-progress__section', 'data-novel-progress-nav': '' },
-        h('h4', { className: 'nv-progress__section-title' }, '当前导航（C6 执行态）'),
+        h('h4', { className: 'nv-progress__section-title' }, '当前导航'),
         navigation === undefined
-          ? h('p', { className: 'nv-progress__empty', 'data-novel-progress-empty': '' }, '暂无大纲导航（B5 未初始化）。')
+          ? h('p', { className: 'nv-progress__empty', 'data-novel-progress-empty': '' }, '暂无大纲导航。')
           : h('div', { className: 'nv-progress__nav-card', 'data-novel-progress-nav-card': '' },
             h('p', { className: 'nv-progress__nav-target', 'data-novel-progress-nav-target': '' },
               `目标节：${navigation.title}（幕 ${navigation.actId}）`),
@@ -276,7 +277,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
       ),
       // 偏差（只写 C6；B5 永不因偏差被改写 —— N-5）。
       h('div', { className: 'nv-progress__section', 'data-novel-progress-deviations': '' },
-        h('h4', { className: 'nv-progress__section-title' }, '偏差记录（C6）'),
+        h('h4', { className: 'nv-progress__section-title' }, '偏差记录'),
         projection === undefined || projection.deviations.length === 0
           ? h('p', { className: 'nv-progress__empty', 'data-novel-progress-deviation-empty': '' }, '尚无偏差记录。')
           : h('ul', { className: 'nv-progress__deviation-list', 'data-novel-progress-deviation-list': '' },
@@ -308,7 +309,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
       // 灵感方向（默认只读；选定 → Gate 提案 → 确认/拒绝才写 B5/C6）。
       h('div', { className: 'nv-progress__section', 'data-novel-progress-inspiration': '' },
         h('h4', { className: 'nv-progress__section-title' }, '灵感方向（默认只读）'),
-        h('p', { className: 'nv-progress__hint', 'data-novel-progress-inspiration-desc': '' }, '「灵感时刻」产出 2–3 个可区分方向（不写任何层）；选定并确认后，只把该方向对 B5（立意/主题）与 C6（偏差）的调整经确认应用。'),
+        h('p', { className: 'nv-progress__hint', 'data-novel-progress-inspiration-desc': '' }, '「灵感时刻」产出 2–3 个可区分方向（不会直接改稿）；选定并确认后，才会应用对大纲立意与偏差记录的调整。'),
         h('label', { className: 'nv-field' },
           h('span', { className: 'nv-field__label' }, '灵感提示词（可选）'),
           h('input', { type: 'text', className: 'nv-field__input', 'data-novel-progress-inspire-prompt': '', value: state.prompt, onChange: (event: { target: { value: string } }) => ops.setPrompt(event.target.value), placeholder: '如：给故事一个更黑暗的转折' }),
@@ -347,7 +348,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
           h('ul', { className: 'nv-progress__audit-list', 'data-novel-progress-audit-list': '' },
             state.audit.map((record) => h('li', { key: record.proposalId, 'data-novel-progress-audit-record': record.proposalId },
               h('p', { className: 'nv-progress__audit-text', 'data-novel-progress-audit-text': '' },
-                `${record.status === 'accepted' ? '已应用' : '已拒绝'}：「${record.direction.title}」（${record.proposalId}）`),
+                `${record.status === 'accepted' ? '已应用' : '已拒绝'}：「${record.direction.title}」`),
             ))),
         ),
       state.message === undefined ? null
@@ -355,8 +356,8 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
     );
   }
   return h('section', { className: 'nv-progress', 'data-novel-progress-panel': '', 'data-novel-progress-state': state.status },
-    h('h3', { className: 'nv-editor__title' }, '进度与灵感（C6）'),
-    h('p', { className: 'nv-progress__hint', 'data-novel-progress-desc': '' }, '查看当前幕/节/场景卡完成状态与偏差；灵感方向默认只读，选定并经确认后才允许调整 B5/C6（重复应用幂等）。'),
+    h('h3', { className: 'nv-editor__title' }, '进度与灵感'),
+    h('p', { className: 'nv-progress__hint', 'data-novel-progress-desc': '' }, '查看幕、节与场景卡完成状态及偏差；灵感方向默认只读，选定并确认后才会应用调整。'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),

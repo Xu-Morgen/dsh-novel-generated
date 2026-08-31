@@ -25,7 +25,7 @@ export interface RemoteMount<T> {
   contribution: TypertRemoteContribution;
   /** mount 成功后从 ctx 读取的 service key（remote.novelXxx）。 */
   serviceKey: string;
-  /** 失败日志标签（novel-creation-tool: <label> Remote mount failed）。 */
+  /** 失败日志标签（仅供内部诊断日志使用，不作为作者文案）。 */
   label: string;
   /** 成功：持有处置器 + namespace（client.ts 闭包写入）。 */
   bind(disposer: TypertDisposer, service: T | undefined): void;
@@ -48,6 +48,6 @@ export function mountRemote<T>(ctx: MountContext, mount: RemoteMount<T>): void {
     mount.after?.(service);
   }, (cause: Error) => {
     if (mount.onError) mount.onError(cause);
-    else console.error(`novel-creation-tool: ${mount.label} Remote mount failed`, cause);
+    else console.error(`novel-creation-tool: ${mount.label} 创作台服务挂载失败`, cause);
   });
 }

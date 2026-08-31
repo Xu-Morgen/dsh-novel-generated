@@ -2,6 +2,7 @@
 // relationship 层编辑动作 = C1 关系层编辑动作（选择/新建草稿/变更/保存，经 Host relationshipSave；I49 行为等价，I82 拆分）。
 
 import { slug, unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { relationshipInput as buildRelationshipInput } from '../layers/relationship.js';
 import type { RelationshipEditOps, RelationshipShape } from '../layers/relationship.js';
 import { freshRelationshipEditor } from '../store/index.js';
@@ -24,7 +25,7 @@ export function createRelationshipOps(runtime: OpsRuntime, port: RelationshipPor
         if (e.draft.from.trim() === '' || e.draft.to.trim() === '') { release(); act.relationshipDraft({ error: '关系两端（from/to）不能为空' }); return; }
         const effectiveId = e.selectedId ?? `${slug(e.draft.from)}+${slug(e.draft.to)}`;
         act.relationshipDraft({ saving: true, error: '', saveMessage: '' });
-        void unwrap(workspace.relationshipSave(projectId, buildRelationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { release(); if (!isActive()) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { act.setRelationship('error', [], cause.message); act.relationshipDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.relationshipDraft({ saving: false, saveMessage: '', error: cause.message }); });
+        void unwrap(workspace.relationshipSave(projectId, buildRelationshipInput({ ...e.draft, id: effectiveId }))).then((saved) => { release(); if (!isActive()) return; act.relationshipDraft({ draft: { ...(saved as RelationshipShape) }, selectedId: (saved as RelationshipShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.relationshipRead(projectId)).then((list) => act.setRelationship('ready', list as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setRelationship('error', [], message); act.relationshipDraft({ error: message }); }); }, (cause: Error) => { release(); act.relationshipDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
       },
   };
 }

@@ -2,6 +2,7 @@
 // review 层编辑动作 = I64 一致性审校中心 ops（R13-5）+ I129 修复会话闭环，经 Host Remote。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { ReviewAdjudicationOutcomeShape, ReviewAuditRecordShape, ReviewEditOps, ReviewLayerState, ReviewProjectionShape } from '../layers/review.js';
 import {
   beginReviewRepairAccept,
@@ -97,10 +98,10 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       release();
       if (!isActive() || !repairRunIsCurrent(scanToken)) return;
       if (correlation !== undefined) {
-        const session = failReviewRepairSession(rescanning as ReviewRepairSessionState, 'rescan', cause.message);
+        const session = failReviewRepairSession(rescanning as ReviewRepairSessionState, 'rescan', toUserMessage(cause));
         reviewPatch({ status: 'ready', message: session.message, repairSession: session });
       } else {
-        reviewPatch({ status: 'error', message: cause.message, repairSession: freshReviewRepairSession() });
+        reviewPatch({ status: 'error', message: toUserMessage(cause), repairSession: freshReviewRepairSession() });
       }
     });
   };
@@ -136,7 +137,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
           message: `已记录 ${result.applied.length} 项${decision === 'continue' ? '「显式继续」' : '「请求重写」'}（重复 ${result.duplicate.length} 项）。`,
           repairSession: freshReviewRepairSession(),
         });
-      }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ acting: false, message: cause.message }); });
+      }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ acting: false, message: toUserMessage(cause) }); });
     },
     repair(issueId: string): void {
       const target = reviewRepairNamespace;
@@ -154,7 +155,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       }, (cause: Error) => {
         release();
         if (!isActive() || !repairRunIsCurrent(token)) return;
-        reviewPatch({ repairSession: failReviewRepairSession(generating, 'generation', cause.message) });
+        reviewPatch({ repairSession: failReviewRepairSession(generating, 'generation', toUserMessage(cause)) });
       });
     },
     acceptRepair(): void {
@@ -171,7 +172,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
         accepting = beginReviewRepairAccept(state);
       } catch (cause) {
         release();
-        reviewPatch({ repairSession: failReviewRepairSession(state, 'accept', (cause as Error).message) });
+        reviewPatch({ repairSession: failReviewRepairSession(state, 'accept', toUserMessage(cause)) });
         return;
       }
       reviewPatch({ repairSession: accepting });
@@ -192,7 +193,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       }, (cause: Error) => {
         release();
         if (!isActive() || !repairRunIsCurrent(token)) return;
-        const message = cause.message || '接受候选失败，正文未确认写入。';
+        const message = toUserMessage(cause, '接受候选失败，正文未确认写入。');
         reviewPatch({ repairSession: failReviewRepairSession(accepting, 'accept', message), message });
       });
     },
@@ -210,7 +211,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
         rejecting = beginReviewRepairReject(state);
       } catch (cause) {
         release();
-        reviewPatch({ repairSession: failReviewRepairSession(state, 'accept', (cause as Error).message) });
+        reviewPatch({ repairSession: failReviewRepairSession(state, 'accept', toUserMessage(cause)) });
         return;
       }
       reviewPatch({ repairSession: rejecting });
@@ -225,7 +226,8 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       }, (cause: Error) => {
         release();
         if (!isActive() || !repairRunIsCurrent(token)) return;
-        reviewPatch({ repairSession: failReviewRepairSession(rejecting, 'accept', cause.message), message: cause.message });
+        const message = toUserMessage(cause);
+        reviewPatch({ repairSession: failReviewRepairSession(rejecting, 'accept', message), message });
       });
     },
     retryRepairScan(): void {

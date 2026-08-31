@@ -1,4 +1,5 @@
 import type { El } from './shared.js';
+import { toUserMessage } from './presentation.js';
 import {
   ONBOARDING_LAYERS,
   type OnboardingAdjudicationExtra,
@@ -166,7 +167,7 @@ export function onboardingReview(
     if (!text) { patch({ error: '「修改后接受」的候选值不能为空' }); return; }
     // I91：editedValue 的 wire 类型（z.json 输出）随 descriptor 派生；JSON.parse 结果与之兼容。
     let value: NonNullable<Parameters<OnboardingNamespace['adjudicate']>[0]['editedValue']>;
-    try { value = JSON.parse(text); } catch { patch({ error: '编辑的候选值不是合法 JSON，请修正后重试' }); return; }
+    try { value = JSON.parse(text); } catch { patch({ error: '编辑的结构化内容格式不正确，请修正后重试' }); return; }
     decide(layer, 'edit', { editedValue: value });
   };
   const confirmRegenerate = (layer: OnboardingLayerId): void => {
@@ -199,7 +200,7 @@ export function onboardingReview(
           ),
           panel === 'edit' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-edit-open': layer.id },
             h('label', { className: 'nv-field' },
-              h('span', { className: 'nv-field__label' }, '编辑候选值（JSON，整层结构）'),
+              h('span', { className: 'nv-field__label' }, '编辑候选值（结构化内容，整层结构）'),
               h('textarea', {
                 className: 'nv-field__input nv-onboarding__edit-text',
                 rows: 8,
@@ -216,7 +217,7 @@ export function onboardingReview(
           ) : null,
           panel === 'regenerate' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-regenerate-open': layer.id },
             h('label', { className: 'nv-field' },
-              h('span', { className: 'nv-field__label' }, '重生成反馈（可选，将随重生成提交 Host）'),
+              h('span', { className: 'nv-field__label' }, '重生成反馈（可选）'),
               h('textarea', {
                 className: 'nv-field__input',
                 rows: 3,
@@ -294,7 +295,7 @@ export function analysisPanel(
     'data-novel-analysis-failed': cancelled ? undefined : '',
   },
     h('p', { className: 'nv-analysis__error', 'data-novel-analysis-error': '', role: 'alert' },
-      cancelled ? '分析已取消，未写入任何层。' : `分析失败：${analysis.error ?? '未知错误'}`),
+      cancelled ? '分析已取消，未写入任何层。' : `分析失败：${toUserMessage(analysis.error ?? '未知错误')}`),
     h('button', {
       type: 'button',
       className: 'nv-analysis__retry',

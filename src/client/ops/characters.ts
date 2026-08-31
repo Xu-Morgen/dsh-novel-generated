@@ -2,6 +2,7 @@
 // characters 层编辑动作 = B3 角色层编辑动作（选择/新建草稿/变更/保存，全部经 store actions 写回；I47/I49 行为等价，I82 拆分）。
 
 import { slug, unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { characterCreateInput as buildCharacterCreateInput } from '../layers/characters.js';
 import type { CharacterEditOps, CharacterShape } from '../layers/characters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -25,9 +26,9 @@ export function createCharactersOps(runtime: OpsRuntime, port: CharactersPort): 
         const effectiveId = e.selectedId ?? slug(e.draft.name);
         act.characterDraft({ saving: true, error: '', saveMessage: '' });
         if (e.selectedId === undefined) {
-          void unwrap(workspace.characterCreate(projectId, buildCharacterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!isActive()) return; const shape = created as CharacterShape; act.characterDraft({ draft: shape, selectedId: shape.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
+          void unwrap(workspace.characterCreate(projectId, buildCharacterCreateInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!isActive()) return; const shape = created as CharacterShape; act.characterDraft({ draft: shape, selectedId: shape.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setCharacters('error', [], message); act.characterDraft({ error: message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
         } else {
-          void unwrap(workspace.characterUpdate(projectId, e.selectedId, buildCharacterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { release(); if (!isActive()) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { act.setCharacters('error', [], cause.message); act.characterDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: cause.message }); });
+          void unwrap(workspace.characterUpdate(projectId, e.selectedId, buildCharacterCreateInput({ ...e.draft, id: e.selectedId }))).then((updated) => { release(); if (!isActive()) return; act.characterDraft({ draft: { ...(updated as CharacterShape) }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setCharacters('loading', []); void unwrap(workspace!.characterList(projectId)).then((list) => act.setCharacters('ready', list as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setCharacters('error', [], message); act.characterDraft({ error: message }); }); }, (cause: Error) => { release(); act.characterDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
         }
       },
   };

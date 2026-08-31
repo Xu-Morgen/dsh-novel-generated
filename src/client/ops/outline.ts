@@ -2,6 +2,7 @@
 // outline 层编辑动作 = B5 大纲层编辑动作（幕/节/场景卡增删改 + 保存，全部经 store actions 写回；I48 行为等价，I82 拆分）。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { outlineInput as buildOutlineInput } from '../layers/outline.js';
 import type { OutlineBeatShape, OutlineDetailBeatShape, OutlineEditOps, OutlineShape } from '../layers/outline.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -29,7 +30,7 @@ export function createOutlineOps(runtime: OpsRuntime, port: OutlinePort): Outlin
         if (!workspace || projectId === undefined) { release(); act.outlineDraft({ error: '创作台远程服务不可用' }); return; }
         if (e.draft.logline.trim() === '') { release(); act.outlineDraft({ error: '一句话梗概（logline）不能为空' }); return; }
         act.outlineDraft({ saving: true, error: '', saveMessage: '' });
-        void unwrap(workspace.outlineSave(projectId, buildOutlineInput(e.draft))).then((saved) => { release(); if (!isActive()) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setOutline('ready', outline); }, (cause: Error) => { release(); act.outlineDraft({ saving: false, saveMessage: '', error: cause.message }); });
+        void unwrap(workspace.outlineSave(projectId, buildOutlineInput(e.draft))).then((saved) => { release(); if (!isActive()) return; const outline = saved as OutlineShape; act.outlineDraft({ draft: { ...outline }, dirty: false, saving: false, saveMessage: '已保存', error: '' }); act.setOutline('ready', outline); }, (cause: Error) => { release(); act.outlineDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
       },
   };
 }

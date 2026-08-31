@@ -1,4 +1,5 @@
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { sha256Hex } from '../sha256.js';
 import { computeEditRange, type ChapterReadShape, type ChaptersEditOps, type SceneEditorState, type SceneReadShape } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -37,7 +38,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
         try { assertTextAnchor(shape?.content ?? '', anchor); focusAnchor = anchor; } catch { focusAnchor = undefined; }
       }
       act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false, focusAnchor });
-    }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, toUserMessage(cause)); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
   };
 
   const selectChapter = (chapterId: string): void => {
@@ -56,7 +57,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       act.chaptersRead('ready', shape, undefined);
       if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
       else act.chaptersScene('idle', undefined, undefined);
-    }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, (cause as Error).message); });
+    }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, toUserMessage(cause)); });
   };
 
   const selectScene = (sceneId: string): void => {
@@ -86,7 +87,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
         void unwrap(target.sceneReparsePropose(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((proposal) => {
           const p = proposal as { proposalId?: string; status?: string };
           if (!isActive()) { release(); return; }
-          if (!p.proposalId) { release(); editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
+          if (!p.proposalId) { release(); editorPatch({ saving: false, error: '重解析提案缺少必要信息，请重新生成。' }); return; }
           const proposalId = p.proposalId;
           // 幂等提议：同一编辑重复提议返回既有提案（可能是已拒绝/已处理）。
           if (p.status === 'rejected') { release(); editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
@@ -101,7 +102,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
             if (!isActive()) return;
             editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId, range: diff.range, replacement: diff.replacement, baseHash, previewError: previewError.message } });
           });
-        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: toUserMessage(cause) }); });
       } else {
         void unwrap(target.sceneEdit(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((result) => {
           release();
@@ -113,9 +114,9 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
           void hashText(content).then((sourceHash) => {
             if (isActive()) act.chaptersWorkflowForRevision({ status: 'saved', projectId, chapterId, sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, snapshot.chapters.navigationRevision);
           });
-        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); act.chaptersWorkflowForRevision({ status: 'error', message: (cause as Error).message }, snapshot.chapters.navigationRevision); });
+        }, (cause: Error) => { release(); if (!isActive()) return; const message = toUserMessage(cause); editorPatch({ saving: false, error: message }); act.chaptersWorkflowForRevision({ status: 'error', message }, snapshot.chapters.navigationRevision); });
       }
-    }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+    }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: toUserMessage(cause) }); });
   };
 
   const acceptReparse = (): void => {
@@ -140,7 +141,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       void hashText(content).then((sourceHash) => {
         if (isActive()) act.chaptersWorkflowForRevision({ status: 'saved', projectId, chapterId, sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, snapshot.chapters.navigationRevision);
       });
-    }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); act.chaptersWorkflowForRevision({ status: 'error', message: (cause as Error).message }, snapshot.chapters.navigationRevision); });
+    }, (cause: Error) => { release(); if (!isActive()) return; const message = toUserMessage(cause); editorPatch({ reparse: { kind: 'error', message } }); act.chaptersWorkflowForRevision({ status: 'error', message }, snapshot.chapters.navigationRevision); });
   };
 
   const rejectReparse = (): void => {
@@ -149,7 +150,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     if (!target || projectId === undefined || r.kind !== 'proposed') return;
     if (!beginOp('chapters:reparse:reject')) return;
     const release = (): void => endOp('chapters:reparse:reject');
-    void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+    void unwrap(target.sceneReparseReject(projectId, r.proposalId)).then(() => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'rejected' } }); }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: toUserMessage(cause) } }); });
   };
 
   const discardDraft = (): void => {
@@ -198,7 +199,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
         if (!isActive()) return;
         act.chaptersRead('ready', read as ChapterReadShape, undefined);
         loadScene(sceneId, chapterId, anchor);
-      }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, (cause as Error).message); });
+      }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, toUserMessage(cause)); });
     },
   };
   return { ops, loadScene, selectChapter };

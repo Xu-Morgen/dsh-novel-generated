@@ -1,4 +1,5 @@
 import type { El, WorkspaceNamespace, WritingNamespace, BranchNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { TextDeletionImpact, TextDeletionTarget } from '../../core/schema/text-deletion.js';
 import type { ChapterStatus } from '../../core/schema/text.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
@@ -226,7 +227,7 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
     'aria-live': 'polite',
   },
     h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, labels[state.status]),
-    state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.message),
+    state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
   );
 }
 
@@ -242,7 +243,7 @@ function polishSessionPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditO
     ? current === undefined ? `已完成 ${session.completedCount}/${total} 个场景` : `正在处理 ${current}（${session.completedCount}/${total}）`
     : session.status === 'completed' ? `本章润色完成（${session.completedCount}/${total}）`
       : session.status === 'stopped' ? `已停止（完成 ${session.completedCount}/${total}）`
-        : session.status === 'error' ? session.error ?? '章节润色失败'
+        : session.status === 'error' ? toUserMessage(session.error ?? '章节润色失败')
           : '按场景逐个生成润色候选';
   return h('div', { className: 'nv-chapters__polish', 'data-novel-polish-session': '', 'data-novel-polish-state': session.status },
     h('div', { className: 'nv-chapters__polish-heading' },
@@ -409,7 +410,7 @@ function reconciliationPanel(h: El, state: ChapterManagementState['reconciliatio
       state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-accept': '', onClick: () => ops.reconciliationAccept() }, '接受已确认方案') : null,
       state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-reject': '', onClick: () => ops.reconciliationReject() }, '拒绝方案') : null,
     ),
-    plan === undefined ? h('p', { className: 'nv-chapters__empty', 'data-novel-reconciliation-empty': '' }, '读取 I113 影响计划后，在此逐卡选择。') : h('div', { 'data-novel-reconciliation-plan': plan.planId },
+    plan === undefined ? h('p', { className: 'nv-chapters__empty', 'data-novel-reconciliation-empty': '' }, '读取影响计划后，在此逐卡选择。') : h('div', { 'data-novel-reconciliation-plan': plan.planId },
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-reconciliation-summary': '' }, `影响类型：${plan.reportClassification}；受影响细纲：${plan.items.length} 张；版本 ${plan.revision}`),
       plan.items.map((item) => {
         const choice = state.decisions[item.detailBeatId] ?? item.choice;
@@ -436,7 +437,7 @@ function reconciliationPanel(h: El, state: ChapterManagementState['reconciliatio
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-continue': '', onClick: () => ops.reconciliationContinue(), disabled: state.proposalId === undefined }, '定稿并继续下一场'),
       ),
     ),
-    state.message === undefined ? null : h('p', { className: 'nv-error', 'data-novel-reconciliation-message': '' }, state.message),
+    state.message === undefined ? null : h('p', { className: 'nv-error', 'data-novel-reconciliation-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
   );
 }
 
@@ -446,7 +447,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
   }
   if (state.status === 'error') {
     return h('section', { className: 'nv-chapters', 'data-novel-chapters-panel': '', 'data-novel-chapters-state': 'error' },
-      errorBlock(h, state.message ?? '章节列表读取失败', () => ops.retryChapter(), '重试'));
+      errorBlock(h, toUserMessage(state.message ?? '章节列表读取失败'), () => ops.retryChapter(), '重试'));
   }
   const chapter = state.chapter.read;
   const scenes = chapter?.scenes ?? [];

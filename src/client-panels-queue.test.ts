@@ -151,7 +151,7 @@ describe('I65 生成队列 UI (R13-6)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(queuePanel(render())?.props?.['data-novel-queue-state']).toBe('error');
-    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-queue-error-text'] !== undefined)?.children?.[0] ?? ''))).toContain('队列账本损坏');
+    expect(String((collect(render(), 'p').find((n) => n.props?.['data-novel-queue-error-text'] !== undefined)?.children?.[0] ?? ''))).toContain('操作未完成，请重试');
     // 重试成功 → ready。
     (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-refresh'] === '')?.props?.onClick as () => void)();
     await flush();

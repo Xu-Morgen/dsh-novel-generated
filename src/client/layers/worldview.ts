@@ -1,4 +1,5 @@
 import { listField, type El, type WorkspaceNamespace } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import { triggerModeSchema, worldKindSchema, type TriggerMode, type WorldKind } from '../../core/schema/worldview.js';
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
@@ -123,7 +124,7 @@ export function worldviewLayer(
         saveButtonLabel(editor.saving, editor.selectedId === undefined ? '\u521b\u5efa' : '\u6539\u5199')),
     ),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'worldview'),
-    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'worldview', role: 'alert' }, editor.error) : null,
+    editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'worldview', role: 'alert' }, toUserMessage(editor.error)) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'ready' },
     h('div', { className: 'nv-editor__columns' }, list, detail),

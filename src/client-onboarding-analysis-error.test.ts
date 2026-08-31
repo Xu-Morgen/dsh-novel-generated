@@ -43,7 +43,7 @@ describe('I52 analysis failure surfaces a readable error in the review panel', (
     // I57：失败经 status→result 链路落入 analysis 面板（可重试，不砖化）。
     const error = collect(render(), 'p').find((node) => node.props?.['data-novel-analysis-error'] !== undefined);
     expect(error).toBeDefined();
-    expect(String(error?.children?.[0] ?? '')).toContain('不符合六层候选契约');
+    expect(String(error?.children?.[0] ?? '')).toContain('创作服务返回了无法使用的内容');
     // 失败后出现重试入口。
     expect(collect(render(), 'button').some((node) => node.props?.['data-novel-analysis-retry'] === '')).toBe(true);
   });

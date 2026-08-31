@@ -120,7 +120,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'onboarding', label: '六层初始化审阅' },
       { view: 'creationSettings', label: '创作设置' },
       { view: 'importExport', label: '导入导出与备份' },
-      { view: 'settings', label: 'LLM 设置' },
+      { view: 'settings', label: 'AI 设置' },
     ],
   },
 ] as const;

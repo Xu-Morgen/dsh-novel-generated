@@ -178,7 +178,7 @@ describe('I67 规则与文风控制面 UI (R14-2)', () => {
     }]);
     // Host 拒绝消息展示，面板保持 ready（不 brick）。
     expect(panel(render())?.props?.['data-novel-rule-style-state']).toBe('ready');
-    expect(messageOf(render())).toContain('Immutable rule cannot be updated');
+    expect(messageOf(render())).toContain('操作未完成，请重试');
   });
 
   it('风格档案：填写表单保存 → saveStyle payload 不含 id（Host 管理 id）；Host 拒绝消息展示', async () => {

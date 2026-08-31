@@ -1,4 +1,5 @@
 import type { El } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { SearchNamespace } from '../shared.js';
 
 /**
@@ -165,6 +166,6 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-stats': '', disabled: state.acting, onClick: () => ops.refreshStats() }, '刷新状态'),
       ),
       state.message === undefined ? null : h('p', { className: 'nv-search__message', 'data-novel-search-message': '', role: 'status', 'aria-live': 'polite' }, state.message),
-    ] : h('p', { className: 'nv-search__hint', 'data-novel-search-unavailable': '' }, '搜索服务不可用（novelSearch Remote 未挂载）。'),
+    ] : h('p', { className: 'nv-search__hint', 'data-novel-search-unavailable': '' }, '搜索功能暂时不可用，请稍后重试。'),
   );
 }

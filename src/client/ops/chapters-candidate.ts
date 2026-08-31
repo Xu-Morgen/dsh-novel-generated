@@ -1,4 +1,5 @@
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { CandidatePanelState, ChaptersEditOps } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type CandidatePort = Pick<OpsPorts, 'workspace' | 'writing'>;
@@ -43,7 +44,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       act.setChapters('ready', list as unknown[]);
       const chapterId = snapshot.chapters.selectedChapterId;
       if (chapterId !== undefined) internal.selectChapter(chapterId);
-    }, (cause: Error) => { if (isActive()) act.setChapters('error', [], (cause as Error).message); });
+    }, (cause: Error) => { if (isActive()) act.setChapters('error', [], toUserMessage(cause)); });
   };
   // 候选生成后先取得兼容的正文审阅，再取得 I110 五层结构化预览；两者
   // 都完成后才进入 ready，避免作者在 plan 尚未冻结时触发 accept。
@@ -60,8 +61,8 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
           : undefined;
         workflowPatchForRevision({ status: 'ready', sceneId: review.target.sceneId, sourceHash: review.target.sourceHash, baselineId: generationBaseline, traceSectionCount: review.trace?.sections.length, message: '候选已就绪，请审阅正文与变更。' }, navigationRevision);
         onReady();
-      }, (cause: Error) => { if (isActive() && guard()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
-    }, (cause: Error) => { if (isActive() && guard()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
+      }, (cause: Error) => { if (isActive() && guard()) { const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); } });
+    }, (cause: Error) => { if (isActive() && guard()) { const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); } });
   };
   const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
     const target = writing;
@@ -77,7 +78,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       release();
       if (!isActive()) return;
       previewAfterPropose(result.candidate.id, navigationRevision, () => undefined);
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
+      }, (cause: Error) => { release(); if (!isActive()) return; const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); });
   };
   const proposeRewrite = (): void => {
     const target = writing;
@@ -96,7 +97,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       release();
       if (!isActive()) return;
       previewAfterPropose(result.candidate.id, navigationRevision, () => undefined);
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
+    }, (cause: Error) => { release(); if (!isActive()) return; const message = toUserMessage(cause); candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message }, navigationRevision); });
   };
   /** I122：章节润色只启动一个当前 scene 的 rewrite candidate；不建批次请求。 */
   const proposePolishScene = (session: PolishSessionState, navigationRevision: number): void => {
@@ -126,7 +127,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     }, (cause: Error) => {
       release();
       if (!isActive() || !guard()) return;
-      const message = (cause as Error).message;
+      const message = toUserMessage(cause);
       candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision);
       polishPatchForRevision(failPolishSession(session, message), navigationRevision);
       workflowPatchForRevision({ status: 'error', message }, navigationRevision);
@@ -161,7 +162,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       const navigationRevision = focusPolishScene(chapterId, firstSceneId);
       session = startPolishSession({ projectId, chapterId, scenes, mode, navigationRevision });
     } catch (cause) {
-      polishPatch(failPolishSession(snapshot.chapters.polish, (cause as Error).message));
+      polishPatch(failPolishSession(snapshot.chapters.polish, toUserMessage(cause)));
       return;
     }
     bumpPolishRunToken();
@@ -210,7 +211,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       if (!isActive()) return;
       const outcome = result;
       if (outcome.status === 'written') {
-        candidatePatchForRevision({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } }, navigationRevision);
+        candidatePatchForRevision({ ui: { kind: 'done', message: `已接受并保存正文（已同步 ${outcome.layers.length} 项关联信息）` } }, navigationRevision);
         const polish = snapshot.chapters.polish;
         if (polish.status === 'running' && polish.currentSceneId === outcome.scene.sceneId && polish.chapterId === outcome.scene.chapterId) {
           polishPatchForRevision(completePolishScene(polish, outcome.scene.sceneId), navigationRevision);
@@ -244,7 +245,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     }, (cause: Error) => {
       release();
       if (!isActive()) return;
-      const message = (cause as Error).message;
+      const message = toUserMessage(cause);
       candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision);
       const polish = snapshot.chapters.polish;
       if (polish.status === 'running' && polish.currentSceneId === ui.review.target.sceneId) polishPatchForRevision(failPolishSession(polish, message), navigationRevision);

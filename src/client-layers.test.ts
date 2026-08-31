@@ -86,7 +86,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
 
     const error = byData(render(), 'data-novel-layer-state', 'error') as FakeNode;
     expect(error.props?.role).toBe('alert');
-    expect((error.children ?? []).join('')).toContain('Host refresh failed');
+    expect((error.children ?? []).join('')).toContain('创作服务返回了无法使用的内容');
   });
 
   it('round-trips a character update through Host Remote and reloads the list', async () => {
@@ -142,7 +142,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     const error = byData(render(), 'data-novel-error', 'character') as FakeNode;
     expect(error).toBeDefined();
     expect(error.props?.role).toBe('alert');
-    expect((error.children ?? []).join('')).toContain('Host rejected');
+    expect((error.children ?? []).join('')).toContain('创作服务返回了无法使用的内容');
   });
 
   it('worldview rewrite goes through worldviewRewrite (supersede), never in-place create', async () => {
@@ -207,7 +207,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     const error = byData(render(), 'data-novel-error', 'worldview') as FakeNode;
     expect(error).toBeDefined();
     expect(error.props?.role).toBe('alert');
-    expect((error.children ?? []).join('')).toContain('Host rejected');
+    expect((error.children ?? []).join('')).toContain('创作服务返回了无法使用的内容');
   });
 
   it('owns no fs API: the client source imports no node:fs and no browser LLM seam', () => {
@@ -298,7 +298,7 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const error = byData(render(), 'data-novel-error', 'outline') as FakeNode;
     expect(error).toBeDefined();
     expect(error.props?.role).toBe('alert');
-    expect((error.children ?? []).join('')).toContain('Host rejected');
+    expect((error.children ?? []).join('')).toContain('创作服务返回了无法使用的内容');
   });
 
   it('renders the relationship list and full-field editor, saved only through relationshipSave', async () => {
@@ -368,7 +368,7 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const error = byData(render(), 'data-novel-error', 'relationship') as FakeNode;
     expect(error).toBeDefined();
     expect(error.props?.role).toBe('alert');
-    expect((error.children ?? []).join('')).toContain('Host rejected');
+    expect((error.children ?? []).join('')).toContain('创作服务返回了无法使用的内容');
   });
 
   it('owns no fs API: the client source imports no node:fs and no browser LLM seam', () => {

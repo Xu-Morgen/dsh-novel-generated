@@ -1,4 +1,5 @@
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { ChapterMetadataPatch, SceneMetadataPatch } from '../../core/schema/text-mutation.js';
 import type { TextDeletionTarget } from '../../core/schema/text-deletion.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
@@ -30,7 +31,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       if (isActive()) act.setChapters('ready', list as unknown[]);
     }, (cause: Error) => {
       endOp(key);
-      if (isActive()) act.setChapters('error', [], cause.message);
+      if (isActive()) act.setChapters('error', [], toUserMessage(cause));
     });
   };
 
@@ -46,7 +47,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       patch({ status: 'ready', projectFingerprint: (fingerprint as { fingerprint: string }).fingerprint, binding: { status: 'ready', ...value } });
     }, (cause: Error) => {
       endOp('chapters:management:refresh');
-      if (isActive()) patch({ status: 'error', message: cause.message, binding: { status: 'error', manual: [], effective: [], message: cause.message } });
+      if (isActive()) { const message = toUserMessage(cause); patch({ status: 'error', message, binding: { status: 'error', manual: [], effective: [], message } }); }
     });
   };
 
@@ -66,7 +67,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       const value = result as { fingerprint: string };
       patch({ status: 'ready', projectFingerprint: value.fingerprint, chapterDraft: { ...draft, id: '', title: '' } });
       reloadTree('chapters:management:reload:create-chapter');
-    }, (cause: Error) => { endOp('chapters:management:create-chapter'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:create-chapter'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const updateChapter = (): void => {
@@ -85,7 +86,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       const value = result as { fingerprint: string };
       patch({ status: 'ready', projectFingerprint: value.fingerprint });
       reloadTree('chapters:management:reload:update-chapter');
-    }, (cause: Error) => { endOp('chapters:management:update-chapter'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:update-chapter'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const createScene = (): void => {
@@ -105,7 +106,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       const value = result as { fingerprint: string };
       patch({ status: 'ready', projectFingerprint: value.fingerprint, sceneDraft: { ...draft, id: '', summary: '', content: '', beats: [], canonEvents: [], notes: '' } });
       reloadTree('chapters:management:reload:create-scene');
-    }, (cause: Error) => { endOp('chapters:management:create-scene'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:create-scene'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const updateScene = (): void => {
@@ -121,7 +122,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       const value = result as { fingerprint: string };
       patch({ status: 'ready', projectFingerprint: value.fingerprint });
       reloadTree('chapters:management:reload:update-scene');
-    }, (cause: Error) => { endOp('chapters:management:update-scene'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:update-scene'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const reorder = (direction: 'up' | 'down'): void => {
@@ -142,7 +143,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       if (!isActive()) return;
       const value = result as { fingerprint: string };
       afterMutation(value.fingerprint, 'chapters:management:reload:reorder');
-    }, (cause: Error) => { endOp(`chapters:management:reorder:${direction}`); if (isActive()) patch({ status: 'error', message: (cause as Error).message }); });
+    }, (cause: Error) => { endOp(`chapters:management:reorder:${direction}`); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const bindingSave = (): void => {
@@ -154,7 +155,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:management:binding-save'); if (!isActive()) return;
       const value = result as ChapterManagementState['binding'];
       patch({ binding: value as never });
-    }, (cause: Error) => { endOp('chapters:management:binding-save'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:binding-save'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const bindingRebind = (): void => {
@@ -166,7 +167,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     void unwrap(binding.rebind(projectId, { sceneId, detailBeatId: current.detailBeatId, nextDetailBeatId, expectedFingerprint: snapshot.chapters.management.binding?.fingerprint ?? '' })).then((result) => {
       endOp('chapters:management:binding-rebind'); if (!isActive()) return;
       patch({ binding: result as never });
-    }, (cause: Error) => { endOp('chapters:management:binding-rebind'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:binding-rebind'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const bindingUnbind = (): void => {
@@ -177,7 +178,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     void unwrap(binding.unbind(projectId, { sceneId, detailBeatId: current.detailBeatId, expectedFingerprint: snapshot.chapters.management.binding?.fingerprint ?? '' })).then((result) => {
       endOp('chapters:management:binding-unbind'); if (!isActive()) return;
       patch({ binding: result as never });
-    }, (cause: Error) => { endOp('chapters:management:binding-unbind'); if (isActive()) patch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:management:binding-unbind'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   const refreshDeleteImpact = (targetOverride?: TextDeletionTarget): void => {
@@ -189,7 +190,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:management:delete-impact'); if (!isActive()) return;
       const value = result as { status: 'ready' | 'blocked'; impact: import('../../core/schema/text-deletion.js').TextDeletionImpact };
       patch({ deletion: { status: value.status, target, impact: value.impact } });
-    }, (cause: Error) => { endOp('chapters:management:delete-impact'); if (isActive()) patch({ deletion: { status: 'error', target, message: cause.message } }); });
+    }, (cause: Error) => { endOp('chapters:management:delete-impact'); if (isActive()) patch({ deletion: { status: 'error', target, message: toUserMessage(cause) } }); });
   };
 
   const chooseDeleteTarget = (target: TextDeletionTarget): void => {
@@ -212,7 +213,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       if (isActive()) refreshDeleteImpact(current.target);
       }, (cause: Error) => {
       endOp('chapters:management:delete-cancel-queue');
-      if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } });
+      if (isActive()) patch({ deletion: { ...current, status: 'error', message: toUserMessage(cause) } });
       });
   };
 
@@ -225,7 +226,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       if (isActive()) refreshDeleteImpact(current.target);
     }, (cause: Error) => {
       endOp('chapters:management:delete-reject-candidates');
-      if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } });
+      if (isActive()) patch({ deletion: { ...current, status: 'error', message: toUserMessage(cause) } });
     });
   };
 
@@ -238,7 +239,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:management:delete-propose'); if (!isActive()) return;
       const value = result as { status: 'pending' | 'stale' | 'blocked'; proposalId?: string; impact: import('../../core/schema/text-deletion.js').TextDeletionImpact };
       patch({ deletion: { status: value.status, target: current.target, impact: value.impact, proposalId: value.proposalId } });
-    }, (cause: Error) => { endOp('chapters:management:delete-propose'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } }); });
+    }, (cause: Error) => { endOp('chapters:management:delete-propose'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: toUserMessage(cause) } }); });
   };
 
   const applyDelete = (): void => {
@@ -255,7 +256,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       } else {
         patch({ deletion: { status: value.status, target: current.target, proposalId: current.proposalId, impact: value.impact } });
       }
-    }, (cause: Error) => { endOp('chapters:management:delete-apply'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } }); });
+    }, (cause: Error) => { endOp('chapters:management:delete-apply'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: toUserMessage(cause) } }); });
   };
 
   const rejectDelete = (): void => {
@@ -265,7 +266,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     patch({ deletion: { ...current, status: 'rejecting' } });
     void unwrap(deletion.reject(projectId, current.proposalId)).then(() => {
       endOp('chapters:management:delete-reject'); if (isActive()) patch({ deletion: { status: 'idle', target: current.target } });
-    }, (cause: Error) => { endOp('chapters:management:delete-reject'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } }); });
+    }, (cause: Error) => { endOp('chapters:management:delete-reject'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: toUserMessage(cause) } }); });
   };
 
   const reconciliationPlanId = (value: string): void => reconciliationPatch({ planId: value, message: undefined });
@@ -283,7 +284,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       reconciliationPatch({ status: 'ready', plan: value, decisions, manualValues, proposalId: undefined, finalResult: undefined, continueResult: undefined });
     }, (cause: Error) => {
       endOp('chapters:reconciliation:read');
-      if (isActive()) reconciliationPatch({ status: 'error', message: cause.message });
+      if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) });
     });
   };
   const reconciliationChoice = (detailBeatId: string, choice: OutlineReconciliationChoice): void => {
@@ -310,7 +311,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:reconciliation:propose'); if (!isActive()) return;
       const value = result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationProposeResult;
       reconciliationPatch({ status: 'pending', proposalId: value.proposalId });
-    }, (cause: Error) => { endOp('chapters:reconciliation:propose'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:reconciliation:propose'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
   const reconciliationAccept = (): void => {
     const remote = port.outlineReconciliation;
@@ -319,7 +320,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     reconciliationPatch({ status: 'accepting', message: undefined });
     void unwrap(remote.accept(projectId, current.proposalId)).then(() => {
       endOp('chapters:reconciliation:accept'); if (isActive()) reconciliationPatch({ status: 'done' });
-    }, (cause: Error) => { endOp('chapters:reconciliation:accept'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:reconciliation:accept'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
   const reconciliationReject = (): void => {
     const remote = port.outlineReconciliation;
@@ -328,7 +329,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     reconciliationPatch({ status: 'rejecting', message: undefined });
     void unwrap(remote.reject(projectId, current.proposalId)).then(() => {
       endOp('chapters:reconciliation:reject'); if (isActive()) reconciliationPatch({ status: 'idle', proposalId: undefined });
-    }, (cause: Error) => { endOp('chapters:reconciliation:reject'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:reconciliation:reject'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
   const reconciliationFinalize = (): void => {
     const remote = port.outlineReconciliation;
@@ -338,7 +339,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     void unwrap(remote.finalize(projectId, { planId: current.plan.planId, finalSourceHash: current.plan.finalSourceHash })).then((result) => {
       endOp('chapters:reconciliation:finalize'); if (!isActive()) return;
       reconciliationPatch({ status: 'done', finalResult: result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationFinalizeResult });
-    }, (cause: Error) => { endOp('chapters:reconciliation:finalize'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:reconciliation:finalize'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
   const reconciliationContinue = (): void => {
     const remote = port.outlineReconciliation;
@@ -349,7 +350,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:reconciliation:continue'); if (!isActive()) return;
       const value = result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationContinueResult;
       reconciliationPatch({ status: value.status === 'continued' ? 'done' : value.status, continueResult: value });
-    }, (cause: Error) => { endOp('chapters:reconciliation:continue'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+    }, (cause: Error) => { endOp('chapters:reconciliation:continue'); if (isActive()) reconciliationPatch({ status: 'error', message: toUserMessage(cause) }); });
   };
 
   return {

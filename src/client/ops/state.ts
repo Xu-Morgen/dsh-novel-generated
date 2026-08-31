@@ -2,6 +2,7 @@
 // state 层编辑动作 = C2 状态层编辑动作（快照选择/差异比对/回滚，经 Host stateDiff/stateRollback；I49 行为等价，I82 拆分）。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { StateDiffShape, StateEditOps, StateSnapshotShape } from '../layers/state.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type StatePort = Pick<OpsPorts, 'workspace'>;
@@ -18,7 +19,7 @@ export function createStateOps(runtime: OpsRuntime, port: StatePort): StateEditO
         const release = (): void => endOp('state:diff');
         if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
         if (e.fromSeq === undefined || e.toSeq === undefined) { release(); act.stateDraft({ error: '请从时间线选择两个快照再比对' }); return; }
-        void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => { release(); act.stateDraft({ diff: diff as StateDiffShape, error: '' }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message, diff: undefined }); });
+        void unwrap(workspace.stateDiff(projectId, e.fromSeq, e.toSeq)).then((diff) => { release(); act.stateDraft({ diff: diff as StateDiffShape, error: '' }); }, (cause: Error) => { release(); act.stateDraft({ error: toUserMessage(cause), diff: undefined }); });
       },
       rollback: () => {
         const e = snapshot.stateEditor;
@@ -26,7 +27,7 @@ export function createStateOps(runtime: OpsRuntime, port: StatePort): StateEditO
         const release = (): void => endOp('state:rollback');
         if (!workspace || projectId === undefined) { release(); act.stateDraft({ error: '创作台远程服务不可用' }); return; }
         if (e.selectedSeq === undefined) { release(); act.stateDraft({ error: '请先选择要回滚到的快照' }); return; }
-        void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!isActive()) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { act.setState('error', [], cause.message); act.stateDraft({ error: cause.message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: cause.message }); });
+        void unwrap(workspace.stateRollback(projectId, e.selectedSeq)).then((rolled) => { release(); if (!isActive()) return; const next = rolled as StateSnapshotShape; act.stateDraft({ selectedSeq: next.seq, diff: undefined, error: '' }); void unwrap(workspace!.stateSnapshots(projectId)).then((snapshots) => act.setState('ready', snapshots as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setState('error', [], message); act.stateDraft({ error: message }); }); }, (cause: Error) => { release(); act.stateDraft({ error: toUserMessage(cause) }); });
       },
   };
 }

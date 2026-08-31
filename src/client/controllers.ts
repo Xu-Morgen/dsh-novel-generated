@@ -20,6 +20,7 @@
  */
 import type { WorkbenchActions } from './store/types.js';
 import { reloadProject, type ProjectOpenLayers } from './project-session.js';
+import { toUserMessage } from './presentation.js';
 import { uploadDocx } from './upload.js';
 import {
   ANALYSIS_POLL_INTERVAL_MS,
@@ -93,7 +94,7 @@ export function createProjectController(deps: ProjectControllerDeps): ProjectCon
         deps.reloadProject(target, projectId, actions, deps.dispatch, () => deps.isActive(), layers);
       });
       if (onOpened) onOpened();
-    }, (cause: Error) => { release(); deps.dispatch((actions) => actions.projectFailed(`作品打开失败：${cause?.message ?? '未知错误'}`)); });
+    }, (cause: Error) => { release(); deps.dispatch((actions) => actions.projectFailed(`作品打开失败：${toUserMessage(cause, '未知错误')}`)); });
   };
   const createProject = (input: { projectId: string; name: string }, onOpened?: () => void): void => {
     const target = deps.workspace();
@@ -222,13 +223,13 @@ export function createOnboardingController(deps: OnboardingControllerDeps): Onbo
                 layers: session.layers,
                 analysis: { status: 'succeeded', sessionId, sourceText: text },
               });
-            }, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text }));
+            }, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: toUserMessage(cause), sourceText: text }));
             return;
           }
           if (s === 'failed' || s === 'cancelled') {
             clearAnalysisPoll();
             if (s === 'failed') {
-              void analysisResult(next, sessionId).then(() => undefined, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text }));
+              void analysisResult(next, sessionId).then(() => undefined, (cause: Error) => setAnalysis({ status: 'failed', sessionId, error: toUserMessage(cause), sourceText: text }));
             } else {
               setAnalysis({ status: 'cancelled', sessionId, error: '分析已取消', sourceText: text });
             }
@@ -237,13 +238,13 @@ export function createOnboardingController(deps: OnboardingControllerDeps): Onbo
           analysisPollTimer = setTimeout(poll, ANALYSIS_POLL_INTERVAL_MS);
         }, (cause: Error) => {
           clearAnalysisPoll();
-          setAnalysis({ status: 'failed', sessionId, error: (cause as Error).message, sourceText: text });
+          setAnalysis({ status: 'failed', sessionId, error: toUserMessage(cause), sourceText: text });
         });
       };
       poll();
     }, (cause: Error) => {
       if (!deps.isActive()) return;
-      setAnalysis({ status: 'failed', error: (cause as Error).message, sourceText: text });
+      setAnalysis({ status: 'failed', error: toUserMessage(cause), sourceText: text });
     });
   };
   const cancelAnalysis = (): void => {
@@ -281,7 +282,7 @@ export function createOnboardingController(deps: OnboardingControllerDeps): Onbo
       if (!deps.isActive()) return;
       // 裁决成功即关闭该层打开的裁决面板（草稿保留，可再次编辑）。
       patchOnboarding({ openPanel: { ...(currentOnboarding?.openPanel ?? {}), [layer]: undefined } });
-    }, (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((actions) => actions.onboardingError((cause as Error).message)); });
+    }, (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((actions) => actions.onboardingError(toUserMessage(cause))); });
   };
   // I57 (R12-4): final apply 成功后刷新六层并激活创作台；partial-retryable
   // 只重试未完成层 —— 重试按钮直接再次调用 finalApply，Host 侧按领域身份
@@ -306,7 +307,7 @@ export function createOnboardingController(deps: OnboardingControllerDeps): Onbo
         return;
       }
       deps.dispatch((actions) => actions.onboardingApplyResult(result));
-    }, (cause: Error) => { release(); if (!deps.isActive()) return; patchOnboarding({ applying: false }); deps.dispatch((actions) => actions.onboardingError((cause as Error).message)); });
+    }, (cause: Error) => { release(); if (!deps.isActive()) return; patchOnboarding({ applying: false }); deps.dispatch((actions) => actions.onboardingError(toUserMessage(cause))); });
   };
   const analyzeText = (text: string): void => {
     const projectId = deps.currentProjectId();
@@ -372,8 +373,8 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
     if (!target) { release(); deps.dispatch((x) => x.settingsSettled({ error: '设置服务不可用' })); return; }
     const baseUrl = draft.baseUrl.trim();
     const model = draft.model.trim();
-    if (baseUrl === '' || model === '') { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写 API URL 与模型名称' })); return; }
-    if (draft.apiKey === '' && !hasKey) { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写 API Key（留空将保留已保存的 Key）' })); return; }
+    if (baseUrl === '' || model === '') { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写服务地址与模型名称' })); return; }
+    if (draft.apiKey === '' && !hasKey) { release(); deps.dispatch((x) => x.settingsSettled({ error: '请填写访问密钥（留空将保留已保存的密钥）' })); return; }
     deps.dispatch((x) => x.settingsSettled({ saving: true, message: '', error: '' }));
     // I91：wire maxTokens 是固定档位枚举（32768/65536/131072，core/schema/llm-config）；
     // draft 来自 UI select（LLM_MAX_TOKENS_OPTIONS 同源），此处收窄到 wire 枚举。
@@ -381,11 +382,11 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
       (result) => {
         release();
         if (!deps.isActive()) return;
-        deps.dispatch((x) => x.settingsSettled({ saving: false, message: `已保存路由 ${(result as { modelRef: string }).modelRef}（重启 DSH 服务后生效）` }));
+        deps.dispatch((x) => x.settingsSettled({ saving: false, message: '已保存 AI 服务设置（重启创作台后生效）' }));
         // 保存成功后回读视图，让 hasKey 等派生字段与 Host 一致。
         void unwrap(deps.llmConfig()?.load()).then((view) => { if (deps.isActive() && view !== undefined) deps.dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);
       },
-      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.settingsSettled({ saving: false, error: (cause as Error).message })); },
+      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.settingsSettled({ saving: false, error: toUserMessage(cause) })); },
     );
   };
   const ensureCreationSettingsLoaded = (missing: boolean): void => {
@@ -409,7 +410,7 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
         deps.dispatch((x) => x.creationSettingsSettled({ saving: false, message: '创作设置已保存' }));
         if (deps.isActive() && view !== undefined) deps.dispatch((x) => x.creationSettingsLoaded(view as WorkbenchSettingsViewShape));
       },
-      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.creationSettingsSettled({ saving: false, error: (cause as Error).message })); },
+      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.creationSettingsSettled({ saving: false, error: toUserMessage(cause) })); },
     );
   };
   const openProjectFolder = (): void => {
@@ -425,7 +426,7 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
         if (!deps.isActive()) return;
         deps.dispatch((x) => x.creationSettingsSettled({ message: `已打开作品落地文件夹：${(result as { path: string }).path}` }));
       },
-      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.creationSettingsSettled({ error: (cause as Error).message })); },
+      (cause: Error) => { release(); if (!deps.isActive()) return; deps.dispatch((x) => x.creationSettingsSettled({ error: toUserMessage(cause) })); },
     );
   };
   return Object.freeze({ ensureLlmConfigLoaded, saveLlmConfig, ensureCreationSettingsLoaded, saveCreationSettings, openProjectFolder });

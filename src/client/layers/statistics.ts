@@ -1,4 +1,5 @@
 import type { El } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { StatisticsNamespace } from '../shared.js';
 
 /**
@@ -272,7 +273,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
                 ? h('p', { 'data-novel-statistics-task-empty': '' }, '无任务记录。')
                 : h('ul', {},
                   state.tasks.tasks.map((task) => h('li', { key: task.id, 'data-novel-statistics-task': task.id },
-                    `${task.cardTitle}（${task.cardPov}）· ${STATISTICS_TASK_STATUS_LABELS[task.status] ?? task.status} · 尝试 ${task.attempts} 次 · 消耗 ${task.budgetUnits ?? 0} 字${task.error === null ? '' : ` · ${task.error}`} · ${task.updatedAt.slice(0, 10)}`)))),
+                    `${task.cardTitle}（${task.cardPov}）· ${STATISTICS_TASK_STATUS_LABELS[task.status] ?? task.status} · 尝试 ${task.attempts} 次 · 消耗 ${task.budgetUnits ?? 0} 字${task.error === null ? '' : ` · ${toUserMessage(task.error)}`} · ${task.updatedAt.slice(0, 10)}`)))),
         ];
 
   return h('section', { className: 'nv-statistics', 'data-novel-statistics-panel': '', 'data-novel-statistics-state': state.status },
@@ -287,6 +288,6 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
       ),
       overviewBlock,
       state.message === undefined ? null : h('p', { className: 'nv-statistics__message', 'data-novel-statistics-message': '', role: 'status', 'aria-live': 'polite' }, state.message),
-    ] : h('p', { className: 'nv-statistics__hint', 'data-novel-statistics-unavailable': '' }, '统计服务不可用（novelStatistics Remote 未挂载）。'),
+    ] : h('p', { className: 'nv-statistics__hint', 'data-novel-statistics-unavailable': '' }, '写作进度暂时不可用，请稍后重试。'),
   );
 }

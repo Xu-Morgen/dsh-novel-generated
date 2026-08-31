@@ -66,7 +66,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
   if (!available) {
     return h('section', { className: 'nv-candidate', 'data-novel-candidate-panel': '', 'data-novel-candidate-state': 'unavailable' },
       h('h3', { className: 'nv-editor__title' }, '写作候选'),
-      h('p', { className: 'nv-candidate__hint', 'data-novel-candidate-unavailable': '' }, '候选审阅服务不可用（novelWriting Remote 未挂载）。'),
+      h('p', { className: 'nv-candidate__hint', 'data-novel-candidate-unavailable': '' }, '候选审阅功能暂时不可用，请稍后重试。'),
     );
   }
   let body: unknown;
@@ -79,7 +79,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
     const review = ui.review;
     const acting = ui.kind === 'acting' ? ui.action : undefined;
     const diffBlock = review.diff.kind === 'new-scene'
-      ? h('p', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'new-scene' }, `新场景：将追加到「${review.target.chapterId}/${review.target.sceneId}」。`)
+      ? h('p', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'new-scene' }, '新场景：将追加到当前选中的位置。')
       : h('details', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'replace' },
         h('summary', { 'data-novel-candidate-diff-summary': '' }, '局部重写：将替换当前场景正文'),
         h('p', { className: 'nv-candidate__diff-before', 'data-novel-candidate-diff-before': '' }, review.diff.before),

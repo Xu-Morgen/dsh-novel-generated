@@ -1,0 +1,22 @@
+{
+  "iteration": "I132",
+  "requirement": "R18-7",
+  "guarantees": [
+    "all-existing-stage18-author-panels-use-actionable-error-language",
+    "five-dynamic-error-classes-map-to-stable-author-actions",
+    "raw-technical-errors-and-identifiers-are-explicitly-advanced-only",
+    "author-visible-rendered-literals-have-zero-denylist-violations",
+    "data-novel-dom-anchors-and-wire-contracts-remain-unchanged",
+    "accessibility-alert-status-and-advanced-details-fixtures-pass"
+  ],
+  "focusedSuites": "presentation mapper, existing client panels, review, long-draft, and workbench fixtures passed",
+  "lexicon": {
+    "forbiddenTermCount": 34,
+    "violations": 0
+  },
+  "explicitNonGoals": [
+    "i18n-framework",
+    "navigation-structure-change",
+    "host-remote-wire-schema-storage-change"
+  ]
+}

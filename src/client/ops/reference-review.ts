@@ -1,4 +1,5 @@
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { ReferenceAuditListInput, ReferenceAuditOwner, ReferenceAuditRecord, ReferenceAuditStatus } from '../../core/schema/reference-audit.js';
 import type { ReferenceCorrectionCandidate, ReferenceCorrectionPendingItem } from '../../core/schema/reference-correction.js';
 import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layers/reference-review.js';
@@ -48,7 +49,7 @@ export function createReferenceReviewOps(runtime: OpsRuntime, port: ReferenceRev
     }, (cause: Error) => {
       endOp(key);
       if (!isActive()) return;
-      patch({ status: 'error', message: cause.message });
+      patch({ status: 'error', message: toUserMessage(cause) });
     });
   };
   return {
@@ -77,11 +78,11 @@ export function createReferenceReviewOps(runtime: OpsRuntime, port: ReferenceRev
         endOp(key);
         if (!isActive()) return;
         const result = raw as { candidate: ReferenceCorrectionCandidate; proposalId: string };
-        patch({ correctionStatus: 'ready', correctionCandidate: result.candidate, correctionProposalId: result.proposalId, correctionMessage: '候选已提交 I11 待确认；确认后才会写回。' });
+        patch({ correctionStatus: 'ready', correctionCandidate: result.candidate, correctionProposalId: result.proposalId, correctionMessage: '候选已提交，确认后才会写回。' });
       }, (cause: Error) => {
         endOp(key);
         if (!isActive()) return;
-        patch({ correctionStatus: 'error', correctionCandidate: undefined, correctionProposalId: undefined, correctionMessage: cause.message });
+        patch({ correctionStatus: 'error', correctionCandidate: undefined, correctionProposalId: undefined, correctionMessage: toUserMessage(cause) });
       });
     },
     acceptCorrection() {
@@ -102,7 +103,7 @@ export function createReferenceReviewOps(runtime: OpsRuntime, port: ReferenceRev
       }, (cause: Error) => {
         endOp(key);
         if (!isActive()) return;
-        patch({ correctionStatus: 'error', correctionMessage: cause.message });
+        patch({ correctionStatus: 'error', correctionMessage: toUserMessage(cause) });
       });
     },
     rejectCorrection() {
@@ -120,7 +121,7 @@ export function createReferenceReviewOps(runtime: OpsRuntime, port: ReferenceRev
       }, (cause: Error) => {
         endOp(key);
         if (!isActive()) return;
-        patch({ correctionStatus: 'error', correctionMessage: cause.message });
+        patch({ correctionStatus: 'error', correctionMessage: toUserMessage(cause) });
       });
     },
     dismissCorrection() { patch({ correctionStatus: 'idle', correctionCandidate: undefined, correctionProposalId: undefined, correctionMessage: undefined, correctionInstruction: '' }); },

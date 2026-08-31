@@ -86,12 +86,12 @@ export interface WorkbenchStyleElement {
 }
 
 export const LAYERS = [
-  { id: 'characters', label: '角色', title: '角色核心（B3）', hint: '角色列表与详情表单（I47）。' },
-  { id: 'worldview', label: '世界观', title: '世界观（B2）', hint: '世界观条目与改写（supersede）（I47）。' },
-  { id: 'outline', label: '大纲', title: '大纲与细纲（B5）', hint: '幕→节→细纲结构化编辑（I48）。' },
-  { id: 'relationship', label: '关系', title: '关系（C1）', hint: '关系对结构化编辑（I48）。' },
-  { id: 'state', label: '状态', title: '状态快照（C2）', hint: '快照时间线 / 回滚 / diff（I49）。' },
-  { id: 'canon', label: '正史', title: '正史账本（C4）', hint: '只读账本与 supersede 更正（I49）。' },
+  { id: 'characters', label: '角色', title: '角色核心', hint: '角色列表与详情表单。' },
+  { id: 'worldview', label: '世界观', title: '世界观', hint: '世界观条目与改写。' },
+  { id: 'outline', label: '大纲', title: '大纲与细纲', hint: '幕、节与细纲结构化编辑。' },
+  { id: 'relationship', label: '关系', title: '关系', hint: '角色关系对结构化编辑。' },
+  { id: 'state', label: '状态', title: '状态快照', hint: '快照时间线、回滚与差异查看。' },
+  { id: 'canon', label: '正史', title: '正史账本', hint: '只读账本与更正。' },
 ] as const;
 export type LayerId = (typeof LAYERS)[number]['id'];
 
@@ -114,7 +114,7 @@ export function unwrap<T>(promise: Promise<T> | undefined): Promise<UnwrapValue<
     if (result !== null && typeof result === 'object' && 'ok' in result) {
       const envelope = result as { ok?: boolean; value?: unknown; error?: { message?: string } };
       if (envelope.ok === true) return envelope.value as UnwrapValue<T>;
-      throw new Error(envelope.error?.message ?? 'Remote call failed');
+      throw new Error(envelope.error?.message ?? '创作服务调用失败');
     }
     return result as UnwrapValue<T>;
   });

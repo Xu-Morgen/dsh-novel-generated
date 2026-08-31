@@ -87,7 +87,7 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     expect(proposes[0].input.sceneId).toMatch(/^scene-/);
     expect(panel?.props?.['data-novel-candidate-state']).toBe('ready');
     expect(collect(render(), 'p').some((n) => String(n.children?.[0] ?? '').includes('米拉在码头找到铜钥匙。'))).toBe(true);
-    expect(collect(render(), 'p').some((n) => n.props?.['data-novel-candidate-diff'] === 'new-scene' && String(n.children?.[0] ?? '').includes('chapter-main/scene-next'))).toBe(true);
+    expect(collect(render(), 'p').some((n) => n.props?.['data-novel-candidate-diff'] === 'new-scene' && String(n.children?.[0] ?? '').includes('追加到当前选中的位置'))).toBe(true);
     expect(collect(render(), 'div').some((n) => n.props?.['data-novel-candidate-validation'] === 'pass')).toBe(true);
 
     // 双击接受：至多一次 adjudicate（inflight 幂等）；成功后显示完成态。

@@ -2,6 +2,7 @@
 // queue 层编辑动作 = I65 生成队列 ops（R13-6）：范围/配置 + 暂停/继续/取消 + 重试，经 queueNamespace。
 
 import { unwrap } from '../shared.js';
+import { toUserMessage } from '../presentation.js';
 import type { QueueEditOps, QueueLayerState, QueueStartInputShape } from '../layers/queue.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type QueuePort = Pick<OpsPorts, 'workspace' | 'queueNamespace'>;
@@ -25,7 +26,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           }));
           // 默认全选（start 时全部入队）；已有勾选保留。
           queuePatch({ cards: shaped, selectedCardIds: snapshot.queue.selectedCardIds.length > 0 ? snapshot.queue.selectedCardIds : shaped.map((card) => card.id), status: 'ready' });
-        }, (cause: Error) => { if (isActive()) queuePatch({ status: 'ready', message: (cause as Error).message }); });
+        }, (cause: Error) => { if (isActive()) queuePatch({ status: 'ready', message: toUserMessage(cause) }); });
       };
       /** 通用队列命令（幂等由 Host 状态机保证；同键 inflight 去重）。 */
       const queueCommand = (method: 'pause' | 'resume' | 'cancel' | 'retry', taskId?: string): void => {
@@ -48,7 +49,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
           // I88：轮询命令发往 Fiber 级控制器（单飞行，不堆积并行轮询链）。
           if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
-        }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ message: (cause as Error).message }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ message: toUserMessage(cause) }); });
       };
       return {
         refresh(): void {
@@ -64,7 +65,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
             queuePatch({ status: 'ready', projection: next });
             loadCards();
             if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
-          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ status: 'error', message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ status: 'error', message: toUserMessage(cause) }); });
         },
         toggleCard(cardId: string) {
           const selected = snapshot.queue.selectedCardIds;
@@ -101,7 +102,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
             const next = projection;
             queuePatch({ acting: false, status: 'ready', projection: next });
             if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
-          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: (cause as Error).message }); });
+          }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: toUserMessage(cause) }); });
         },
         pause() { queueCommand('pause'); },
         resume() { queueCommand('resume'); },
