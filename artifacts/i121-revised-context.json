@@ -1,0 +1,22 @@
+{
+  "iteration": "I121",
+  "requirement": "R18-6c",
+  "guarantees": [
+    "shared-context-owner-orders-chapter-index-then-scene-index",
+    "bounded-history-contains-only-target-preceding-non-empty-saved-scenes",
+    "chosen-c5-content-is-the-only-history-prose-input",
+    "fresh-current-i108-baseline-is-required-in-production-composition",
+    "stale-or-missing-baseline-fails-closed-before-generation",
+    "text-fingerprint-barrier-rejects-save-during-context-assembly",
+    "context-provenance-carries-bounded-source-hashes-without-old-draft-content",
+    "client-workflow-state-is-revision-scoped-and-cancel-safe",
+    "continue-queue-agent-share-the-injected-context-owner"
+  ],
+  "focusedSuites": "I121 context, pipeline-order, and Client workflow tests passed",
+  "explicitNonGoals": [
+    "continue-writing-homepage",
+    "background-auto-accept",
+    "new-writing-remote-method",
+    "persistent-client-workflow-history"
+  ]
+}

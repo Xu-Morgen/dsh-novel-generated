@@ -9,13 +9,17 @@ import type { NovelRuleService } from './rule-service.js';
 import type { NovelKnowledgeService } from './knowledge-service.js';
 import type { NovelTextService } from './text-service.js';
 import type { NovelTimelineService } from './timeline-service.js';
+import type { NovelSceneOutlineBindingService } from './scene-outline-binding-service.js';
+import type { NovelOutlineGenerationBaselineService } from './outline-generation-baseline-service.js';
 import type { Relationship } from '../core/schema/relationship.js';
 import type { StoryGenerationSources } from '../core/pipeline/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
+import type { Chapter, Scene } from '../core/schema/text.js';
 import type { StoryLifecycleParserInputs } from './story-lifecycle-service.js';
 import { buildContextTrace, type ContextTrace } from '../core/trace/index.js';
 import { anchorNodeId, filterRelationshipsByTimeline } from '../core/timeline/index.js';
+import { textContentHash } from '../core/text/index.js';
 
 /**
  * I63 下一场景上下文装配（design §14.9 / R13-4）。
@@ -46,6 +50,12 @@ export interface NextSceneContextDeps {
   readonly rules: NovelRuleService;
   readonly knowledge: NovelKnowledgeService;
   readonly text: NovelTextService;
+  /** I121：在生产组合根提供 C5 project fingerprint，防止历史快照跨保存混入一次 prompt。 */
+  readonly textFingerprint?: (projectId: string) => Promise<string>;
+  /** I121：当前细纲卡的唯一 SceneOutlineBinding owner。 */
+  readonly sceneOutlineBinding?: Pick<NovelSceneOutlineBindingService, 'read'>;
+  /** I121：当前细纲卡的唯一 OutlineGenerationBaseline owner。 */
+  readonly outlineGenerationBaseline?: Pick<NovelOutlineGenerationBaselineService, 'current'>;
   /** 方案 A 时间线层：提供后按「当前时间线节点」过滤关系注入；缺席时全量注入（兼容旧数据）。 */
   readonly timeline?: NovelTimelineService;
   /** 创作台通用设置：目标字数 + 内容不足时是否询问。 */
@@ -71,6 +81,11 @@ export interface NovelAgentContext {
   /** I30 解析器的输入快照（写回前由生命周期使用）。 */
   readonly parserInputs: StoryLifecycleParserInputs;
   readonly recentScenes: number;
+  /**
+   * I121 当前逐章循环的只读 provenance。只保留 ID/指纹/顺序元数据，不携带
+   * baseline.authoringBase.content，避免旧草稿重新进入 prompt（设计 §14.14.2）。
+   */
+  readonly provenance: WritingContextProvenance;
   readonly creation: NovelCreationSettingsView;
   /** I71 注入解释（层/触发原因/预算裁剪摘要；与 ContextAssembler 实际选择一致）。 */
   readonly trace: ContextTrace;
@@ -78,6 +93,83 @@ export interface NovelAgentContext {
 
 export interface NextSceneContextProvider {
   context(projectId: string): Promise<NovelAgentContext>;
+}
+
+export interface WritingContextTarget {
+  readonly chapterId: string;
+  readonly sceneId: string;
+  readonly detailBeatId: string;
+  readonly sourceHash: string;
+}
+
+export interface WritingContextBaseline {
+  readonly baselineId: string;
+  readonly revision: number;
+  readonly chapterId: string;
+  readonly sceneId: string;
+  readonly detailBeatId: string;
+  readonly b5ContentFingerprint: string;
+  readonly bindingFingerprint: string;
+  readonly sourceHash: string;
+}
+
+export interface WritingContextHistoryEntry {
+  readonly chapterId: string;
+  readonly chapterIndex: number;
+  readonly sceneId: string;
+  readonly sceneIndex: number;
+  readonly sourceHash: string;
+}
+
+export interface WritingContextProvenance {
+  /** The bound scene receiving the next generation, when the I121 gate is active. */
+  readonly target?: WritingContextTarget;
+  /** Current, fresh I108 baseline; stale/none baselines never appear here. */
+  readonly baseline?: WritingContextBaseline;
+  /** The exact bounded history order consumed by StoryContextAssembler. */
+  readonly history: readonly WritingContextHistoryEntry[];
+}
+
+export interface NarrativeSceneEntry {
+  readonly chapterId: string;
+  readonly chapterIndex: number;
+  readonly scene: Scene;
+}
+
+/**
+ * C5 的唯一叙事排序规则（I121）：chapter.index 优先，其次 chapter id；章内
+ * scene.index 优先，其次 scene id。调用方不应依赖文件名或目录枚举顺序。
+ */
+export function orderNarrativeScenes(chapters: readonly Chapter[]): readonly NarrativeSceneEntry[] {
+  return Object.freeze(chapters
+    .slice()
+    .sort((left, right) => left.index - right.index || left.id.localeCompare(right.id))
+    .flatMap((chapter) => chapter.scenes
+      .slice()
+      .sort((left, right) => left.index - right.index || left.id.localeCompare(right.id))
+      .map((scene) => ({ chapterId: chapter.id, chapterIndex: chapter.index, scene }))));
+}
+
+/**
+ * 取目标场景之前最多 `limit` 个已有正文。空场景不进入 history；返回顺序已经
+ * 是 prompt 应消费的跨章顺序，后续 assembler 不得再按 scene.index 重排。
+ */
+export function selectRecentNarrativeScenes(
+  chapters: readonly Chapter[],
+  target?: Pick<WritingContextTarget, 'chapterId' | 'sceneId'>,
+  limit = 3,
+): readonly NarrativeSceneEntry[] {
+  if (!Number.isInteger(limit) || limit < 0) throw new Error('History limit must be a non-negative integer');
+  if (limit === 0) return Object.freeze([]);
+  const ordered = orderNarrativeScenes(chapters);
+  const targetPosition = target === undefined
+    ? ordered.length
+    : ordered.findIndex((entry) => entry.chapterId === target.chapterId && entry.scene.id === target.sceneId);
+  if (target !== undefined && targetPosition < 0) throw new Error(`Context target scene is missing: ${target.chapterId}/${target.sceneId}`);
+  return Object.freeze(ordered
+    .slice(0, targetPosition)
+    .filter((entry) => entry.scene.content.trim().length > 0)
+    .slice(-limit));
 }
 
 /** 从细纲卡中选择当前应写的一张：优先当前 beat 中未完成的，其次最后一张。 */
@@ -103,9 +195,59 @@ export function fallbackCard(navigation: OutlineNavigation): DetailBeat {
 }
 
 export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextSceneContextProvider {
+  const currentBaseline = async (
+    projectId: string,
+    card: DetailBeat,
+  ): Promise<WritingContextBaseline | undefined> => {
+    const bindingOwner = deps.sceneOutlineBinding;
+    const baselineOwner = deps.outlineGenerationBaseline;
+    // Direct unit consumers from earlier iterations intentionally omit the
+    // I108 owners. Production composition supplies both, so no production
+    // caller can silently fall back once the I121 gate is active.
+    if (bindingOwner === undefined && baselineOwner === undefined) return undefined;
+    if (bindingOwner === undefined || baselineOwner === undefined) {
+      throw new Error('I121 context requires both SceneOutlineBinding and outline generation baseline owners');
+    }
+    const binding = await bindingOwner.read(projectId);
+    const owned = binding.effective.find((item) => item.detailBeatId === card.id);
+    // A card with no C5 binding is the first-draft/legacy unbound path. There
+    // is no baseline target to validate yet, so retain deterministic history
+    // assembly; once a binding exists, missing/stale baseline is fail-closed.
+    if (owned === undefined) return undefined;
+    const result = await baselineOwner.current(projectId, {
+      chapterId: owned.chapterId,
+      sceneId: owned.sceneId,
+      detailBeatId: card.id,
+    });
+    if (result.freshness === 'stale') {
+      throw new Error(`Stale outline generation baseline for context: ${result.staleReasons.join(', ')}`);
+    }
+    if (result.baseline === null || result.freshness !== 'fresh') {
+      throw new Error(`No current outline generation baseline for detail beat: ${card.id}`);
+    }
+    const baseline = result.baseline;
+    if (baseline.status !== 'current') {
+      throw new Error(`Outline generation baseline is not current: ${baseline.baselineId}`);
+    }
+    if (baseline.chapterId !== owned.chapterId || baseline.sceneId !== owned.sceneId || baseline.detailBeatId !== card.id) {
+      throw new Error(`Outline generation baseline target mismatch: ${card.id}`);
+    }
+    return Object.freeze({
+      baselineId: baseline.baselineId,
+      revision: baseline.revision,
+      chapterId: baseline.chapterId,
+      sceneId: baseline.sceneId,
+      detailBeatId: baseline.detailBeatId,
+      b5ContentFingerprint: baseline.b5ContentFingerprint,
+      bindingFingerprint: baseline.bindingFingerprint,
+      sourceHash: baseline.authoringBase.sourceHash,
+    });
+  };
+
   /** 装配下一场景的全部生成源（上下文/导航/知情/正史/历史）。 */
   async function context(projectId: string): Promise<NovelAgentContext> {
     const outlineFingerprintBefore = await deps.outline.contentFingerprint(projectId);
+    const textFingerprintBefore = deps.textFingerprint === undefined ? undefined : await deps.textFingerprint(projectId);
     const navigation = await deps.outline.navigate(projectId);
     const cards = await deps.outline.beatCards(projectId);
     const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
@@ -121,9 +263,24 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       deps.knowledge.read(projectId),
       deps.text.listChapters(projectId),
     ]);
+    const baseline = await currentBaseline(projectId, card);
+    const target = baseline === undefined ? undefined : {
+      chapterId: baseline.chapterId,
+      sceneId: baseline.sceneId,
+      detailBeatId: baseline.detailBeatId,
+      sourceHash: baseline.sourceHash,
+    };
+    const selectedHistory = selectRecentNarrativeScenes(chapters, target);
+    const recentScenes = selectedHistory.map((entry) => entry.scene);
+    const provenanceHistory = selectedHistory.map((entry) => ({
+      chapterId: entry.chapterId,
+      chapterIndex: entry.chapterIndex,
+      sceneId: entry.scene.id,
+      sceneIndex: entry.scene.index,
+      sourceHash: textContentHash(entry.scene.content),
+    }));
     const characterIds = characters.map((character) => character.id);
     const sceneCharacters = await deps.characters.listForScene(projectId, characterIds);
-    const recentScenes = chapters.flatMap((chapter) => chapter.scenes).slice(-3);
     // 方案 A 时间线层：关系注入只保留「当前时间线节点之前已建立」的关系
     // （design §8 相关角色对 / 排除尚未发生的关系）。锚定 = 手动选择优先，
     // 否则按当前写作位置（细纲卡 → beat）自动匹配；时间线缺失/未锚定 → 全量
@@ -183,7 +340,26 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
     });
     const outlineFingerprint = await deps.outline.contentFingerprint(projectId);
     if (outlineFingerprint !== outlineFingerprintBefore) throw new Error('Outline changed during context assembly');
-    return { projectId, outlineFingerprint, navigation, card, sources, parserInputs, recentScenes: recentScenes.length, creation, trace };
+    if (deps.textFingerprint !== undefined) {
+      const textFingerprintAfter = await deps.textFingerprint(projectId);
+      if (textFingerprintBefore !== textFingerprintAfter) throw new Error('Text changed during context assembly');
+    }
+    return {
+      projectId,
+      outlineFingerprint,
+      navigation,
+      card,
+      sources,
+      parserInputs,
+      recentScenes: recentScenes.length,
+      provenance: Object.freeze({
+        ...(target === undefined ? {} : { target: Object.freeze(target) }),
+        ...(baseline === undefined ? {} : { baseline }),
+        history: Object.freeze(provenanceHistory),
+      }),
+      creation,
+      trace,
+    };
   }
 
   return Object.freeze({ context });

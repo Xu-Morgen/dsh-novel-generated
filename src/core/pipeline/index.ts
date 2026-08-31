@@ -112,7 +112,6 @@ function renderCanon(canon: readonly CanonEventView[]): string {
 function renderHistory(history: StoryHistorySources): string {
   const recent = history.recentScenes
     .map((scene) => sceneSchema.parse(scene))
-    .sort((left, right) => left.index - right.index || left.id.localeCompare(right.id))
     .map((scene) => `- recent scene ${scene.id}: ${scene.content}`);
   const summaries = history.historicalSummaries.map((summary, index) => {
     if (typeof summary !== 'string' || !summary.trim()) throw new Error(`Invalid historical summary: ${index}`);

@@ -182,6 +182,9 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     rules: ruleService,
     knowledge: knowledgeService,
     text: textService,
+    textFingerprint: (projectId) => textService.projectFingerprint(projectId),
+    sceneOutlineBinding: sceneOutlineBindingService,
+    outlineGenerationBaseline: outlineGenerationBaselineService,
     timeline: timelineService,
     workbenchSettings: workbenchSettingsService,
   });

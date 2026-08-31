@@ -15,6 +15,7 @@ import type { StateEditor, StateSnapshotShape } from '../layers/state.js';
 import type { CanonEditor, CanonEventShape } from '../layers/canon.js';
 import type { ChaptersLayerState, ChapterManagementState, ChaptersMode } from '../layers/chapters.js';
 import { freshBranchPanel, freshCandidatePanel, freshChapters, freshSceneEditor } from '../layers/chapters.js';
+import { freshWritingWorkflow, settleWritingWorkflow, type WritingWorkflowState } from '../writing-workflow.js';
 import type { BranchPanelState, CandidatePanelState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape } from '../layers/chapters.js';
 import type { ReviewLayerState } from '../layers/review.js';
 import { freshReview } from '../layers/review.js';
@@ -184,6 +185,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
           selectedChapterId: chapterId,
           selectedSceneId: undefined,
           navigationRevision: d.chapters.navigationRevision + 1,
+          workflow: freshWritingWorkflow(d.chapters.navigationRevision + 1),
           chapter: { status: 'loading' },
           scene: { status: 'idle' },
           candidate: freshCandidatePanel(),
@@ -195,6 +197,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
           ...d.chapters,
           selectedSceneId: sceneId,
           navigationRevision: d.chapters.navigationRevision + 1,
+          workflow: freshWritingWorkflow(d.chapters.navigationRevision + 1),
           scene: { status: 'loading' },
           candidate: freshCandidatePanel(),
           branches: freshBranchPanel(),
@@ -209,6 +212,11 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       chaptersCandidateForRevision: (d, patch: Partial<CandidatePanelState>, navigationRevision: number) => {
         if (d.chapters.navigationRevision !== navigationRevision) return;
         d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } };
+      },
+      chaptersWorkflow: (d, patch: Partial<WritingWorkflowState>) => { d.chapters = { ...d.chapters, workflow: { ...d.chapters.workflow, ...patch } }; },
+      chaptersWorkflowForRevision: (d, patch: Partial<WritingWorkflowState>, navigationRevision: number) => {
+        const next = settleWritingWorkflow(d.chapters.workflow, { status: patch.status ?? d.chapters.workflow.status, ...patch }, navigationRevision);
+        if (next !== d.chapters.workflow) d.chapters = { ...d.chapters, workflow: next };
       },
       chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
       chaptersMode: (d, mode: ChaptersMode) => { d.chapters = { ...d.chapters, mode }; },

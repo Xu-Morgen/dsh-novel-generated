@@ -8,6 +8,7 @@ import { branchPanel, freshBranchPanel, type BranchPanelState } from './branch.j
 import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from './candidate.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
 import { freshSceneEditor, sceneEditorPanel, type SceneEditorState } from './scene-editor.js';
+import { freshWritingWorkflow, type WritingWorkflowState } from '../writing-workflow.js';
 
 /**
  * I60/I61 C5 章节/场景导航 + 正文编辑面板组合根（design §5.12 / §14.9 / R13-1 /
@@ -100,6 +101,8 @@ export interface ChaptersLayerState {
   readonly mode: ChaptersMode;
   /** 导航世代，用于丢弃切场景后晚到的旧候选响应。 */
   readonly navigationRevision: number;
+  /** I121 当前“候选→保存→下一场景”交互态；不持久化领域真相。 */
+  readonly workflow: WritingWorkflowState;
   /** 已选章节的读取结果（元数据 + 场景摘要）。 */
   readonly chapter: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly read?: ChapterReadShape; readonly message?: string };
   /** 已选场景的读取结果（唯一携带正文）。 */
@@ -174,6 +177,7 @@ export function freshChapters(): ChaptersLayerState {
     status: 'loading', list: [],
     mode: 'writing',
     navigationRevision: 0,
+    workflow: freshWritingWorkflow(),
     chapter: { status: 'idle' },
     scene: { status: 'idle' },
     editor: freshSceneEditor(),
@@ -189,6 +193,28 @@ export function freshChapters(): ChaptersLayerState {
       reconciliation: { status: 'idle', planId: '', decisions: {}, manualValues: {} },
     },
   };
+}
+
+function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
+  const labels = {
+    idle: '等待开始写作',
+    loading: '正在生成候选…',
+    ready: '候选已就绪，等待作者审阅',
+    saved: '正文已保存，可继续下一场景',
+    rejected: '候选已拒绝，未写入正文',
+    cancelled: '当前写作操作已取消',
+    error: '写作操作失败',
+  } as const;
+  return h('div', {
+    className: 'nv-chapters__workflow',
+    'data-novel-writing-workflow': '',
+    'data-novel-writing-workflow-state': state.status,
+    role: 'status',
+    'aria-live': 'polite',
+  },
+    h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, labels[state.status]),
+    state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.message),
+  );
 }
 
 function modeBadge(state: ChaptersLayerState, mode: ChaptersMode): string | undefined {
@@ -438,6 +464,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
     ),
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '' },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
+      writingWorkflowPanel(h, state.workflow),
       chapterModeTabs(h, state, ops),
       modePanel(h, projectId, writing, branches, state, ops, body),
     ),

@@ -105,7 +105,10 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
           const content = r.scene?.content ?? editor.draft;
           act.chaptersScene('ready', { scene: r.scene }, undefined);
           editorPatch({ saving: false, saveMessage: '已保存', dirty: false, original: content, draft: content, error: '' });
-        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
+          void hashText(content).then((sourceHash) => {
+            if (isActive()) act.chaptersWorkflowForRevision({ status: 'saved', projectId, chapterId, sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, snapshot.chapters.navigationRevision);
+          });
+        }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); act.chaptersWorkflowForRevision({ status: 'error', message: (cause as Error).message }, snapshot.chapters.navigationRevision); });
       }
     }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
   };
@@ -129,7 +132,10 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       const content = res.scene?.content ?? editor.draft;
       act.chaptersScene('ready', { scene: res.scene }, undefined);
       editorPatch({ saving: false, dirty: false, original: content, draft: content, error: '', saveMessage: '', reparse: { kind: 'done', message: `已重解析并同步：${(res.layers ?? []).join(' / ')}` } });
-    }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); });
+      void hashText(content).then((sourceHash) => {
+        if (isActive()) act.chaptersWorkflowForRevision({ status: 'saved', projectId, chapterId, sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, snapshot.chapters.navigationRevision);
+      });
+    }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ reparse: { kind: 'error', message: (cause as Error).message } }); act.chaptersWorkflowForRevision({ status: 'error', message: (cause as Error).message }, snapshot.chapters.navigationRevision); });
   };
 
   const rejectReparse = (): void => {

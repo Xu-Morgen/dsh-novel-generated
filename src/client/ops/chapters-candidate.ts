@@ -3,6 +3,7 @@ import type { CandidatePanelState, ChaptersEditOps } from '../layers/chapters.js
 import type { OpsPorts, OpsRuntime } from './context.js';
 type CandidatePort = Pick<OpsPorts, 'workspace' | 'writing'>;
 import type { ChaptersInternal } from './chapters-internal.js';
+import { sha256Hex } from '../sha256.js';
 
 /**
  * I95 候选审阅 ops 片（计划 §18 I95：ops/chapters 随 layers 拆分——候选段，
@@ -16,6 +17,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
   const writing = port.writing;
   const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
   const candidatePatchForRevision = (patch: Partial<CandidatePanelState>, navigationRevision: number): void => act.chaptersCandidateForRevision(patch, navigationRevision);
+  const workflowPatchForRevision = (patch: Parameters<typeof act.chaptersWorkflowForRevision>[0], navigationRevision: number): void => act.chaptersWorkflowForRevision(patch, navigationRevision);
   let targetSequence = 0;
   const freshSceneId = (): string => `scene-${Date.now()}-${++targetSequence}`;
   // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
@@ -39,9 +41,13 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       void unwrap(target.previewLayers(candidateId)).then((layerPreview) => {
         if (!isActive()) return;
         candidatePatchForRevision({ ui: { kind: 'ready', review, layerPreview } }, navigationRevision);
+        const generationBaseline = layerPreview.generationBaseline.kind === 'baseline'
+          ? layerPreview.generationBaseline.generationBaselineId
+          : undefined;
+        workflowPatchForRevision({ status: 'ready', sceneId: review.target.sceneId, sourceHash: review.target.sourceHash, baselineId: generationBaseline, traceSectionCount: review.trace?.sections.length, message: '候选已就绪，请审阅正文与变更。' }, navigationRevision);
         onReady();
-      }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
-    }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
+      }, (cause: Error) => { if (isActive()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
+    }, (cause: Error) => { if (isActive()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
   };
   const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
     const target = writing;
@@ -52,11 +58,12 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     if (!beginOp(`writing:propose:${intent}`)) return;
     const release = (): void => endOp(`writing:propose:${intent}`);
     candidatePatch({ ui: { kind: 'proposing', intent } });
+    workflowPatchForRevision({ status: 'loading', projectId, chapterId, message: '正在生成候选…' }, navigationRevision);
     void unwrap(target.proposeAt(projectId, { intent, chapterId, sceneId: freshSceneId() }, undefined)).then((result) => {
       release();
       if (!isActive()) return;
       previewAfterPropose(result.candidate.id, navigationRevision, () => undefined);
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
+    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
   };
   const proposeRewrite = (): void => {
     const target = writing;
@@ -70,11 +77,12 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     if (!beginOp('writing:propose:rewrite')) return;
     const release = (): void => endOp('writing:propose:rewrite');
     candidatePatch({ ui: { kind: 'proposing', intent: 'rewrite' } });
+    workflowPatchForRevision({ status: 'loading', projectId, chapterId, sceneId, message: '正在生成重写候选…' }, navigationRevision);
     void unwrap(target.propose(projectId, { intent: 'rewrite', chapterId, sceneId, prompt }, undefined)).then((result) => {
       release();
       if (!isActive()) return;
       previewAfterPropose(result.candidate.id, navigationRevision, () => undefined);
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); });
+    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
   };
   const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
     const target = writing;
@@ -92,18 +100,24 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       const outcome = result;
       if (outcome.status === 'written') {
         candidatePatchForRevision({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } }, navigationRevision);
+        void sha256Hex(outcome.scene.content).then((sourceHash) => {
+          if (isActive()) workflowPatchForRevision({ status: 'saved', projectId, chapterId: outcome.scene.chapterId, sceneId: outcome.scene.sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, navigationRevision);
+        });
         reloadChapters();
       } else if (outcome.status === 'rejected') {
         candidatePatchForRevision({ ui: { kind: 'done', message: '已拒绝候选，未写入任何内容' } }, navigationRevision);
+        workflowPatchForRevision({ status: 'rejected', message: '候选已拒绝，未写入正文。' }, navigationRevision);
       } else if (outcome.status === 'rewritten') {
         // 后继候选：立即审阅新候选（旧候选已被 Host 置为 superseded，不可静默接受）。
         previewAfterPropose(outcome.candidate.id, navigationRevision, () => undefined);
       } else if (outcome.status === 'generation-rejected' || outcome.status === 'prewrite-rejected') {
         candidatePatchForRevision({ ui: { kind: 'error', message: '校验未通过：存在硬冲突，未写入任何内容。请重写候选。' } }, navigationRevision);
+        workflowPatchForRevision({ status: 'error', message: '校验未通过，未写入正文。' }, navigationRevision);
       } else if (outcome.status === 'pending-compensation') {
         candidatePatchForRevision({ ui: { kind: 'error', message: `写回中断（${outcome.failedStage}），未完成。请重试或重写。` } }, navigationRevision);
+        workflowPatchForRevision({ status: 'error', message: '写作落地未完成，请重试或重写。' }, navigationRevision);
       }
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message }, }, navigationRevision); });
+    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message }, }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
   };
 
   const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adjudicateCandidate' | 'dismissCandidate'> = {
@@ -111,7 +125,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
     proposeRewrite,
     adjudicateCandidate,
-    dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); },
+    dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); act.chaptersWorkflow({ status: 'idle', message: undefined, sourceHash: undefined, traceSectionCount: undefined }); },
   };
   return { ops };
 }
