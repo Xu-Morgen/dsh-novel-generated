@@ -180,7 +180,9 @@
     "novel-creation-tool/novelWriting/cancelFinalizationPlan",
     "novel-creation-tool/novelWriting/proposeFinalization",
     "novel-creation-tool/novelWriting/acceptFinalization",
-    "novel-creation-tool/novelWriting/rejectFinalization"
+    "novel-creation-tool/novelWriting/rejectFinalization",
+    "novel-creation-tool/novelReview/bookReadiness",
+    "novel-creation-tool/novelReview/bookScan"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -41671,6 +41673,850 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelReview/bookReadiness": {
+      "id": "novel-creation-tool/novelReview/bookReadiness",
+      "service": "novelReview",
+      "namespace": "novelReview",
+      "method": "bookReadiness",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "page",
+          "wire": "page",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelReview:bookReadinessPage",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 64
+                }
+              },
+              "required": [
+                "offset",
+                "limit"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelReview:bookReadiness",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "blocked"
+              ]
+            },
+            "gateOpen": {
+              "type": "boolean"
+            },
+            "computedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            },
+            "page": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 64
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "nextOffset": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chapters": {
+                  "readOnly": true,
+                  "maxItems": 64,
+                  "type": "array",
+                  "items": {
+                    "readOnly": true,
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "sceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "proseSceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "boundSceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "requiredCardCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "completedCardCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "index",
+                      "title",
+                      "sceneCount",
+                      "proseSceneCount",
+                      "boundSceneCount",
+                      "requiredCardCount",
+                      "completedCardCount"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "offset",
+                "limit",
+                "total",
+                "nextOffset",
+                "chapters"
+              ],
+              "additionalProperties": false
+            },
+            "counts": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "chapters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "scenes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "requiredCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "completedCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "boundCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseScenes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hardIssues": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "warningIssues": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "chapters",
+                "scenes",
+                "requiredCards",
+                "completedCards",
+                "boundCards",
+                "proseScenes",
+                "hardIssues",
+                "warningIssues"
+              ],
+              "additionalProperties": false
+            },
+            "review": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "not-run",
+                    "completed"
+                  ]
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hard": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "warning": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "status",
+                "total",
+                "hard",
+                "warning"
+              ],
+              "additionalProperties": false
+            },
+            "issues": {
+              "readOnly": true,
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "readOnly": true,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "outline-unavailable",
+                      "missing-progress",
+                      "order-integrity",
+                      "incomplete-card",
+                      "incomplete-beat",
+                      "missing-binding",
+                      "binding-target-missing",
+                      "missing-prose",
+                      "pending-finalization",
+                      "pending-reconciliation",
+                      "pending-outline-change",
+                      "pending-candidate",
+                      "hard-review",
+                      "review-warning"
+                    ]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "hard",
+                      "warning"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "continued",
+                      "rewrite-requested",
+                      "pending"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "detailBeatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sourceIssueId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "severity",
+                  "status",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "fingerprints": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "outline": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "binding": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "text",
+                "outline",
+                "binding"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "status",
+            "gateOpen",
+            "computedAt",
+            "page",
+            "counts",
+            "review",
+            "issues",
+            "fingerprints"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelReview/bookScan": {
+      "id": "novel-creation-tool/novelReview/bookScan",
+      "service": "novelReview",
+      "namespace": "novelReview",
+      "method": "bookScan",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "page",
+          "wire": "page",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelReview:bookScanPage",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 64
+                }
+              },
+              "required": [
+                "offset",
+                "limit"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        },
+        {
+          "name": "settings",
+          "wire": "settings",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#json",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema"
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelReview:bookScan",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "ready",
+                "blocked"
+              ]
+            },
+            "gateOpen": {
+              "type": "boolean"
+            },
+            "computedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            },
+            "page": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 64
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "nextOffset": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chapters": {
+                  "readOnly": true,
+                  "maxItems": 64,
+                  "type": "array",
+                  "items": {
+                    "readOnly": true,
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "sceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "proseSceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "boundSceneCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "requiredCardCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "completedCardCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "index",
+                      "title",
+                      "sceneCount",
+                      "proseSceneCount",
+                      "boundSceneCount",
+                      "requiredCardCount",
+                      "completedCardCount"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "offset",
+                "limit",
+                "total",
+                "nextOffset",
+                "chapters"
+              ],
+              "additionalProperties": false
+            },
+            "counts": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "chapters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "scenes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "requiredCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "completedCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "boundCards": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseScenes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hardIssues": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "warningIssues": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "chapters",
+                "scenes",
+                "requiredCards",
+                "completedCards",
+                "boundCards",
+                "proseScenes",
+                "hardIssues",
+                "warningIssues"
+              ],
+              "additionalProperties": false
+            },
+            "review": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "not-run",
+                    "completed"
+                  ]
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hard": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "warning": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "status",
+                "total",
+                "hard",
+                "warning"
+              ],
+              "additionalProperties": false
+            },
+            "issues": {
+              "readOnly": true,
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "readOnly": true,
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "outline-unavailable",
+                      "missing-progress",
+                      "order-integrity",
+                      "incomplete-card",
+                      "incomplete-beat",
+                      "missing-binding",
+                      "binding-target-missing",
+                      "missing-prose",
+                      "pending-finalization",
+                      "pending-reconciliation",
+                      "pending-outline-change",
+                      "pending-candidate",
+                      "hard-review",
+                      "review-warning"
+                    ]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": [
+                      "hard",
+                      "warning"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "continued",
+                      "rewrite-requested",
+                      "pending"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "detailBeatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sourceIssueId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "severity",
+                  "status",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "fingerprints": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "outline": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "binding": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "text",
+                "outline",
+                "binding"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "status",
+            "gateOpen",
+            "computedAt",
+            "page",
+            "counts",
+            "review",
+            "issues",
+            "fingerprints"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -41757,7 +42603,9 @@
     "novel-creation-tool/novelWriting/cancelFinalizationPlan",
     "novel-creation-tool/novelWriting/proposeFinalization",
     "novel-creation-tool/novelWriting/acceptFinalization",
-    "novel-creation-tool/novelWriting/rejectFinalization"
+    "novel-creation-tool/novelWriting/rejectFinalization",
+    "novel-creation-tool/novelReview/bookReadiness",
+    "novel-creation-tool/novelReview/bookScan"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -59447,6 +60295,714 @@
         "proposalId",
         "operationId",
         "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelReview/bookReadiness": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "blocked"
+          ]
+        },
+        "gateOpen": {
+          "type": "boolean"
+        },
+        "computedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "page": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 64
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "nextOffset": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "chapters": {
+              "readOnly": true,
+              "maxItems": 64,
+              "type": "array",
+              "items": {
+                "readOnly": true,
+                "type": "object",
+                "properties": {
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "sceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "proseSceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "boundSceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "requiredCardCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "completedCardCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "chapterId",
+                  "index",
+                  "title",
+                  "sceneCount",
+                  "proseSceneCount",
+                  "boundSceneCount",
+                  "requiredCardCount",
+                  "completedCardCount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "offset",
+            "limit",
+            "total",
+            "nextOffset",
+            "chapters"
+          ],
+          "additionalProperties": false
+        },
+        "counts": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "chapters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "scenes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "requiredCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "completedCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "boundCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "proseScenes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "hardIssues": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "warningIssues": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "chapters",
+            "scenes",
+            "requiredCards",
+            "completedCards",
+            "boundCards",
+            "proseScenes",
+            "hardIssues",
+            "warningIssues"
+          ],
+          "additionalProperties": false
+        },
+        "review": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "not-run",
+                "completed"
+              ]
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "hard": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "warning": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "status",
+            "total",
+            "hard",
+            "warning"
+          ],
+          "additionalProperties": false
+        },
+        "issues": {
+          "readOnly": true,
+          "maxItems": 512,
+          "type": "array",
+          "items": {
+            "readOnly": true,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "outline-unavailable",
+                  "missing-progress",
+                  "order-integrity",
+                  "incomplete-card",
+                  "incomplete-beat",
+                  "missing-binding",
+                  "binding-target-missing",
+                  "missing-prose",
+                  "pending-finalization",
+                  "pending-reconciliation",
+                  "pending-outline-change",
+                  "pending-candidate",
+                  "hard-review",
+                  "review-warning"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "hard",
+                  "warning"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "continued",
+                  "rewrite-requested",
+                  "pending"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "chapterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sceneId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "detailBeatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sourceIssueId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "severity",
+              "status",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "fingerprints": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "outline": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "binding": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "text",
+            "outline",
+            "binding"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "status",
+        "gateOpen",
+        "computedAt",
+        "page",
+        "counts",
+        "review",
+        "issues",
+        "fingerprints"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelReview/bookScan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "blocked"
+          ]
+        },
+        "gateOpen": {
+          "type": "boolean"
+        },
+        "computedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "page": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 64
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "nextOffset": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "chapters": {
+              "readOnly": true,
+              "maxItems": 64,
+              "type": "array",
+              "items": {
+                "readOnly": true,
+                "type": "object",
+                "properties": {
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "sceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "proseSceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "boundSceneCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "requiredCardCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "completedCardCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "chapterId",
+                  "index",
+                  "title",
+                  "sceneCount",
+                  "proseSceneCount",
+                  "boundSceneCount",
+                  "requiredCardCount",
+                  "completedCardCount"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "offset",
+            "limit",
+            "total",
+            "nextOffset",
+            "chapters"
+          ],
+          "additionalProperties": false
+        },
+        "counts": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "chapters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "scenes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "requiredCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "completedCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "boundCards": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "proseScenes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "hardIssues": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "warningIssues": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "chapters",
+            "scenes",
+            "requiredCards",
+            "completedCards",
+            "boundCards",
+            "proseScenes",
+            "hardIssues",
+            "warningIssues"
+          ],
+          "additionalProperties": false
+        },
+        "review": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "not-run",
+                "completed"
+              ]
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "hard": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "warning": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "status",
+            "total",
+            "hard",
+            "warning"
+          ],
+          "additionalProperties": false
+        },
+        "issues": {
+          "readOnly": true,
+          "maxItems": 512,
+          "type": "array",
+          "items": {
+            "readOnly": true,
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "outline-unavailable",
+                  "missing-progress",
+                  "order-integrity",
+                  "incomplete-card",
+                  "incomplete-beat",
+                  "missing-binding",
+                  "binding-target-missing",
+                  "missing-prose",
+                  "pending-finalization",
+                  "pending-reconciliation",
+                  "pending-outline-change",
+                  "pending-candidate",
+                  "hard-review",
+                  "review-warning"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "hard",
+                  "warning"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "continued",
+                  "rewrite-requested",
+                  "pending"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "chapterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sceneId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "detailBeatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sourceIssueId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "severity",
+              "status",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "fingerprints": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "outline": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "binding": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "text",
+            "outline",
+            "binding"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "status",
+        "gateOpen",
+        "computedAt",
+        "page",
+        "counts",
+        "review",
+        "issues",
+        "fingerprints"
       ],
       "additionalProperties": false
     }

@@ -3,6 +3,7 @@
 
 import { unwrap } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
+import type { BookReadinessResult, BookReadinessPageInput } from '../../core/schema/book-readiness.js';
 import type { ReviewAdjudicationOutcomeShape, ReviewAuditRecordShape, ReviewEditOps, ReviewLayerState, ReviewProjectionShape } from '../layers/review.js';
 import {
   beginReviewRepairAccept,
@@ -106,10 +107,36 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
     });
   };
 
+  const runBookCheck = (scan: boolean): void => {
+    const target = reviewNamespace;
+    if (!target || projectId === undefined) {
+      reviewPatch({ bookReadiness: { status: 'error', message: '审校服务不可用' } });
+      return;
+    }
+    const key = scan ? 'review:book-scan' : 'review:book-readiness';
+    if (!beginOp(key)) return;
+    const release = (): void => endOp(key);
+    const page: BookReadinessPageInput = { offset: 0, limit: 64 };
+    reviewPatch({ bookReadiness: { status: 'loading' } });
+    void Promise.resolve().then(() => scan
+      ? unwrap(target.bookScan(projectId, page, undefined))
+      : unwrap(target.bookReadiness(projectId, page))).then((result) => {
+      release();
+      if (!isActive()) return;
+      reviewPatch({ bookReadiness: { status: 'ready', result: result as BookReadinessResult } });
+    }, (cause: Error) => {
+      release();
+      if (!isActive()) return;
+      reviewPatch({ bookReadiness: { status: 'error', message: toUserMessage(cause) } });
+    });
+  };
+
   return {
     scan(): void {
       runScan();
     },
+    bookReadiness(): void { runBookCheck(false); },
+    bookScan(): void { runBookCheck(true); },
     toggleFilter,
     clearFilters() { reviewPatch({ filter: { categories: [], severities: [], statuses: [] } }); },
     selectIssue(issueId: string) {

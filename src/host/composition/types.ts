@@ -41,6 +41,7 @@ import type { NovelLinkIndexService } from '../link-index-service.js';
 import type { ReviewRepairWorkflow } from '../review-repair-workflow.js';
 import type { NovelFinalizationPlanBuilder } from '../finalization-plan-builder.js';
 import type { NovelFinalizationCoordinator } from '../finalization-coordinator.js';
+import type { NovelBookCompletionService } from '../book-completion-service.js';
 
 /**
  * I89 index.ts 组合根分段共享类型（review v2.0 §3.4 / 计划 §18 I89）。
@@ -121,6 +122,7 @@ export interface ManagementServices {
   longDraftWorkflowCoordinator: LongDraftWorkflowCoordinator;
   outlineDetailGenerationService: NovelOutlineDetailGenerationService;
   reviewRepairService: ReviewRepairWorkflow;
+  bookCompletionService: NovelBookCompletionService;
   finalizationPlanBuilder: NovelFinalizationPlanBuilder;
   finalizationCoordinator: NovelFinalizationCoordinator;
 }

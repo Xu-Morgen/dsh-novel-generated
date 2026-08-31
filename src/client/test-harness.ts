@@ -187,6 +187,8 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },
       adjudicate: async () => { throw new Error('未注入 remote.novelReview.adjudicate'); },
       records: async () => { throw new Error('未注入 remote.novelReview.records'); },
+      bookReadiness: async () => { throw new Error('未注入 remote.novelReview.bookReadiness'); },
+      bookScan: async () => { throw new Error('未注入 remote.novelReview.bookScan'); },
     })
     : name === 'remote.novelReviewRepair' ? (reviewRepairStub ?? {
       propose: async () => { throw new Error('未注入 remote.novelReviewRepair.propose'); },

@@ -196,6 +196,15 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelReview/scan':
       return { projectId: 'p1', scannedAt: ISO, issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
+    case 'novelReview/bookReadiness':
+    case 'novelReview/bookScan':
+      return {
+        projectId: 'p1', status: 'ready', gateOpen: true, computedAt: ISO,
+        page: { offset: 0, limit: 64, total: 0, nextOffset: null, chapters: [] },
+        counts: { chapters: 0, scenes: 0, requiredCards: 0, completedCards: 0, boundCards: 0, proseScenes: 0, hardIssues: 0, warningIssues: 0 },
+        review: { status: 'not-run', total: 0, hard: 0, warning: 0 }, issues: [],
+        fingerprints: { text: 'a'.repeat(64), outline: 'b'.repeat(64), binding: 'c'.repeat(64) },
+      };
     case 'novelReview/records':
       return [];
     case 'novelReviewRepair/propose':
@@ -715,6 +724,37 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await dispose();
       await client.fiber.dispose();
+    }
+  });
+
+  it('I137 novelReview.bookReadiness/bookScan：分页参数与可选 settings 经真实 binder 往返', async () => {
+    const { client, calls, dispose } = await mount(reviewRemoteContribution);
+    try {
+      const ns = client.get('remote.novelReview') as { bookReadiness: (...args: unknown[]) => Promise<unknown>; bookScan: (...args: unknown[]) => Promise<unknown> };
+      const page = { offset: 0, limit: 64 };
+      expect((await unwrap(ns.bookReadiness('p1', page)) as { gateOpen: boolean }).gateOpen).toBe(true);
+      expect((await unwrap(ns.bookScan('p1', page, undefined)) as { status: string }).status).toBe('ready');
+      expect(calls).toEqual([
+        { endpoint: 'novelReview/bookReadiness', args: { projectId: 'p1', page } },
+        { endpoint: 'novelReview/bookScan', args: { projectId: 'p1', page } },
+      ]);
+      await expect(Reflect.apply(ns.bookReadiness, ns, ['p1', { offset: -1, limit: 64 }])).rejects.toThrow(/rejected "page"/);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I137 负向：全书完成门 result 增加未知字段会被真实 binder 拒绝', async () => {
+    const mounted = await mount(reviewRemoteContribution, (endpoint) => endpoint === 'novelReview/bookScan'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, extra: true }
+      : fixtureFor(endpoint));
+    try {
+      const review = mounted.client.get('remote.novelReview') as { bookScan: (...args: unknown[]) => Promise<unknown> };
+      await expect(unwrap(review.bookScan('p1', { offset: 0, limit: 64 }, undefined))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
     }
   });
 

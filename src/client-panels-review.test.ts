@@ -77,6 +77,43 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
     expect(collect(render(), 'p').some((n) => n.props?.['data-novel-review-hard-block'] !== undefined)).toBe(true);
   });
 
+  it('I137 全书发布就绪面板经同一审校 Remote 展示发布门，并区分结构检查与全书审校', async () => {
+    const calls: string[] = [];
+    const readiness = {
+      projectId: 'fixture-project', status: 'ready', gateOpen: true, computedAt: '2026-01-01T00:00:00.000Z',
+      page: { offset: 0, limit: 64, total: 1, nextOffset: null, chapters: [{ chapterId: 'chapter-1', index: 1, title: '第一章', sceneCount: 1, proseSceneCount: 1, boundSceneCount: 1, requiredCardCount: 1, completedCardCount: 1 }] },
+      counts: { chapters: 1, scenes: 1, requiredCards: 1, completedCards: 1, boundCards: 1, proseScenes: 1, hardIssues: 0, warningIssues: 0 },
+      review: { status: 'not-run', total: 0, hard: 0, warning: 0 }, issues: [],
+      fingerprints: { text: 'a'.repeat(64), outline: 'b'.repeat(64), binding: 'c'.repeat(64) },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        review: {
+          scan: async () => ({ ok: true, value: PROJECTION }),
+          records: async () => ({ ok: true, value: [] }),
+          bookReadiness: async () => { calls.push('readiness'); return { ok: true, value: readiness }; },
+          bookScan: async () => { calls.push('scan'); return { ok: true, value: { ...readiness, review: { status: 'completed', total: 0, hard: 0, warning: 0 } } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(render);
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-book-readiness-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual(['readiness']);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-book-release-gate'] === 'open')).toBe(true);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-book-scan'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toEqual(['readiness', 'scan']);
+    expect(collect(render(), 'p').some((node) => String(node.children?.[0] ?? '').includes('审校 已完成'))).toBe(true);
+  });
+
   it('过滤：按分类/严重度组合过滤，清除过滤复位', async () => {
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),

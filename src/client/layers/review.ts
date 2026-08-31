@@ -3,6 +3,7 @@ import { advancedReference, toUserMessage } from '../presentation.js';
 import { filterReviewIssues } from '../../core/review/issue.js';
 import { contextLinkButton, textContextLink, type ContextLinkSink } from '../link-adapters.js';
 import { freshReviewRepairSession, type ReviewRepairSessionState } from '../review-repair-session.js';
+import type { BookReadinessResult } from '../../core/schema/book-readiness.js';
 
 /**
  * I64 一致性审校中心面板（design §14.9 / R13-5）。
@@ -71,6 +72,13 @@ export interface ReviewFilterShape {
 }
 
 export type ReviewUiStatus = 'idle' | 'scanning' | 'ready' | 'error';
+export type BookReadinessUiStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+export interface BookReadinessUiState {
+  readonly status: BookReadinessUiStatus;
+  readonly result?: BookReadinessResult;
+  readonly message?: string;
+}
 
 export interface ReviewLayerState {
   readonly status: ReviewUiStatus;
@@ -83,6 +91,8 @@ export interface ReviewLayerState {
   readonly records: readonly ReviewAuditRecordShape[];
   /** I128/I129 transient candidate + acceptance/rescan correlation; never a Host ledger. */
   readonly repairSession: ReviewRepairSessionState;
+  /** I137 bounded, recomputed full-book release projection. */
+  readonly bookReadiness: BookReadinessUiState;
 }
 
 export interface ReviewEditOps {
@@ -96,11 +106,13 @@ export interface ReviewEditOps {
   rejectRepair(): void;
   retryRepairScan(): void;
   cancelRepair(): void;
+  bookReadiness(): void;
+  bookScan(): void;
   dismiss(): void;
 }
 
 export function freshReview(): ReviewLayerState {
-  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [], repairSession: freshReviewRepairSession() };
+  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [], repairSession: freshReviewRepairSession(), bookReadiness: { status: 'idle' } };
 }
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
@@ -218,6 +230,28 @@ function repairSessionPanel(h: El, session: ReviewRepairSessionState, ops: Revie
   );
 }
 
+/** I137 release gate: only the bounded Host projection can open/close export readiness. */
+function bookReadinessPanel(h: El, state: BookReadinessUiState, ops: ReviewEditOps, busy: boolean): unknown {
+  const result = state.result;
+  const controls = h('div', { className: 'nv-review__book-actions' },
+    h('button', { type: 'button', className: 'nv-btn', 'data-novel-book-readiness-refresh': '', disabled: busy, onClick: () => ops.bookReadiness() }, state.status === 'loading' ? '正在检查…' : '检查全书完成度'),
+    h('button', { type: 'button', className: 'nv-btn', 'data-novel-book-scan': '', disabled: busy, onClick: () => ops.bookScan() }, '检查全书并审校'),
+  );
+  if (state.status === 'idle') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'idle' }, '完成全书检查后才会建立发布门。'));
+  if (state.status === 'loading') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'loading', role: 'status', 'aria-live': 'polite' }, '正在从作品真相重算全书发布门…'));
+  if (state.status === 'error' || result === undefined) return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__repair-error', 'data-novel-book-readiness-state': 'error', role: 'alert' }, state.message ?? '全书检查失败，请重试。'));
+  return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '', 'data-novel-book-release-gate': result.gateOpen ? 'open' : 'closed' },
+    h('h4', null, '全书发布就绪'),
+    controls,
+    h('p', { className: result.gateOpen ? 'nv-review__book-gate nv-review__book-gate--open' : 'nv-review__book-gate nv-review__book-gate--closed', 'data-novel-book-readiness-state': result.status, role: 'status', 'aria-live': 'polite' }, result.gateOpen ? '发布门已开启：全书可进入导出流程。' : '发布门已关闭：请处理下方硬阻断或待裁决事项。'),
+    h('p', { className: 'nv-review__summary', 'data-novel-book-readiness-summary': '' }, `章节 ${result.counts.chapters} · 场景 ${result.counts.scenes} · 必需细纲卡 ${result.counts.completedCards}/${result.counts.requiredCards} · 正文场景 ${result.counts.proseScenes} · 硬阻断 ${result.counts.hardIssues} · 警告 ${result.counts.warningIssues}`),
+    result.issues.length === 0
+      ? h('p', { className: 'nv-review__empty', 'data-novel-book-readiness-issues': 'empty' }, '没有发布阻断问题。')
+      : h('ul', { className: 'nv-review__book-issues', 'data-novel-book-readiness-issues': '' }, result.issues.map((issue) => h('li', { key: issue.id, 'data-novel-book-readiness-issue': issue.id, 'data-novel-book-readiness-severity': issue.severity }, `${issue.severity === 'hard' ? '硬阻断' : '警告'} · ${issue.message}`))),
+    h('p', { className: 'nv-review__issue-meta' }, `本页章节 ${result.page.offset + 1}-${Math.min(result.page.offset + result.page.chapters.length, result.page.total)} / ${result.page.total}；审校 ${result.review.status === 'completed' ? `已完成（${result.review.total} 项）` : '未运行'}`),
+  );
+}
+
 /**
  * 审校中心面板。状态机：idle（未扫描）→ scanning → ready（问题列表 + 过滤 +
  * 裁决）/ error。ready 前不渲染裁决按钮；硬冲突存在时「继续」按钮禁用。
@@ -273,6 +307,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
         : h('ul', { className: 'nv-review__issues', 'data-novel-review-issues': '' },
           issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, ops.repair, repairBusy, links))),
       repairSessionPanel(h, state.repairSession, ops),
+      bookReadinessPanel(h, state.bookReadiness, ops, busy || state.bookReadiness.status === 'loading'),
       h('div', { className: 'nv-editor__actions' },
         h('button', {
           type: 'button',

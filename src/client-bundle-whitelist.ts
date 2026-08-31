@@ -14,6 +14,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/review/issue.ts',
   'src/core/schema/link.ts',
   'src/core/schema/base.ts',
+  'src/core/schema/book-readiness.ts',
   'src/core/schema/branch-aggregate.ts',
   'src/core/schema/canon.ts',
   'src/core/schema/characters.ts',

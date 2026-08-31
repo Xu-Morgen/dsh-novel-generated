@@ -16,6 +16,7 @@ import {
   reviewSummarySchema,
 } from '../../core/review/issue.js';
 import { violationSeveritySchema } from '../../core/validate/index.js';
+import { bookReadinessPageInputSchema, bookReadinessResultSchema } from '../../core/schema/book-readiness.js';
 
 /**
  * I64 一致性审校中心 Remote（design §14.9 / R13-5）。
@@ -80,7 +81,18 @@ export const reviewRecordsInvocation = reviewInvocation('records', [
   param('projectId', stringCodec),
 ], strictCodec('novel-creation-tool#novelReview:records', z.array(reviewAuditRecordWireSchema)));
 
-export const reviewInvocations = [reviewScanInvocation, reviewAdjudicateInvocation, reviewRecordsInvocation] as const;
+/** I137 additive full-book completion gate; both methods are read-only and bounded. */
+export const bookReadinessInvocation = reviewInvocation('bookReadiness', [
+  param('projectId', stringCodec),
+  param('page', strictCodec('novel-creation-tool#novelReview:bookReadinessPage', bookReadinessPageInputSchema), true),
+], strictCodec('novel-creation-tool#novelReview:bookReadiness', bookReadinessResultSchema));
+export const bookScanInvocation = reviewInvocation('bookScan', [
+  param('projectId', stringCodec),
+  param('page', strictCodec('novel-creation-tool#novelReview:bookScanPage', bookReadinessPageInputSchema), true),
+  param('settings', undefined, true),
+], strictCodec('novel-creation-tool#novelReview:bookScan', bookReadinessResultSchema));
+
+export const reviewInvocations = [reviewScanInvocation, reviewAdjudicateInvocation, reviewRecordsInvocation, bookReadinessInvocation, bookScanInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const reviewRemoteContribution = remoteContribution('novel-creation-tool-review', reviewInvocations);

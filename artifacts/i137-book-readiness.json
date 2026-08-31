@@ -1,0 +1,23 @@
+{
+  "iteration": "I137",
+  "requirement": "R18-14a",
+  "guarantees": [
+    "recomputed-book-readiness-from-c5-b5-c6-binding-truth",
+    "bounded-paginated-chapter-snapshots-and-issue-budget",
+    "pending-finalization-reconciliation-outline-change-and-candidate-block-release",
+    "existing-review-detectors-aggregated-with-explicit-warning-adjudication",
+    "read-only-failure-and-restart-recomputation",
+    "real-client-binder-and-contract-lock-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 180,
+    "resultSchemaCount": 86
+  },
+  "focusedSuites": "BookCompletionService, real binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "automatic-prose-editing",
+    "new-full-book-snapshot",
+    "one-click-polish",
+    "client-side-release-truth"
+  ]
+}

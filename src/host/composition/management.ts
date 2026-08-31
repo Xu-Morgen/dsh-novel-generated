@@ -20,10 +20,12 @@ import { createOutlineDetailGenerationService } from '../outline-detail-generati
 import { createOutlineDetailGenerationRemote } from '../outline-detail-generation-adapter.js';
 import { createFinalizationPlanBuilder } from '../finalization-plan-builder.js';
 import { createFinalizationCoordinator } from '../finalization-coordinator.js';
+import { createBookCompletionService } from '../book-completion-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
+import type { BookReadinessPageInput } from '../../core/schema/book-readiness.js';
 import { defineRemote } from '../remote/shared.js';
 import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js';
 import { timelineInvocations } from '../remote/timeline.js';
@@ -241,6 +243,14 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });
+  const bookCompletionService = createBookCompletionService({
+    text: textService,
+    outline: outlineService,
+    binding: sceneOutlineBindingService,
+    confirmation: confirmationService,
+    review: reviewService,
+    writing: writingAdjudicationService,
+  });
   ctx.provide('novelReview', defineRemote('novelReview', 'novelReview', reviewService, [
     { method: 'scan', call: (projectId: string, settings?: unknown) => reviewService.scan(projectId, settings) },
     { method: 'adjudicate', call: (projectId: string, input: ReviewAdjudicateInputShape) => reviewService.adjudicate(projectId, input.decision, input.issueIds) },
@@ -249,6 +259,8 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     // envelope；契约漂移不再被接线层掩盖，网关 strict codec 在边界直接暴露
     // （架构审查 §8#1）。
     { method: 'records', call: (projectId: string) => reviewService.records(projectId) },
+    { method: 'bookReadiness', call: (projectId: string, page?: BookReadinessPageInput) => bookCompletionService.readiness(projectId, page) },
+    { method: 'bookScan', call: async (projectId: string, page?: BookReadinessPageInput, settings?: unknown) => bookCompletionService.scan(projectId, page, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
   ], reviewInvocations));
   // I128 R18-3a：修复只读取最近一次 Host scan 并委托既有 writing owner 生成
   // rewrite candidate；没有 resolved ledger，也没有直接写入 C5 的旁路。
@@ -457,6 +469,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     longDraftWorkflowCoordinator,
     outlineDetailGenerationService,
     reviewRepairService,
+    bookCompletionService,
     finalizationPlanBuilder,
     finalizationCoordinator,
   };
