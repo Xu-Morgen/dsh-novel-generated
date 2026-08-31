@@ -5,6 +5,7 @@ import type { LlmConfigDraftShape, LlmConfigViewShape } from '../settings.js';
 import type { WorkbenchSettingsDraftShape, WorkbenchSettingsViewShape } from '../workbench-settings.js';
 import type { WorkbenchViewId } from '../nav.js';
 import { DEFAULT_VIEW, resolveWorkbenchView } from '../nav.js';
+import { freshWorkflow, isWorkflowStageId, type WorkflowResume, type WorkflowStageId } from '../workflow.js';
 import type { CharacterEditor, CharacterShape } from '../layers/characters.js';
 import type { WorldEditor, WorldShape } from '../layers/worldview.js';
 import type { OutlineEditor, OutlineShape } from '../layers/outline.js';
@@ -88,6 +89,7 @@ export function freshWorkbenchState(): WorkbenchState {
     panelWidth: PANEL_WIDTH_DEFAULT,
     panelResize: { active: false, startX: 0, startWidth: 0 },
     activeView: DEFAULT_VIEW,
+    workflow: freshWorkflow(),
     status: { status: 'loading' },
     characters: { status: 'loading', list: [] },
     worldview: { status: 'loading', list: [] },
@@ -157,13 +159,35 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       panelResizeEnd: (d) => { d.panelResize = { active: false, startX: 0, startWidth: 0 }; },
       activate: (d, id: LayerId) => { d.activeView = resolveWorkbenchView(id); },
       activateView: (d, view: WorkbenchViewId) => { d.activeView = resolveWorkbenchView(view); },
+      workflowStage: (d, stage: WorkflowStageId) => {
+        d.workflow = {
+          projectId: d.selectedProjectId,
+          stage,
+          ...(d.workflow.chapterId ?? d.chapters.selectedChapterId ? { chapterId: d.workflow.chapterId ?? d.chapters.selectedChapterId } : {}),
+          ...(d.workflow.sceneId ?? d.chapters.selectedSceneId ? { sceneId: d.workflow.sceneId ?? d.chapters.selectedSceneId } : {}),
+        };
+      },
+      workflowResume: (d, resume: WorkflowResume | undefined) => {
+        if (resume === undefined || resume.projectId !== d.selectedProjectId || !isWorkflowStageId(resume.stage)) {
+          d.workflow = freshWorkflow(d.selectedProjectId);
+          return;
+        }
+        d.workflow = {
+          projectId: d.selectedProjectId,
+          stage: resume.stage,
+          ...(resume.chapterId ? { chapterId: resume.chapterId } : {}),
+          ...(resume.sceneId ? { sceneId: resume.sceneId } : {}),
+        };
+        if (resume.chapterId) d.chapters = { ...d.chapters, selectedChapterId: resume.chapterId };
+        if (resume.sceneId) d.chapters = { ...d.chapters, selectedSceneId: resume.sceneId };
+      },
       activateOnboarding: (d) => { d.activeView = 'onboarding'; },
       activateCreationSettings: (d) => { d.activeView = 'creationSettings'; },
       ready: (d, model: WorkspaceViewModel) => { d.status = { status: 'ready', model }; },
       fail: (d, message: string) => { d.status = { status: 'error', message }; },
       setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
-      selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.onboarding = undefined; d.leaveConfirm = false; },
+      selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.activeView = DEFAULT_VIEW; d.workflow = freshWorkflow(projectId); d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
+      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.workflow = freshWorkflow(d.selectedProjectId); d.onboarding = undefined; d.leaveConfirm = false; },
       browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
       cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
       showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -207,6 +231,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
           candidate: freshCandidatePanel(),
           branches: freshBranchPanel(),
         };
+        d.workflow = { ...d.workflow, projectId: d.selectedProjectId, chapterId, sceneId: undefined };
       },
       chaptersSelectScene: (d, sceneId: string) => {
         const previousWorkflow = d.chapters.workflow;
@@ -225,6 +250,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
           candidate: freshCandidatePanel(),
           branches: freshBranchPanel(),
         };
+        d.workflow = { ...d.workflow, projectId: d.selectedProjectId, chapterId: d.chapters.selectedChapterId, sceneId };
       },
       chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
       chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },

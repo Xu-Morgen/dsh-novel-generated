@@ -82,6 +82,7 @@ describe('I50 project-session startup', () => {
       { method: 'canonQuery', projectId: 'beta' },
     ]));
 
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     const nameInput = collect(render(), 'input').find((node) => node.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
     (collect(render(), 'button').find((node) => node.props?.['data-novel-character-save'] === '')?.props?.onClick as () => void)();
@@ -188,6 +189,7 @@ describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
     (projectButton(render(), 'alpha')?.props?.onClick as () => void)();
     await flush();
     expect(render().props?.['data-novel-project-open']).toBe('alpha');
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     expect(byData(render(), 'data-novel-character-id', 'mara')).toBeDefined();
 
     // dirty a character draft in alpha
@@ -206,6 +208,7 @@ describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
     (projectButton(render(), 'beta')?.props?.onClick as () => void)();
     await flush();
     expect(render().props?.['data-novel-project-open']).toBe('beta');
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     // beta's own character, never alpha's (zero cross-project leakage)
     expect(byData(render(), 'data-novel-character-id', 'beta-hero')).toBeDefined();
     expect(byData(render(), 'data-novel-character-id', 'mara')).toBeUndefined();
@@ -225,6 +228,7 @@ describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Dirty' } });
 
@@ -255,6 +259,7 @@ describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     expect(render().props?.['data-novel-project-open']).toBe('alpha');
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
 
     // browse to switch
     (byData(render(), 'data-novel-back-to-projects', '')?.props?.onClick as () => void)();
@@ -271,6 +276,7 @@ describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
     (byData(render(), 'data-novel-browse-cancel', '')?.props?.onClick as () => void)();
     await flush();
     expect(render().props?.['data-novel-project-open']).toBe('alpha');
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     expect(byData(render(), 'data-novel-character-id', 'mara')).toBeDefined();
   });
 });

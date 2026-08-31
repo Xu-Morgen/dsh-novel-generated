@@ -4,6 +4,7 @@ import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDe
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
 import type { WorkbenchSettingsDraftShape, WorkbenchSettingsNamespace, WorkbenchSettingsViewShape } from '../workbench-settings.js';
 import type { WorkbenchViewId } from '../nav.js';
+import type { WorkflowResume, WorkflowStageId, WorkflowState } from '../workflow.js';
 import { RESPONSIVE_BREAKPOINT_NAV } from '../styles.js';
 import type { CharacterEditOps, CharacterEditor, CharacterLayerState, CharacterShape } from '../layers/characters.js';
 import type { WorldEditOps, WorldEditor, WorldLayerState, WorldShape } from '../layers/worldview.js';
@@ -96,6 +97,10 @@ export type WorkbenchActions = {
   activate(id: LayerId): void;
   /** I58 稳定视图导航：以 WorkbenchViewId 为唯一 route/state 锚点。 */
   activateView(view: WorkbenchViewId): void;
+  /** I139：作者主流程阶段只保存 Client 恢复投影，不替代 Host 领域状态。 */
+  workflowStage(stage: WorkflowStageId): void;
+  /** I139：重开作品时按 projectId 严格恢复当前阶段与选中场景。 */
+  workflowResume(resume: WorkflowResume | undefined): void;
   activateOnboarding(): void;
   activateCreationSettings(): void;
   ready(model: WorkspaceViewModel): void;
@@ -276,6 +281,8 @@ export interface WorkbenchState {
   panelResize: { active: boolean; startX: number; startWidth: number };
   /** I58 稳定视图状态锚点：唯一 active view（route/state/data 三锚点的 state 位）。 */
   activeView: WorkbenchViewId;
+  /** I139 作者主流程的当前阶段与场景恢复态；领域真相仍由各既有面板持有。 */
+  workflow: WorkflowState;
   status: WorkspaceStatus;
   characters: CharacterLayerState;
   worldview: WorldLayerState;
@@ -368,6 +375,7 @@ export interface WorkbenchNamespaces {
 
 /** I82 视图分发形参收敛：各面板 state + 层数据打包为一个对象。 */
 export interface WorkbenchViewStates {
+  workflow: WorkflowState;
   layers: LayerData;
   chapters: ChaptersLayerState;
   review: ReviewLayerState;

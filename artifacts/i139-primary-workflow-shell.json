@@ -1,0 +1,24 @@
+{
+  "iteration": "I139",
+  "requirement": "R18-15a",
+  "guarantees": [
+    "workflow-is-the-default-and-only-primary-author-path",
+    "eight-readme-stages-project-onto-existing-panel-owners",
+    "legacy-view-identities-and-capabilities-remain-reachable",
+    "project-scoped-stage-and-scene-resume-is-fail-safe",
+    "story-advanced-settings-navigation-groups-have-no-technical-copy-in-primary-labels",
+    "workflow-panel-does-not-request-hidden-advanced-services",
+    "narrow-keyboard-and-aria-compatible-shell-anchors-remain-intact"
+  ],
+  "remoteLock": {
+    "descriptorCount": 181,
+    "resultSchemaCount": 87
+  },
+  "focusedSuites": "workflow model, shell navigation, grouped workbench, and Client resume fixtures passed",
+  "explicitNonGoals": [
+    "new-host-remote",
+    "independent-continue-writing-home",
+    "removal-of-legacy-views",
+    "workflow-domain-truth"
+  ]
+}

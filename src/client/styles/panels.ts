@@ -401,4 +401,74 @@ export const PANELS_STYLES = `
   border-top: 1px dashed var(--nv-line);
   padding-top: var(--nv-grid);
 }
+
+/* I139：作者流程阶段卡片在桌面与窄屏均保持可扫描、可键盘操作。 */
+.nv-workflow__stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nv-workflow__stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--nv-grid) * 2);
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: calc(var(--nv-grid) * 1.25);
+  background: var(--nv-paper);
+}
+
+.nv-workflow__stage--current {
+  border-color: var(--nv-cinnabar);
+  background: var(--nv-hover);
+}
+
+.nv-workflow__stage--completed {
+  opacity: 0.78;
+}
+
+.nv-workflow__stage-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nv-grid);
+  min-width: 0;
+}
+
+.nv-workflow__stage-step {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--nv-grid) * 3);
+  height: calc(var(--nv-grid) * 3);
+  border-radius: 50%;
+  background: var(--nv-line);
+  color: var(--nv-ink);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+}
+
+.nv-workflow__stage-title,
+.nv-workflow__stage-hint {
+  margin: 0;
+}
+
+.nv-workflow__stage-title {
+  font-family: var(--nv-serif);
+  font-size: 15px;
+  color: var(--nv-ink);
+}
+
+.nv-workflow__stage-hint {
+  margin-top: calc(var(--nv-grid) * 0.375);
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--nv-ink-faint);
+}
 `;

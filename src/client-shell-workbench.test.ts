@@ -38,27 +38,27 @@ describe('I46 创作台 workbench shell', () => {
     await flush();
     const tree = registrations['shell.overlay'][0].component() as FakeNode;
     expect(tree.props?.['data-novel-workspace']).toBe('ready');
-    expect(tree.props?.['data-novel-route']).toBe('characters');
+    expect(tree.props?.['data-novel-route']).toBe('workflow');
     expect(collect(tree, 'header').some((n) => n.props?.['data-novel-brand'] !== undefined)).toBe(true);
     expect(collect(tree, 'h2').some((n) => (n.children ?? []).includes('创作台'))).toBe(true);
     // I58：导航从九项扁平改为四组任务导航（写作/策划/连续性/作品设置，R12-5）。
     const groups = collect(tree, 'section').filter((n) => n.props?.['data-novel-nav-group'] !== undefined);
-    expect(groups.map((n) => n.props?.['data-novel-nav-group'])).toEqual(['writing', 'planning', 'continuity', 'settings']);
+    expect(groups.map((n) => n.props?.['data-novel-nav-group'])).toEqual(['workflow', 'story', 'advanced', 'settings']);
     const groupLabels = collect(tree, 'h3').filter((n) => n.props?.['data-novel-nav-group-label'] !== undefined);
-    expect(groupLabels.map((n) => n.props?.['data-novel-nav-group-label'])).toEqual(['writing', 'planning', 'continuity', 'settings']);
-    expect(groupLabels.map((n) => String((n.children?.[0] ?? '')))).toEqual(['写作', '策划', '连续性', '作品设置']);
+    expect(groupLabels.map((n) => n.props?.['data-novel-nav-group-label'])).toEqual(['workflow', 'story', 'advanced', 'settings']);
+    expect(groupLabels.map((n) => String((n.children?.[0] ?? '')))).toEqual(['创作流程', '故事资料', '进阶工具', '设置']);
     // 六层按钮仍可达（data-novel-layer 数据锚点不变，顺序随分组变化）。
     expect(layerButtons(tree).map((n) => n.props?.['data-novel-layer'])).toEqual([
-      'outline', 'characters', 'worldview', 'relationship', 'state', 'canon',
+      'characters', 'worldview', 'relationship', 'state', 'canon', 'outline',
     ]);
     // 稳定 data 锚点：十八个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪，I72 新增写作进度）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'timeline', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings',
+      'workflow', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'timeline', 'ruleStyle', 'outline', 'chapters', 'review', 'queue', 'search', 'statistics', 'progress', 'onboarding', 'importExport', 'creationSettings', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);
-    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
+    expect(badges.map((n) => n.props?.['data-novel-nav-badge'])).toEqual(['B3', 'B2', 'C1', 'C2', 'C4', 'C3', 'B1/B4', 'B5', 'C5', 'C6']);
   });
 
   it('fails loud when the required DSH defineStore runtime is unavailable', () => {
@@ -82,6 +82,7 @@ describe('I46 创作台 workbench shell', () => {
     (picker?.props?.onClick as () => void)();
     await flush();
     expect(characterLoads).toBe(1);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
   });
 
@@ -131,6 +132,7 @@ describe('I46 创作台 workbench shell', () => {
     const panel = (tree: FakeNode): FakeNode | undefined =>
       collect(tree, 'section').find((n) => n.props?.['data-novel-layer-panel'] !== undefined);
 
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     expect(panel(render())?.props?.['data-novel-layer-panel']).toBe('characters');
     // I47：角色层渲染真表单（ready），非空态占位。
     expect(panel(render())?.props?.['data-novel-layer-state']).toBe('ready');

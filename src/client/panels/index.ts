@@ -29,6 +29,8 @@ import { importExportPanel } from '../layers/import-export.js';
 import { searchPanel } from '../layers/search.js';
 import { statisticsPanel } from '../layers/statistics.js';
 import { timelinePanel } from '../layers/timeline.js';
+import { workflowPanel } from '../layers/workflow.js';
+import type { WorkflowStageId, WorkflowState } from '../workflow.js';
 import { referenceReviewPanel } from '../layers/reference-review.js';
 import type { EntityOption } from '../entity-selectors.js';
 import { llmSettingsPanel, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from '../settings.js';
@@ -62,6 +64,7 @@ export interface PanelViewProps {
   /** 当前激活视图；层视图不在注册表，落 contentArea 兜底。 */
   view: WorkbenchViewId;
   projectId: string;
+  projectName: string;
   ns: WorkbenchNamespaces;
   states: WorkbenchViewStates;
   ops: WorkbenchOps;
@@ -69,6 +72,8 @@ export interface PanelViewProps {
   review: unknown;
   settings: LlmSettingsPanelProps | undefined;
   creationSettings: WorkbenchSettingsPanelProps | undefined;
+  workflow: WorkflowState;
+  openWorkflowStage(stage: WorkflowStageId): void;
 }
 
 type PanelRenderer = (props: PanelViewProps) => unknown;
@@ -79,6 +84,7 @@ type PanelRenderer = (props: PanelViewProps) => unknown;
  * 与原 viewPanel 分支逐字一致。
  */
 const PANEL_REGISTRY: Record<string, PanelRenderer> = {
+  workflow: ({ h, workflow, projectName, openWorkflowStage }) => h('div', { 'data-novel-view-panel': 'workflow' }, workflowPanel(h, { state: workflow, projectName, openStage: openWorkflowStage })),
   settings: ({ h, settings }) => h('div', { 'data-novel-view-panel': 'settings' }, settings !== undefined ? llmSettingsPanel(h, settings.namespace, settings.view, settings.draft, settings.mutate, settings.save) : null),
   creationSettings: ({ h, creationSettings }) => h('div', { 'data-novel-view-panel': 'creationSettings' }, creationSettings !== undefined ? workbenchSettingsPanel(h, creationSettings.namespace, creationSettings.draft, creationSettings.mutate, creationSettings.save, creationSettings.projectId, creationSettings.openFolder) : null),
   onboarding: ({ h, sourceEntry, review }) => h('div', { className: 'nv-onboarding-stack', 'data-novel-onboarding-tab': '', 'data-novel-view-panel': 'onboarding' }, sourceEntry, review),
@@ -218,6 +224,7 @@ export function viewPanel(
   h: El,
   activeView: WorkbenchViewId,
   projectId: string,
+  projectName: string,
   ns: WorkbenchNamespaces,
   states: WorkbenchViewStates,
   ops: WorkbenchOps,
@@ -225,7 +232,9 @@ export function viewPanel(
   review: unknown,
   settings: LlmSettingsPanelProps | undefined,
   creationSettings: WorkbenchSettingsPanelProps | undefined,
+  workflow: WorkflowState,
+  openWorkflowStage: (stage: WorkflowStageId) => void,
 ): unknown {
   const render = PANEL_REGISTRY[activeView] ?? renderLayerPanel;
-  return render({ h, view: activeView, projectId, ns, states, ops, sourceEntry, review, settings, creationSettings });
+  return render({ h, view: activeView, projectId, projectName, ns, states, ops, sourceEntry, review, settings, creationSettings, workflow, openWorkflowStage });
 }

@@ -46,7 +46,9 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
 
-    // characters 层默认激活，列表为空但表单（新建）仍渲染。
+    // I139 默认入口是作者流程；进入故事资料后验证角色层。
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
+    // characters 层列表为空但表单（新建）仍渲染。
     expect(byData(render(), 'data-novel-layer-panel', 'characters')).toBeDefined();
     expect(byData(render(), 'data-novel-character-new', '')).toBeDefined();
 
@@ -79,6 +81,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     const nameInput = collect(render(), 'input').find((node) => node.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
     ((byData(render(), 'data-novel-character-save', '') as FakeNode).props?.onClick as () => void)();
@@ -107,6 +110,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
 
     // 点选列表项载入详情。
     const item = byData(render(), 'data-novel-character-id', 'mara') as FakeNode;
@@ -133,6 +137,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (layerButtons(render()).find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
 
     const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'X' } });

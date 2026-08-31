@@ -41,6 +41,7 @@ import type { WorkbenchSettingsDraftShape, WorkbenchSettingsNamespace, Workbench
 import type { WorkspaceNamespace } from './shared.js';
 import { slug, unwrap } from './shared.js';
 import { sha256Hex } from './sha256.js';
+import { readWorkflowResume, writeWorkflowResume } from './workflow.js';
 
 /** 通用窄依赖面：各 controller 只 Pick 自己需要的字段（I90 窄化传参）。 */
 export interface ControllerBaseDeps {
@@ -91,6 +92,8 @@ export function createProjectController(deps: ProjectControllerDeps): ProjectCon
         actions.selectProject(projectId, name);
         // I55：打开/切换成功前清空旧作品编辑器草案与初始化状态，杜绝跨项目串写。
         actions.resetEditors();
+        // I139：恢复只按当前作品 id 命中；无记录的新作品从导入阶段开始。
+        actions.workflowResume(readWorkflowResume(projectId));
         deps.reloadProject(target, projectId, actions, deps.dispatch, () => deps.isActive(), layers);
       });
       if (onOpened) onOpened();
@@ -302,8 +305,13 @@ export function createOnboardingController(deps: OnboardingControllerDeps): Onbo
       if (result.blockedLayers.length === 0 && result.pendingLayers.length === 0 && !result.retryable) {
         // 成功：离开审阅页签，经 Host projectOpen 复核并刷新六层（成功刷新六层）。
         setOnboarding(undefined);
-        deps.openProject(state.projectId);
-        deps.dispatch((actions) => actions.activate('characters'));
+        writeWorkflowResume({ projectId: state.projectId, stage: 'outline' });
+        deps.openProject(state.projectId, () => {
+          deps.dispatch((actions) => {
+            actions.workflowStage('outline');
+            actions.activateView('workflow');
+          });
+        });
         return;
       }
       deps.dispatch((actions) => actions.onboardingApplyResult(result));

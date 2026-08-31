@@ -125,6 +125,7 @@ describe('I59 响应式、可访问性与保存反馈 (R12-6)', () => {
     expect(brand?.props?.tabIndex).toBe(-1);
     expect(scope()).toBeDefined();
     // 脏表单 → 返回作品列表 → Esc 取消离开确认，仍留在当前作品。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Dirty' } });
     (collect(render(), 'button').find((n) => n.props?.['data-novel-back-to-projects'] === '')?.props?.onClick as () => void)();
@@ -195,6 +196,7 @@ describe('I59 响应式、可访问性与保存反馈 (R12-6)', () => {
     );
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-layer'] === 'characters')?.props?.onClick as () => void)();
     const nameInput = collect(render(), 'input').find((n) => n.props?.['type'] === 'text');
     (nameInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'Mara' } });
     const saveButton = () => collect(render(), 'button').find((node) => node.props?.['data-novel-character-save'] === '');

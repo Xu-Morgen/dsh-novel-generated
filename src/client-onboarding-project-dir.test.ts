@@ -167,10 +167,11 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
     expect(apply?.props?.disabled).toBe(false);
     (apply?.props?.onClick as () => void)();
     await flush();
-    // apply 成功：审阅消失、离开目录层、进入创作台并激活角色层。
+    // apply 成功：审阅消失、离开目录层、进入创作台并落到大纲阶段。
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(false);
     expect(byData(render(), 'data-novel-project-browsing', '')).toBeUndefined();
     expect(render().props?.['data-novel-project-open']).toBe('untitled');
-    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+    expect(render().props?.['data-novel-route']).toBe('workflow');
+    expect(collect(render(), 'li').some((node) => node.props?.['data-novel-workflow-stage'] === 'outline' && node.props?.['data-novel-workflow-stage-state'] === 'current')).toBe(true);
   });
 });

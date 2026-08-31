@@ -23,13 +23,13 @@ afterEach(cleanupClientTestEnv);
 describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 active view）', () => {
   it('converges unknown or stale views to a legal default and keeps legal views', async () => {
     const { NAV_GROUPS, NAV_ITEMS, resolveWorkbenchView, isWorkbenchViewId, isStableView } = await import('./client/nav.js');
-    expect(NAV_ITEMS).toHaveLength(19);
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual(['writing', 'planning', 'continuity', 'settings']);
-    // 非法/陈旧/空值一律回退默认视图（characters）。
-    expect(resolveWorkbenchView('bogus-view')).toBe('characters');
-    expect(resolveWorkbenchView(undefined)).toBe('characters');
-    expect(resolveWorkbenchView(null)).toBe('characters');
-    expect(resolveWorkbenchView(42)).toBe('characters');
+    expect(NAV_ITEMS).toHaveLength(20);
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(['workflow', 'story', 'advanced', 'settings']);
+    // 非法/陈旧/空值一律回退默认视图（workflow）。
+    expect(resolveWorkbenchView('bogus-view')).toBe('workflow');
+    expect(resolveWorkbenchView(undefined)).toBe('workflow');
+    expect(resolveWorkbenchView(null)).toBe('workflow');
+    expect(resolveWorkbenchView(42)).toBe('workflow');
     expect(isWorkbenchViewId('bogus-view')).toBe(false);
     // 合法视图原样保留。
     for (const view of NAV_ITEMS.map((item) => item.view)) {
@@ -38,9 +38,9 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     }
     // 技术层编号只作徽标：十个层/正文项有 badge，非层视图无 badge。
     const badges = NAV_ITEMS.filter((item) => item.badge !== undefined).map((item) => item.badge);
-    expect(badges).toEqual(['B5', 'C6', 'C5', 'B3', 'B2', 'B1/B4', 'C1', 'C2', 'C4', 'C3']);
+    expect(badges).toEqual(['B3', 'B2', 'C1', 'C2', 'C4', 'C3', 'B1/B4', 'B5', 'C5', 'C6']);
     const noBadge = NAV_ITEMS.filter((item) => item.badge === undefined).map((item) => item.view);
-    expect(noBadge).toEqual(['review', 'queue', 'search', 'statistics', 'timeline', 'onboarding', 'creationSettings', 'importExport', 'settings']);
+    expect(noBadge).toEqual(['workflow', 'timeline', 'review', 'queue', 'search', 'statistics', 'onboarding', 'importExport', 'creationSettings', 'settings']);
     // I60/I64/I65/I66/I67/I68/I69/I71/I72：层视图、正文视图、审校中心、生成队列、知情、规则/文风、进度/灵感、导入导出、搜索与写作进度视图是稳定视图（重复点击保持），设置类视图回退默认。
     expect(isStableView('chapters')).toBe(true);
     expect(isStableView('review')).toBe(true);
@@ -52,7 +52,7 @@ describe('I58 导航模型 resolveWorkbenchView（刷新/重开保持合法 acti
     expect(isStableView('ruleStyle')).toBe(true);
     expect(isStableView('progress')).toBe(true);
     expect(isStableView('importExport')).toBe(true);
-    expect(isStableView('characters')).toBe(true);
+    expect(isStableView('workflow')).toBe(true);
     expect(isStableView('settings')).toBe(false);
   });
 });

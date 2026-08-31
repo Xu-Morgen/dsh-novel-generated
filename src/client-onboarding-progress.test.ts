@@ -166,11 +166,12 @@ describe('I57 初始化进度、取消、重试与应用刷新 (R12-4)', () => {
     (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-apply'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(applies).toBe(1);
-    // 成功：离开审阅页签、重新打开作品并刷新六层、激活创作台。
+    // 成功：离开审阅页签、重新打开作品并刷新六层、回到作者流程大纲阶段。
     expect(opens.length).toBeGreaterThanOrEqual(2);
     expect(characterReads.length).toBeGreaterThanOrEqual(2);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(false);
-    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-layer-panel'] === 'characters' && node.props?.['data-novel-layer-state'] === 'ready')).toBe(true);
+    expect(render().props?.['data-novel-route']).toBe('workflow');
+    expect(collect(render(), 'li').some((node) => node.props?.['data-novel-workflow-stage'] === 'outline' && node.props?.['data-novel-workflow-stage-state'] === 'current')).toBe(true);
   });
 
   it('partial retry：部分失败分层显示且重试只再次调用 finalApply', async () => {

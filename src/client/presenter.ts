@@ -20,6 +20,7 @@ import type { LayerId, ReactFace, WorkspaceStatus } from './shared.js';
 import { el, type El } from './shared.js';
 import { slug } from './shared.js';
 import { DEFAULT_VIEW, isStableView, NAV_GROUPS, resolveWorkbenchView, type WorkbenchViewId } from './nav.js';
+import { workflowStageForView, workflowStageOf, writeWorkflowResume, type WorkflowStageId } from './workflow.js';
 import { GRID_STEP, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_MAX, PANEL_WIDTH_MIN, type WorkbenchActions, type WorkbenchNamespaces, type WorkbenchOps, type WorkbenchState, type WorkbenchViewStates } from './store/types.js';
 import type { UploadProgress } from './upload.js';
 import { analysisPanel, onboardingReview, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingState } from './onboarding.js';
@@ -48,6 +49,7 @@ export interface WorkbenchUi {
   close(): void;
   activate(id: LayerId): void;
   activateView(view: WorkbenchViewId): void;
+  openWorkflowStage(stage: WorkflowStageId): void;
   activateOnboarding(): void;
   activateCreationSettings(): void;
   toggleSettings(): void;
@@ -107,15 +109,28 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     panelResizeStep(delta: number) { actions.setPanelWidth(s.panelWidth + delta); },
     collapse() { actions.collapse(); },
     close() { closeWorkbench(); },
-    activate(id: LayerId) { actions.activate(id); },
+    activate(id: LayerId) { ui.activateView(id); },
     // I58：统一视图导航。设置类视图（非稳定视图）重复点击回退默认层视图
     // （保留旧 toggle 语义），层视图与 I60 正文视图重复点击保持；首次进入
     // 设置视图时惰性装载 Host 视图（经 settings controller）。
     activateView(view: WorkbenchViewId) {
       const target = view === s.activeView && !isStableView(view) ? DEFAULT_VIEW : view;
-      actions.activateView(resolveWorkbenchView(target));
-      if (target === 'creationSettings') settings.ensureCreationSettingsLoaded(s.creationSettingsView === undefined);
-      if (target === 'settings') settings.ensureLlmConfigLoaded(s.settingsView === undefined);
+      const resolved = resolveWorkbenchView(target);
+      const stage = workflowStageForView(resolved);
+      if (stage !== undefined && s.selectedProjectId !== undefined) {
+        actions.workflowStage(stage);
+        writeWorkflowResume({ projectId: s.selectedProjectId, stage, ...(s.workflow.chapterId ?? s.chapters.selectedChapterId ? { chapterId: s.workflow.chapterId ?? s.chapters.selectedChapterId } : {}), ...(s.workflow.sceneId ?? s.chapters.selectedSceneId ? { sceneId: s.workflow.sceneId ?? s.chapters.selectedSceneId } : {}) });
+      }
+      actions.activateView(resolved);
+      if (resolved === 'creationSettings') settings.ensureCreationSettingsLoaded(s.creationSettingsView === undefined);
+      if (resolved === 'settings') settings.ensureLlmConfigLoaded(s.settingsView === undefined);
+    },
+    openWorkflowStage(stage: WorkflowStageId) {
+      if (s.selectedProjectId === undefined) return;
+      const target = workflowStageOf(stage);
+      actions.workflowStage(stage);
+      writeWorkflowResume({ projectId: s.selectedProjectId, stage, ...(s.workflow.chapterId ?? s.chapters.selectedChapterId ? { chapterId: s.workflow.chapterId ?? s.chapters.selectedChapterId } : {}), ...(s.workflow.sceneId ?? s.chapters.selectedSceneId ? { sceneId: s.workflow.sceneId ?? s.chapters.selectedSceneId } : {}) });
+      actions.activateView(target.view);
     },
     activateOnboarding() { ui.activateView('onboarding'); },
     activateCreationSettings() { ui.activateView('creationSettings'); },
@@ -233,9 +248,10 @@ function hasDirtyDrafts(snapshot: WorkbenchState): boolean {
 }
 
 /** I55 作品上下文栏：当前作品名持续可见 + 返回作品列表（切换）入口（§14.8 / R12-2）。 */
-function projectContextBar(h: El, projectName: string, requestBrowse: () => void, leaveConfirm: boolean, confirmLeave: () => void, cancelLeave: () => void): unknown {
+function projectContextBar(h: El, projectName: string, activeView: WorkbenchViewId, requestBrowse: () => void, goWorkflow: () => void, leaveConfirm: boolean, confirmLeave: () => void, cancelLeave: () => void): unknown {
   return h('div', { className: 'nv-workbench__project-context', 'data-novel-project-context': '' },
     h('span', { className: 'nv-workbench__project-context-name', 'data-novel-project-context-name': '' }, projectName),
+    activeView === 'workflow' ? null : h('button', { type: 'button', className: 'nv-workbench__project-context-back', 'data-novel-workflow-back': '', onClick: () => goWorkflow() }, '返回创作流程'),
     h('button', { type: 'button', className: 'nv-workbench__project-context-back', 'data-novel-back-to-projects': '', onClick: () => requestBrowse() }, '返回作品列表'),
     leaveConfirm ? dirtyLeaveDialog(h, confirmLeave, cancelLeave) : null,
   );
@@ -294,7 +310,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
+      projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),
       routerState.error === undefined ? null : h('div', { className: 'nv-workbench__router-error', 'data-novel-router-error': routerState.error.code, role: 'alert' },
         h('span', null, toUserMessage(routerState.error.message)),
         h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-router-error-dismiss': '', onClick: () => ops.router.dismissError() }, '知道了'),
@@ -335,14 +351,14 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, {
+          viewPanel(h, ui.activeView, selectedProjectId, selectedProjectName ?? selectedProjectId, {
             workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, onboardingNamespace, longDraft,
           }, {
             layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState,
             ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState,
-            statistics: statisticsState, timeline: timelineState, router: routerState,
+            statistics: statisticsState, timeline: timelineState, router: routerState, workflow: states.workflow,
             outlineDetailGeneration: states.outlineDetailGeneration,
-          }, ops, sourceEntry, review, settings, creationSettings),
+          }, ops, sourceEntry, review, settings, creationSettings, states.workflow, ui.openWorkflowStage),
         ),
       ),
     )

@@ -292,6 +292,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             },
             ui,
             states: {
+              workflow: s.workflow,
               layers,
               chapters: s.chapters,
               review: s.review,
