@@ -163,7 +163,8 @@
     "novel-creation-tool/novelLongDraft/recover",
     "novel-creation-tool/novelBranches/aggregate",
     "novel-creation-tool/novelBranches/chooseFresh",
-    "novel-creation-tool/novelReviewRepair/propose"
+    "novel-creation-tool/novelReviewRepair/propose",
+    "novel-creation-tool/novelOutlineGenerationScope/resolve"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -35644,6 +35645,671 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelOutlineGenerationScope/resolve": {
+      "id": "novel-creation-tool/novelOutlineGenerationScope/resolve",
+      "service": "novelOutlineGenerationScope",
+      "namespace": "novelOutlineGenerationScope",
+      "method": "resolve",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelOutlineGenerationScope:input",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "act"
+                    },
+                    "actId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "actId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "outline-beat"
+                    },
+                    "beatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "beatId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "bound-chapter"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "all"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineGenerationScope:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "scope": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "act"
+                    },
+                    "actId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "actId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "outline-beat"
+                    },
+                    "beatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "beatId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "bound-chapter"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "all"
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 128
+                        }
+                      },
+                      "required": [
+                        "offset",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "readiness": {
+              "type": "string",
+              "enum": [
+                "can-generate",
+                "fill-missing-only",
+                "requires-explicit-regeneration",
+                "cannot-generate"
+              ]
+            },
+            "targets": {
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "actId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "actIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "beatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "beatIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "cards": {
+                    "maxItems": 2048,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "detailBeatId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "detailBeatIndex": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "fingerprint": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "detailBeat": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "summary": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "pov": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "wordTarget": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "points": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "planned",
+                                "writing",
+                                "done"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "summary",
+                            "pov",
+                            "wordTarget",
+                            "points",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "detailBeatId",
+                        "detailBeatIndex",
+                        "fingerprint",
+                        "detailBeat"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "actId",
+                  "actIndex",
+                  "beatId",
+                  "beatIndex",
+                  "cards"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "targetBeatCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "targetDetailBeatCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "protectedSet": {
+              "type": "object",
+              "properties": {
+                "actIds": {
+                  "maxItems": 512,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "beatIds": {
+                  "maxItems": 512,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "detailBeatIds": {
+                  "maxItems": 2048,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "preserveStableIds": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "preserveOrder": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "outsideScopeWritable": {
+                  "type": "boolean",
+                  "const": false
+                }
+              },
+              "required": [
+                "actIds",
+                "beatIds",
+                "detailBeatIds",
+                "preserveStableIds",
+                "preserveOrder",
+                "outsideScopeWritable"
+              ],
+              "additionalProperties": false
+            },
+            "mutationBudget": {
+              "type": "object",
+              "properties": {
+                "maxNewDetailBeats": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1024
+                },
+                "allowExistingReplacement": {
+                  "type": "boolean",
+                  "const": false
+                },
+                "allowReorder": {
+                  "type": "boolean",
+                  "const": false
+                },
+                "allowScopeExpansion": {
+                  "type": "boolean",
+                  "const": false
+                }
+              },
+              "required": [
+                "maxNewDetailBeats",
+                "allowExistingReplacement",
+                "allowReorder",
+                "allowScopeExpansion"
+              ],
+              "additionalProperties": false
+            },
+            "page": {
+              "type": "object",
+              "properties": {
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 128
+                },
+                "nextOffset": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "totalTargetBeatCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "totalTargetDetailBeatCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "offset",
+                "limit",
+                "nextOffset",
+                "totalTargetBeatCount",
+                "totalTargetDetailBeatCount"
+              ],
+              "additionalProperties": false
+            },
+            "blockReason": {
+              "type": "string",
+              "enum": [
+                "outline-unavailable",
+                "empty-scope",
+                "chapter-unbound",
+                "cross-project-binding",
+                "stale-b5"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "scope",
+            "b5ContentFingerprint",
+            "readiness",
+            "targets",
+            "targetBeatCount",
+            "targetDetailBeatCount",
+            "protectedSet",
+            "mutationBudget",
+            "page"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -35713,7 +36379,8 @@
     "novel-creation-tool/novelLongDraft/recover",
     "novel-creation-tool/novelBranches/aggregate",
     "novel-creation-tool/novelBranches/chooseFresh",
-    "novel-creation-tool/novelReviewRepair/propose"
+    "novel-creation-tool/novelReviewRepair/propose",
+    "novel-creation-tool/novelOutlineGenerationScope/resolve"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -48788,6 +49455,474 @@
         "target",
         "lineage",
         "candidate"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineGenerationScope/resolve": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "scope": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "act"
+                },
+                "actId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 128
+                    }
+                  },
+                  "required": [
+                    "offset",
+                    "limit"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind",
+                "actId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "outline-beat"
+                },
+                "beatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 128
+                    }
+                  },
+                  "required": [
+                    "offset",
+                    "limit"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind",
+                "beatId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "bound-chapter"
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 128
+                    }
+                  },
+                  "required": [
+                    "offset",
+                    "limit"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "all"
+                },
+                "page": {
+                  "type": "object",
+                  "properties": {
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 128
+                    }
+                  },
+                  "required": [
+                    "offset",
+                    "limit"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "b5ContentFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "readiness": {
+          "type": "string",
+          "enum": [
+            "can-generate",
+            "fill-missing-only",
+            "requires-explicit-regeneration",
+            "cannot-generate"
+          ]
+        },
+        "targets": {
+          "maxItems": 512,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "actIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "beatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "beatIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "cards": {
+                "maxItems": 2048,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatIndex": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "fingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "detailBeat": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "summary": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "pov": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "wordTarget": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "points": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "planned",
+                            "writing",
+                            "done"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "summary",
+                        "pov",
+                        "wordTarget",
+                        "points",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "detailBeatId",
+                    "detailBeatIndex",
+                    "fingerprint",
+                    "detailBeat"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "actId",
+              "actIndex",
+              "beatId",
+              "beatIndex",
+              "cards"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "targetBeatCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "targetDetailBeatCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "protectedSet": {
+          "type": "object",
+          "properties": {
+            "actIds": {
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "beatIds": {
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "detailBeatIds": {
+              "maxItems": 2048,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "preserveStableIds": {
+              "type": "boolean",
+              "const": true
+            },
+            "preserveOrder": {
+              "type": "boolean",
+              "const": true
+            },
+            "outsideScopeWritable": {
+              "type": "boolean",
+              "const": false
+            }
+          },
+          "required": [
+            "actIds",
+            "beatIds",
+            "detailBeatIds",
+            "preserveStableIds",
+            "preserveOrder",
+            "outsideScopeWritable"
+          ],
+          "additionalProperties": false
+        },
+        "mutationBudget": {
+          "type": "object",
+          "properties": {
+            "maxNewDetailBeats": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1024
+            },
+            "allowExistingReplacement": {
+              "type": "boolean",
+              "const": false
+            },
+            "allowReorder": {
+              "type": "boolean",
+              "const": false
+            },
+            "allowScopeExpansion": {
+              "type": "boolean",
+              "const": false
+            }
+          },
+          "required": [
+            "maxNewDetailBeats",
+            "allowExistingReplacement",
+            "allowReorder",
+            "allowScopeExpansion"
+          ],
+          "additionalProperties": false
+        },
+        "page": {
+          "type": "object",
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 128
+            },
+            "nextOffset": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "totalTargetBeatCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "totalTargetDetailBeatCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "offset",
+            "limit",
+            "nextOffset",
+            "totalTargetBeatCount",
+            "totalTargetDetailBeatCount"
+          ],
+          "additionalProperties": false
+        },
+        "blockReason": {
+          "type": "string",
+          "enum": [
+            "outline-unavailable",
+            "empty-scope",
+            "chapter-unbound",
+            "cross-project-binding",
+            "stale-b5"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "scope",
+        "b5ContentFingerprint",
+        "readiness",
+        "targets",
+        "targetBeatCount",
+        "targetDetailBeatCount",
+        "protectedSet",
+        "mutationBudget",
+        "page"
       ],
       "additionalProperties": false
     }

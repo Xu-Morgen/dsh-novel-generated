@@ -25,6 +25,7 @@ import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import { textChangeImpactRemoteContribution } from './host/remote/text-change-impact.js';
 import { outlineReconciliationRemoteContribution } from './host/remote/outline-reconciliation.js';
+import { outlineGenerationScopeRemoteContribution } from './host/remote/outline-generation-scope.js';
 import { referenceAuditRemoteContribution } from './host/remote/reference-audit.js';
 import type {
   QueueNamespace,
@@ -34,6 +35,7 @@ import type {
   TextChangeImpactNamespace,
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
+  OutlineGenerationScopeNamespace,
   ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
@@ -254,6 +256,14 @@ function fixtureFor(endpoint: string): unknown {
         projectId: 'p1', runState: 'idle',
         config: { wordBudget: null, maxRetries: 0, stopOnSoftWarnings: true },
         consumedUnits: 0, updatedAt: ISO, error: null, tasks: [],
+      };
+    case 'novelOutlineGenerationScope/resolve':
+      return {
+        projectId: 'p1', scope: { kind: 'all' }, b5ContentFingerprint: 'c'.repeat(64), readiness: 'can-generate',
+        targets: [], targetBeatCount: 0, targetDetailBeatCount: 0,
+        protectedSet: { actIds: [], beatIds: [], detailBeatIds: [], preserveStableIds: true, preserveOrder: true, outsideScopeWritable: false },
+        mutationBudget: { maxNewDetailBeats: 0, allowExistingReplacement: false, allowReorder: false, allowScopeExpansion: false },
+        page: { offset: 0, limit: 128, nextOffset: null, totalTargetBeatCount: 0, totalTargetDetailBeatCount: 0 },
       };
     case 'novelStatistics/sceneCards':
       return { total: 0, cards: [] };
@@ -772,6 +782,47 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await dispose();
       await client.fiber.dispose();
+    }
+  });
+
+  it('I133 novelOutlineGenerationScope.resolve：四模式范围输入与有界结果经真实 binder 往返', async () => {
+    const { client, calls, dispose } = await mount(outlineGenerationScopeRemoteContribution);
+    try {
+      const scope = client.get('remote.novelOutlineGenerationScope') as OutlineGenerationScopeNamespace;
+      const result = await unwrap(scope.resolve('p1', { kind: 'all', page: { offset: 0, limit: 128 } }));
+      expect(result).toMatchObject({ projectId: 'p1', readiness: 'can-generate', page: { offset: 0, limit: 128, nextOffset: null } });
+      expect(calls).toEqual([{ endpoint: 'novelOutlineGenerationScope/resolve', args: { projectId: 'p1', input: { kind: 'all', page: { offset: 0, limit: 128 } } } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it.each([
+    ['guessed scope field', { kind: 'act', actId: 'act-1', title: '第一幕' }],
+    ['invalid page limit', { kind: 'all', page: { offset: 0, limit: 129 } }],
+  ])('I133 scope 负向：%s 在真实绑定器 input codec fail closed', async (_label, input) => {
+    const { client, calls, dispose } = await mount(outlineGenerationScopeRemoteContribution);
+    try {
+      const scope = client.get('remote.novelOutlineGenerationScope') as OutlineGenerationScopeNamespace;
+      await expect(Reflect.apply(scope.resolve, scope, ['p1', input])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toHaveLength(0);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I133 scope 负向：非法分页/结果在真实绑定器 fail closed', async () => {
+    const invalidMount = await mount(outlineGenerationScopeRemoteContribution, (endpoint) => endpoint === 'novelOutlineGenerationScope/resolve'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, page: { offset: 0, limit: 128, nextOffset: null, totalTargetBeatCount: 0, totalTargetDetailBeatCount: 0, extra: true } }
+      : fixtureFor(endpoint));
+    try {
+      const scope = invalidMount.client.get('remote.novelOutlineGenerationScope') as OutlineGenerationScopeNamespace;
+      await expect(unwrap(scope.resolve('p1', { kind: 'all' }))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await invalidMount.dispose();
+      await invalidMount.client.fiber.dispose();
     }
   });
 

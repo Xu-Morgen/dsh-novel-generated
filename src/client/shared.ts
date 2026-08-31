@@ -25,6 +25,7 @@ export type {
   ReferenceAuditNamespace,
   ReferenceCorrectionNamespace,
   LongDraftNamespace,
+  OutlineGenerationScopeNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 export type { ReviewRepairProposalShape } from '../host/remote/review-repair.js';

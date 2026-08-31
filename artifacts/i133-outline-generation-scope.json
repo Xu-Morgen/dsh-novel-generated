@@ -1,0 +1,24 @@
+{
+  "iteration": "I133",
+  "requirement": "R18-12a",
+  "guarantees": [
+    "act-outline-beat-bound-chapter-and-all-resolve-through-one-host-b5-owner",
+    "stable-act-beat-detail-beat-order-and-per-card-fingerprints",
+    "bound-chapter-selects-only-scene-outline-bound-detail-beats",
+    "b5-freshness-is-rechecked-before-a-generation-consumer-can-proceed",
+    "default-mutation-budget-adds-missing-detail-beats-only",
+    "large-all-book-projections-are-offset-paged-and-bounded",
+    "strict-remote-contract-and-real-client-binder-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 162,
+    "resultSchemaCount": 68
+  },
+  "focusedSuites": "scope schema, Host resolver, real DSH binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "llm-call",
+    "detail-beat-copy-generation",
+    "outline-write",
+    "client-editor"
+  ]
+}

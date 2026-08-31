@@ -12,6 +12,8 @@ import { createSceneOutlineBindingService } from '../scene-outline-binding-servi
 import { createSceneOutlineBindingRemote } from '../scene-outline-binding-adapter.js';
 import { createOutlineGenerationBaselineService } from '../outline-generation-baseline-service.js';
 import { createOutlineGenerationBaselineRemote } from '../outline-generation-baseline-adapter.js';
+import { createOutlineGenerationScopeService } from '../outline-generation-scope-service.js';
+import { createOutlineGenerationScopeRemote } from '../outline-generation-scope-adapter.js';
 import { createWorldviewService } from '../worldview-service.js';
 import { createOutlineService } from '../outline-service.js';
 import { createRelationshipService } from '../relationship-service.js';
@@ -90,6 +92,8 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
     projectsRoot,
   );
   ctx.provide('novelOutlineGenerationBaseline', createOutlineGenerationBaselineRemote(outlineGenerationBaselineService));
+  const outlineGenerationScopeService = createOutlineGenerationScopeService({ text: textService, outline: outlineService, binding: sceneOutlineBindingService });
+  ctx.provide('novelOutlineGenerationScope', createOutlineGenerationScopeRemote(outlineGenerationScopeService));
   const ruleService = createRuleService(projectsRoot);
   ctx.provide('novelRule', ruleService);
   ctx.provide('novelWorldview', worldviewService);
@@ -183,6 +187,7 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
     linkIndexService,
     sceneOutlineBindingService,
     outlineGenerationBaselineService,
+    outlineGenerationScopeService,
     ruleService,
     styleService,
     knowledgeService,
