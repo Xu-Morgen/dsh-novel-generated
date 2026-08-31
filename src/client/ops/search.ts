@@ -4,12 +4,11 @@
 import { unwrap } from '../shared.js';
 import type { RemoteResult } from '../remote-namespace.js';
 import type { SearchEditOps, SearchHitShape, SearchLayerState, SearchResultShape, SearchStatsShape } from '../layers/search.js';
-import type { WorkbenchViewId } from '../nav.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 type SearchPort = Pick<OpsPorts, 'searchNamespace'>;
-import type { ChaptersEditOps } from '../layers/chapters.js';
+import type { RouterEditOps } from '../router.js';
 
-export function createSearchOps(runtime: OpsRuntime, port: SearchPort, ref: { current?: ChaptersEditOps }): SearchEditOps {
+export function createSearchOps(runtime: OpsRuntime, port: SearchPort, router: RouterEditOps): SearchEditOps {
   const { act, snapshot, beginOp, endOp, isActive } = runtime;
   const projectId = runtime.projectId;
   const searchNamespace = port.searchNamespace;
@@ -86,19 +85,9 @@ export function createSearchOps(runtime: OpsRuntime, port: SearchPort, ref: { cu
             searchPatch({ acting: false, stats: stats as SearchStatsShape, results: undefined, references: undefined, message: '已删除派生索引（可随时重建，不写任何结构层）。' });
           }, (cause: Error) => { release(); if (!isActive()) return; searchPatch({ acting: false, message: (cause as Error).message }); });
         },
-        // 结果跳转：正文命中 → 正文视图对应场景；其余层 → 对应层面板（R14-6 结果跳转）。
+        // I124：Search 只提供 Host projection；统一目标转换与前进/返回由 Router owner 处理。
         jumpTo(hit: SearchHitShape): void {
-          if (hit.layer === 'text' && hit.nav.chapterId !== undefined && hit.nav.sceneId !== undefined) {
-            act.activateView('chapters');
-            ref.current?.openScene(hit.nav.chapterId, hit.nav.sceneId);
-            return;
-          }
-          const layerView: Record<string, WorkbenchViewId> = {
-            characters: 'characters', worldview: 'worldview', outline: 'outline',
-            canon: 'canon', knowledge: 'knowledge', text: 'chapters',
-          };
-          const view = layerView[hit.layer];
-          if (view !== undefined) act.activateView(view);
+          router.openFromSearch(hit);
         },
         dismiss() { searchPatch({ status: 'idle', message: undefined, results: undefined, references: undefined, query: '', pov: '', referenceKey: '', acting: false }); },
       };

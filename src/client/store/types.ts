@@ -24,6 +24,7 @@ import type { SearchEditOps, SearchLayerState } from '../layers/search.js';
 import type { StatisticsEditOps, StatisticsLayerState } from '../layers/statistics.js';
 import type { TimelineEditOps, TimelineLayerState } from '../layers/timeline.js';
 import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layers/reference-review.js';
+import type { RouterEditOps, RouterState } from '../router.js';
 
 /**
  * I82 创作台 Client store 契约层（架构审查 §5.1 / §9 #5 拆分：store/types.ts 承载
@@ -168,6 +169,8 @@ export type WorkbenchActions = {
   importExportPatch(patch: Partial<ImportExportLayerState>): void;
   /** I71：全局搜索与追踪面板状态合并（R14-6）。 */
   searchPatch(patch: Partial<SearchLayerState>): void;
+  /** I124：路由错误/当前与返回栈均为 Client 瞬态，不落作品文件。 */
+  routerPatch(patch: Partial<RouterState>): void;
   /** I72：写作进度面板状态合并（R14-7）。 */
   statisticsPatch(patch: Partial<StatisticsLayerState>): void;
   /** 方案 A：剧情时间线面板状态合并（design §8 相关角色对）。 */
@@ -250,6 +253,8 @@ export interface WorkbenchOps {
   readonly timeline: TimelineEditOps;
   /** I117：引用更新审查（只读 audit + 本地错误标记）。 */
   readonly referenceReview: ReferenceReviewEditOps;
+  /** I124：统一 EntityLink 前进/返回路由；Search 等来源不得各自导航。 */
+  readonly router: RouterEditOps;
 }
 
 /** 创作台全部领域状态（store 单一快照形状；render 层只消费，不经 actions 不写）。 */
@@ -285,6 +290,8 @@ export interface WorkbenchState {
   review: ReviewLayerState;
   /** I117：引用更新审查状态；不承载任何叙事层写入。 */
   referenceReview: ReferenceReviewLayerState;
+  /** I124：瞬态来源上下文与返回栈；不进入任何领域/作品文件。 */
+  router: RouterState;
   /** I65：生成队列面板状态（投影/范围勾选/配置草稿，R13-6）。 */
   queue: QueueLayerState;
   /** I66：知情与揭示面板状态（投影/视图/选中/提案草稿/pending，R14-1）。 */
@@ -364,4 +371,5 @@ export interface WorkbenchViewStates {
   search: SearchLayerState;
   statistics: StatisticsLayerState;
   timeline: TimelineLayerState;
+  router: RouterState;
 }

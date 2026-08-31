@@ -300,6 +300,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               search: s.search,
               statistics: s.statistics,
               timeline: s.timeline,
+              router: s.router,
             },
             ops: makeOps(s),
             selectedProjectId: s.selectedProjectId,

@@ -254,7 +254,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
   const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
   const { workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
-  const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState } = states;
+  const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState, router: routerState } = states;
   const h = el(React);
   if (!ui.open) return null;
   const ready = status.status === 'ready' && workspace !== undefined;
@@ -290,6 +290,17 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.requestBrowse, leaveConfirm, ui.confirmLeave, ui.cancelLeave),
+      routerState.error === undefined ? null : h('div', { className: 'nv-workbench__router-error', 'data-novel-router-error': routerState.error.code, role: 'alert' },
+        h('span', null, routerState.error.message),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-router-error-dismiss': '', onClick: () => ops.router.dismissError() }, '知道了'),
+      ),
+      routerState.backStack.length > 0 ? h('button', {
+        type: 'button',
+        className: 'nv-btn nv-workbench__router-back',
+        'data-novel-router-back': '',
+        'aria-label': '返回来源',
+        onClick: () => ops.router.back(),
+      }, '返回来源') : null,
       h('div', { className: 'nv-workbench__body-row' },
         groupNav(h, ui.activeView, ui.activateView),
         h('div', {
@@ -322,7 +333,9 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
           viewPanel(h, ui.activeView, selectedProjectId, {
             workspace, writing, reviewNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, onboardingNamespace, longDraft,
           }, {
-            layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState,
+            layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState,
+            ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState,
+            statistics: statisticsState, timeline: timelineState, router: routerState,
           }, ops, sourceEntry, review, settings, creationSettings),
         ),
       ),

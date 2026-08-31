@@ -17,13 +17,13 @@ import { createStatisticsOps } from './statistics.js';
 import { createTimelineOps } from './timeline.js';
 import { createWorldviewOps } from './worldview.js';
 import { createReferenceReviewOps } from './reference-review.js';
+import { createRouterOps } from './router.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 
 /**
  * I82 makeOps 组合根（架构审查 §5.1 / §9 #5）：逐层编辑动作全部由各层工厂构建，
- * 本模块只做编排。跨层共享点只有 search 的正文跳转 —— `chaptersRef` 先于 chapters
- * 创建，chapters 落地后把自身 ops 写入 ref，search 的 `jumpTo` 经 ref 复用
- * `openScene`（与 I71 原 `chaptersOpsRef` 语义一致）。
+ * 本模块只做编排。跨层共享点是 Router 对章节读取 ops 的窄引用 —— `chaptersRef`
+ * 先于 chapters 创建，Router 落地后由 Search 复用其唯一前进入口。
  *
  * I101（计划 §18 I101）：每个工厂只接收 OpsRuntime + 自己声明的窄 port
  * （Pick<OpsPorts, ...>），不再传递完整 OpsContext。
@@ -31,6 +31,7 @@ import type { OpsPorts, OpsRuntime } from './context.js';
 export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): WorkbenchOps {
   const chaptersRef: { current?: ChaptersEditOps } = {};
   const chaptersPort: ChaptersPort = { workspace: ports.workspace, writing: ports.writing, branchNamespace: ports.branchNamespace, queueNamespace: ports.queueNamespace, textMutation: ports.textMutation, sceneOutlineBinding: ports.sceneOutlineBinding, textDeletion: ports.textDeletion, outlineReconciliation: ports.outlineReconciliation };
+  const router = createRouterOps(runtime, chaptersRef);
   return {
     characters: createCharactersOps(runtime, { workspace: ports.workspace }),
     worldview: createWorldviewOps(runtime, { workspace: ports.workspace }),
@@ -45,9 +46,10 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
     ruleStyle: createRuleStyleOps(runtime, { ruleStyleNamespace: ports.ruleStyleNamespace }),
     progress: createProgressOps(runtime, { progressNamespace: ports.progressNamespace }),
     importExport: createImportExportOps(runtime, { importExportNamespace: ports.importExportNamespace }),
-    search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, chaptersRef),
+    search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, router),
     statistics: createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace }),
     timeline: createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace }),
     referenceReview: createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace, referenceCorrectionNamespace: ports.referenceCorrectionNamespace }),
+    router,
   };
 }

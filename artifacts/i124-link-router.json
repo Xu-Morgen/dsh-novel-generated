@@ -1,0 +1,20 @@
+{
+  "iteration": "I124",
+  "requirement": "R18-8a",
+  "guarantees": [
+    "strict-entity-link-and-utf16-text-anchor-contract",
+    "host-project-target-existence-and-source-hash-stale-resolution",
+    "router-owns-search-navigation-adaptation",
+    "back-entry-restores-view-mode-selection-and-search-filters",
+    "dirty-chapter-navigation-never-silently-overwrites-draft",
+    "router-errors-fail-closed-without-domain-write"
+  ],
+  "focusedSuites": "I124 schema, Host resolver, Client router, and legacy Search consumer suites passed",
+  "explicitNonGoals": [
+    "seven-source-adapters",
+    "derived-link-index-rebuild",
+    "link-persistence",
+    "export-carrier",
+    "body-edit"
+  ]
+}
