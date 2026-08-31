@@ -7,6 +7,8 @@ import { projectDirectory, validateProjectId } from '../core/io/path.js';
 export interface NovelCanonService {
   open(projectId: string): Promise<void>;
   append(projectId: string, input: CanonEventInput): Promise<CanonEvent>;
+  /** Host-only atomic append batch used by cross-layer reference UoW. */
+  appendBatch(projectId: string, inputs: readonly CanonEventInput[]): Promise<CanonEvent[]>;
   supersede(projectId: string, targetId: string, correction: CanonCorrectionInput): Promise<CanonEvent>;
   query(projectId: string, filter?: CanonQuery): CanonEventView[];
 }
@@ -25,6 +27,7 @@ export function createCanonService(projectsRoot = join(homedir(), '.dsh', 'novel
       ledgers.set(projectId, await CanonLedger.open(join(projectDirectory(projectsRoot, projectId), 'canon')));
     },
     append: (projectId, input) => get(projectId).append(input),
+    appendBatch: (projectId, inputs) => get(projectId).appendBatch(inputs),
     supersede: (projectId, targetId, correction) => get(projectId).supersede(targetId, correction),
     query: (projectId, filter) => get(projectId).query(filter),
   };

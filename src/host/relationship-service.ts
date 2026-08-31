@@ -12,6 +12,8 @@ export interface NovelRelationshipService {
   open(projectId: string): Promise<void>;
   save(projectId: string, input: RelationshipInput): Promise<Relationship>;
   saveAll(projectId: string, inputs: readonly RelationshipInput[]): Promise<Relationship[]>;
+  /** Host-only exact snapshot restore used by a failed cross-layer UoW. */
+  restoreForCompensation(projectId: string, snapshot: readonly Relationship[]): Promise<void>;
   read(projectId: string): Promise<Relationship[]>;
 }
 
@@ -34,6 +36,7 @@ export function createRelationshipService(
     },
     save: (projectId, input) => get(projectId).save(input),
     saveAll: (projectId, inputs) => get(projectId).saveAll(inputs),
+    restoreForCompensation: (projectId, snapshot) => get(projectId).restoreForCompensation(snapshot),
     read: (projectId) => get(projectId).read(),
   };
 }

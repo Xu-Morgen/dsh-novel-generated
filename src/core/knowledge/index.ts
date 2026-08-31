@@ -36,6 +36,19 @@ export class KnowledgeRepository {
     });
   }
 
+  /**
+   * Restore an exact pre-UoW C3 snapshot for Host compensation only. The
+   * normal `saveAll` monotonic guard remains the sole user-facing write rule;
+   * this seam exists so a later repository failure cannot leave a half-applied
+   * cross-layer outcome (design §14.14.2 / I115).
+   */
+  async restoreForCompensation(entries: readonly KnowledgeEntry[], states: readonly KnowledgeState[]): Promise<void> {
+    return this.enqueue(async () => {
+      const document = this.parseDocument(entries, states);
+      await this.writeDocument(document);
+    });
+  }
+
   async saveEntry(input: KnowledgeEntryInput, states: readonly KnowledgeState[]): Promise<KnowledgeEntry> {
     return this.enqueue(async () => {
       const entry = knowledgeEntrySchema.parse({ ...input, version: input.version ?? 1 });

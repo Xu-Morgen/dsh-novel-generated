@@ -1,0 +1,56 @@
+{
+  "iteration": "I115",
+  "requirement": "R18-5a",
+  "matrix": {
+    "fieldCount": 22,
+    "fields": [
+      "c1.relationship.id",
+      "c1.relationship.from/to",
+      "c1.relationship.type",
+      "c1.relationship.affinity/trust/status",
+      "c1.relationship.milestones",
+      "c1.relationship.knownTo",
+      "c3.knowledge.entry.holders/status",
+      "c3.knowledge.entry.revealPlan.revealTo",
+      "c3.knowledge.state.knows",
+      "c3.knowledge.entry.fact/kind/revealAt",
+      "c3.knowledge.entry/state deletion",
+      "c4.canon.append",
+      "c4.canon.participants/consequences",
+      "c4.canon.supersede/delete/reorder",
+      "b5.outline.charactersInvolved",
+      "b5.detailBeat.pov",
+      "b5.act/beat/detailBeat.id/order/status",
+      "timeline.node.beatId/detailBeatId",
+      "timeline.node.reveals/relationships/storyTime",
+      "timeline.node.id/order/currentNodeId",
+      "c5.scene.beats/canonEvents",
+      "c5.scene.content/index/branches"
+    ],
+    "dispositions": [
+      "deterministic-derived",
+      "author-semantic-candidate",
+      "forbidden-automatic"
+    ]
+  },
+  "guarantees": [
+    "strict-authorized-candidate-or-reparse-change-set",
+    "base-version-and-sha256-freshness-before-first-write",
+    "project-local-character-and-cross-layer-reference-validation",
+    "C1 identity-endpoint-order-protection-and-version-chain",
+    "C1 affinity-trust-decrease-allowed-when-version-advances",
+    "C3 add-only-holder-state-bidirectional-and-monotonic-status",
+    "C4 atomic-append-only-batch-with-no-correction-or-delete",
+    "same-project-lane-and-idempotent-operation-replay",
+    "cross-owner-compensation-on-later-owner-failure",
+    "no-post-commit-second-reference-writer"
+  ],
+  "explicitNonGoals": [
+    "operational-audit-journal",
+    "outbox",
+    "review-ui",
+    "LLM-correction-workflow",
+    "silent-background-scan"
+  ],
+  "focusedSuites": "real C1/C3/C4 owner consumer, duplicate, authorization, stale, ID, monotonicity and compensation suites passed"
+}

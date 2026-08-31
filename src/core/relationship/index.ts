@@ -47,6 +47,19 @@ export class RelationshipRepository {
     });
   }
 
+  /**
+   * Restore an exact pre-UoW C1 snapshot after a later owner rejects. This is
+   * Host-only compensation, never a user mutation path; ordinary writes keep
+   * using `saveAll` (design §14.14.2 / I115).
+   */
+  async restoreForCompensation(inputs: readonly Relationship[]): Promise<void> {
+    return this.enqueue(async () => {
+      const relationships = inputs.map((input) => relationshipSchema.parse(input));
+      assertRelationshipStructure(relationships);
+      await this.writeDocument(relationships);
+    });
+  }
+
   async read(): Promise<Relationship[]> {
     return this.enqueue(async () => {
       let raw: unknown;

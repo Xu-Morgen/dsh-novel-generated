@@ -10,6 +10,8 @@ export interface NovelKnowledgeService {
   open(projectId: string): Promise<void>;
   read(projectId: string): Promise<KnowledgeDocument>;
   saveAll(projectId: string, entries: readonly KnowledgeEntry[], states: readonly KnowledgeState[]): Promise<KnowledgeDocument>;
+  /** Host-only exact snapshot restore used by a failed cross-layer UoW. */
+  restoreForCompensation(projectId: string, entries: readonly KnowledgeEntry[], states: readonly KnowledgeState[]): Promise<void>;
   saveEntry(projectId: string, entry: KnowledgeEntryInput, states: readonly KnowledgeState[]): Promise<KnowledgeEntry>;
   forPov(projectId: string, pov: string): Promise<FilteredKnowledge>;
 }
@@ -33,6 +35,7 @@ export function createKnowledgeService(
     },
     read: (projectId) => get(projectId).read(),
     saveAll: (projectId, entries, states) => get(projectId).saveAll(entries, states),
+    restoreForCompensation: (projectId, entries, states) => get(projectId).restoreForCompensation(entries, states),
     saveEntry: (projectId, entry, states) => get(projectId).saveEntry(entry, states),
     async forPov(projectId, pov) {
       const document = await get(projectId).read();
