@@ -11,6 +11,14 @@ import {
 } from '../core/relationship/index.js';
 import type { CanonEventView } from '../core/canon/index.js';
 import type {
+  ReferenceAuditRecord,
+  ReferenceAuditRecordInput,
+  ReferenceAuditTarget,
+} from '../core/schema/reference-audit.js';
+import {
+  referenceAuditRecordInputSchema,
+} from '../core/schema/reference-audit.js';
+import type {
   ReferenceApplyResult,
   ReferenceAuthorization,
   ReferenceBase,
@@ -49,7 +57,17 @@ export interface CrossLayerReferenceCoordinatorDeps {
   readonly canon: Pick<NovelCanonService, 'query' | 'appendBatch'>;
   /** Candidate/reparse authorization is checked before any owner write. */
   readonly isAuthorized: (projectId: string, authorization: ReferenceAuthorization) => Promise<boolean>;
+  /** Optional I116 mechanism journal; it never owns a narrative document. */
+  readonly operationalJournal?: ReferenceOperationalJournal;
   readonly onDispose?: (dispose: () => void) => void;
+}
+
+/** Narrow journal seam used by the same Host UoW as C1/C3/C4 writes. */
+export interface ReferenceOperationalJournal {
+  find(projectId: string, operationId: string): ReferenceAuditRecord | undefined;
+  ensurePending(input: ReferenceAuditRecordInput): Promise<ReferenceAuditRecord>;
+  markApplied(projectId: string, operationId: string): Promise<ReferenceAuditRecord>;
+  markFailed(projectId: string, operationId: string, error: string): Promise<ReferenceAuditRecord>;
 }
 
 export interface CrossLayerReferenceCoordinator {
@@ -129,7 +147,28 @@ export function createCrossLayerReferenceCoordinator(
     const relationshipChanged = !relationshipSatisfied;
     const knowledgeChanged = !knowledgeSatisfied;
     const canonChanged = !canonSatisfied;
+    const auditInput = deps.operationalJournal === undefined
+      ? undefined
+      : buildReferenceAuditInput(current, changeSet);
+    const existingAudit = deps.operationalJournal?.find(changeSet.projectId, changeSet.operationId);
+    if (existingAudit?.status === 'failed') {
+      throw new Error(`Failed reference audit operation must be retried first: ${changeSet.operationId}`);
+    }
+    if (existingAudit?.status === 'applied' && (relationshipChanged || knowledgeChanged || canonChanged)) {
+      throw new Error(`Reference audit is applied but narrative owners are not at the requested state: ${changeSet.operationId}`);
+    }
+    let pendingAudit = false;
+    if (deps.operationalJournal !== undefined && auditInput !== undefined && (relationshipChanged || knowledgeChanged || canonChanged)) {
+      const audit = await deps.operationalJournal.ensurePending(auditInput);
+      if (audit.status === 'applied') {
+        throw new Error(`Reference audit is already applied before narrative owners: ${changeSet.operationId}`);
+      }
+      pendingAudit = true;
+    }
     if (!relationshipChanged && !knowledgeChanged && !canonChanged) {
+      if (deps.operationalJournal !== undefined && existingAudit?.status === 'pending') {
+        await deps.operationalJournal.markApplied(changeSet.projectId, changeSet.operationId);
+      }
       const result = resultFor(changeSet, 'already-applied', []);
       operationFingerprints.set(key, operationFingerprint);
       return result;
@@ -169,10 +208,17 @@ export function createCrossLayerReferenceCoordinator(
           compensationErrors.push(asError(error));
         }
       }
-      if (compensationErrors.length > 0) {
-        throw new AggregateError([asError(cause), ...compensationErrors], 'Cross-layer reference apply failed; compensation is pending');
+      const failure = compensationErrors.length > 0
+        ? new AggregateError([asError(cause), ...compensationErrors], 'Cross-layer reference apply failed; compensation is pending')
+        : new Error('Cross-layer reference apply failed and was compensated', { cause });
+      if (deps.operationalJournal !== undefined && pendingAudit) {
+        try {
+          await deps.operationalJournal.markFailed(changeSet.projectId, changeSet.operationId, failure.message);
+        } catch (auditError) {
+          throw new AggregateError([failure, asError(auditError)], 'Reference apply failed and its audit could not be persisted');
+        }
       }
-      throw new Error('Cross-layer reference apply failed and was compensated', { cause });
+      throw failure;
     }
 
     const changedOwners = [
@@ -180,6 +226,16 @@ export function createCrossLayerReferenceCoordinator(
       ...(knowledgeChanged ? ['c3' as const] : []),
       ...(canonChanged ? ['c4' as const] : []),
     ];
+    if (deps.operationalJournal !== undefined && pendingAudit) {
+      try {
+        await deps.operationalJournal.markApplied(changeSet.projectId, changeSet.operationId);
+      } catch (cause) {
+        // Narrative owners are already committed. Keeping the journal pending
+        // makes restart/retry repair the mechanism record without a second
+        // narrative writer.
+        throw new Error(`Reference audit completion failed; retry ${changeSet.operationId}`, { cause });
+      }
+    }
     const result = resultFor(changeSet, 'applied', changedOwners);
     operationFingerprints.set(key, operationFingerprint);
     return result;
@@ -378,4 +434,42 @@ function resultFor(changeSet: ReferenceChangeSet, status: ReferenceApplyResult['
 
 function asError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
+}
+
+/** Build only bounded hashes for the owner changes about to be committed. */
+function buildReferenceAuditInput(current: ReferenceSnapshot, changeSet: ReferenceChangeSet): ReferenceAuditRecordInput {
+  const targets: ReferenceAuditTarget[] = [];
+  const currentRelationships = new Map(current.relationships.map((item) => [item.id, item]));
+  for (const next of changeSet.relationships) {
+    const previous = currentRelationships.get(next.id);
+    if (previous === undefined || !same(previous, next)) {
+      targets.push({ owner: 'c1', entityId: next.id, field: 'relationship', ...(previous === undefined ? {} : { beforeHash: fingerprint(previous) }), afterHash: fingerprint(next) });
+    }
+  }
+
+  const currentEntries = new Map(current.knowledge.entries.map((item) => [item.id, item]));
+  for (const next of changeSet.knowledge.entries) {
+    const previous = currentEntries.get(next.id);
+    if (previous === undefined || !same(previous, next)) {
+      targets.push({ owner: 'c3', entityId: next.id, field: 'knowledge-entry', ...(previous === undefined ? {} : { beforeHash: fingerprint(previous) }), afterHash: fingerprint(next) });
+    }
+  }
+  const currentStates = new Map(current.knowledge.states.map((item) => [item.characterId, item]));
+  for (const next of changeSet.knowledge.states) {
+    const previous = currentStates.get(next.characterId);
+    if (previous === undefined || !same(previous, next)) {
+      targets.push({ owner: 'c3', entityId: next.characterId, field: 'knowledge-state', ...(previous === undefined ? {} : { beforeHash: fingerprint(previous) }), afterHash: fingerprint(next) });
+    }
+  }
+
+  const currentCanon = new Map(current.canon.map((event) => [event.id, event]));
+  for (const input of changeSet.canonAppends) {
+    if (!currentCanon.has(input.id)) targets.push({ owner: 'c4', entityId: input.id, field: 'canon-event', afterHash: fingerprint(input) });
+  }
+  return referenceAuditRecordInputSchema.parse({
+    projectId: changeSet.projectId,
+    operationId: changeSet.operationId,
+    source: changeSet.authorization,
+    targets,
+  });
 }

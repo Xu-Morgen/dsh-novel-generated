@@ -24,6 +24,7 @@ import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import { textChangeImpactRemoteContribution } from './host/remote/text-change-impact.js';
 import { outlineReconciliationRemoteContribution } from './host/remote/outline-reconciliation.js';
+import { referenceAuditRemoteContribution } from './host/remote/reference-audit.js';
 import type {
   QueueNamespace,
   SceneOutlineBindingNamespace,
@@ -31,6 +32,7 @@ import type {
   TextDeletionNamespace,
   TextChangeImpactNamespace,
   OutlineReconciliationNamespace,
+  ReferenceAuditNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
@@ -214,6 +216,15 @@ function fixtureFor(endpoint: string): unknown {
       return { projectId: 'p1', planId: 'reconcile-1', baselineId: 'baseline-1', status: 'finalized', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint: 'c'.repeat(64) };
     case 'novelOutlineReconciliation/continue':
       return { projectId: 'p1', planId: 'reconcile-1', baselineId: 'baseline-1', status: 'needs-target', reason: 'missing-binding', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint: 'c'.repeat(64) };
+    case 'novelReferenceAudit/list':
+      return {
+        projectId: 'p1', records: [{
+          recordId: 'audit-1', projectId: 'p1', operationId: 'operation-1',
+          source: { kind: 'candidate-accept', candidateId: 'candidate-1', status: 'accepted' },
+          targets: [{ owner: 'c3', entityId: 'secret-1', field: 'knowledge-entry', afterHash: 'a'.repeat(64) }],
+          status: 'applied', attempt: 1, createdAt: ISO, updatedAt: ISO,
+        }], nextCursor: null,
+      };
     case 'novelQueue/startAt':
       return {
         projectId: 'p1', runState: 'idle',
@@ -451,6 +462,34 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       ]);
       await expect(Reflect.apply(reconciliation.propose, reconciliation, ['p1', { planId: 'reconcile-1', decisions: [], extra: true }])).rejects.toThrow(/rejected "input"/);
       expect(mounted.calls).toHaveLength(4);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I116 novelReferenceAudit.list returns only the bounded operational projection', async () => {
+    const mounted = await mount(referenceAuditRemoteContribution);
+    try {
+      const audit = mounted.client.get('remote.novelReferenceAudit') as ReferenceAuditNamespace;
+      const result = await unwrap(audit.list('p1', { owner: 'c3' }));
+      expect(result).toMatchObject({ projectId: 'p1', nextCursor: null, records: [{ status: 'applied', targets: [{ owner: 'c3', entityId: 'secret-1' }] }] });
+      expect(mounted.calls).toEqual([{ endpoint: 'novelReferenceAudit/list', args: { projectId: 'p1', input: { owner: 'c3' } } }]);
+      await expect(Reflect.apply(audit.list, audit, ['p1', { limit: 0 }])).rejects.toThrow(/rejected "input"/);
+      expect(mounted.calls).toHaveLength(1);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I116 novelReferenceAudit.list rejects malformed operational records at the result boundary', async () => {
+    const mounted = await mount(referenceAuditRemoteContribution, () => ({
+        projectId: 'p1', records: [{ recordId: 'audit-1', projectId: 'p1', operationId: 'operation-1', status: 'failed', attempt: 1, targets: [], source: { kind: 'candidate-accept', candidateId: 'candidate-1', status: 'accepted' }, createdAt: ISO, updatedAt: ISO }], nextCursor: null,
+    }));
+    try {
+      const audit = mounted.client.get('remote.novelReferenceAudit') as ReferenceAuditNamespace;
+      await expect(unwrap(audit.list('p1', undefined))).rejects.toThrow(/result|schema|record/i);
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();

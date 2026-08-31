@@ -8,6 +8,7 @@ import { createCrossLayerReferenceCoordinator, createReferenceChangeSet } from '
 import { createKnowledgeService } from './knowledge-service.js';
 import { createRelationshipService } from './relationship-service.js';
 import { CROSS_LAYER_REFERENCE_MATRIX, assertReferenceMatrix } from '../core/schema/reference-coordination.js';
+import { ReferenceAuditJournal } from '../core/reference-audit/journal.js';
 
 const roots: string[] = [];
 
@@ -162,5 +163,32 @@ describe('I115 CrossLayerReferenceCoordinator', () => {
     await expect(failing.apply(changeSet)).rejects.toThrow(/compensated/);
     expect(await relationship.read(projectId)).toEqual(before.relationships);
     expect((await relationship.read(projectId))[0].version).toBe(1);
+  });
+
+  it('writes operational pending/applied/failed records around the same UoW and resumes after explicit retry', async () => {
+    const { root, projectId, coordinator: baseCoordinator, characters, relationship, knowledge, canon } = await setup();
+    const before = await baseCoordinator.snapshot(projectId);
+    const journal = await ReferenceAuditJournal.open(join(root, projectId));
+    const nextRelationships = before.relationships.map((item) => ({ ...item, version: 2, affinity: 10, trust: 20, status: 'strained' as const }));
+    const nextKnowledge = {
+      entries: before.knowledge.entries.map((entry) => ({ ...entry, version: 2, holders: ['lin'], revealPlan: { ...entry.revealPlan, revealTo: [] }, status: 'partially-revealed' as const })),
+      states: before.knowledge.states.map((state) => state.characterId === 'lin' ? { ...state, knows: ['secret-key'] } : state),
+    };
+    const changeSet = createReferenceChangeSet(before, {
+      operationId: 'reference-audit-retry', authorization: accepted(), relationships: nextRelationships, knowledge: nextKnowledge, canonAppends: [],
+    });
+    const failing = createCrossLayerReferenceCoordinator({
+      characters, relationship,
+      knowledge: { read: knowledge.read.bind(knowledge), saveAll: async () => { throw new Error('injected audit failure'); }, restoreForCompensation: knowledge.restoreForCompensation.bind(knowledge) },
+      canon, isAuthorized: async () => true, operationalJournal: journal,
+    });
+    await expect(failing.apply(changeSet)).rejects.toThrow(/compensated/);
+    expect(journal.list(projectId, { status: 'failed' }).records).toMatchObject([{ operationId: 'reference-audit-retry', attempt: 1, status: 'failed' }]);
+
+    await journal.retry(projectId, changeSet.operationId);
+    const recovered = createCrossLayerReferenceCoordinator({ characters, relationship, knowledge, canon, isAuthorized: async () => true, operationalJournal: journal });
+    await expect(recovered.apply(changeSet)).resolves.toMatchObject({ status: 'applied', changedOwners: ['c1', 'c3'] });
+    expect(journal.list(projectId, { status: 'applied' }).records).toHaveLength(1);
+    await expect(recovered.apply(changeSet)).resolves.toMatchObject({ status: 'already-applied' });
   });
 });

@@ -146,7 +146,8 @@
     "novel-creation-tool/novelOutlineReconciliation/accept",
     "novel-creation-tool/novelOutlineReconciliation/reject",
     "novel-creation-tool/novelOutlineReconciliation/finalize",
-    "novel-creation-tool/novelOutlineReconciliation/continue"
+    "novel-creation-tool/novelOutlineReconciliation/continue",
+    "novel-creation-tool/novelReferenceAudit/list"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -30563,6 +30564,270 @@
           ]
         }
       }
+    },
+    "novel-creation-tool/novelReferenceAudit/list": {
+      "id": "novel-creation-tool/novelReferenceAudit/list",
+      "service": "novelReferenceAudit",
+      "namespace": "novelReferenceAudit",
+      "method": "list",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelReferenceAudit:listInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "owner": {
+                  "type": "string",
+                  "enum": [
+                    "c1",
+                    "c3",
+                    "c4"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "applied",
+                    "failed"
+                  ]
+                },
+                "cursor": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelReferenceAudit:list",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "records": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "operationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "source": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "candidate-accept"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "const": "accepted"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "candidateId",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "const": "reparse-accept"
+                          },
+                          "proposalId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "const": "accepted"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "proposalId",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "targets": {
+                    "maxItems": 256,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "owner": {
+                          "type": "string",
+                          "enum": [
+                            "c1",
+                            "c3",
+                            "c4"
+                          ]
+                        },
+                        "entityId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "field": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "beforeHash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        "afterHash": {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        }
+                      },
+                      "required": [
+                        "owner",
+                        "entityId",
+                        "field"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "recordId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "applied",
+                      "failed"
+                    ]
+                  },
+                  "attempt": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "error": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "updatedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "operationId",
+                  "source",
+                  "targets",
+                  "recordId",
+                  "status",
+                  "attempt",
+                  "createdAt",
+                  "updatedAt"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "nextCursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]*)$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "records",
+            "nextCursor"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -30615,7 +30880,8 @@
     "novel-creation-tool/novelOutlineReconciliation/accept",
     "novel-creation-tool/novelOutlineReconciliation/reject",
     "novel-creation-tool/novelOutlineReconciliation/finalize",
-    "novel-creation-tool/novelOutlineReconciliation/continue"
+    "novel-creation-tool/novelOutlineReconciliation/continue",
+    "novel-creation-tool/novelReferenceAudit/list"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -39940,6 +40206,198 @@
           "additionalProperties": false
         }
       ]
+    },
+    "novel-creation-tool/novelReferenceAudit/list": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "records": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "operationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "source": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "candidate-accept"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "const": "accepted"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "candidateId",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "reparse-accept"
+                      },
+                      "proposalId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "const": "accepted"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "proposalId",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "targets": {
+                "maxItems": 256,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "owner": {
+                      "type": "string",
+                      "enum": [
+                        "c1",
+                        "c3",
+                        "c4"
+                      ]
+                    },
+                    "entityId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
+                    "beforeHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "afterHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "owner",
+                    "entityId",
+                    "field"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "recordId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "applied",
+                  "failed"
+                ]
+              },
+              "attempt": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "error": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "projectId",
+              "operationId",
+              "source",
+              "targets",
+              "recordId",
+              "status",
+              "attempt",
+              "createdAt",
+              "updatedAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "records",
+        "nextCursor"
+      ],
+      "additionalProperties": false
     }
   }
 }

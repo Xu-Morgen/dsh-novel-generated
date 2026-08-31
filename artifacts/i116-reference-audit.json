@@ -1,0 +1,34 @@
+{
+  "iteration": "I116",
+  "requirement": "R18-5b",
+  "remoteNamespace": "novelReferenceAudit",
+  "methods": [
+    "list"
+  ],
+  "guarantees": [
+    "strict-operation-source-target-before-after-hash-records",
+    "atomic-append-and-project-isolated-journal",
+    "pending-applied-failed-and-explicit-retry-transitions",
+    "restart-recovery-with-idempotent-no-duplicate-apply",
+    "fail-closed-corrupt-journal-and-invalid-state",
+    "bounded-owner-status-pagination-and-stable-sort",
+    "same-host-reference-UoW-audit-before-and-after-write",
+    "minimal-client-owned-operational-json-only",
+    "fiber-dispose-clears-journal-handles-with-zero-background-tasks",
+    "real-DSH-client-binder-strict-result-and-negative-input"
+  ],
+  "explicitNonGoals": [
+    "reference-error-marking-ui",
+    "LLM-reference-correction",
+    "narrative-layer-owner",
+    "portable-export-entry"
+  ],
+  "contractLock": {
+    "descriptorCount": 145,
+    "resultSchemaCount": 51,
+    "auditSuffix": [
+      "novel-creation-tool/novelReferenceAudit/list"
+    ]
+  },
+  "focusedSuites": "journal/service/coordinator recovery, real DSH binder, and contract lock suites passed"
+}

@@ -36,6 +36,7 @@ import type {
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from '../remote.js';
+import type { referenceAuditRemoteContribution } from '../host/remote/reference-audit.js';
 import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
 import type { outlineReconciliationRemoteContribution } from '../host/remote/outline-reconciliation.js';
@@ -102,3 +103,5 @@ export type OutlineGenerationBaselineNamespace = NamespaceOf<typeof outlineGener
 export type TextChangeImpactNamespace = NamespaceOf<typeof textChangeImpactRemoteContribution>;
 /** I113 candidate-only outline reconciliation plan consumed by I114. */
 export type OutlineReconciliationNamespace = NamespaceOf<typeof outlineReconciliationRemoteContribution>;
+/** I116 bounded operational evidence; no Client mutation surface. */
+export type ReferenceAuditNamespace = NamespaceOf<typeof referenceAuditRemoteContribution>;

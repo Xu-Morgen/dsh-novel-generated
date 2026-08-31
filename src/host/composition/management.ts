@@ -12,6 +12,7 @@ import { createTextDeletionRemote } from '../text-deletion-adapter.js';
 import { createTextChangeImpactService } from '../text-change-impact-service.js';
 import { createOutlineReconciliationPlannerService } from '../outline-reconciliation-planner-service.js';
 import { createOutlineReconciliationService } from '../outline-reconciliation-service.js';
+import { createReferenceAuditService } from '../reference-audit-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -24,6 +25,7 @@ import { reviewInvocations } from '../remote/review.js';
 import { queueInvocations } from '../remote/queue.js';
 import { textChangeImpactInvocations } from '../remote/text-change-impact.js';
 import { outlineReconciliationInvocations } from '../remote/outline-reconciliation.js';
+import { referenceAuditInvocations } from '../remote/reference-audit.js';
 import { resolveGenerationSettings as validateGenerationSettings, type GenerationSettings } from '../../llm/port/index.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
@@ -303,6 +305,13 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     confirmation: confirmationService,
     onDispose: onFiberDispose,
   });
+  // I116 exposes only a bounded read projection. The journal remains a Host
+  // operational owner and is also available to future reference UoW wiring;
+  // no audit record enters any narrative layer or export.
+  const referenceAuditService = createReferenceAuditService(projectsRoot, onFiberDispose);
+  ctx.provide('novelReferenceAudit', defineRemote('novelReferenceAudit', 'novelReferenceAudit', referenceAuditService, [
+    { method: 'list', call: (projectId: string, input?: Parameters<typeof referenceAuditService.list>[1]) => referenceAuditService.list(projectId, input) },
+  ], referenceAuditInvocations));
   // I113 planner + I114 application share one public namespace and one Host
   // owner key; only the five application methods can cross into writers.
   ctx.provide('novelOutlineReconciliation', defineRemote('novelOutlineReconciliation', 'novelOutlineReconciliation', { ...outlineReconciliationPlannerService, ...outlineReconciliationService }, [
@@ -326,5 +335,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     textChangeImpactService,
     outlineReconciliationPlannerService,
     outlineReconciliationService,
+    referenceAuditService,
   };
 }
