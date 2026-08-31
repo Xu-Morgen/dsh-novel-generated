@@ -143,6 +143,46 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     expect(chaptersTree(render())).toBeDefined();
     expect(bodyPane(render())).toBeDefined();
   });
+
+  it('I106 章节管理：真实状态机串接管理 Remote，删除在 impact→proposal→apply 后重读树', async () => {
+    const impact = {
+      kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1', sceneCount: 1, branchCount: 0, proseCharacters: 8,
+      sources: [{ sceneId: 'scene-1', sourceHash: 'a'.repeat(64), branches: [] }], projectFingerprint: 'a'.repeat(64), targetFingerprint: 'b'.repeat(64),
+      bindings: [], activeQueue: [], activeCandidates: [], historicalReferences: [], opaqueHistoryCount: 0, blockers: [], impactFingerprint: 'c'.repeat(64),
+    };
+    let listReads = 0;
+    const m = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => { listReads += 1; return CHAPTER_LIST; },
+      chapterRead: async () => CHAPTER_1_READ,
+      sceneRead: async () => SCENE_1_READ,
+    }, {
+      textMutation: { fingerprint: async () => ({ fingerprint: 'a'.repeat(64) }) },
+      sceneOutlineBinding: { read: async () => ({ manual: [], effective: [], fingerprint: 'd'.repeat(64) }) },
+      textDeletion: {
+        impact: async () => ({ status: 'ready', impact }),
+        propose: async () => ({ status: 'pending', proposalId: 'delete-1', impact }),
+        apply: async () => ({ status: 'deleted', proposalId: 'delete-1', fingerprint: 'e'.repeat(64) }),
+        reject: async () => ({ status: 'rejected', proposalId: 'delete-1' }),
+      },
+    });
+    await flush();
+    const render = () => m.registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    const deleteButton = collect(render(), 'button').find((node) => node.props?.['data-novel-scene-delete'] === 'scene-1');
+    (deleteButton?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-deletion-impact'] !== undefined)).toBe(true);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-deletion-propose'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-deletion-pending'] !== undefined)).toBe(true);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-deletion-apply'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-deletion-state'] === 'done')).toBe(true);
+    expect(listReads).toBeGreaterThan(0);
+  });
 });
 
 describe('I61 C5 正文编辑与可选 reparse (R13-2)', () => {

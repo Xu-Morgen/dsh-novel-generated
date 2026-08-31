@@ -2,12 +2,12 @@
  * I90 声明式 Remote mount registry（review v2.0 §3.5 / 计划 §18 I90）。
  *
  * I90 前 Remote 资源清单在 client.ts 五处平行维护：namespace 变量、disposer 变量、
- * 16 个 mountRemote 调用、卸载时逐项清空、卸载时逐项释放。本模块把这份清单收敛为
+ * 19 个 mountRemote 调用、卸载时逐项清空、卸载时逐项释放。本模块把这份清单收敛为
  * **单一声明式数组**：
  *
- * - `RemoteServiceBag`：16 个可选 namespace 字段（从 shared/onboarding/settings/
+ * - `RemoteServiceBag`：19 个可选 namespace 字段（从 shared/onboarding/settings/
  *   workbench-settings 的类型单一来源导入）；mount 成功后写 `bag[key] = service`；
- * - registry 数组：16 项，每项含 contribution/serviceKey/label/bind/after/onError，
+ * - registry 数组：19 项，每项含 contribution/serviceKey/label/bind/after/onError，
  *   是 Remote 资源的唯一声明 site；
  * - 内部 `Set<TypertDisposer>`：bind 时收集 disposer，卸载器统一释放
  *   （等价旧 16 个 `if (xxxDisposer) void xxxDisposer()`，review v2.0 §3.5）。
@@ -30,8 +30,11 @@ import type {
   ReviewNamespace,
   RuleStyleNamespace,
   SearchNamespace,
+  SceneOutlineBindingNamespace,
   StatisticsNamespace,
   TimelineNamespace,
+  TextMutationNamespace,
+  TextDeletionNamespace,
   WorkspaceNamespace,
   WritingNamespace,
 } from './shared.js';
@@ -49,6 +52,7 @@ import {
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from './shared.js';
+import { sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
@@ -56,8 +60,8 @@ import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } 
 /**
  * 全部已挂载 Remote namespace 的 service bag（I90）。
  *
- * 字段与挂载清单一一对应（共 16 个；review v2.0 §3.5 所称「15 个 namespace」为
- * 卡片笔误，枚举清单与 client.ts 迁移前实测均为 16 个）。挂载完成后写
+ * 字段与挂载清单一一对应（共 19 个；review v2.0 §3.5 所称「15 个 namespace」为
+ * 卡片笔误，枚举清单与 client.ts 迁移前实测均为 16 个，I105/I106 新增三个）。挂载完成后写
  * `bag[key] = service`；失败/未挂载保持 undefined，消费方一律窄化读取
  * （controllers/ops 经 `() => bag.xxx` 函数延迟读取，避免闭包固化陈旧引用）。
  */
@@ -78,6 +82,9 @@ export interface RemoteServiceBag {
   searchNamespace?: SearchNamespace;
   statisticsNamespace?: StatisticsNamespace;
   timelineNamespace?: TimelineNamespace;
+  sceneOutlineBinding?: SceneOutlineBindingNamespace;
+  textMutation?: TextMutationNamespace;
+  textDeletion?: TextDeletionNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -96,7 +103,7 @@ type RemoteRegistryEntry = RemoteMount<unknown> & { key: keyof RemoteServiceBag 
  *
  * 逐项调用 mountRemote（I83 参数化工厂，语义逐字保持）；bind 统一为
  * 「写 bag[key] + 收集 disposer 入内部 Set」。返回的卸载器释放 Set 内全部
- * disposer，等价迁移前 client.ts 的 15/16 个 `if (xxxDisposer) void xxxDisposer()`。
+ * disposer，等价迁移前 client.ts 的 15/16 个 `if (xxxDisposer) void xxxDisposer()` 加上 I105/I106 的新增项。
  */
 export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, hooks?: RemoteMountHooks): () => void {
   const disposers = new Set<TypertDisposer>();
@@ -122,6 +129,9 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'searchNamespace', contribution: searchRemoteContribution, serviceKey: 'remote.novelSearch', label: 'search', bind: bindInto('searchNamespace') },
     { key: 'statisticsNamespace', contribution: statisticsRemoteContribution, serviceKey: 'remote.novelStatistics', label: 'statistics', bind: bindInto('statisticsNamespace') },
     { key: 'timelineNamespace', contribution: timelineRemoteContribution, serviceKey: 'remote.novelTimeline', label: 'timeline', bind: bindInto('timelineNamespace') },
+    { key: 'textMutation', contribution: textMutationRemoteContribution, serviceKey: 'remote.novelText', label: 'text mutation', bind: bindInto('textMutation') },
+    { key: 'sceneOutlineBinding', contribution: sceneOutlineBindingRemoteContribution, serviceKey: 'remote.novelSceneOutlineBinding', label: 'scene outline binding', bind: bindInto('sceneOutlineBinding') },
+    { key: 'textDeletion', contribution: textDeletionRemoteContribution, serviceKey: 'remote.novelTextDeletion', label: 'text deletion', bind: bindInto('textDeletion') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

@@ -13,7 +13,7 @@ import type { RelationshipEditor, RelationshipShape } from '../layers/relationsh
 import { newRelationshipDraft } from '../layers/relationship.js';
 import type { StateEditor, StateSnapshotShape } from '../layers/state.js';
 import type { CanonEditor, CanonEventShape } from '../layers/canon.js';
-import type { ChaptersLayerState } from '../layers/chapters.js';
+import type { ChaptersLayerState, ChapterManagementState } from '../layers/chapters.js';
 import { freshChapters, freshSceneEditor } from '../layers/chapters.js';
 import type { BranchPanelState, CandidatePanelState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape } from '../layers/chapters.js';
 import type { ReviewLayerState } from '../layers/review.js';
@@ -182,6 +182,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
       chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
       chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
+      chaptersManagement: (d, patch: Partial<ChapterManagementState>) => { d.chapters = { ...d.chapters, management: { ...d.chapters.management, ...patch } }; },
       reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
       queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
       knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },

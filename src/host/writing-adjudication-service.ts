@@ -71,6 +71,14 @@ export type CandidateReviewDiff =
   | { readonly kind: 'new-scene' }
   | { readonly kind: 'replace'; readonly before: string; readonly after: string };
 
+/** Host-only read projection used by I106 deletion impact; no candidate body crosses it. */
+export interface WritingCandidateActivity {
+  readonly candidateId: string;
+  readonly intent: WritingIntent;
+  readonly chapterId: string;
+  readonly sceneId: string;
+}
+
 /** 作者审阅候选所需的最小 owned JSON：正文 + diff + 校验结果 + 注入解释（R13-4 可见后再裁决）。 */
 export interface CandidateReview {
   readonly candidateId: string;
@@ -93,6 +101,8 @@ export type WritingAdjudicationOutcome =
 
 export interface NovelWritingAdjudicationService {
   open(projectId: string): Promise<void>;
+  /** Optional Host-only introspection; pending candidates are the only blockers for I106. */
+  listActiveCandidates?(projectId: string): Promise<readonly WritingCandidateActivity[]>;
   /** 产生一个可审阅候选（continue/scene-card/rewrite；零写，绑定 target 与 sourceHash）。 */
   propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   /** Strict additive explicit target for non-rewrite candidates. */
@@ -189,6 +199,21 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       validateProjectId(projectId);
       await production.candidates.open(projectId);
       await ensureOpen(projectId);
+    },
+    async listActiveCandidates(projectId: string): Promise<readonly WritingCandidateActivity[]> {
+      validateProjectId(projectId);
+      return Object.freeze([...production.entries.values()]
+        .filter((entry) => entry.candidate.target.projectId === projectId && ledger.statusOf(entry.candidate.id) === 'pending')
+        .flatMap((entry) => {
+          const chapterId = entry.candidate.target.chapterId;
+          const sceneId = entry.candidate.target.sceneId;
+          return chapterId === undefined || sceneId === undefined ? [] : [{
+            candidateId: entry.candidate.id,
+            intent: entry.candidate.intent,
+            chapterId,
+            sceneId,
+          }];
+        }));
     },
     async registerRecoveredCandidate(candidate: WritingCandidate, recovery: { card: DetailBeat; navigation: OutlineNavigation; settings: GenerationSettings; targetSnapshot: CandidateTargetSnapshot }): Promise<void> {
       await production.registerRecoveredCandidate(candidate, recovery);

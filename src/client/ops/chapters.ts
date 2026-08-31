@@ -9,9 +9,10 @@ import { createEditorOps } from './chapters-editor.js';
 import { createBranchOps } from './chapters-branch.js';
 import { createCandidateOps } from './chapters-candidate.js';
 import type { ChaptersInternal } from './chapters-internal.js';
+import { createChaptersManagementOps } from './chapters-management.js';
 
 /** chapters 层窄 port：editor（workspace）+ candidate（workspace/writing）+ branch（branchNamespace）。 */
-export type ChaptersPort = Pick<OpsPorts, 'workspace' | 'writing' | 'branchNamespace'>;
+export type ChaptersPort = Pick<OpsPorts, 'workspace' | 'writing' | 'branchNamespace' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion'>;
 
 export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref: { current?: ChaptersEditOps }): ChaptersEditOps {
   const internal: ChaptersInternal = { loadScene: () => undefined, branchesLoad: () => undefined, selectChapter: () => undefined };
@@ -22,7 +23,8 @@ export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref:
   internal.loadScene = editor.loadScene;
   internal.branchesLoad = branch.branchesLoad;
   internal.selectChapter = editor.selectChapter;
-  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops };
+  const management = createChaptersManagementOps(runtime, ports);
+  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops, ...management };
   ref.current = chaptersOpsResult;
   return chaptersOpsResult;
 }
@@ -31,3 +33,4 @@ export type { ChaptersEditOps } from '../layers/chapters.js';
 export { createEditorOps } from './chapters-editor.js';
 export { createBranchOps } from './chapters-branch.js';
 export { createCandidateOps } from './chapters-candidate.js';
+export { createChaptersManagementOps } from './chapters-management.js';

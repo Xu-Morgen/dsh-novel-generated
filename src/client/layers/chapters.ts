@@ -1,4 +1,6 @@
 import type { El, WorkspaceNamespace, WritingNamespace, BranchNamespace } from '../shared.js';
+import type { TextDeletionImpact, TextDeletionTarget } from '../../core/schema/text-deletion.js';
+import type { ChapterStatus } from '../../core/schema/text.js';
 import { branchPanel, freshBranchPanel, type BranchPanelState } from './branch.js';
 import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from './candidate.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
@@ -27,6 +29,37 @@ export interface SceneSummaryShape { id: string; index: number; summary: string;
 export interface ChapterReadShape { id: string; index: number; title: string; pov: string; status: string; scenes: SceneSummaryShape[]; [key: string]: unknown; }
 export interface SceneReadShape { id: string; index: number; summary: string; content: string; beats: string[]; canonEvents: string[]; notes: string; [key: string]: unknown; }
 
+export interface ChapterManagementDraft {
+  id: string;
+  index: number;
+  title: string;
+  pov: string;
+  status: ChapterStatus;
+}
+
+export interface SceneManagementDraft {
+  id: string;
+  index: number;
+  summary: string;
+  content: string;
+  beats: string[];
+  canonEvents: string[];
+  notes: string;
+}
+
+export type ChapterManagementStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type ChapterDeletionStatus = 'idle' | 'loading' | 'ready' | 'blocked' | 'proposing' | 'pending' | 'applying' | 'rejecting' | 'done' | 'stale' | 'error';
+export interface ChapterManagementState {
+  readonly status: ChapterManagementStatus;
+  readonly message?: string;
+  readonly projectFingerprint?: string;
+  readonly chapterDraft: ChapterManagementDraft;
+  readonly sceneDraft: SceneManagementDraft;
+  readonly bindingDetailBeatId: string;
+  readonly binding?: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly manual: Array<{ sceneId: string; detailBeatId: string }>; readonly effective: Array<{ sceneId: string; detailBeatId: string; chapterId: string; source: 'manual' | 'default' }>; readonly fingerprint?: string; readonly message?: string };
+  readonly deletion: { readonly status: ChapterDeletionStatus; readonly target?: TextDeletionTarget; readonly impact?: TextDeletionImpact; readonly proposalId?: string; readonly message?: string };
+}
+
 export interface ChaptersLayerState {
   readonly status: 'loading' | 'ready' | 'error';
   readonly list: ChapterListItemShape[];
@@ -43,6 +76,8 @@ export interface ChaptersLayerState {
   readonly candidate: CandidatePanelState;
   /** I70 版本/分支面板（R14-5）：版本列表、命名存档、选用与对比。 */
   readonly branches: BranchPanelState;
+  /** I106 CRUD/binding/deletion interaction state; Host remains domain truth. */
+  readonly management: ChapterManagementState;
 }
 
 export interface ChaptersEditOps {
@@ -69,6 +104,25 @@ export interface ChaptersEditOps {
   branchChoose(branchId: string): void;
   branchDiff(branchId: string): void;
   branchCloseDiff(): void;
+  chapterDraft(patch: Partial<ChapterManagementDraft>): void;
+  sceneDraft(patch: Partial<SceneManagementDraft>): void;
+  createChapter(): void;
+  updateChapter(): void;
+  createScene(): void;
+  updateScene(): void;
+  reorder(direction: 'up' | 'down'): void;
+  refreshManagement(): void;
+  bindingSave(): void;
+  bindingRebind(): void;
+  bindingUnbind(): void;
+  managementPatch(patch: Partial<ChapterManagementState>): void;
+  chooseDeleteTarget(target: TextDeletionTarget): void;
+  refreshDeleteImpact(target?: TextDeletionTarget): void;
+  cancelDeleteQueue(): void;
+  rejectDeleteCandidates(): void;
+  proposeDelete(): void;
+  applyDelete(): void;
+  rejectDelete(): void;
 }
 
 export function freshChapters(): ChaptersLayerState {
@@ -79,7 +133,80 @@ export function freshChapters(): ChaptersLayerState {
     editor: freshSceneEditor(),
     candidate: freshCandidatePanel(),
     branches: freshBranchPanel(),
+    management: {
+      status: 'idle',
+      chapterDraft: { id: '', index: 1, title: '', pov: '', status: 'draft' },
+      sceneDraft: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' },
+      bindingDetailBeatId: '',
+      binding: { status: 'idle', manual: [], effective: [] },
+      deletion: { status: 'idle' },
+    },
   };
+}
+
+function managementInput(h: El, label: string, value: string, onChange: (value: string) => void, data: string): unknown {
+  return h('label', { className: 'nv-field' },
+    h('span', { className: 'nv-field__label' }, label),
+    h('input', { type: 'text', className: 'nv-field__input', value, 'data-novel-management-input': data, onChange: (event: { target: { value: string } }) => onChange(event.target.value) }),
+  );
+}
+
+function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+  const management = state.management;
+  const chapter = state.chapter.read;
+  const selectedScene = state.scene.item;
+  const deletion = management.deletion;
+  return h('div', { className: 'nv-chapters__management', 'data-novel-chapter-management': '', 'data-novel-management-state': management.status },
+    h('h3', { className: 'nv-editor__title' }, '章节管理'),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-create': '', onClick: () => ops.createChapter() }, '新建章节'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-management-refresh': '', onClick: () => ops.refreshManagement() }, '刷新管理状态'),
+    ),
+    managementInput(h, '章节 ID', management.chapterDraft.id, (value) => ops.chapterDraft({ id: value }), 'chapter-id'),
+    managementInput(h, '章节标题', management.chapterDraft.title, (value) => ops.chapterDraft({ title: value }), 'chapter-title'),
+    managementInput(h, 'POV ID', management.chapterDraft.pov, (value) => ops.chapterDraft({ pov: value }), 'chapter-pov'),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-update': '', onClick: () => ops.updateChapter() }, '保存章节元数据'),
+      state.selectedChapterId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-reorder-up': '', onClick: () => ops.reorder('up') }, '章节上移') : null,
+      state.selectedChapterId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-reorder-down': '', onClick: () => ops.reorder('down') }, '章节下移') : null,
+    ),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-chapter-delete': state.selectedChapterId ?? '', onClick: () => state.selectedChapterId !== undefined && ops.chooseDeleteTarget({ kind: 'chapter', chapterId: state.selectedChapterId }) }, '删除当前章节'),
+    ),
+    chapter !== undefined ? h('div', { className: 'nv-chapters__management-scene-form', 'data-novel-scene-management': '' },
+      h('h4', { className: 'nv-editor__title' }, `第 ${chapter.index} 章场景管理`),
+      managementInput(h, '场景 ID', management.sceneDraft.id, (value) => ops.sceneDraft({ id: value }), 'scene-id'),
+      managementInput(h, '场景摘要', management.sceneDraft.summary, (value) => ops.sceneDraft({ summary: value }), 'scene-summary'),
+      h('div', { className: 'nv-editor__actions' },
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-create': '', onClick: () => ops.createScene() }, '新建场景'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-update': '', onClick: () => ops.updateScene() }, '保存场景元数据'),
+        selectedScene !== undefined ? h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-scene-delete': selectedScene.id, onClick: () => ops.chooseDeleteTarget({ kind: 'scene', chapterId: chapter.id, sceneId: selectedScene.id }) }, '删除当前场景') : null,
+      ),
+    ) : null,
+    h('div', { className: 'nv-chapters__binding', 'data-novel-scene-outline-binding': '' },
+      h('h4', { className: 'nv-editor__title' }, '场景—细纲绑定'),
+      managementInput(h, '细纲目标 ID', management.bindingDetailBeatId, (value) => ops.managementPatch({ bindingDetailBeatId: value }), 'binding-target'),
+      h('div', { className: 'nv-editor__actions' },
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-save': '', onClick: () => ops.bindingSave() }, '绑定'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-rebind': '', onClick: () => ops.bindingRebind() }, '改绑'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-unbind': '', onClick: () => ops.bindingUnbind() }, '解除绑定'),
+      ),
+      h('p', { className: 'nv-chapters__item-meta', 'data-novel-binding-state': management.binding?.status ?? 'idle' }, `手动绑定 ${management.binding?.manual.length ?? 0} 条；有效映射 ${management.binding?.effective.length ?? 0} 条`),
+    ),
+    h('div', { className: 'nv-chapters__deletion', 'data-novel-deletion': '', 'data-novel-deletion-state': deletion.status },
+      h('h4', { className: 'nv-editor__title' }, '受控删除'),
+      deletion.impact !== undefined ? h('p', { className: 'nv-chapters__item-meta', 'data-novel-deletion-impact': '' }, `影响：${deletion.impact.sceneCount} 个场景，${deletion.impact.proseCharacters} 字，${deletion.impact.branchCount} 个分支；绑定 ${deletion.impact.bindings.length} 条`) : null,
+      deletion.impact !== undefined && deletion.impact.activeQueue.length > 0 ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-cancel-queue': '', onClick: () => ops.cancelDeleteQueue() }, `取消活动队列（${deletion.impact.activeQueue.length}）`) : null,
+      deletion.impact !== undefined && deletion.impact.activeCandidates.length > 0 ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject-candidates': '', onClick: () => ops.rejectDeleteCandidates() }, `拒绝活动候选（${deletion.impact.activeCandidates.length}）`) : null,
+      deletion.message !== undefined ? h('p', { className: 'nv-error', 'data-novel-deletion-message': '' }, deletion.message) : null,
+      deletion.status === 'ready' ? h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-deletion-propose': '', onClick: () => ops.proposeDelete() }, '提交删除确认') : null,
+      deletion.status === 'blocked' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-refresh': '', onClick: () => ops.refreshDeleteImpact() }, '刷新阻塞原因') : null,
+      deletion.status === 'pending' ? h('div', { className: 'nv-editor__actions', 'data-novel-deletion-pending': '' },
+        h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-deletion-apply': '', onClick: () => ops.applyDelete() }, '确认并删除'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject': '', onClick: () => ops.rejectDelete() }, '拒绝'),
+      ) : null,
+    ),
+  );
 }
 
 export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
@@ -156,6 +283,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
       state.scene.status === 'ready' && state.scene.item !== undefined ? branchPanel(h, projectId, branches, state.branches, ops) : null,
       // I63：候选审阅面板（生成后裁决）挂在正文区下方。
       candidatePanel(h, projectId, writing, state.candidate, ops),
+      managementPanel(h, state, ops),
     ),
   );
 }

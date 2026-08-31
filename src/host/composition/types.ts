@@ -27,6 +27,7 @@ import type { NovelTextEditService } from '../text-edit-service.js';
 import type { NovelWritingAdjudicationService } from '../writing-adjudication-service.js';
 import type { QueueService } from '../queue-service.js';
 import type { NextSceneContextProvider } from '../writing-context.js';
+import type { NovelTextDeletionService } from '../text-deletion-service.js';
 
 /**
  * I89 index.ts 组合根分段共享类型（review v2.0 §3.4 / 计划 §18 I89）。
@@ -94,4 +95,5 @@ export interface ManagementServices {
   writingAdjudicationService: NovelWritingAdjudicationService;
   nextSceneContext: NextSceneContextProvider;
   queueService: QueueService;
+  textDeletionService: NovelTextDeletionService;
 }

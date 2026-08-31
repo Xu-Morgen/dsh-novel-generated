@@ -33,6 +33,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/state.ts',
   'src/core/schema/style.ts',
   'src/core/schema/text-mutation.ts',
+  'src/core/schema/text-deletion.ts',
   'src/core/schema/text.ts',
   'src/core/schema/upload.ts',
   'src/core/schema/workbench-settings.ts',

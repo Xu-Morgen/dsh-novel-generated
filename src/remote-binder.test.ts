@@ -20,10 +20,12 @@ import { writingRemoteContribution } from './host/remote/writing.js';
 import { queueRemoteContribution } from './host/remote/queue.js';
 import { sceneOutlineBindingRemoteContribution } from './host/remote/scene-outline-binding.js';
 import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
+import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import type {
   QueueNamespace,
   SceneOutlineBindingNamespace,
   TextMutationNamespace,
+  TextDeletionNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
@@ -145,6 +147,14 @@ function fixtureFor(endpoint: string): unknown {
       return { chapterId: 'chapter-1', scene: { id: 'scene-1', index: 0, summary: '开场', contentHash: 'c'.repeat(64), branchCount: 0 }, fingerprint: 'd'.repeat(64) };
     case 'novelText/reorder':
       return { chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'pov-1', status: 'draft', sceneCount: 1 }], fingerprint: 'e'.repeat(64) };
+    case 'novelTextDeletion/impact':
+      return { status: 'ready', impact: { kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1', sceneCount: 1, branchCount: 0, proseCharacters: 2, sources: [{ sceneId: 'scene-1', sourceHash: 'a'.repeat(64), branches: [] }], projectFingerprint: 'a'.repeat(64), targetFingerprint: 'b'.repeat(64), bindings: [], activeQueue: [], activeCandidates: [], historicalReferences: [], opaqueHistoryCount: 0, blockers: [], impactFingerprint: 'c'.repeat(64) } };
+    case 'novelTextDeletion/propose':
+      return { status: 'pending', proposalId: 'delete-proposal-1', impact: { kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1', sceneCount: 1, branchCount: 0, proseCharacters: 2, sources: [{ sceneId: 'scene-1', sourceHash: 'a'.repeat(64), branches: [] }], projectFingerprint: 'a'.repeat(64), targetFingerprint: 'b'.repeat(64), bindings: [], activeQueue: [], activeCandidates: [], historicalReferences: [], opaqueHistoryCount: 0, blockers: [], impactFingerprint: 'c'.repeat(64) } };
+    case 'novelTextDeletion/apply':
+      return { status: 'already-deleted', proposalId: 'delete-proposal-1', fingerprint: 'd'.repeat(64) };
+    case 'novelTextDeletion/reject':
+      return { status: 'rejected', proposalId: 'delete-proposal-1' };
     case 'novelQueue/startAt':
       return {
         projectId: 'p1', runState: 'idle',
@@ -267,6 +277,28 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await queueMount.dispose();
       await queueMount.client.fiber.dispose();
+    }
+  });
+
+  it('I106 deletion namespace uses the exact four-method strict surface', async () => {
+    const mounted = await mount(textDeletionRemoteContribution);
+    try {
+      const deletion = mounted.client.get('remote.novelTextDeletion') as TextDeletionNamespace;
+      const target = { kind: 'scene' as const, chapterId: 'chapter-1', sceneId: 'scene-1' };
+      const impact = await unwrap(deletion.impact('p1', target));
+      expect(impact.status).toBe('ready');
+      const proposal = await unwrap(deletion.propose('p1', target, impact.impact.impactFingerprint));
+      expect(proposal.status).toBe('pending');
+      await expect(unwrap(deletion.apply('p1', 'delete-proposal-1'))).resolves.toMatchObject({ status: 'already-deleted' });
+      await expect(unwrap(deletion.reject('p1', 'delete-proposal-1'))).resolves.toMatchObject({ status: 'rejected' });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelTextDeletion/impact', 'novelTextDeletion/propose', 'novelTextDeletion/apply', 'novelTextDeletion/reject',
+      ]);
+      await expect(Reflect.apply(deletion.impact, deletion, ['p1', { kind: 'scene', chapterId: 'chapter-1', sceneId: 'scene-1', extra: true }])).rejects.toThrow(/rejected "target"/);
+      expect(mounted.calls).toHaveLength(4);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
     }
   });
 

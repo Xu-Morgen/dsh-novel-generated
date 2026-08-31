@@ -15,7 +15,10 @@ export type {
   BranchNamespace,
   SearchNamespace,
   StatisticsNamespace,
+  SceneOutlineBindingNamespace,
   TimelineNamespace,
+  TextMutationNamespace,
+  TextDeletionNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 import type {
@@ -30,7 +33,10 @@ import type {
   BranchNamespace,
   SearchNamespace,
   StatisticsNamespace,
+  SceneOutlineBindingNamespace,
   TimelineNamespace,
+  TextMutationNamespace,
+  TextDeletionNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 

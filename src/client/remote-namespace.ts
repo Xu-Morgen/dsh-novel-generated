@@ -32,6 +32,7 @@ import type {
   statisticsRemoteContribution,
   timelineRemoteContribution,
   textMutationRemoteContribution,
+  textDeletionRemoteContribution,
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from '../remote.js';
@@ -90,3 +91,5 @@ export type SceneOutlineBindingNamespace = NamespaceOf<typeof sceneOutlineBindin
 export type TimelineNamespace = NamespaceOf<typeof timelineRemoteContribution>;
 /** I104 additive mutation contract; mounted by the chapters GUI consumer in I106. */
 export type TextMutationNamespace = NamespaceOf<typeof textMutationRemoteContribution>;
+/** I106 controlled deletion contract; only the chapters management surface consumes it. */
+export type TextDeletionNamespace = NamespaceOf<typeof textDeletionRemoteContribution>;

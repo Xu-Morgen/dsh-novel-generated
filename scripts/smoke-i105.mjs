@@ -57,10 +57,10 @@ const expectedMethods = [
 const publicBindingMethods = lock.descriptorIds.filter((id) => id.includes('/novelSceneOutlineBinding/'));
 if (JSON.stringify(publicBindingMethods) !== JSON.stringify(expectedMethods.slice(0, 5))) fail(`binding public methods 非 exact additive surface: ${publicBindingMethods.join(', ')}`);
 if (lock.descriptorIds.some((id) => /novelSceneOutlineBinding\/(?:delete|remove|apply)/.test(id))) fail('I105 禁止公开 binding delete/apply Remote');
-if (lock.descriptorIds.length !== 122 || lock.resultSchemaIds.length !== 28) fail(`contract counts 不符: ${lock.descriptorIds.length}/${lock.resultSchemaIds.length}`);
-if (JSON.stringify(lock.descriptorIds.slice(-7)) !== JSON.stringify(expectedMethods)) fail('I105 descriptor IDs 必须只在 115 baseline 后追加');
+if (lock.descriptorIds.length < 122 || lock.resultSchemaIds.length < 28) fail(`contract baseline counts 不符: ${lock.descriptorIds.length}/${lock.resultSchemaIds.length}`);
+if (JSON.stringify(lock.descriptorIds.slice(0, 122).slice(-7)) !== JSON.stringify(expectedMethods)) fail('I105 descriptor IDs 必须只在 115 baseline 后追加');
 const expectedResultIds = [expectedMethods[0], expectedMethods[4], expectedMethods[5], expectedMethods[6]];
-if (JSON.stringify(lock.resultSchemaIds.slice(-4)) !== JSON.stringify(expectedResultIds)) fail('I105 unique result IDs 必须只在 24 baseline 后追加');
+if (JSON.stringify(lock.resultSchemaIds.slice(0, 28).slice(-4)) !== JSON.stringify(expectedResultIds)) fail('I105 unique result IDs 必须只在 24 baseline 后追加');
 const oldDescriptorBodies = Object.fromEntries(lock.descriptorIds.slice(0, 115).map((id) => [id, lock.descriptors[id]]));
 const oldResultBodies = Object.fromEntries(lock.resultSchemaIds.slice(0, 24).map((id) => [id, lock.resultSchemas[id]]));
 const preI105DescriptorHash = sha256(JSON.stringify(oldDescriptorBodies));
@@ -97,7 +97,10 @@ if (!clientCandidate.includes('.proposeAt(') || !clientCandidate.includes("targe
 if (!clientQueue.includes('target.startAt(') || clientQueue.includes('target.start(')) fail('Client queue 未独占 startAt explicit chapter');
 if (!agentTools.includes('deps.writing.proposeAt') || !agentTools.includes('chapterId and sceneId must be provided together')) fail('agent tools explicit target wiring 缺失');
 const mountRegistry = read('src/client/mount-registry.ts');
-if (mountRegistry.includes('sceneOutlineBindingRemoteContribution') || mountRegistry.includes('remote.novelSceneOutlineBinding')) fail('I105 禁止新增 binding 管理 UI/mount');
+// I106 intentionally consumes the I105 binding namespace in the chapters UI;
+// this cumulative smoke keeps the historical I105 contract checks without
+// rejecting the later additive consumer.
+if (!mountRegistry.includes('sceneOutlineBindingRemoteContribution')) fail('I106 binding mount missing');
 
 const productionScanPaths = [
   'src/host/writing-adjudication/candidate-production.ts',

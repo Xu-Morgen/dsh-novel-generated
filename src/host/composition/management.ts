@@ -7,6 +7,8 @@ import { createWritingCandidateService } from '../candidate-service.js';
 import { createWritingAdjudicationService, type WritingProposeAtInput, type WritingProposeInput } from '../writing-adjudication-service.js';
 import { createReviewService } from '../review-service.js';
 import { createQueueService, type QueueStartAtInput, type QueueStartInput } from '../queue-service.js';
+import { createTextDeletionService } from '../text-deletion-service.js';
+import { createTextDeletionRemote } from '../text-deletion-adapter.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -252,11 +254,20 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'cancelTask', call: (projectId: string, taskId: string) => queueService.cancelTask(projectId, taskId) },
     { method: 'recover', call: (projectId: string) => queueService.recover(projectId) },
   ], queueInvocations));
+  const textDeletionService = createTextDeletionService({
+    text: textService,
+    binding: sceneOutlineBindingService,
+    confirmation: confirmationService,
+    queue: queueService,
+    writing: writingAdjudicationService,
+  });
+  ctx.provide('novelTextDeletion', createTextDeletionRemote(textDeletionService));
   return {
     timelineService,
     controlledTextEditService,
     writingAdjudicationService,
     nextSceneContext,
     queueService,
+    textDeletionService,
   };
 }

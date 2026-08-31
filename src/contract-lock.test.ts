@@ -15,6 +15,7 @@ import {
   sceneOutlineBindingInvocations,
   sceneOutlineBindingReadInvocation,
 } from './host/remote/scene-outline-binding.js';
+import { textDeletionInvocations } from './host/remote/text-deletion.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -42,12 +43,14 @@ const i105DescriptorIds = new Set([
   ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
   writingProposeAtInvocation.id,
   queueStartAtInvocation.id,
+  ...textDeletionInvocations.map((descriptor) => descriptor.id),
 ]);
 const stage18Descriptors = [
   ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
+  ...textDeletionInvocations,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
@@ -59,6 +62,7 @@ const stage18ResultDescriptors = [
   sceneOutlineBindingImpactInvocation,
   writingProposeAtInvocation,
   queueStartAtInvocation,
+  ...textDeletionInvocations,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -127,21 +131,18 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
   });
 
-  it('锁定全部 Host invocation descriptor，I105 仅追加 7 methods / 4 unique result entries', () => {
+  it('锁定全部 Host invocation descriptor，I106 在 I105 后追加 4 methods / 4 unique result entries', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(122);
-    expect(remoteLock.resultSchemaIds).toHaveLength(28);
-    expect(remoteLock.descriptorIds.slice(-7)).toEqual([
+    expect(remoteLock.descriptorIds).toHaveLength(126);
+    expect(remoteLock.resultSchemaIds).toHaveLength(32);
+    expect(remoteLock.descriptorIds.slice(-11, -4)).toEqual([
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
       queueStartAtInvocation.id,
     ]);
     expect(remoteLock.resultSchemaIds.slice(-4)).toEqual([
-      sceneOutlineBindingReadInvocation.id,
-      sceneOutlineBindingImpactInvocation.id,
-      writingProposeAtInvocation.id,
-      queueStartAtInvocation.id,
+      ...textDeletionInvocations.map((descriptor) => descriptor.id),
     ]);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);
   });

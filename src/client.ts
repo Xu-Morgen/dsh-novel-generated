@@ -207,6 +207,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           searchNamespace: serviceBag.searchNamespace,
           statisticsNamespace: serviceBag.statisticsNamespace,
           timelineNamespace: serviceBag.timelineNamespace,
+          sceneOutlineBinding: serviceBag.sceneOutlineBinding,
+          textMutation: serviceBag.textMutation,
+          textDeletion: serviceBag.textDeletion,
         },
       );
 
@@ -271,6 +274,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               searchNamespace: serviceBag.searchNamespace,
               statisticsNamespace: serviceBag.statisticsNamespace,
               timelineNamespace: serviceBag.timelineNamespace,
+              sceneOutlineBinding: serviceBag.sceneOutlineBinding,
+              textMutation: serviceBag.textMutation,
+              textDeletion: serviceBag.textDeletion,
               onboardingNamespace: serviceBag.onboarding,
             },
             ui,

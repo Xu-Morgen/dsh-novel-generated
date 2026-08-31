@@ -1,4 +1,4 @@
-import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace } from '../shared.js';
+import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace } from '../shared.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingNamespace, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
@@ -11,7 +11,7 @@ import type { OutlineEditOps, OutlineEditor, OutlineLayerState, OutlineShape } f
 import type { RelationshipEditOps, RelationshipEditor, RelationshipLayerState, RelationshipShape } from '../layers/relationship.js';
 import type { StateEditOps, StateEditor, StateLayerState, StateSnapshotShape } from '../layers/state.js';
 import type { CanonEditOps, CanonEditor, CanonEventShape, CanonLayerState } from '../layers/canon.js';
-import type { BranchPanelState, CandidatePanelState, ChaptersEditOps, ChaptersLayerState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape } from '../layers/chapters.js';
+import type { BranchPanelState, CandidatePanelState, ChaptersEditOps, ChaptersLayerState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape, ChapterManagementState } from '../layers/chapters.js';
 import type { ReviewEditOps, ReviewLayerState } from '../layers/review.js';
 import type { QueueEditOps, QueueLayerState } from '../layers/queue.js';
 import type { KnowledgeEditOps, KnowledgeLayerState } from '../layers/knowledge.js';
@@ -136,6 +136,8 @@ export type WorkbenchActions = {
   chaptersCandidate(patch: Partial<CandidatePanelState>): void;
   /** I70 版本/分支面板（R14-5）：版本列表/存档草稿/对比视图状态合并。 */
   chaptersBranches(patch: Partial<BranchPanelState>): void;
+  /** I106：章节 CRUD/绑定/删除仅保存交互态；领域结果由 Host 重读回填。 */
+  chaptersManagement(patch: Partial<ChapterManagementState>): void;
   /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
   reviewPatch(patch: Partial<ReviewLayerState>): void;
   /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
@@ -318,6 +320,9 @@ export interface WorkbenchNamespaces {
   searchNamespace: SearchNamespace | undefined;
   statisticsNamespace: StatisticsNamespace | undefined;
   timelineNamespace: TimelineNamespace | undefined;
+  sceneOutlineBinding: SceneOutlineBindingNamespace | undefined;
+  textMutation: TextMutationNamespace | undefined;
+  textDeletion: TextDeletionNamespace | undefined;
   onboardingNamespace: OnboardingNamespace | undefined;
 }
 

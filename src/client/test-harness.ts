@@ -135,6 +135,9 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const searchStub = mountOptions.search;
   const statisticsStub = mountOptions.statistics;
   const timelineStub = mountOptions.timeline;
+  const textMutationStub = mountOptions.textMutation;
+  const sceneOutlineBindingStub = mountOptions.sceneOutlineBinding;
+  const textDeletionStub = mountOptions.textDeletion;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -233,6 +236,24 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       ensureFromOutline: async () => { throw new Error('未注入 remote.novelTimeline.ensureFromOutline'); },
       setCurrentNode: async () => { throw new Error('未注入 remote.novelTimeline.setCurrentNode'); },
       save: async () => { throw new Error('未注入 remote.novelTimeline.save'); },
+    })
+    : name === 'remote.novelText' ? (textMutationStub ?? {
+      fingerprint: async () => ({ fingerprint: 'a'.repeat(64) }),
+      chapterCreate: async () => ({}), chapterUpdate: async () => ({}),
+      sceneCreate: async () => ({}), sceneUpdate: async () => ({}), reorder: async () => ({}),
+    })
+    : name === 'remote.novelSceneOutlineBinding' ? (sceneOutlineBindingStub ?? {
+      read: async () => ({ manual: [], effective: [], fingerprint: 'a'.repeat(64) }),
+      save: async () => ({ manual: [], effective: [], fingerprint: 'a'.repeat(64) }),
+      rebind: async () => ({ manual: [], effective: [], fingerprint: 'a'.repeat(64) }),
+      unbind: async () => ({ manual: [], effective: [], fingerprint: 'a'.repeat(64) }),
+      impact: async () => ({ kind: 'chapter', chapterId: 'fixture-chapter', bindings: [], fingerprint: 'a'.repeat(64) }),
+    })
+    : name === 'remote.novelTextDeletion' ? (textDeletionStub ?? {
+      impact: async () => ({ status: 'ready', impact: { kind: 'chapter', chapterId: 'fixture-chapter', sceneCount: 0, branchCount: 0, proseCharacters: 0, sources: [], projectFingerprint: 'a'.repeat(64), targetFingerprint: 'a'.repeat(64), bindings: [], activeQueue: [], activeCandidates: [], historicalReferences: [], opaqueHistoryCount: 0, blockers: [], impactFingerprint: 'a'.repeat(64) } }),
+      propose: async () => ({ status: 'pending', proposalId: 'fixture-delete-proposal', impact: {} }),
+      apply: async () => ({ status: 'already-deleted', proposalId: 'fixture-delete-proposal', fingerprint: 'a'.repeat(64) }),
+      reject: async () => ({ status: 'rejected', proposalId: 'fixture-delete-proposal' }),
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));

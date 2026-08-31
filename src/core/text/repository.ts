@@ -297,7 +297,10 @@ export class TextRepository {
       const chapter = chapters.find((item) => item.id === chapterId);
       if (chapter === undefined) throw new Error(`Unknown chapter: ${chapterId}`);
       const remainingSceneCount = chapters.reduce((total, item) => total + item.scenes.length, 0) - chapter.scenes.length;
-      if (remainingSceneCount === 0) throw new Error('Cannot delete the project last valid scene landing');
+      // Empty chapters do not remove a valid scene landing and remain useful
+      // for the I106 empty-work guidance. Only deleting the final non-empty
+      // chapter is blocked by the project landing invariant.
+      if (chapter.scenes.length > 0 && remainingSceneCount === 0) throw new Error('Cannot delete the project last valid scene landing');
       const impact = this.deleteImpact(chapters, chapter);
       const remaining = chapters.filter((item) => item.id !== chapterId)
         .map((item, position) => chapterSchema.parse({ ...item, index: position + 1 }));

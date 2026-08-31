@@ -1,0 +1,49 @@
+{
+  "iteration": "I106",
+  "requirement": "R18-1c",
+  "remoteMethods": {
+    "novelTextDeletion": [
+      "impact",
+      "propose",
+      "apply",
+      "reject"
+    ]
+  },
+  "clientAnchors": [
+    "data-novel-chapter-management",
+    "data-novel-scene-outline-binding",
+    "data-novel-deletion",
+    "data-novel-deletion-impact",
+    "data-novel-deletion-pending",
+    "data-novel-chapters-empty"
+  ],
+  "deletionSemantics": [
+    "impact-only-zero-write",
+    "I11-pending-before-apply",
+    "blocked-and-stale-zero-write",
+    "binding-first-C5-second",
+    "already-deleted-retry",
+    "binding-cleared-C5-retry"
+  ],
+  "contractLock": {
+    "descriptorCount": 126,
+    "resultSchemaCount": 32,
+    "preservedPrefix": {
+      "descriptorCount": 122,
+      "resultSchemaCount": 28,
+      "descriptorBodiesSha256": "ece8034fd5dee91c824f28a3443f3d62a1ef18e47da30fb318c061bcfb4da286",
+      "resultBodiesSha256": "ff99b465b971ac70027c41f0a8b0c606125d99c1b9f763f9e19443b733834fc6"
+    }
+  },
+  "explicitNonGoals": [
+    "deletion-saga",
+    "deletion-journal",
+    "deletion-audit",
+    "reservation",
+    "recovery-barrier",
+    "trash",
+    "rich-text",
+    "cross-process-safety"
+  ],
+  "focusedSuites": "passed"
+}

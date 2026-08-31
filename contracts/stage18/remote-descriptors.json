@@ -124,7 +124,11 @@
     "novel-creation-tool/novelSceneOutlineBinding/unbind",
     "novel-creation-tool/novelSceneOutlineBinding/impact",
     "novel-creation-tool/novelWriting/proposeAt",
-    "novel-creation-tool/novelQueue/startAt"
+    "novel-creation-tool/novelQueue/startAt",
+    "novel-creation-tool/novelTextDeletion/impact",
+    "novel-creation-tool/novelTextDeletion/propose",
+    "novel-creation-tool/novelTextDeletion/apply",
+    "novel-creation-tool/novelTextDeletion/reject"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -22177,6 +22181,2729 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelTextDeletion/impact": {
+      "id": "novel-creation-tool/novelTextDeletion/impact",
+      "service": "novelTextDeletion",
+      "namespace": "novelTextDeletion",
+      "method": "impact",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "target",
+          "wire": "target",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelTextDeletion:target",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "chapter"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "scene"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneId"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelTextDeletion:impact",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "ready"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "blocked"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "novel-creation-tool/novelTextDeletion/propose": {
+      "id": "novel-creation-tool/novelTextDeletion/propose",
+      "service": "novelTextDeletion",
+      "namespace": "novelTextDeletion",
+      "method": "propose",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "target",
+          "wire": "target",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelTextDeletion:target",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "chapter"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "scene"
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneId"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "expectedImpactFingerprint",
+          "wire": "expectedImpactFingerprint",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelTextDeletion:propose",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "pending"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "proposalId",
+                "impact"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "stale"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "blocked"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "novel-creation-tool/novelTextDeletion/apply": {
+      "id": "novel-creation-tool/novelTextDeletion/apply",
+      "service": "novelTextDeletion",
+      "namespace": "novelTextDeletion",
+      "method": "apply",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelTextDeletion:apply",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "deleted"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "status",
+                "proposalId",
+                "fingerprint"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "already-deleted"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "fingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "status",
+                "proposalId",
+                "fingerprint"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "stale"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "blocked"
+                },
+                "impact": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "chapter",
+                        "scene"
+                      ]
+                    },
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "branchCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "proseCharacters": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "pattern": "^[a-f0-9]{64}$"
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64,
+                                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "chosen": {
+                                  "type": "boolean"
+                                },
+                                "sourceHash": {
+                                  "type": "string",
+                                  "pattern": "^[a-f0-9]{64}$"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label",
+                                "chosen",
+                                "sourceHash"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "sourceHash",
+                          "branches"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "projectFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "targetFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "detailBeatId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "manual",
+                              "default"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "sceneId",
+                          "detailBeatId",
+                          "chapterId",
+                          "source"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeQueue": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "queued",
+                              "running",
+                              "candidate-ready"
+                            ]
+                          },
+                          "candidateId": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "chapterId",
+                          "sceneId",
+                          "status",
+                          "candidateId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "activeCandidates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "candidateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "intent": {
+                            "type": "string",
+                            "enum": [
+                              "generate",
+                              "continue",
+                              "scene-card",
+                              "rewrite"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "chapterId",
+                          "sceneId",
+                          "candidateId",
+                          "intent"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "historicalReferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "label": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "chapterId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "opaqueHistoryCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "last-scene-landing",
+                          "active-queue",
+                          "active-candidate"
+                        ]
+                      }
+                    },
+                    "impactFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "chapterId",
+                    "sceneCount",
+                    "branchCount",
+                    "proseCharacters",
+                    "sources",
+                    "projectFingerprint",
+                    "targetFingerprint",
+                    "bindings",
+                    "activeQueue",
+                    "activeCandidates",
+                    "historicalReferences",
+                    "opaqueHistoryCount",
+                    "blockers",
+                    "impactFingerprint"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "status",
+                "impact"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+    },
+    "novel-creation-tool/novelTextDeletion/reject": {
+      "id": "novel-creation-tool/novelTextDeletion/reject",
+      "service": "novelTextDeletion",
+      "namespace": "novelTextDeletion",
+      "method": "reject",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelTextDeletion:reject",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "rejected"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "required": [
+                "status",
+                "proposalId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "already-rejected"
+                },
+                "proposalId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "required": [
+                "status",
+                "proposalId"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -22207,7 +24934,11 @@
     "novel-creation-tool/novelSceneOutlineBinding/read",
     "novel-creation-tool/novelSceneOutlineBinding/impact",
     "novel-creation-tool/novelWriting/proposeAt",
-    "novel-creation-tool/novelQueue/startAt"
+    "novel-creation-tool/novelQueue/startAt",
+    "novel-creation-tool/novelTextDeletion/impact",
+    "novel-creation-tool/novelTextDeletion/propose",
+    "novel-creation-tool/novelTextDeletion/apply",
+    "novel-creation-tool/novelTextDeletion/reject"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -24955,6 +27686,2447 @@
         "tasks"
       ],
       "additionalProperties": false
+    },
+    "novel-creation-tool/novelTextDeletion/impact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "ready"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "blocked"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "novel-creation-tool/novelTextDeletion/propose": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "pending"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "proposalId",
+            "impact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "stale"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "blocked"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "novel-creation-tool/novelTextDeletion/apply": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "deleted"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "status",
+            "proposalId",
+            "fingerprint"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "already-deleted"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "status",
+            "proposalId",
+            "fingerprint"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "stale"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "blocked"
+            },
+            "impact": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chapter",
+                    "scene"
+                  ]
+                },
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "branchCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "proseCharacters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "branches": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            },
+                            "sourceHash": {
+                              "type": "string",
+                              "pattern": "^[a-f0-9]{64}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "label",
+                            "chosen",
+                            "sourceHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "sourceHash",
+                      "branches"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "projectFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "targetFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "manual",
+                          "default"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "sceneId",
+                      "detailBeatId",
+                      "chapterId",
+                      "source"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeQueue": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "candidate-ready"
+                        ]
+                      },
+                      "candidateId": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "chapterId",
+                      "sceneId",
+                      "status",
+                      "candidateId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "activeCandidates": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "candidateId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "intent": {
+                        "type": "string",
+                        "enum": [
+                          "generate",
+                          "continue",
+                          "scene-card",
+                          "rewrite"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "chapterId",
+                      "sceneId",
+                      "candidateId",
+                      "intent"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "historicalReferences": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "label"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "opaqueHistoryCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "blockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "last-scene-landing",
+                      "active-queue",
+                      "active-candidate"
+                    ]
+                  }
+                },
+                "impactFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "chapterId",
+                "sceneCount",
+                "branchCount",
+                "proseCharacters",
+                "sources",
+                "projectFingerprint",
+                "targetFingerprint",
+                "bindings",
+                "activeQueue",
+                "activeCandidates",
+                "historicalReferences",
+                "opaqueHistoryCount",
+                "blockers",
+                "impactFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "status",
+            "impact"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "novel-creation-tool/novelTextDeletion/reject": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "rejected"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            }
+          },
+          "required": [
+            "status",
+            "proposalId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "already-rejected"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            }
+          },
+          "required": [
+            "status",
+            "proposalId"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }

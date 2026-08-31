@@ -25,6 +25,7 @@ import {
   sceneOutlineBindingInvocations,
   sceneOutlineBindingReadInvocation,
 } from '../src/host/remote/scene-outline-binding.js';
+import { textDeletionInvocations } from '../src/host/remote/text-deletion.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -124,12 +125,14 @@ for (const lock of EXISTING_LOCKS) {
     ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
     writingProposeAtInvocation.id,
     queueStartAtInvocation.id,
+    ...textDeletionInvocations.map((descriptor) => descriptor.id),
   ]);
   const descriptorSequence = [
     ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
+    ...textDeletionInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -141,6 +144,7 @@ for (const lock of EXISTING_LOCKS) {
     sceneOutlineBindingImpactInvocation,
     writingProposeAtInvocation,
     queueStartAtInvocation,
+    ...textDeletionInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

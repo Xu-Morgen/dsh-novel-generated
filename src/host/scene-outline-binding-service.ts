@@ -23,6 +23,7 @@ import {
   type SceneOutlineEffectiveBinding,
   type SceneOutlineManualBinding,
 } from '../core/schema/scene-outline-binding.js';
+import { entityIdSchema } from '../core/schema/base.js';
 import type { Chapter } from '../core/schema/text.js';
 import type { OutlineBeatCard } from '../core/schema/outline.js';
 import type { NovelOutlineService } from './outline-service.js';
@@ -46,6 +47,12 @@ export interface CandidateOwnerFingerprintTriple {
   readonly bindingFingerprint: string;
 }
 
+export interface SceneOutlineDeletionCleanupResult {
+  readonly proposalId: string;
+  readonly removed: number;
+  readonly fingerprint: string;
+}
+
 /** Host-only canonical card ownership used by queue/statistics consumers. */
 export interface OwnedSceneOutlineMapping {
   readonly card: OutlineBeatCard;
@@ -66,6 +73,13 @@ export interface NovelSceneOutlineBindingService {
   rebind(projectId: string, input: SceneOutlineBindingRebind): Promise<SceneOutlineBindingReadResult>;
   unbind(projectId: string, input: SceneOutlineBindingUnbind): Promise<SceneOutlineBindingReadResult>;
   impact(projectId: string, input: SceneOutlineBindingImpactInput): Promise<SceneOutlineBindingImpactResult>;
+  /**
+   * Host-only binding-first deletion seam. It only removes manual rows for
+   * the supplied scene ids; computed default rows are never persisted.
+   * Repeating the same cleanup is a successful no-op so C5 deletion can be
+   * retried after an I/O failure (design §14.14 / I106).
+   */
+  cleanupForDeletion(projectId: string, targetSceneIds: readonly string[], proposalId: string): Promise<SceneOutlineDeletionCleanupResult>;
   /** Host-only stable three-owner capture; never exposed by Remote. */
   captureOwnerFingerprintTriple(projectId: string): Promise<CandidateOwnerFingerprintTriple>;
   /** Host-only capture for a new-scene candidate; never exposed by Remote. */
@@ -374,6 +388,19 @@ export function createSceneOutlineBindingService(
       if (chapter === undefined) throw new Error(`Unknown chapter: ${target.chapterId}`);
       const sceneIds = new Set(chapter.scenes.map((scene) => scene.id));
       return { kind: 'chapter', chapterId: target.chapterId, bindings: state.effective.filter((binding) => sceneIds.has(binding.sceneId)), fingerprint: state.fingerprint };
+    },
+    async cleanupForDeletion(projectId, targetSceneIds, proposalId) {
+      validateProjectId(projectId);
+      entityIdSchema.parse(proposalId);
+      const sceneIds = [...new Set(targetSceneIds.map((sceneId) => entityIdSchema.parse(sceneId)))];
+      const repository = await repositoryFor(projectId);
+      const current = await repository.read();
+      const remaining = current.document.bindings.filter((binding) => !sceneIds.includes(binding.sceneId));
+      if (remaining.length === current.document.bindings.length) {
+        return { proposalId, removed: 0, fingerprint: current.fingerprint };
+      }
+      const result = await repository.mutate(current.fingerprint, (bindings) => bindings.filter((binding) => !sceneIds.includes(binding.sceneId)));
+      return { proposalId, removed: current.document.bindings.length - result.document.bindings.length, fingerprint: result.fingerprint };
     },
     captureOwnerFingerprintTriple,
     captureCandidateTarget,
