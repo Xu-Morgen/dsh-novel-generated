@@ -249,4 +249,154 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-review-repair-candidate'] === 'repair-candidate')).toBe(true);
     expect(collect(render(), 'button').some((node) => node.props?.['data-novel-writing-candidate-accept'] !== undefined)).toBe(false);
   });
+
+  it('I129 接受修复候选后自动复扫：同一 fingerprint 消失才显示当前会话 resolved', async () => {
+    let scans = 0;
+    const adjudications: string[] = [];
+    const repairProjection = {
+      ...PROJECTION,
+      issues: [PROJECTION.issues[0]!],
+      summary: { ...PROJECTION.summary, total: 1, hard: 1, soft: 0, byCategory: { ...PROJECTION.summary.byCategory, canon: 0, knowledge: 0, relationship: 0, style: 0 } },
+    };
+    const resolvedProjection = { ...repairProjection, issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
+    const proposal = {
+      projectId: 'fixture-project', issueId: 'iss-rule', issueFingerprint: 'iss-rule',
+      target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+      anchor: { start: 0, end: 2, quote: '米拉', sourceHash: 'a'.repeat(64) },
+      lineage: { kind: 'review-repair', issueId: 'iss-rule', issueFingerprint: 'iss-rule', sourceHash: 'a'.repeat(64) },
+      candidate: { id: 'repair-candidate-accept', intent: 'rewrite', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        review: {
+          scan: async () => { scans += 1; return { ok: true, value: scans === 1 ? repairProjection : resolvedProjection }; },
+          records: async () => ({ ok: true, value: [] }),
+        },
+        reviewRepair: { propose: async () => ({ ok: true, value: proposal }) },
+        writing: {
+          adjudicate: async (_candidateId, decision) => { adjudications.push(decision); return { ok: true, value: { status: 'written', candidateId: 'repair-candidate-accept', scene: { chapterId: 'chapter-1', sceneId: 'scene-1', index: 0, content: '米拉抬起头。' }, layers: [] } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(render);
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair'] === 'iss-rule')?.props?.onClick as () => void)();
+    await flush();
+    const accept = () => collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair-accept'] === '');
+    accept()?.props?.onClick && (accept()!.props!.onClick as () => void)();
+    // 同一候选的重复点击在 Remote 返回前只允许一次。
+    accept()?.props?.onClick && (accept()!.props!.onClick as () => void)();
+    await flush();
+    expect(adjudications).toEqual(['accept']);
+    expect(scans).toBe(2);
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-review-repair-resolved'] === 'iss-rule')).toBe(true);
+    expect(collect(render(), 'button').some((node) => node.props?.['data-novel-review-repair-accept'] !== undefined)).toBe(false);
+    // 完整重扫开启新审校会话，旧 resolved 证据不跨越本次 scan。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(scans).toBe(3);
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-review-repair-resolved'] !== undefined)).toBe(false);
+  });
+
+  it('I129 同一问题仍在或复扫失败时不伪造 resolved，并可重试；拒绝候选零写', async () => {
+    let scans = 0;
+    const adjudications: string[] = [];
+    const repairProjection = { ...PROJECTION, issues: [PROJECTION.issues[0]!], summary: { ...PROJECTION.summary, total: 1, hard: 1, soft: 0, byCategory: { ...PROJECTION.summary.byCategory, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
+    const proposal = {
+      projectId: 'fixture-project', issueId: 'iss-rule', issueFingerprint: 'iss-rule',
+      target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+      lineage: { kind: 'review-repair', issueId: 'iss-rule', issueFingerprint: 'iss-rule', sourceHash: 'a'.repeat(64) },
+      candidate: { id: 'repair-candidate-uncertain', intent: 'rewrite', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        review: {
+          scan: async () => { scans += 1; if (scans === 2) throw new Error('复扫失败：模型输出非法'); return { ok: true, value: repairProjection }; },
+          records: async () => ({ ok: true, value: [] }),
+        },
+        reviewRepair: { propose: async () => ({ ok: true, value: proposal }) },
+        writing: {
+          adjudicate: async (_candidateId, decision) => { adjudications.push(decision); return { ok: true, value: decision === 'reject' ? { status: 'rejected', candidateId: 'repair-candidate-uncertain' } : { status: 'written', candidateId: 'repair-candidate-uncertain', scene: { chapterId: 'chapter-1', sceneId: 'scene-1', index: 0, content: '米拉抬起头。' }, layers: [] } }; },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(render);
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair'] === 'iss-rule')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair-accept'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(adjudications).toEqual(['accept']);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-review-repair-uncertain'] !== undefined)).toBe(true);
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-review-repair-resolved'] !== undefined)).toBe(false);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair-retry'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(scans).toBe(3);
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-review-repair-unresolved'] !== undefined)).toBe(true);
+
+    // 新会话验证 reject：只调用既有裁决 owner，不触发 scan。
+    const rejected = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }), {},
+      {
+        review: { scan: async () => ({ ok: true, value: repairProjection }), records: async () => ({ ok: true, value: [] }) },
+        reviewRepair: { propose: async () => ({ ok: true, value: proposal }) },
+        writing: { adjudicate: async (_candidateId, decision) => { adjudications.push(decision); return { ok: true, value: { status: 'rejected', candidateId: 'repair-candidate-uncertain' } }; } },
+      },
+    );
+    await flush();
+    const renderRejected = () => rejected.registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(renderRejected);
+    await flush();
+    (collect(renderRejected(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(renderRejected(), 'button').find((node) => node.props?.['data-novel-review-repair'] === 'iss-rule')?.props?.onClick as () => void)();
+    await flush();
+    (collect(renderRejected(), 'button').find((node) => node.props?.['data-novel-review-repair-reject'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(adjudications).toEqual(['accept', 'reject']);
+    expect(collect(renderRejected(), 'p').some((node) => node.props?.['data-novel-review-repair-rejected'] !== undefined)).toBe(true);
+  });
+
+  it('I129 取消候选生成后丢弃晚到结果，不污染当前审校会话', async () => {
+    const pendingProposal = {
+      projectId: 'fixture-project', issueId: 'iss-rule', issueFingerprint: 'iss-rule',
+      target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+      lineage: { kind: 'review-repair', issueId: 'iss-rule', issueFingerprint: 'iss-rule', sourceHash: 'a'.repeat(64) },
+      candidate: { id: 'repair-candidate-cancelled', intent: 'rewrite', target: { projectId: 'fixture-project', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' },
+    } as const;
+    let resolveProposal: (proposal: typeof pendingProposal) => void = () => undefined;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }), {},
+      {
+        review: { scan: async () => ({ ok: true, value: PROJECTION }), records: async () => ({ ok: true, value: [] }) },
+        reviewRepair: { propose: async () => new Promise<typeof pendingProposal>((resolve) => { resolveProposal = resolve; }) },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(render);
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair'] === 'iss-rule')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'button').some((node) => node.props?.['data-novel-review-repair-cancel'] !== undefined)).toBe(true);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair-cancel'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    resolveProposal(pendingProposal);
+    await flush();
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-review-repair-candidate'] === 'repair-candidate-cancelled')).toBe(false);
+  });
 })

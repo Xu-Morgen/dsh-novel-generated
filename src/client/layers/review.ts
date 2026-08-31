@@ -1,6 +1,7 @@
-import type { El, ReviewNamespace, ReviewRepairProposalShape } from '../shared.js';
+import type { El, ReviewNamespace } from '../shared.js';
 import { filterReviewIssues } from '../../core/review/issue.js';
 import { contextLinkButton, textContextLink, type ContextLinkSink } from '../link-adapters.js';
+import { freshReviewRepairSession, type ReviewRepairSessionState } from '../review-repair-session.js';
 
 /**
  * I64 一致性审校中心面板（design §14.9 / R13-5）。
@@ -24,6 +25,8 @@ import { contextLinkButton, textContextLink, type ContextLinkSink } from '../lin
  *   与汇总），不持有正文/层对象（无完整 live object 序列化）。
  * - 过滤是纯派生（core/review/issue.filterReviewIssues），不修改投影本身。
  * - 面板状态机：idle → scanning → ready / error；ready 前不渲染裁决按钮。
+ * - I128/I129 修复候选只经 writing-adjudication 接受；I129 的 resolved 仅为当前
+ *   Client 会话证据，不进入 Host review ledger。
  */
 
 export interface ReviewIssueShape {
@@ -67,7 +70,6 @@ export interface ReviewFilterShape {
 }
 
 export type ReviewUiStatus = 'idle' | 'scanning' | 'ready' | 'error';
-export type ReviewRepairUiStatus = 'idle' | 'generating' | 'ready' | 'error';
 
 export interface ReviewLayerState {
   readonly status: ReviewUiStatus;
@@ -78,11 +80,8 @@ export interface ReviewLayerState {
   readonly acting: boolean;
   /** 审计记录（scan/adjudicate 后随投影刷新，展示显式裁决证据）。 */
   readonly records: readonly ReviewAuditRecordShape[];
-  /** I128 transient repair candidate; Host owns candidate registration and C5 remains untouched. */
-  readonly repairStatus: ReviewRepairUiStatus;
-  readonly repairIssueId?: string;
-  readonly repairCandidate?: ReviewRepairProposalShape;
-  readonly repairMessage?: string;
+  /** I128/I129 transient candidate + acceptance/rescan correlation; never a Host ledger. */
+  readonly repairSession: ReviewRepairSessionState;
 }
 
 export interface ReviewEditOps {
@@ -92,11 +91,15 @@ export interface ReviewEditOps {
   selectIssue(issueId: string): void;
   adjudicate(decision: 'continue' | 'rewrite-requested'): void;
   repair(issueId: string): void;
+  acceptRepair(): void;
+  rejectRepair(): void;
+  retryRepairScan(): void;
+  cancelRepair(): void;
   dismiss(): void;
 }
 
 export function freshReview(): ReviewLayerState {
-  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [], repairStatus: 'idle' };
+  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [], repairSession: freshReviewRepairSession() };
 }
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
@@ -154,20 +157,79 @@ function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: 
   );
 }
 
+/** I129 候选接受/复扫会话视图；不存在 accept 旁路，所有正文写入仍由 writing owner 执行。 */
+function repairSessionPanel(h: El, session: ReviewRepairSessionState, ops: ReviewEditOps): unknown {
+  if (session.status === 'generating') {
+    return h('div', { className: 'nv-review__repair-session', 'data-novel-review-repair-session': 'generating' },
+      h('p', { className: 'nv-review__repair-status', role: 'status', 'aria-live': 'polite' }, '正在生成修复候选…'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-repair-cancel': '', onClick: () => ops.cancelRepair() }, '取消生成'),
+    );
+  }
+  if (session.candidate === undefined) {
+    return session.status === 'error'
+      ? h('p', { className: 'nv-review__repair-error', 'data-novel-review-repair-error': '', role: 'alert' }, session.message ?? '修复候选生成失败')
+      : null;
+  }
+  const candidate = session.candidate;
+  const canAccept = session.status === 'ready' || session.status === 'error';
+  const canRetryScan = session.status === 'uncertain' || session.status === 'unresolved';
+  return h('section', { className: 'nv-review__repair-candidate', 'data-novel-review-repair-candidate': candidate.candidate.id },
+    h('h4', null, session.status === 'resolved' ? '修复已确认（当前会话）' : '修复候选（待作者审阅）'),
+    h('p', { className: 'nv-review__issue-meta' }, `问题指纹：${candidate.issueFingerprint} · 目标：${candidate.target.chapterId}/${candidate.target.sceneId}`),
+    candidate.anchor === undefined ? null : h('p', { className: 'nv-review__issue-meta' }, `精确引文：${candidate.anchor.quote}`),
+    h('pre', { className: 'nv-review__repair-text' }, candidate.candidate.text),
+    session.status === 'accepting'
+      ? h('p', { className: 'nv-review__repair-status', 'data-novel-review-repair-accepting': '', role: 'status', 'aria-live': 'polite' }, '正在接受候选，随后自动复扫…')
+      : session.status === 'rescanning'
+        ? h('p', { className: 'nv-review__repair-status', role: 'status', 'aria-live': 'polite' }, '候选已接受，正在复扫…')
+        : session.status === 'resolved'
+          ? h('div', { className: 'nv-review__repair-resolved', 'data-novel-review-repair-resolved': candidate.issueId },
+            h('p', null, session.message ?? '复扫未发现同一问题。'),
+            h('p', { className: 'nv-review__issue-meta' }, `证据：候选 ${session.resolved?.candidateId ?? candidate.candidate.id} · 复扫 ${session.resolved?.rescannedAt ?? '未知时间'}`),
+          )
+          : session.status === 'unresolved'
+            ? h('p', { className: 'nv-review__repair-warning', 'data-novel-review-repair-unresolved': '', role: 'alert' }, session.message ?? '同一问题仍存在，未标记为已解决。')
+            : session.status === 'uncertain'
+              ? h('p', { className: 'nv-review__repair-warning', 'data-novel-review-repair-uncertain': '', role: 'alert' }, session.message ?? '修复已接受，但复扫失败，解决状态不确定。')
+              : session.status === 'rejected'
+                ? h('p', { className: 'nv-review__issue-meta', 'data-novel-review-repair-rejected': '', role: 'status' }, session.message ?? '已拒绝修复候选，未修改正文。')
+                : session.message === undefined ? null : h('p', { className: 'nv-review__repair-error', 'data-novel-review-repair-error': '', role: 'alert' }, session.message),
+    canAccept
+      ? h('div', { className: 'nv-review__issue-actions' },
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-accept': '', onClick: () => ops.acceptRepair() }, '接受并复扫'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-repair-reject': '', onClick: () => ops.rejectRepair() }, '拒绝候选'),
+      )
+      : canRetryScan
+        ? h('div', { className: 'nv-review__issue-actions' },
+          h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-retry': '', onClick: () => ops.retryRepairScan() }, '重试复扫'),
+        )
+        : null,
+    session.status === 'error' && session.message === undefined
+      ? h('p', { className: 'nv-review__repair-error', role: 'alert' }, '修复候选未完成，请重新生成。')
+      : null,
+  );
+}
+
 /**
  * 审校中心面板。状态机：idle（未扫描）→ scanning → ready（问题列表 + 过滤 +
  * 裁决）/ error。ready 前不渲染裁决按钮；硬冲突存在时「继续」按钮禁用。
  */
 export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | undefined, state: ReviewLayerState, ops: ReviewEditOps, links?: ContextLinkSink): unknown {
   const available = review !== undefined && projectId !== undefined;
-  const busy = state.status === 'scanning' || state.acting;
+  const repairBusy = state.repairSession.status === 'generating' || state.repairSession.status === 'accepting' || state.repairSession.status === 'rescanning';
+  const busy = state.status === 'scanning' || state.acting || repairBusy;
   let body: unknown;
   if (!available) {
     body = h('p', { className: 'nv-review__hint', 'data-novel-review-unavailable': '' }, '审校服务不可用（novelReview Remote 未挂载）。');
   } else if (state.status === 'idle') {
     body = h('p', { className: 'nv-review__hint', 'data-novel-review-idle': '' }, '尚未审校。点击「刷新审校」对全部正文运行规则/正史/知情/关系/风格检查。');
   } else if (state.status === 'scanning') {
-    body = h('p', { className: 'nv-review__hint', 'data-novel-review-scanning': '', role: 'status', 'aria-live': 'polite' }, '正在审校全部场景…');
+    body = state.repairSession.status === 'rescanning'
+      ? h('div', { className: 'nv-review__hint', 'data-novel-review-scanning': '', 'data-novel-review-repair-rescanning': '' },
+        h('p', { role: 'status', 'aria-live': 'polite' }, '正在复扫全部场景，确认原问题是否消失…'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-repair-cancel': '', onClick: () => ops.cancelRepair() }, '取消复扫'),
+      )
+      : h('p', { className: 'nv-review__hint', 'data-novel-review-scanning': '', role: 'status', 'aria-live': 'polite' }, '正在审校全部场景…');
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-review__error', 'data-novel-review-error': '', role: 'alert', 'aria-live': 'assertive' },
       h('p', null, state.message ?? '审校失败'),
@@ -201,18 +263,8 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
       issues.length === 0
         ? h('p', { className: 'nv-review__empty', 'data-novel-review-empty': '' }, '当前过滤下没有问题。')
         : h('ul', { className: 'nv-review__issues', 'data-novel-review-issues': '' },
-          issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, ops.repair, state.repairStatus === 'generating', links))),
-      state.repairStatus === 'generating'
-        ? h('p', { className: 'nv-review__repair-status', 'data-novel-review-repair-generating': '', role: 'status', 'aria-live': 'polite' }, '正在生成修复候选…')
-        : state.repairStatus === 'error'
-          ? h('p', { className: 'nv-review__repair-error', 'data-novel-review-repair-error': '', role: 'alert' }, state.repairMessage ?? '修复候选生成失败')
-          : state.repairCandidate === undefined ? null : h('section', { className: 'nv-review__repair-candidate', 'data-novel-review-repair-candidate': state.repairCandidate.candidate.id },
-            h('h4', null, '修复候选（待作者审阅）'),
-            h('p', { className: 'nv-review__issue-meta' }, `问题指纹：${state.repairCandidate.issueFingerprint} · 目标：${state.repairCandidate.target.chapterId}/${state.repairCandidate.target.sceneId}`),
-            state.repairCandidate.anchor === undefined ? null : h('p', { className: 'nv-review__issue-meta' }, `精确引文：${state.repairCandidate.anchor.quote}`),
-            h('pre', { className: 'nv-review__repair-text' }, state.repairCandidate.candidate.text),
-            h('p', { className: 'nv-review__issue-meta' }, '候选已注册到既有写作裁决 owner；未自动接受或修改正文。'),
-          ),
+          issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, ops.repair, repairBusy, links))),
+      repairSessionPanel(h, state.repairSession, ops),
       h('div', { className: 'nv-editor__actions' },
         h('button', {
           type: 'button',

@@ -1,0 +1,19 @@
+{
+  "iteration": "I129",
+  "requirement": "R18-3b",
+  "guarantees": [
+    "accepted-repair-reuses-existing-writing-adjudication-owner-and-then-rescans",
+    "only-correlated-missing-fingerprint-enters-client-session-resolved",
+    "persistent-issue-and-rescan-failure-remain-unresolved-or-uncertain",
+    "manual-full-rescan-and-session-reset-clear-resolved-evidence",
+    "duplicate-accept-scan-and-cancel-late-result-guards-are-idempotent",
+    "reject-path-does-not-trigger-scan-or-direct-c5-write"
+  ],
+  "focusedSuites": "I129 session state-machine and review panel consumer suites passed",
+  "explicitNonGoals": [
+    "host-resolved-ledger",
+    "cross-session-history",
+    "new-review-remote",
+    "direct-c5-write"
+  ]
+}
