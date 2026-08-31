@@ -20,6 +20,7 @@ export type {
   TextMutationNamespace,
   TextDeletionNamespace,
   OutlineGenerationBaselineNamespace,
+  OutlineReconciliationNamespace,
   RemoteResult,
 } from './remote-namespace.js';
 import type {
@@ -39,6 +40,7 @@ import type {
   TextMutationNamespace,
   TextDeletionNamespace,
   RemoteResult,
+  OutlineReconciliationNamespace,
 } from './remote-namespace.js';
 
 export type BundleRequire = (spec: string) => unknown;
@@ -147,4 +149,4 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution };
+export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, outlineReconciliationRemoteContribution } from '../remote.js';

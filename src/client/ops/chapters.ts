@@ -12,7 +12,7 @@ import type { ChaptersInternal } from './chapters-internal.js';
 import { createChaptersManagementOps } from './chapters-management.js';
 
 /** chapters 层窄 port：editor（workspace）+ candidate（workspace/writing）+ branch（branchNamespace）。 */
-export type ChaptersPort = Pick<OpsPorts, 'workspace' | 'writing' | 'branchNamespace' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion'>;
+export type ChaptersPort = Pick<OpsPorts, 'workspace' | 'writing' | 'branchNamespace' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
 
 export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref: { current?: ChaptersEditOps }): ChaptersEditOps {
   const internal: ChaptersInternal = { loadScene: () => undefined, branchesLoad: () => undefined, selectChapter: () => undefined };

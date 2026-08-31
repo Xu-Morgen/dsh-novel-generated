@@ -1,6 +1,9 @@
 import type { El, WorkspaceNamespace, WritingNamespace, BranchNamespace } from '../shared.js';
 import type { TextDeletionImpact, TextDeletionTarget } from '../../core/schema/text-deletion.js';
 import type { ChapterStatus } from '../../core/schema/text.js';
+import type { DetailBeat } from '../../core/schema/outline.js';
+import type { OutlineReconciliationChoice, OutlineReconciliationPlan } from '../../core/schema/outline-reconciliation.js';
+import type { OutlineReconciliationContinueResult, OutlineReconciliationFinalizeResult } from '../../core/schema/outline-reconciliation-application.js';
 import { branchPanel, freshBranchPanel, type BranchPanelState } from './branch.js';
 import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from './candidate.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
@@ -62,6 +65,18 @@ export interface SceneManagementDraft {
 
 export type ChapterManagementStatus = 'idle' | 'loading' | 'ready' | 'error';
 export type ChapterDeletionStatus = 'idle' | 'loading' | 'ready' | 'blocked' | 'proposing' | 'pending' | 'applying' | 'rejecting' | 'done' | 'stale' | 'error';
+export type OutlineReconciliationUiStatus = 'idle' | 'loading' | 'ready' | 'proposing' | 'pending' | 'accepting' | 'rejecting' | 'finalizing' | 'continuing' | 'done' | 'needs-target' | 'blocked-pending' | 'error';
+export interface OutlineReconciliationPanelState {
+  readonly status: OutlineReconciliationUiStatus;
+  readonly planId: string;
+  readonly plan?: OutlineReconciliationPlan;
+  readonly decisions: Readonly<Record<string, OutlineReconciliationChoice>>;
+  readonly manualValues: Readonly<Record<string, DetailBeat>>;
+  readonly proposalId?: string;
+  readonly finalResult?: OutlineReconciliationFinalizeResult;
+  readonly continueResult?: OutlineReconciliationContinueResult;
+  readonly message?: string;
+}
 export interface ChapterManagementState {
   readonly status: ChapterManagementStatus;
   readonly message?: string;
@@ -71,6 +86,8 @@ export interface ChapterManagementState {
   readonly bindingDetailBeatId: string;
   readonly binding?: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly manual: Array<{ sceneId: string; detailBeatId: string }>; readonly effective: Array<{ sceneId: string; detailBeatId: string; chapterId: string; source: 'manual' | 'default' }>; readonly fingerprint?: string; readonly message?: string };
   readonly deletion: { readonly status: ChapterDeletionStatus; readonly target?: TextDeletionTarget; readonly impact?: TextDeletionImpact; readonly proposalId?: string; readonly message?: string };
+  /** I114 materials-mode reconciliation state; the plan is a Host-owned read projection. */
+  readonly reconciliation: OutlineReconciliationPanelState;
 }
 
 export interface ChaptersLayerState {
@@ -141,6 +158,15 @@ export interface ChaptersEditOps {
   proposeDelete(): void;
   applyDelete(): void;
   rejectDelete(): void;
+  reconciliationPlanId(value: string): void;
+  reconciliationRead(): void;
+  reconciliationChoice(detailBeatId: string, choice: OutlineReconciliationChoice): void;
+  reconciliationManualPatch(detailBeatId: string, patch: Partial<DetailBeat>): void;
+  reconciliationPropose(): void;
+  reconciliationAccept(): void;
+  reconciliationReject(): void;
+  reconciliationFinalize(): void;
+  reconciliationContinue(): void;
 }
 
 export function freshChapters(): ChaptersLayerState {
@@ -160,6 +186,7 @@ export function freshChapters(): ChaptersLayerState {
       bindingDetailBeatId: '',
       binding: { status: 'idle', manual: [], effective: [] },
       deletion: { status: 'idle' },
+      reconciliation: { status: 'idle', planId: '', decisions: {}, manualValues: {} },
     },
   };
 }
@@ -245,6 +272,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
   const chapter = state.chapter.read;
   const selectedScene = state.scene.item;
   const deletion = management.deletion;
+  const reconciliation = management.reconciliation;
   return h('div', { className: 'nv-chapters__management', 'data-novel-chapter-management': '', 'data-novel-management-state': management.status },
     h('h3', { className: 'nv-editor__title' }, '章节管理'),
     h('div', { className: 'nv-editor__actions' },
@@ -282,6 +310,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
       ),
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-binding-state': management.binding?.status ?? 'idle' }, `手动绑定 ${management.binding?.manual.length ?? 0} 条；有效映射 ${management.binding?.effective.length ?? 0} 条`),
     ),
+    reconciliationPanel(h, reconciliation, ops),
     h('div', { className: 'nv-chapters__deletion', 'data-novel-deletion': '', 'data-novel-deletion-state': deletion.status },
       h('h4', { className: 'nv-editor__title' }, '受控删除'),
       deletion.impact !== undefined ? h('p', { className: 'nv-chapters__item-meta', 'data-novel-deletion-impact': '' }, `影响：${deletion.impact.sceneCount} 个场景，${deletion.impact.proseCharacters} 字，${deletion.impact.branchCount} 个分支；绑定 ${deletion.impact.bindings.length} 条`) : null,
@@ -295,6 +324,48 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject': '', onClick: () => ops.rejectDelete() }, '拒绝'),
       ) : null,
     ),
+  );
+}
+
+function reconciliationPanel(h: El, state: ChapterManagementState['reconciliation'], ops: ChaptersEditOps): unknown {
+  const plan = state.plan;
+  return h('div', { className: 'nv-chapters__reconciliation', 'data-novel-outline-reconciliation': '', 'data-novel-reconciliation-state': state.status },
+    h('h4', { className: 'nv-editor__title' }, '正文变化与细纲调和'),
+    managementInput(h, '调和计划 ID', state.planId, (value) => ops.reconciliationPlanId(value), 'reconciliation-plan-id'),
+    h('div', { className: 'nv-editor__actions' },
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-read': '', onClick: () => ops.reconciliationRead() }, '读取影响计划'),
+      state.proposalId === undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-propose': '', onClick: () => ops.reconciliationPropose(), disabled: plan === undefined }, '提交一次确认') : null,
+      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-accept': '', onClick: () => ops.reconciliationAccept() }, '接受已确认方案') : null,
+      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-reject': '', onClick: () => ops.reconciliationReject() }, '拒绝方案') : null,
+    ),
+    plan === undefined ? h('p', { className: 'nv-chapters__empty', 'data-novel-reconciliation-empty': '' }, '读取 I113 影响计划后，在此逐卡选择。') : h('div', { 'data-novel-reconciliation-plan': plan.planId },
+      h('p', { className: 'nv-chapters__item-meta', 'data-novel-reconciliation-summary': '' }, `影响类型：${plan.reportClassification}；受影响细纲：${plan.items.length} 张；版本 ${plan.revision}`),
+      plan.items.map((item) => {
+        const choice = state.decisions[item.detailBeatId] ?? item.choice;
+        const manual = state.manualValues[item.detailBeatId] ?? item.before;
+        return h('article', { key: item.detailBeatId, className: 'nv-chapters__reconciliation-card', 'data-novel-reconciliation-card': item.detailBeatId },
+          h('h5', { className: 'nv-editor__title' }, `${item.position + 1}. ${item.before.title}`),
+          h('p', { className: 'nv-chapters__item-meta' }, `证据：${item.evidence.map((evidence) => evidence.afterQuote).join('；')}`),
+          h('div', { className: 'nv-editor__actions', 'data-novel-reconciliation-choices': item.detailBeatId },
+            (['keep', 'ai', 'manual', 'pending'] as const).map((option) => h('button', {
+              key: option, type: 'button', className: 'nv-btn' + (choice === option ? ' is-active' : ''),
+              'data-novel-reconciliation-choice': option, 'aria-pressed': choice === option,
+              onClick: () => ops.reconciliationChoice(item.detailBeatId, option),
+            }, option === 'keep' ? '保留' : option === 'ai' ? '采用 AI' : option === 'manual' ? '手动编辑' : '待定')),
+          ),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--link', 'data-novel-reconciliation-evidence': item.detailBeatId, onClick: () => undefined }, '定位正文证据'),
+          choice === 'manual' ? h('div', { className: 'nv-chapters__reconciliation-manual', 'data-novel-reconciliation-manual': item.detailBeatId },
+            managementInput(h, '手动标题', manual.title, (value) => ops.reconciliationManualPatch(item.detailBeatId, { title: value }), 'reconciliation-manual-title'),
+            managementInput(h, '手动摘要', manual.summary, (value) => ops.reconciliationManualPatch(item.detailBeatId, { summary: value }), 'reconciliation-manual-summary'),
+          ) : null,
+        );
+      }),
+      h('div', { className: 'nv-editor__actions', 'data-novel-reconciliation-next-scene': '' },
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-finalize': '', onClick: () => ops.reconciliationFinalize(), disabled: state.proposalId === undefined }, '定稿当前细纲'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-continue': '', onClick: () => ops.reconciliationContinue(), disabled: state.proposalId === undefined }, '定稿并继续下一场'),
+      ),
+    ),
+    state.message === undefined ? null : h('p', { className: 'nv-error', 'data-novel-reconciliation-message': '' }, state.message),
   );
 }
 

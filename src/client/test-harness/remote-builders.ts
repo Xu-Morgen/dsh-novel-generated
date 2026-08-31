@@ -19,6 +19,21 @@ export interface MountOptionsI107 {
   branch?: { list?: (projectId: string, chapterId: string, sceneId: string) => Promise<unknown>; read?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; save?: (projectId: string, chapterId: string, sceneId: string, label: string) => Promise<unknown>; choose?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; diff?: (projectId: string, chapterId: string, sceneId: string, branchId: string, toBranchId?: string) => Promise<unknown> };
 }
 
+/** I114 reconciliation namespace injection for materials-mode Client E2E. */
+export interface MountOptionsI114 {
+  outlineReconciliation?: {
+    prepare?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    regenerateOne?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    read?: (projectId: string, planId: string) => Promise<unknown>;
+    cancel?: (projectId: string, planId: string) => Promise<unknown>;
+    propose?: (projectId: string, input: unknown) => Promise<unknown>;
+    accept?: (projectId: string, proposalId: string) => Promise<unknown>;
+    reject?: (projectId: string, proposalId: string) => Promise<unknown>;
+    finalize?: (projectId: string, input: unknown) => Promise<unknown>;
+    continue?: (projectId: string, input: unknown) => Promise<unknown>;
+  };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
@@ -26,6 +41,7 @@ export interface MountOptions {
   textDeletion?: MountOptionsI106['textDeletion'];
   branch?: MountOptionsI107['branch'];
   sceneReparsePreview?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
+  outlineReconciliation?: MountOptionsI114['outlineReconciliation'];
 }
 
 export interface WorkspaceOverrides {

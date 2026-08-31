@@ -35,6 +35,7 @@ import type {
   TimelineNamespace,
   TextMutationNamespace,
   TextDeletionNamespace,
+  OutlineReconciliationNamespace,
   WorkspaceNamespace,
   WritingNamespace,
 } from './shared.js';
@@ -53,6 +54,7 @@ import {
   writingRemoteContribution,
 } from './shared.js';
 import { sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
+import { outlineReconciliationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
@@ -85,6 +87,7 @@ export interface RemoteServiceBag {
   sceneOutlineBinding?: SceneOutlineBindingNamespace;
   textMutation?: TextMutationNamespace;
   textDeletion?: TextDeletionNamespace;
+  outlineReconciliation?: OutlineReconciliationNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -132,6 +135,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'textMutation', contribution: textMutationRemoteContribution, serviceKey: 'remote.novelText', label: 'text mutation', bind: bindInto('textMutation') },
     { key: 'sceneOutlineBinding', contribution: sceneOutlineBindingRemoteContribution, serviceKey: 'remote.novelSceneOutlineBinding', label: 'scene outline binding', bind: bindInto('sceneOutlineBinding') },
     { key: 'textDeletion', contribution: textDeletionRemoteContribution, serviceKey: 'remote.novelTextDeletion', label: 'text deletion', bind: bindInto('textDeletion') },
+    { key: 'outlineReconciliation', contribution: outlineReconciliationRemoteContribution, serviceKey: 'remote.novelOutlineReconciliation', label: 'outline reconciliation', bind: bindInto('outlineReconciliation') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

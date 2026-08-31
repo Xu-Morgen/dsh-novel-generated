@@ -1,0 +1,49 @@
+{
+  "iteration": "I114",
+  "requirement": "R18-11d",
+  "remoteNamespace": "novelOutlineReconciliation",
+  "applicationMethods": [
+    "propose",
+    "accept",
+    "reject",
+    "finalize",
+    "continue"
+  ],
+  "guarantees": [
+    "strict-gate-payload-and-decision-contract",
+    "unconfirmed-rejected-incomplete-and-stale-zero-write",
+    "accepted-future-card-only-B5-application",
+    "pending-choice-records-C6-deviation",
+    "same-host-lane-B5-C6-compensation",
+    "explicit-current-detail-beat-finalize",
+    "monotonic-C6-beat-completion-and-navigation",
+    "next-baseline-uses-exact-reconciled-B5-or-needs-target",
+    "duplicate-accept-finalize-continue-idempotent",
+    "materials-mode-four-state-manual-evidence-and-next-scene-entry",
+    "real-DSH-client-binder-and-client-materials-consumer"
+  ],
+  "explicitNonGoals": [
+    "automatic-body-accept",
+    "unattended-outline-edit",
+    "act-beat-restructure",
+    "book-revision-timeline"
+  ],
+  "contractLock": {
+    "descriptorCount": 144,
+    "resultSchemaCount": 50,
+    "plannerSuffix": [
+      "novel-creation-tool/novelOutlineReconciliation/prepare",
+      "novel-creation-tool/novelOutlineReconciliation/regenerateOne",
+      "novel-creation-tool/novelOutlineReconciliation/read",
+      "novel-creation-tool/novelOutlineReconciliation/cancel"
+    ],
+    "applicationSuffix": [
+      "novel-creation-tool/novelOutlineReconciliation/propose",
+      "novel-creation-tool/novelOutlineReconciliation/accept",
+      "novel-creation-tool/novelOutlineReconciliation/reject",
+      "novel-creation-tool/novelOutlineReconciliation/finalize",
+      "novel-creation-tool/novelOutlineReconciliation/continue"
+    ]
+  },
+  "focusedSuites": "Host UoW consumer, materials Client, real DSH binder, and contract lock suites passed"
+}

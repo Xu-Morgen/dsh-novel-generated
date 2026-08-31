@@ -1,10 +1,13 @@
 import { unwrap } from '../shared.js';
 import type { ChapterMetadataPatch, SceneMetadataPatch } from '../../core/schema/text-mutation.js';
 import type { TextDeletionTarget } from '../../core/schema/text-deletion.js';
+import type { DetailBeat } from '../../core/schema/outline.js';
+import type { OutlineReconciliationChoice } from '../../core/schema/outline-reconciliation.js';
+import type { OutlineReconciliationPanelState } from '../layers/chapters.js';
 import type { ChapterManagementDraft, ChapterManagementState, ChaptersEditOps, SceneManagementDraft } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 
-type ManagementPort = Pick<OpsPorts, 'workspace' | 'writing' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion'>;
+type ManagementPort = Pick<OpsPorts, 'workspace' | 'writing' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
 
 /**
  * I106 章节管理 ops：所有 CRUD、绑定和删除交互都经 Host Remote；成功后重读
@@ -17,6 +20,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
   const managementPatch = (value: Partial<ChapterManagementState>): void => patch(value);
   const chapterDraft = (value: Partial<ChapterManagementDraft>): void => patch({ chapterDraft: { ...snapshot.chapters.management.chapterDraft, ...value } });
   const sceneDraft = (value: Partial<SceneManagementDraft>): void => patch({ sceneDraft: { ...snapshot.chapters.management.sceneDraft, ...value } });
+  const reconciliationPatch = (value: Partial<OutlineReconciliationPanelState>): void => patch({ reconciliation: { ...snapshot.chapters.management.reconciliation, ...value } });
 
   const reloadTree = (key: string): void => {
     const workspace = port.workspace;
@@ -264,6 +268,90 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     }, (cause: Error) => { endOp('chapters:management:delete-reject'); if (isActive()) patch({ deletion: { ...current, status: 'error', message: cause.message } }); });
   };
 
+  const reconciliationPlanId = (value: string): void => reconciliationPatch({ planId: value, message: undefined });
+  const reconciliationRead = (): void => {
+    const remote = port.outlineReconciliation;
+    const planId = snapshot.chapters.management.reconciliation.planId.trim();
+    if (!remote || projectId === undefined || planId === '' || !beginOp('chapters:reconciliation:read')) return;
+    reconciliationPatch({ status: 'loading', message: undefined });
+    void unwrap(remote.read(projectId, planId)).then((plan) => {
+      endOp('chapters:reconciliation:read');
+      if (!isActive()) return;
+      const value = plan as import('../../core/schema/outline-reconciliation.js').OutlineReconciliationPlan;
+      const decisions = Object.fromEntries(value.items.map((item) => [item.detailBeatId, item.choice]));
+      const manualValues = Object.fromEntries(value.items.map((item) => [item.detailBeatId, item.manualValue ?? item.before]));
+      reconciliationPatch({ status: 'ready', plan: value, decisions, manualValues, proposalId: undefined, finalResult: undefined, continueResult: undefined });
+    }, (cause: Error) => {
+      endOp('chapters:reconciliation:read');
+      if (isActive()) reconciliationPatch({ status: 'error', message: cause.message });
+    });
+  };
+  const reconciliationChoice = (detailBeatId: string, choice: OutlineReconciliationChoice): void => {
+    const plan = snapshot.chapters.management.reconciliation.plan;
+    if (plan === undefined || !plan.items.some((item) => item.detailBeatId === detailBeatId)) return;
+    reconciliationPatch({ decisions: { ...snapshot.chapters.management.reconciliation.decisions, [detailBeatId]: choice }, message: undefined });
+  };
+  const reconciliationManualPatch = (detailBeatId: string, value: Partial<DetailBeat>): void => {
+    const current = snapshot.chapters.management.reconciliation.manualValues[detailBeatId];
+    if (current === undefined) return;
+    reconciliationPatch({ manualValues: { ...snapshot.chapters.management.reconciliation.manualValues, [detailBeatId]: { ...current, ...value, id: detailBeatId, status: 'planned' } } });
+  };
+  const reconciliationDecisions = () => {
+    const current = snapshot.chapters.management.reconciliation;
+    if (current.plan === undefined) throw new Error('请先读取调和计划');
+    return current.plan.items.map((item) => ({ detailBeatId: item.detailBeatId, choice: current.decisions[item.detailBeatId] ?? item.choice, ...((current.decisions[item.detailBeatId] ?? item.choice) === 'manual' ? { manualValue: current.manualValues[item.detailBeatId] ?? item.before } : {}) }));
+  };
+  const reconciliationPropose = (): void => {
+    const remote = port.outlineReconciliation;
+    const current = snapshot.chapters.management.reconciliation;
+    if (!remote || projectId === undefined || current.plan === undefined || !beginOp('chapters:reconciliation:propose')) return;
+    reconciliationPatch({ status: 'proposing', message: undefined });
+    void unwrap(remote.propose(projectId, { planId: current.plan.planId, decisions: reconciliationDecisions() })).then((result) => {
+      endOp('chapters:reconciliation:propose'); if (!isActive()) return;
+      const value = result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationProposeResult;
+      reconciliationPatch({ status: 'pending', proposalId: value.proposalId });
+    }, (cause: Error) => { endOp('chapters:reconciliation:propose'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+  };
+  const reconciliationAccept = (): void => {
+    const remote = port.outlineReconciliation;
+    const current = snapshot.chapters.management.reconciliation;
+    if (!remote || projectId === undefined || current.proposalId === undefined || !beginOp('chapters:reconciliation:accept')) return;
+    reconciliationPatch({ status: 'accepting', message: undefined });
+    void unwrap(remote.accept(projectId, current.proposalId)).then(() => {
+      endOp('chapters:reconciliation:accept'); if (isActive()) reconciliationPatch({ status: 'done' });
+    }, (cause: Error) => { endOp('chapters:reconciliation:accept'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+  };
+  const reconciliationReject = (): void => {
+    const remote = port.outlineReconciliation;
+    const current = snapshot.chapters.management.reconciliation;
+    if (!remote || projectId === undefined || current.proposalId === undefined || !beginOp('chapters:reconciliation:reject')) return;
+    reconciliationPatch({ status: 'rejecting', message: undefined });
+    void unwrap(remote.reject(projectId, current.proposalId)).then(() => {
+      endOp('chapters:reconciliation:reject'); if (isActive()) reconciliationPatch({ status: 'idle', proposalId: undefined });
+    }, (cause: Error) => { endOp('chapters:reconciliation:reject'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+  };
+  const reconciliationFinalize = (): void => {
+    const remote = port.outlineReconciliation;
+    const current = snapshot.chapters.management.reconciliation;
+    if (!remote || projectId === undefined || current.plan === undefined || !beginOp('chapters:reconciliation:finalize')) return;
+    reconciliationPatch({ status: 'finalizing', message: undefined });
+    void unwrap(remote.finalize(projectId, { planId: current.plan.planId, finalSourceHash: current.plan.finalSourceHash })).then((result) => {
+      endOp('chapters:reconciliation:finalize'); if (!isActive()) return;
+      reconciliationPatch({ status: 'done', finalResult: result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationFinalizeResult });
+    }, (cause: Error) => { endOp('chapters:reconciliation:finalize'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+  };
+  const reconciliationContinue = (): void => {
+    const remote = port.outlineReconciliation;
+    const current = snapshot.chapters.management.reconciliation;
+    if (!remote || projectId === undefined || current.plan === undefined || !beginOp('chapters:reconciliation:continue')) return;
+    reconciliationPatch({ status: 'continuing', message: undefined });
+    void unwrap(remote.continue(projectId, { planId: current.plan.planId, finalSourceHash: current.plan.finalSourceHash })).then((result) => {
+      endOp('chapters:reconciliation:continue'); if (!isActive()) return;
+      const value = result as import('../../core/schema/outline-reconciliation-application.js').OutlineReconciliationContinueResult;
+      reconciliationPatch({ status: value.status === 'continued' ? 'done' : value.status, continueResult: value });
+    }, (cause: Error) => { endOp('chapters:reconciliation:continue'); if (isActive()) reconciliationPatch({ status: 'error', message: cause.message }); });
+  };
+
   return {
     chapterDraft,
     sceneDraft,
@@ -284,5 +372,14 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     proposeDelete,
     applyDelete,
     rejectDelete,
-  } satisfies Pick<ChaptersEditOps, 'chapterDraft' | 'sceneDraft' | 'managementPatch' | 'createChapter' | 'updateChapter' | 'createScene' | 'updateScene' | 'reorder' | 'refreshManagement' | 'bindingSave' | 'bindingRebind' | 'bindingUnbind' | 'chooseDeleteTarget' | 'refreshDeleteImpact' | 'cancelDeleteQueue' | 'rejectDeleteCandidates' | 'proposeDelete' | 'applyDelete' | 'rejectDelete'>;
+    reconciliationPlanId,
+    reconciliationRead,
+    reconciliationChoice,
+    reconciliationManualPatch,
+    reconciliationPropose,
+    reconciliationAccept,
+    reconciliationReject,
+    reconciliationFinalize,
+    reconciliationContinue,
+  } satisfies Pick<ChaptersEditOps, 'chapterDraft' | 'sceneDraft' | 'managementPatch' | 'createChapter' | 'updateChapter' | 'createScene' | 'updateScene' | 'reorder' | 'refreshManagement' | 'bindingSave' | 'bindingRebind' | 'bindingUnbind' | 'chooseDeleteTarget' | 'refreshDeleteImpact' | 'cancelDeleteQueue' | 'rejectDeleteCandidates' | 'proposeDelete' | 'applyDelete' | 'rejectDelete' | 'reconciliationPlanId' | 'reconciliationRead' | 'reconciliationChoice' | 'reconciliationManualPatch' | 'reconciliationPropose' | 'reconciliationAccept' | 'reconciliationReject' | 'reconciliationFinalize' | 'reconciliationContinue'>;
 }

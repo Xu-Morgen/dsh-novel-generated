@@ -20,6 +20,7 @@ import { timelineInvocations, timelineRemoteContribution } from './host/remote/t
 import { textMutationInvocations, textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { sceneOutlineBindingInvocations, sceneOutlineBindingRemoteContribution } from './host/remote/scene-outline-binding.js';
 import { textDeletionInvocations, textDeletionRemoteContribution } from './host/remote/text-deletion.js';
+import { outlineReconciliationInvocations, outlineReconciliationRemoteContribution } from './host/remote/outline-reconciliation.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -30,6 +31,7 @@ export * from './host/remote/text.js';
 export * from './host/remote/text-mutation.js';
 export * from './host/remote/scene-outline-binding.js';
 export * from './host/remote/text-deletion.js';
+export * from './host/remote/outline-reconciliation.js';
 export * from './host/remote/onboarding.js';
 export * from './host/remote/onboarding-analyzer.js';
 export * from './host/remote/llm-config.js';
@@ -48,4 +50,4 @@ export * from './host/remote/timeline.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, outlineReconciliationInvocations, outlineReconciliationRemoteContribution };

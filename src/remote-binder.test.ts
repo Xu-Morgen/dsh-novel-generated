@@ -204,6 +204,16 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelOutlineReconciliation/cancel':
       return { planId: 'reconcile-1', status: 'cancelled' };
+    case 'novelOutlineReconciliation/propose':
+      return { projectId: 'p1', planId: 'reconcile-1', proposalId: 'reconcile-apply-1', status: 'pending', decisions: [] };
+    case 'novelOutlineReconciliation/accept':
+      return { projectId: 'p1', planId: 'reconcile-1', proposalId: 'reconcile-apply-1', status: 'accepted', appliedDetailBeatIds: [], pendingDetailBeatIds: [], b5ContentFingerprint: 'c'.repeat(64) };
+    case 'novelOutlineReconciliation/reject':
+      return { projectId: 'p1', planId: 'reconcile-1', proposalId: 'reconcile-apply-1', status: 'rejected' };
+    case 'novelOutlineReconciliation/finalize':
+      return { projectId: 'p1', planId: 'reconcile-1', baselineId: 'baseline-1', status: 'finalized', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint: 'c'.repeat(64) };
+    case 'novelOutlineReconciliation/continue':
+      return { projectId: 'p1', planId: 'reconcile-1', baselineId: 'baseline-1', status: 'needs-target', reason: 'missing-binding', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint: 'c'.repeat(64) };
     case 'novelQueue/startAt':
       return {
         projectId: 'p1', runState: 'idle',
@@ -420,6 +430,27 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
         'novelOutlineReconciliation/prepare', 'novelOutlineReconciliation/regenerateOne',
         'novelOutlineReconciliation/read', 'novelOutlineReconciliation/cancel',
       ]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I114 outline-reconciliation application methods use the strict client binder contract', async () => {
+    const mounted = await mount(outlineReconciliationRemoteContribution);
+    try {
+      const reconciliation = mounted.client.get('remote.novelOutlineReconciliation') as OutlineReconciliationNamespace;
+      const proposal = await unwrap(reconciliation.propose('p1', { planId: 'reconcile-1', decisions: [] }));
+      expect(proposal).toMatchObject({ planId: 'reconcile-1', status: 'pending' });
+      expect(await unwrap(reconciliation.accept('p1', proposal.proposalId))).toMatchObject({ status: 'accepted' });
+      expect(await unwrap(reconciliation.finalize('p1', { planId: 'reconcile-1', finalSourceHash: 'b'.repeat(64) }))).toMatchObject({ status: 'finalized' });
+      expect(await unwrap(reconciliation.continue('p1', { planId: 'reconcile-1', finalSourceHash: 'b'.repeat(64) }))).toMatchObject({ status: 'needs-target' });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelOutlineReconciliation/propose', 'novelOutlineReconciliation/accept',
+        'novelOutlineReconciliation/finalize', 'novelOutlineReconciliation/continue',
+      ]);
+      await expect(Reflect.apply(reconciliation.propose, reconciliation, ['p1', { planId: 'reconcile-1', decisions: [], extra: true }])).rejects.toThrow(/rejected "input"/);
+      expect(mounted.calls).toHaveLength(4);
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();

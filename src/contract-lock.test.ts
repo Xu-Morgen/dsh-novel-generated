@@ -18,7 +18,7 @@ import {
 import { textDeletionInvocations } from './host/remote/text-deletion.js';
 import { outlineGenerationBaselineInvocations } from './host/remote/outline-generation-baseline.js';
 import { textChangeImpactInvocations } from './host/remote/text-change-impact.js';
-import { outlineReconciliationInvocations } from './host/remote/outline-reconciliation.js';
+import { outlineReconciliationApplicationInvocations, outlineReconciliationPlannerInvocations } from './host/remote/outline-reconciliation.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -52,9 +52,10 @@ const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((desc
 const i110DescriptorIds = new Set([writingPreviewLayersInvocation.id]);
 const i111DescriptorIds = new Set([sceneReparsePreviewInvocation.id]);
 const i112DescriptorIds = new Set(textChangeImpactInvocations.map((descriptor) => descriptor.id));
-const i113DescriptorIds = new Set(outlineReconciliationInvocations.map((descriptor) => descriptor.id));
+const i113DescriptorIds = new Set(outlineReconciliationPlannerInvocations.map((descriptor) => descriptor.id));
+const i114DescriptorIds = new Set(outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
@@ -63,7 +64,8 @@ const stage18Descriptors = [
   writingPreviewLayersInvocation,
   sceneReparsePreviewInvocation,
   ...textChangeImpactInvocations,
-  ...outlineReconciliationInvocations,
+  ...outlineReconciliationPlannerInvocations,
+  ...outlineReconciliationApplicationInvocations,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
@@ -80,7 +82,8 @@ const stage18ResultDescriptors = [
   writingPreviewLayersInvocation,
   sceneReparsePreviewInvocation,
   ...textChangeImpactInvocations,
-  ...outlineReconciliationInvocations,
+  ...outlineReconciliationPlannerInvocations,
+  ...outlineReconciliationApplicationInvocations,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -152,8 +155,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(139);
-    expect(remoteLock.resultSchemaIds).toHaveLength(45);
+    expect(remoteLock.descriptorIds).toHaveLength(144);
+    expect(remoteLock.resultSchemaIds).toHaveLength(50);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -163,7 +166,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       writingPreviewLayersInvocation.id,
       sceneReparsePreviewInvocation.id,
       ...textChangeImpactInvocations.map((descriptor) => descriptor.id),
-      ...outlineReconciliationInvocations.map((descriptor) => descriptor.id),
+      ...outlineReconciliationPlannerInvocations.map((descriptor) => descriptor.id),
+      ...outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -172,7 +176,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       writingPreviewLayersInvocation.id,
       sceneReparsePreviewInvocation.id,
       ...textChangeImpactInvocations.map((descriptor) => descriptor.id),
-      ...outlineReconciliationInvocations.map((descriptor) => descriptor.id),
+      ...outlineReconciliationPlannerInvocations.map((descriptor) => descriptor.id),
+      ...outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

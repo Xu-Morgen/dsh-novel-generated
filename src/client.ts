@@ -210,6 +210,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           sceneOutlineBinding: serviceBag.sceneOutlineBinding,
           textMutation: serviceBag.textMutation,
           textDeletion: serviceBag.textDeletion,
+          outlineReconciliation: serviceBag.outlineReconciliation,
         },
       );
 
@@ -277,6 +278,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               sceneOutlineBinding: serviceBag.sceneOutlineBinding,
               textMutation: serviceBag.textMutation,
               textDeletion: serviceBag.textDeletion,
+              outlineReconciliation: serviceBag.outlineReconciliation,
               onboardingNamespace: serviceBag.onboarding,
             },
             ui,

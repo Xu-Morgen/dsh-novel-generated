@@ -141,7 +141,12 @@
     "novel-creation-tool/novelOutlineReconciliation/prepare",
     "novel-creation-tool/novelOutlineReconciliation/regenerateOne",
     "novel-creation-tool/novelOutlineReconciliation/read",
-    "novel-creation-tool/novelOutlineReconciliation/cancel"
+    "novel-creation-tool/novelOutlineReconciliation/cancel",
+    "novel-creation-tool/novelOutlineReconciliation/propose",
+    "novel-creation-tool/novelOutlineReconciliation/accept",
+    "novel-creation-tool/novelOutlineReconciliation/reject",
+    "novel-creation-tool/novelOutlineReconciliation/finalize",
+    "novel-creation-tool/novelOutlineReconciliation/continue"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -29299,6 +29304,1265 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelOutlineReconciliation/propose": {
+      "id": "novel-creation-tool/novelOutlineReconciliation/propose",
+      "service": "novelOutlineReconciliation",
+      "namespace": "novelOutlineReconciliation",
+      "method": "propose",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:proposeInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "decisions": {
+                  "maxItems": 32,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "choice": {
+                        "type": "string",
+                        "enum": [
+                          "keep",
+                          "ai",
+                          "manual",
+                          "pending"
+                        ]
+                      },
+                      "manualValue": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "detailBeatId",
+                      "choice"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "planId",
+                "decisions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:propose",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "pending"
+            },
+            "decisions": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "detailBeatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "choice": {
+                    "type": "string",
+                    "enum": [
+                      "keep",
+                      "ai",
+                      "manual",
+                      "pending"
+                    ]
+                  },
+                  "manualValue": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "detailBeatId",
+                  "choice"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "status",
+            "decisions"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelOutlineReconciliation/accept": {
+      "id": "novel-creation-tool/novelOutlineReconciliation/accept",
+      "service": "novelOutlineReconciliation",
+      "namespace": "novelOutlineReconciliation",
+      "method": "accept",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:accept",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "appliedDetailBeatIds": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "pendingDetailBeatIds": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "accepted",
+                "already-accepted"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "appliedDetailBeatIds",
+            "pendingDetailBeatIds",
+            "b5ContentFingerprint",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelOutlineReconciliation/reject": {
+      "id": "novel-creation-tool/novelOutlineReconciliation/reject",
+      "service": "novelOutlineReconciliation",
+      "namespace": "novelOutlineReconciliation",
+      "method": "reject",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "proposalId",
+          "wire": "proposalId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:reject",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "rejected",
+                "already-rejected"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "proposalId",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelOutlineReconciliation/finalize": {
+      "id": "novel-creation-tool/novelOutlineReconciliation/finalize",
+      "service": "novelOutlineReconciliation",
+      "namespace": "novelOutlineReconciliation",
+      "method": "finalize",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:finalizeInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "finalSourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "planId",
+                "finalSourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:finalize",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "baselineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "done"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "progress": {
+              "type": "object",
+              "properties": {
+                "outlineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentAct": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentBeat": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "completedBeats": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "deviations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "planned": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reconciled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "planned",
+                      "actual",
+                      "reason",
+                      "reconciled"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tensionLevel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "outlineId",
+                "currentAct",
+                "currentBeat",
+                "completedBeats",
+                "deviations",
+                "tensionLevel"
+              ],
+              "additionalProperties": false
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "finalized",
+                "already-finalized"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "baselineId",
+            "current",
+            "progress",
+            "b5ContentFingerprint",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelOutlineReconciliation/continue": {
+      "id": "novel-creation-tool/novelOutlineReconciliation/continue",
+      "service": "novelOutlineReconciliation",
+      "namespace": "novelOutlineReconciliation",
+      "method": "continue",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:continueInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "finalSourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "planId",
+                "finalSourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelOutlineReconciliation:continue",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "done"
+                    }
+                  },
+                  "required": [
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "progress": {
+                  "type": "object",
+                  "properties": {
+                    "outlineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentAct": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentBeat": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "completedBeats": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "deviations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "planned": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "actual": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reconciled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "planned",
+                          "actual",
+                          "reason",
+                          "reconciled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "tensionLevel": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "outlineId",
+                    "currentAct",
+                    "currentBeat",
+                    "completedBeats",
+                    "deviations",
+                    "tensionLevel"
+                  ],
+                  "additionalProperties": false
+                },
+                "b5ContentFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "continued"
+                },
+                "next": {
+                  "type": "object",
+                  "properties": {
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "baselineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "required": [
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "baselineId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "baselineId",
+                "current",
+                "progress",
+                "b5ContentFingerprint",
+                "status",
+                "next"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "done"
+                    }
+                  },
+                  "required": [
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "progress": {
+                  "type": "object",
+                  "properties": {
+                    "outlineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentAct": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentBeat": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "completedBeats": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "deviations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "planned": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "actual": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reconciled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "planned",
+                          "actual",
+                          "reason",
+                          "reconciled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "tensionLevel": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "outlineId",
+                    "currentAct",
+                    "currentBeat",
+                    "completedBeats",
+                    "deviations",
+                    "tensionLevel"
+                  ],
+                  "additionalProperties": false
+                },
+                "b5ContentFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "needs-target"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "no-next-card",
+                    "missing-binding",
+                    "missing-scene"
+                  ]
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "baselineId",
+                "current",
+                "progress",
+                "b5ContentFingerprint",
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "chapterId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "sceneId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "done"
+                    }
+                  },
+                  "required": [
+                    "chapterId",
+                    "sceneId",
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "progress": {
+                  "type": "object",
+                  "properties": {
+                    "outlineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentAct": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "currentBeat": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "completedBeats": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "deviations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "planned": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "actual": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "reconciled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "planned",
+                          "actual",
+                          "reason",
+                          "reconciled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "tensionLevel": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "required": [
+                    "outlineId",
+                    "currentAct",
+                    "currentBeat",
+                    "completedBeats",
+                    "deviations",
+                    "tensionLevel"
+                  ],
+                  "additionalProperties": false
+                },
+                "b5ContentFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "blocked-pending"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "required": [
+                "projectId",
+                "planId",
+                "baselineId",
+                "current",
+                "progress",
+                "b5ContentFingerprint",
+                "status",
+                "detailBeatId"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -29346,7 +30610,12 @@
     "novel-creation-tool/novelOutlineReconciliation/prepare",
     "novel-creation-tool/novelOutlineReconciliation/regenerateOne",
     "novel-creation-tool/novelOutlineReconciliation/read",
-    "novel-creation-tool/novelOutlineReconciliation/cancel"
+    "novel-creation-tool/novelOutlineReconciliation/cancel",
+    "novel-creation-tool/novelOutlineReconciliation/propose",
+    "novel-creation-tool/novelOutlineReconciliation/accept",
+    "novel-creation-tool/novelOutlineReconciliation/reject",
+    "novel-creation-tool/novelOutlineReconciliation/finalize",
+    "novel-creation-tool/novelOutlineReconciliation/continue"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -37756,6 +39025,921 @@
         "status"
       ],
       "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineReconciliation/propose": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "const": "pending"
+        },
+        "decisions": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "detailBeatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "choice": {
+                "type": "string",
+                "enum": [
+                  "keep",
+                  "ai",
+                  "manual",
+                  "pending"
+                ]
+              },
+              "manualValue": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pov": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "wordTarget": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "points": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "planned",
+                      "writing",
+                      "done"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "summary",
+                  "pov",
+                  "wordTarget",
+                  "points",
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "detailBeatId",
+              "choice"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "proposalId",
+        "status",
+        "decisions"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineReconciliation/accept": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "appliedDetailBeatIds": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "pendingDetailBeatIds": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "b5ContentFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "accepted",
+            "already-accepted"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "proposalId",
+        "appliedDetailBeatIds",
+        "pendingDetailBeatIds",
+        "b5ContentFingerprint",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineReconciliation/reject": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "proposalId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "rejected",
+            "already-rejected"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "proposalId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineReconciliation/finalize": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "baselineId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "current": {
+          "type": "object",
+          "properties": {
+            "chapterId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sceneId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "detailBeatId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "done"
+            }
+          },
+          "required": [
+            "chapterId",
+            "sceneId",
+            "detailBeatId",
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        "progress": {
+          "type": "object",
+          "properties": {
+            "outlineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "currentAct": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "currentBeat": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "completedBeats": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "deviations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "planned": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "actual": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reconciled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "planned",
+                  "actual",
+                  "reason",
+                  "reconciled"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "tensionLevel": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "outlineId",
+            "currentAct",
+            "currentBeat",
+            "completedBeats",
+            "deviations",
+            "tensionLevel"
+          ],
+          "additionalProperties": false
+        },
+        "b5ContentFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "finalized",
+            "already-finalized"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
+        "baselineId",
+        "current",
+        "progress",
+        "b5ContentFingerprint",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelOutlineReconciliation/continue": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "baselineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "done"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "progress": {
+              "type": "object",
+              "properties": {
+                "outlineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentAct": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentBeat": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "completedBeats": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "deviations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "planned": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reconciled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "planned",
+                      "actual",
+                      "reason",
+                      "reconciled"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tensionLevel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "outlineId",
+                "currentAct",
+                "currentBeat",
+                "completedBeats",
+                "deviations",
+                "tensionLevel"
+              ],
+              "additionalProperties": false
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "const": "continued"
+            },
+            "next": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "baselineId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "baselineId",
+            "current",
+            "progress",
+            "b5ContentFingerprint",
+            "status",
+            "next"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "baselineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "done"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "progress": {
+              "type": "object",
+              "properties": {
+                "outlineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentAct": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentBeat": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "completedBeats": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "deviations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "planned": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reconciled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "planned",
+                      "actual",
+                      "reason",
+                      "reconciled"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tensionLevel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "outlineId",
+                "currentAct",
+                "currentBeat",
+                "completedBeats",
+                "deviations",
+                "tensionLevel"
+              ],
+              "additionalProperties": false
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "const": "needs-target"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "no-next-card",
+                "missing-binding",
+                "missing-scene"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "baselineId",
+            "current",
+            "progress",
+            "b5ContentFingerprint",
+            "status",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "baselineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "current": {
+              "type": "object",
+              "properties": {
+                "chapterId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sceneId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "done"
+                }
+              },
+              "required": [
+                "chapterId",
+                "sceneId",
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "progress": {
+              "type": "object",
+              "properties": {
+                "outlineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentAct": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "currentBeat": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "completedBeats": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "deviations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "planned": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "actual": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "reconciled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "planned",
+                      "actual",
+                      "reason",
+                      "reconciled"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "tensionLevel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "outlineId",
+                "currentAct",
+                "currentBeat",
+                "completedBeats",
+                "deviations",
+                "tensionLevel"
+              ],
+              "additionalProperties": false
+            },
+            "b5ContentFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "const": "blocked-pending"
+            },
+            "detailBeatId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "baselineId",
+            "current",
+            "progress",
+            "b5ContentFingerprint",
+            "status",
+            "detailBeatId"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }

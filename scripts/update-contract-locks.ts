@@ -28,7 +28,7 @@ import {
 import { textDeletionInvocations } from '../src/host/remote/text-deletion.js';
 import { outlineGenerationBaselineInvocations } from '../src/host/remote/outline-generation-baseline.js';
 import { textChangeImpactInvocations } from '../src/host/remote/text-change-impact.js';
-import { outlineReconciliationInvocations } from '../src/host/remote/outline-reconciliation.js';
+import { outlineReconciliationApplicationInvocations, outlineReconciliationPlannerInvocations } from '../src/host/remote/outline-reconciliation.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -134,9 +134,10 @@ for (const lock of EXISTING_LOCKS) {
   const i110DescriptorIds = new Set([writingPreviewLayersInvocation.id]);
   const i111DescriptorIds = new Set([sceneReparsePreviewInvocation.id]);
   const i112DescriptorIds = new Set(textChangeImpactInvocations.map((descriptor) => descriptor.id));
-  const i113DescriptorIds = new Set(outlineReconciliationInvocations.map((descriptor) => descriptor.id));
+  const i113DescriptorIds = new Set(outlineReconciliationPlannerInvocations.map((descriptor) => descriptor.id));
+  const i114DescriptorIds = new Set(outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -145,7 +146,8 @@ for (const lock of EXISTING_LOCKS) {
     writingPreviewLayersInvocation,
     sceneReparsePreviewInvocation,
     ...textChangeImpactInvocations,
-    ...outlineReconciliationInvocations,
+    ...outlineReconciliationPlannerInvocations,
+    ...outlineReconciliationApplicationInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -162,7 +164,8 @@ for (const lock of EXISTING_LOCKS) {
     writingPreviewLayersInvocation,
     sceneReparsePreviewInvocation,
     ...textChangeImpactInvocations,
-    ...outlineReconciliationInvocations,
+    ...outlineReconciliationPlannerInvocations,
+    ...outlineReconciliationApplicationInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

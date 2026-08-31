@@ -29,7 +29,7 @@ import type { OpsPorts, OpsRuntime } from './context.js';
  */
 export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): WorkbenchOps {
   const chaptersRef: { current?: ChaptersEditOps } = {};
-  const chaptersPort: ChaptersPort = { workspace: ports.workspace, writing: ports.writing, branchNamespace: ports.branchNamespace, queueNamespace: ports.queueNamespace, textMutation: ports.textMutation, sceneOutlineBinding: ports.sceneOutlineBinding, textDeletion: ports.textDeletion };
+  const chaptersPort: ChaptersPort = { workspace: ports.workspace, writing: ports.writing, branchNamespace: ports.branchNamespace, queueNamespace: ports.queueNamespace, textMutation: ports.textMutation, sceneOutlineBinding: ports.sceneOutlineBinding, textDeletion: ports.textDeletion, outlineReconciliation: ports.outlineReconciliation };
   return {
     characters: createCharactersOps(runtime, { workspace: ports.workspace }),
     worldview: createWorldviewOps(runtime, { workspace: ports.workspace }),

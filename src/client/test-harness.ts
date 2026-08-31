@@ -139,6 +139,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const textMutationStub = mountOptions.textMutation;
   const sceneOutlineBindingStub = mountOptions.sceneOutlineBinding;
   const textDeletionStub = mountOptions.textDeletion;
+  const outlineReconciliationStub = mountOptions.outlineReconciliation;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -266,6 +267,17 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       propose: async () => ({ status: 'pending', proposalId: 'fixture-delete-proposal', impact: {} }),
       apply: async () => ({ status: 'already-deleted', proposalId: 'fixture-delete-proposal', fingerprint: 'a'.repeat(64) }),
       reject: async () => ({ status: 'rejected', proposalId: 'fixture-delete-proposal' }),
+    })
+    : name === 'remote.novelOutlineReconciliation' ? (outlineReconciliationStub ?? {
+      prepare: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.prepare'); },
+      regenerateOne: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.regenerateOne'); },
+      read: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.read'); },
+      cancel: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.cancel'); },
+      propose: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.propose'); },
+      accept: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.accept'); },
+      reject: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.reject'); },
+      finalize: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.finalize'); },
+      continue: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.continue'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));

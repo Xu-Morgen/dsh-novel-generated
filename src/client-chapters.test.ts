@@ -466,3 +466,59 @@ describe('I61 C5 正文编辑与可选 reparse (R13-2)', () => {
     expect(editCalls).toBe(1);
   });
 });
+
+describe('I114 正文变化与细纲调和 Client 消费 (R18-11d)', () => {
+  const navButton = (tree: FakeNode, view: string): FakeNode | undefined =>
+    collect(tree, 'button').find((node) => node.props?.['data-novel-view'] === view);
+
+  const BEFORE = { id: 'detail-2', title: '旧标题', summary: '旧摘要', pov: 'mira', wordTarget: 500, points: ['旧点'], status: 'planned' };
+  const AFTER = { ...BEFORE, title: '改道后的标题', summary: '改道后的摘要', wordTarget: 700, points: ['新路线'] };
+  const PLAN = {
+    planId: 'reconcile-plan-1', projectId: 'fixture-project', reportId: 'impact-1', baselineId: 'baseline-1',
+    baselineSourceHash: 'a'.repeat(64), finalSourceHash: 'b'.repeat(64), b5ContentFingerprint: 'c'.repeat(64),
+    bindingFingerprint: 'd'.repeat(64), reportClassification: 'plot-direction', revision: 1, status: 'ready',
+    createdAt: '2026-08-31T00:00:00.000Z', updatedAt: '2026-08-31T00:00:00.000Z',
+    items: [{
+      detailBeatId: 'detail-2', actId: 'act-1', beatId: 'beat-1', position: 0, before: BEFORE, after: AFTER,
+      diff: { changedFields: ['title', 'summary', 'wordTarget', 'points'], before: { title: BEFORE.title, summary: BEFORE.summary, pov: BEFORE.pov, wordTarget: BEFORE.wordTarget, points: BEFORE.points }, after: { title: AFTER.title, summary: AFTER.summary, pov: AFTER.pov, wordTarget: AFTER.wordTarget, points: AFTER.points } },
+      evidence: [{ sourceHash: 'b'.repeat(64), beforeRange: { start: 0, end: 4 }, afterRange: { start: 0, end: 6 }, beforeQuote: '旧文', afterQuote: '新文' }],
+      allowedChoices: ['keep', 'ai', 'manual', 'pending'], choice: 'pending', rationale: '正文改变了路线。',
+    }],
+  };
+
+  it('materials 模式读取 Host 计划、逐卡裁决并经同一 reconciliation namespace 提交 Gate 输入', async () => {
+    let proposed: unknown;
+    const m = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', sceneCount: 1 }],
+      chapterRead: async () => ({ ok: true, value: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '路线变化' }] } }),
+      sceneRead: async () => ({ ok: true, value: { chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'mira' }, scene: { id: 'scene-1', index: 0, summary: '路线变化', content: '正文', beats: [], canonEvents: [], notes: '' } } }),
+    }, {
+      textMutation: { fingerprint: async () => ({ fingerprint: 'e'.repeat(64) }) },
+      sceneOutlineBinding: { read: async () => ({ manual: [], effective: [], fingerprint: 'f'.repeat(64) }) },
+      outlineReconciliation: {
+        read: async (_projectId, planId) => planId === PLAN.planId ? PLAN : (() => { throw new Error('unknown plan'); })(),
+        propose: async (_projectId, input) => { proposed = input; return { projectId: 'fixture-project', planId: PLAN.planId, proposalId: 'proposal-1', status: 'pending', decisions: [{ detailBeatId: 'detail-2', choice: 'ai' }] }; },
+      },
+    });
+    await flush();
+    const render = () => m.registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'materials')?.props?.onClick as () => void)();
+    await flush();
+    const planInput = collect(render(), 'input').find((node) => node.props?.['data-novel-management-input'] === 'reconciliation-plan-id');
+    (planInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: PLAN.planId } });
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-reconciliation-read'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'p').some((node) => node.props?.['data-novel-reconciliation-summary'] !== undefined)).toBe(true);
+    expect(collect(render(), 'article').find((node) => node.props?.['data-novel-reconciliation-card'] === 'detail-2')).toBeDefined();
+    expect(collect(render(), 'button').filter((node) => node.props?.['data-novel-reconciliation-choice'] !== undefined)).toHaveLength(4);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-reconciliation-choice'] === 'ai')?.props?.onClick as () => void)();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-reconciliation-propose'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(proposed).toEqual({ planId: PLAN.planId, decisions: [{ detailBeatId: 'detail-2', choice: 'ai' }] });
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-reconciliation-state'] === 'pending')).toBe(true);
+  });
+});

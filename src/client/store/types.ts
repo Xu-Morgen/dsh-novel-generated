@@ -1,4 +1,4 @@
-import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace } from '../shared.js';
+import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace } from '../shared.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingNamespace, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
@@ -327,6 +327,7 @@ export interface WorkbenchNamespaces {
   sceneOutlineBinding: SceneOutlineBindingNamespace | undefined;
   textMutation: TextMutationNamespace | undefined;
   textDeletion: TextDeletionNamespace | undefined;
+  outlineReconciliation: OutlineReconciliationNamespace | undefined;
   onboardingNamespace: OnboardingNamespace | undefined;
 }
 
