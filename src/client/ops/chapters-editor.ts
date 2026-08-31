@@ -79,14 +79,23 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     void hashText(editor.original).then((baseHash) => {
       if (reparse) {
         void unwrap(target.sceneReparsePropose(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((proposal) => {
-          release();
-          if (!isActive()) return;
           const p = proposal as { proposalId?: string; status?: string };
-          if (!p.proposalId) { editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
+          if (!isActive()) { release(); return; }
+          if (!p.proposalId) { release(); editorPatch({ saving: false, error: '重解析提案失败：缺少 proposalId' }); return; }
+          const proposalId = p.proposalId;
           // 幂等提议：同一编辑重复提议返回既有提案（可能是已拒绝/已处理）。
-          if (p.status === 'rejected') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
-          if (p.status === 'accepted') { editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'done', message: '该重解析提案此前已确认并应用' } }); return; }
-          editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId: p.proposalId, range: diff.range, replacement: diff.replacement, baseHash } });
+          if (p.status === 'rejected') { release(); editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'rejected' } }); return; }
+          if (p.status === 'accepted') { release(); editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'done', message: '该重解析提案此前已确认并应用' } }); return; }
+          // I111：Gate 仍保持 pending；先读取冻结五层 projection，成功后才开放 accept。
+          void unwrap(target.sceneReparsePreview(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((preview) => {
+            release();
+            if (!isActive()) return;
+            editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId, range: diff.range, replacement: diff.replacement, baseHash, preview } });
+          }, (previewError: Error) => {
+            release();
+            if (!isActive()) return;
+            editorPatch({ saving: false, saveMessage: '', reparse: { kind: 'proposed', proposalId, range: diff.range, replacement: diff.replacement, baseHash, previewError: previewError.message } });
+          });
         }, (cause: Error) => { release(); if (!isActive()) return; editorPatch({ saving: false, error: (cause as Error).message }); });
       } else {
         void unwrap(target.sceneEdit(projectId, chapterId, sceneId, diff.range, diff.replacement, baseHash)).then((result) => {
@@ -105,13 +114,13 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     const target = workspace;
     const editor = snapshot.chapters.editor;
     const r = editor.reparse;
-    if (!target || projectId === undefined || r.kind !== 'proposed') return;
+    if (!target || projectId === undefined || r.kind !== 'proposed' || r.preview === undefined) return;
     if (!beginOp('chapters:reparse:accept')) return;
     const release = (): void => endOp('chapters:reparse:accept');
     const chapterId = snapshot.chapters.selectedChapterId;
     const sceneId = snapshot.chapters.selectedSceneId;
     if (chapterId === undefined || sceneId === undefined) { release(); editorPatch({ reparse: { kind: 'error', message: '请先选择场景' } }); return; }
-    editorPatch({ reparse: { kind: 'accepting', proposalId: r.proposalId, range: r.range, replacement: r.replacement, baseHash: r.baseHash } });
+    editorPatch({ reparse: { kind: 'accepting', proposalId: r.proposalId, range: r.range, replacement: r.replacement, baseHash: r.baseHash, preview: r.preview } });
     // accept 再带 baseHash：Host 在 propose→accept 窗口内核对正文未变（脏文本保护）。
     void unwrap(target.sceneReparseAccept(projectId, chapterId, sceneId, r.range, r.replacement, r.proposalId, r.baseHash)).then((result) => {
       release();

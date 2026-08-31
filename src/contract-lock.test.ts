@@ -7,7 +7,7 @@ import { hostContribution } from './host/remote/host-contribution.js';
 import { branchInvocations } from './host/remote/branch.js';
 import { writingInvocations, writingPreviewLayersInvocation, writingProposeAtInvocation } from './host/remote/writing.js';
 import { reviewInvocations } from './host/remote/review.js';
-import { c5Invocations } from './host/remote/text.js';
+import { c5Invocations, sceneReparsePreviewInvocation } from './host/remote/text.js';
 import { textMutationInvocations } from './host/remote/text-mutation.js';
 import { queueStartAtInvocation } from './host/remote/queue.js';
 import {
@@ -48,20 +48,22 @@ const i105DescriptorIds = new Set([
 ]);
 const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
 const i110DescriptorIds = new Set([writingPreviewLayersInvocation.id]);
+const i111DescriptorIds = new Set([sceneReparsePreviewInvocation.id]);
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
   ...textDeletionInvocations,
   ...outlineGenerationBaselineInvocations,
   writingPreviewLayersInvocation,
+  sceneReparsePreviewInvocation,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
   ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation),
   ...reviewInvocations,
-  ...c5Invocations,
+  ...c5Invocations.filter((descriptor) => descriptor !== sceneReparsePreviewInvocation),
   ...textMutationInvocations,
   sceneOutlineBindingReadInvocation,
   sceneOutlineBindingImpactInvocation,
@@ -70,6 +72,7 @@ const stage18ResultDescriptors = [
   ...textDeletionInvocations,
   ...outlineGenerationBaselineInvocations,
   writingPreviewLayersInvocation,
+  sceneReparsePreviewInvocation,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -138,11 +141,11 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
   });
 
-  it('锁定全部 Host invocation descriptor，I110 在既有基线后追加五层 preview method / result', () => {
+  it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(131);
-    expect(remoteLock.resultSchemaIds).toHaveLength(37);
+    expect(remoteLock.descriptorIds).toHaveLength(132);
+    expect(remoteLock.resultSchemaIds).toHaveLength(38);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -150,12 +153,14 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       ...textDeletionInvocations.map((descriptor) => descriptor.id),
       ...outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id),
       writingPreviewLayersInvocation.id,
+      sceneReparsePreviewInvocation.id,
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
       ...textDeletionInvocations.map((descriptor) => descriptor.id),
       ...outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id),
       writingPreviewLayersInvocation.id,
+      sceneReparsePreviewInvocation.id,
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

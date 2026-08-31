@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteInvocation } from './shared.js';
 import { chapterStatusSchema } from '../../core/schema/text.js';
+import { writingLayerPreviewSchema } from './writing.js';
 import type { EditRange } from '../../core/edit/index.js';
 
 /**
@@ -114,6 +115,25 @@ export const sceneReparseRejectResultSchema = z.object({
   status: z.literal('rejected'),
 }).strict();
 
+const reparsePostScanSchema = z.object({
+  status: z.enum(['pending', 'matched', 'mismatch']),
+  sourceMatched: z.boolean(),
+  mismatchedLayers: z.array(z.enum(['c2', 'c1', 'c3', 'c4', 'b2'])),
+}).strict();
+
+/** I111 pending Gate projection; the full StructuralPreviewPlan remains Host-only. */
+export const sceneReparsePreviewResultSchema = z.object({
+  proposalId: z.string().min(1).max(64),
+  range: editRangeSchema,
+  replacement: z.string().max(200_000),
+  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+  targetHash: z.string().regex(/^[a-f0-9]{64}$/),
+  generationBaseline: writingLayerPreviewSchema.shape.generationBaseline,
+  changes: writingLayerPreviewSchema.shape.changes,
+  postScan: reparsePostScanSchema,
+}).strict();
+export type SceneReparsePreviewShape = z.infer<typeof sceneReparsePreviewResultSchema>;
+
 // I75：`param` 统一到 shared 接线层；`c5Invocation` 只保留 strictCodec 包装
 // （保持既有 typeSymbol `novel-creation-tool#${method}:result`，见架构审查 §6.3/§9#1）。
 const projectParameter = param('projectId', stringCodec);
@@ -141,8 +161,10 @@ export const sceneEditInvocation = c5Invocation('novelWorkspace', 'sceneEdit', [
 export const sceneReparseProposeInvocation = c5Invocation('novelWorkspace', 'sceneReparsePropose', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, baseHashParameter], sceneReparseProposeResultSchema);
 export const sceneReparseAcceptInvocation = c5Invocation('novelWorkspace', 'sceneReparseAccept', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, proposalIdParameter, baseHashParameter], sceneReparseAcceptResultSchema);
 export const sceneReparseRejectInvocation = c5Invocation('novelWorkspace', 'sceneReparseReject', [projectParameter, proposalIdParameter], sceneReparseRejectResultSchema);
+export const sceneReparsePreviewInvocation = c5Invocation('novelWorkspace', 'sceneReparsePreview', [projectParameter, chapterParameter, sceneParameter, rangeParameter, replacementParameter, baseHashParameter], sceneReparsePreviewResultSchema);
 
 export const c5Invocations = [
   chapterListInvocation, chapterReadInvocation, sceneReadInvocation,
   sceneEditInvocation, sceneReparseProposeInvocation, sceneReparseAcceptInvocation, sceneReparseRejectInvocation,
+  sceneReparsePreviewInvocation,
 ] as const;

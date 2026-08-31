@@ -1,0 +1,48 @@
+{
+  "iteration": "I111",
+  "requirement": "R18-2c",
+  "remoteMethod": "novelWorkspace.sceneReparsePreview",
+  "previewShape": [
+    "proposalId",
+    "range",
+    "replacement",
+    "sourceHash",
+    "targetHash",
+    "generationBaseline",
+    "changes",
+    "postScan"
+  ],
+  "layers": [
+    "c2",
+    "c1",
+    "c3",
+    "c4",
+    "b2"
+  ],
+  "guarantees": [
+    "Gate-pending-frozen-five-layer-preview",
+    "UTF-16-range-and-baseHash-freshness",
+    "hash-only-change-projection-without-live-layer-leak",
+    "host-only-session-plan",
+    "accept-replays-frozen-plan-without-parser-rerun",
+    "reject-parser-error-stale-and-write-failure-fail-closed",
+    "structured-writeback-before-C5-and-C5-only-retry",
+    "post-commit-scan-mismatch-is-explicit-error",
+    "real-binder-and-client-consumer-fixtures"
+  ],
+  "explicitNonGoals": [
+    "ordinary-C5-save-semantics-unchanged",
+    "plan-persistence",
+    "full-live-layer-snapshot",
+    "prompt-or-parser-schema-change"
+  ],
+  "contractLock": {
+    "descriptorCount": 132,
+    "resultSchemaCount": 38,
+    "additiveSuffix": [
+      "novel-creation-tool/novelWriting/previewLayers",
+      "novel-creation-tool/novelWorkspace/sceneReparsePreview"
+    ]
+  },
+  "focusedSuites": "Host reparse service, StructuralPreviewPlan, five-layer writeback, real binder, Client chapters, contract lock, and parser held-out suites passed"
+}

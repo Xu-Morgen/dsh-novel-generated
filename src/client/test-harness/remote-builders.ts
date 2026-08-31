@@ -25,6 +25,7 @@ export interface MountOptions {
   sceneOutlineBinding?: MountOptionsI106['sceneOutlineBinding'];
   textDeletion?: MountOptionsI106['textDeletion'];
   branch?: MountOptionsI107['branch'];
+  sceneReparsePreview?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
 }
 
 export interface WorkspaceOverrides {
@@ -62,6 +63,7 @@ export interface WorkspaceOverrides {
   sceneReparseReject?: (projectId: string, proposalId: string) => Promise<unknown>;
   /** I65：B5 场景卡范围（生成队列勾选）。 */
   outlineBeatCards?: (projectId: string) => Promise<unknown[]>;
+  sceneReparsePreview?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
 }
 
 /** Full `novelWorkspace` remote stub so render-time loads do not throw. */
@@ -92,6 +94,10 @@ export const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: Work
   sceneRead: overrides.sceneRead ?? (async () => ({ chapter: { id: '', index: 1, title: '', pov: '' }, scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' } })),
   sceneEdit: overrides.sceneEdit ?? (async () => ({ scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' }, evidence: { before: '', after: '', unchangedPrefix: '', unchangedSuffix: '' } })),
   sceneReparsePropose: overrides.sceneReparsePropose ?? (async () => ({ proposalId: 'scene-reparse-fixture', status: 'pending' })),
+  sceneReparsePreview: overrides.sceneReparsePreview ?? (async (_projectId: string, _chapterId: string, _sceneId: string, range: unknown, replacement: string, baseHash?: string) => ({
+    proposalId: 'scene-reparse-fixture', range, replacement, sourceHash: baseHash ?? 'a'.repeat(64), targetHash: 'b'.repeat(64),
+    generationBaseline: { kind: 'no-outline-baseline' }, changes: [], postScan: { status: 'pending', sourceMatched: false, mismatchedLayers: [] },
+  })),
   sceneReparseAccept: overrides.sceneReparseAccept ?? (async () => ({ status: 'written', scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' }, layers: ['c2', 'c1', 'c3', 'c4', 'b2'] })),
   sceneReparseReject: overrides.sceneReparseReject ?? (async () => ({ proposalId: 'scene-reparse-fixture', status: 'rejected' })),
   projectList: overrides.projectList ?? (async () => [{ id: 'fixture-project', name: '夹具作品' }]),

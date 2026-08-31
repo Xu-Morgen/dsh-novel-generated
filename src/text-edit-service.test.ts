@@ -104,7 +104,28 @@ function serviceFor(root: string, layers: BookSetup, seen: string[], full = fals
   });
 }
 
+function serviceForLlm(root: string, layers: BookSetup, llm: unknown) {
+  return createTextEditService({
+    llm, projectsRoot: root,
+    state: layers.state, relationship: layers.relationship, knowledge: layers.knowledge,
+    canon: layers.canon, worldview: layers.worldview, confirmation: layers.confirmation,
+    resolveSettings: async () => settings,
+  });
+}
+
 const baseHashOf = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
+
+class FailOnceTextRepository extends TextRepository {
+  private failNextReplace = true;
+
+  override async replaceRange(...args: Parameters<TextRepository['replaceRange']>): ReturnType<TextRepository['replaceRange']> {
+    if (this.failNextReplace) {
+      this.failNextReplace = false;
+      throw new Error('fixture C5 landing failure');
+    }
+    return super.replaceRange(...args);
+  }
+}
 
 describe('I61 C5 正文编辑与可选 reparse（Host service）', () => {
   it('edit：用户文本 exact round-trip，范围外（未变前后缀与其他场景）哈希不变，结构层零写', async () => {
@@ -218,5 +239,116 @@ describe('I61 C5 正文编辑与可选 reparse（Host service）', () => {
     expect(seen).toEqual([]); // 未解析
     expect((await layers.repository.readChapter('chapter-1')).scenes[0].content).toBe('prefix OTHER suffix');
     expect(layers.state.current('book').storyTime).toBe('night');
+  });
+
+  it('I111 reparse preview：Gate pending 时冻结五层 hash-only projection，accept 重放同一 plan 且只解析一次', async () => {
+    const root = await temporaryRoot();
+    const layers = await setup(root);
+    const seen: string[] = [];
+    const service = serviceFor(root, layers, seen, true);
+    await service.open('book');
+
+    const proposed = await service.reparsePropose('book', 'chapter-1', 'scene-1', RANGE, 'parsed', baseHashOf(ORIGINAL));
+    const preview = await service.reparsePreview('book', 'chapter-1', 'scene-1', RANGE, 'parsed', baseHashOf(ORIGINAL));
+    expect(preview).toMatchObject({
+      proposalId: proposed.proposalId,
+      range: RANGE,
+      replacement: 'parsed',
+      sourceHash: baseHashOf(ORIGINAL),
+      targetHash: baseHashOf('prefix parsed suffix'),
+      postScan: { status: 'pending', sourceMatched: false, mismatchedLayers: [] },
+    });
+    expect(preview.changes.map((change) => change.layer)).toEqual(expect.arrayContaining(['c2', 'c1', 'c3', 'c4', 'b2']));
+    expect(preview.changes.every((change) => change.beforeHash !== undefined || change.afterHash !== undefined)).toBe(true);
+    expect(JSON.stringify(preview)).not.toMatch(/parserOutputs|service|repository/);
+    expect(seen).toHaveLength(5);
+    expect((await layers.repository.readChapter('chapter-1')).scenes[0].content).toBe(ORIGINAL);
+    expect(layers.state.current('book').storyTime).toBe('night');
+    expect(layers.canon.query('book')).toEqual([]);
+
+    const repeated = await service.reparsePreview('book', 'chapter-1', 'scene-1', RANGE, 'parsed', baseHashOf(ORIGINAL));
+    expect(repeated).toEqual(preview);
+    expect(seen).toHaveLength(5);
+
+    const accepted = await service.reparseAccept('book', 'chapter-1', 'scene-1', RANGE, 'parsed', proposed.proposalId, baseHashOf(ORIGINAL));
+    expect(accepted.scene.content).toBe('prefix parsed suffix');
+    expect(accepted.layers).toEqual(['c2', 'c1', 'c3', 'c4', 'b2']);
+    expect(seen).toHaveLength(5); // accept replayed the frozen parser outputs; it did not call LLM again.
+    expect(layers.state.current('book').storyTime).toBe('dawn');
+    expect(layers.canon.query('book').map((event) => event.id)).toEqual(['evt-key']);
+    expect((await layers.worldview.read('book', 'harbor-status')).status).toBe('rewritten');
+    expect((await layers.worldview.read('book', 'harbor-key-route')).status).toBe('active');
+    expect(await service.reparseAccept('book', 'chapter-1', 'scene-1', RANGE, 'parsed', proposed.proposalId, baseHashOf('prefix parsed suffix'))).toBe(accepted);
+  });
+
+  it('I111 reparse preview negative：非法 range、脏 baseHash、Gate rejected 与 parser failure 均 zero-write', async () => {
+    const root = await temporaryRoot();
+    const layers = await setup(root);
+    const seen: string[] = [];
+    const service = serviceFor(root, layers, seen, true);
+    await service.open('book');
+
+    await expect(service.reparsePropose('book', 'chapter-1', 'scene-1', { start: 0, end: ORIGINAL.length + 1 }, 'x', baseHashOf(ORIGINAL)))
+      .rejects.toThrow(/Invalid UTF-16 text range/);
+    await expect(service.reparsePropose('book', 'chapter-1', 'scene-1', RANGE, 'x', 'stale-hash'))
+      .rejects.toThrow(/脏文本保护/);
+    expect(layers.confirmation.pending('book')).toEqual([]);
+    expect(seen).toEqual([]);
+
+    const rejected = await service.reparsePropose('book', 'chapter-1', 'scene-1', RANGE, 'rejected', baseHashOf(ORIGINAL));
+    await service.reparseReject('book', rejected.proposalId);
+    await expect(service.reparsePreview('book', 'chapter-1', 'scene-1', RANGE, 'rejected', baseHashOf(ORIGINAL)))
+      .rejects.toThrow(/rejected/);
+    await expect(service.reparseAccept('book', 'chapter-1', 'scene-1', RANGE, 'rejected', rejected.proposalId, baseHashOf(ORIGINAL)))
+      .rejects.toThrow(/already rejected/);
+    expect(seen).toEqual([]);
+    expect((await layers.repository.readChapter('chapter-1')).scenes[0].content).toBe(ORIGINAL);
+    expect(layers.state.current('book').storyTime).toBe('night');
+    expect(layers.canon.query('book')).toEqual([]);
+
+    const failingSeen: string[] = [];
+    const failingLlm = {
+      async *stream(request: { messages: Array<{ content: Array<{ text: string }> }> }) {
+        failingSeen.push(request.messages[0].content[0].text);
+        throw new Error('fixture parser failure');
+      },
+    };
+    const failingService = serviceForLlm(root, layers, failingLlm);
+    await failingService.open('book');
+    const failedProposal = await failingService.reparsePropose('book', 'chapter-1', 'scene-1', RANGE, 'failed', baseHashOf(ORIGINAL));
+    await expect(failingService.reparsePreview('book', 'chapter-1', 'scene-1', RANGE, 'failed', baseHashOf(ORIGINAL)))
+      .rejects.toThrow(/fixture parser failure/);
+    expect(failingSeen.length).toBeGreaterThan(0);
+    expect((await layers.repository.readChapter('chapter-1')).scenes[0].content).toBe(ORIGINAL);
+    expect(layers.state.current('book').storyTime).toBe('night');
+    expect(layers.canon.query('book')).toEqual([]);
+    expect(layers.confirmation.get('book', failedProposal.proposalId).status).toBe('pending');
+  });
+
+  it('I111 C5 landing failure：结构层已提交时不伪报成功，重试复用同一 plan 且只补写 C5', async () => {
+    const root = await temporaryRoot();
+    const layers = await setup(root);
+    const seen: string[] = [];
+    const service = createTextEditService({
+      llm: fakeLlm(seen, true), projectsRoot: root,
+      state: layers.state, relationship: layers.relationship, knowledge: layers.knowledge,
+      canon: layers.canon, worldview: layers.worldview, confirmation: layers.confirmation,
+      resolveSettings: async () => settings,
+      repositoryFactory: (directory) => new FailOnceTextRepository(directory),
+    });
+    await service.open('book');
+    const proposed = await service.reparsePropose('book', 'chapter-1', 'scene-1', RANGE, 'retry', baseHashOf(ORIGINAL));
+    await service.reparsePreview('book', 'chapter-1', 'scene-1', RANGE, 'retry', baseHashOf(ORIGINAL));
+
+    await expect(service.reparseAccept('book', 'chapter-1', 'scene-1', RANGE, 'retry', proposed.proposalId, baseHashOf(ORIGINAL)))
+      .rejects.toThrow(/C5 reparse landing failed/);
+    expect(layers.confirmation.get('book', proposed.proposalId).status).toBe('accepted');
+    expect(layers.state.current('book').storyTime).toBe('dawn');
+    expect(layers.canon.query('book').map((event) => event.id)).toEqual(['evt-key']);
+    expect((await layers.repository.readChapter('chapter-1')).scenes[0].content).toBe(ORIGINAL);
+
+    const retried = await service.reparseAccept('book', 'chapter-1', 'scene-1', RANGE, 'retry', proposed.proposalId, baseHashOf(ORIGINAL));
+    expect(retried.scene.content).toBe('prefix retry suffix');
+    expect(seen).toHaveLength(5);
   });
 });

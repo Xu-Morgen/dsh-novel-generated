@@ -128,6 +128,14 @@ export interface StructuralPreviewPrepareInput {
   readonly createdAt?: string;
 }
 
+/** Host-only post-commit evidence; it never crosses the Remote boundary. */
+export interface StructuralPreviewCommitScan {
+  readonly status: 'matched' | 'mismatch';
+  readonly expectedChanges: readonly StructuralPreviewChange[];
+  readonly actualChanges: readonly StructuralPreviewChange[];
+  readonly mismatchedLayers: readonly StructuralPreviewLayer[];
+}
+
 export interface StructuralPreviewWriters {
   readonly c2: (output: C2StateParserOutput) => Promise<void>;
   readonly c1: (output: C1RelationshipParserOutput) => Promise<void>;
@@ -164,6 +172,28 @@ type DiffEntry = { readonly entityType: z.infer<typeof structuralPreviewEntityTy
 
 function arrayEntries(entityType: DiffEntry['entityType'], values: readonly Record<string, unknown>[]): DiffEntry[] {
   return values.map((value, index) => ({ entityType, entityId: String(value.id ?? value.characterId), value, index }));
+}
+
+function entriesForSnapshot(layer: StructuralPreviewLayer, snapshot: StructuralPreviewLayerBaseline['snapshot']): DiffEntry[] {
+  if (layer === 'c2') {
+    const state = snapshot as z.infer<typeof worldStateSchema>;
+    const { seq: _seq, ...semanticState } = state;
+    return [
+      ...arrayEntries('state', [{ ...semanticState, id: 'state' }]),
+      ...arrayEntries('scene', [{ ...state.scene, id: 'scene' }]),
+      ...arrayEntries('character', state.characters.map((character) => ({ ...character, id: character.characterId }))),
+    ];
+  }
+  if (layer === 'c1') return arrayEntries('relationship', snapshot as z.infer<typeof c1SnapshotSchema> as unknown as Record<string, unknown>[]);
+  if (layer === 'c3') {
+    const knowledge = snapshot as z.infer<typeof c3SnapshotSchema>;
+    return [
+      ...arrayEntries('knowledge-entry', knowledge.entries as unknown as Record<string, unknown>[]),
+      ...arrayEntries('knowledge-state', knowledge.states as unknown as Record<string, unknown>[]),
+    ];
+  }
+  if (layer === 'c4') return arrayEntries('canon-event', snapshot as z.infer<typeof c4SnapshotSchema> as unknown as Record<string, unknown>[]);
+  return arrayEntries('world-entry', snapshot as z.infer<typeof b2SnapshotSchema> as unknown as Record<string, unknown>[]);
 }
 
 function diffLayer(layer: StructuralPreviewLayer, before: readonly DiffEntry[], after: readonly DiffEntry[]): StructuralPreviewChange[] {
@@ -254,39 +284,40 @@ function b2Projection(snapshot: z.infer<typeof b2SnapshotSchema>, output: B2Worl
     const index = next.findIndex((entry) => entry.id === operation.targetId);
     if (index < 0) throw new Error(`Unknown B2 target in structural preview: ${operation.targetId}`);
     const target = next[index];
-    const replacement = { ...operation.replacement, version: target.version + 1, status: 'active' as const, supersededBy: null };
-    next[index] = { ...target, status: 'rewritten', supersededBy: replacement.id };
+    // WorldRepository stores a rewrite as a fresh version-1 document; only the
+    // superseded source receives the incremented version (design §5.4).
+    const replacement = { ...operation.replacement, version: 1, status: 'active' as const, supersededBy: null };
+    next[index] = { ...target, version: target.version + 1, status: 'rewritten', supersededBy: replacement.id };
     next.push(replacement);
   }
+  // WorldRepository.list() is filename-sorted, so replay the persisted order
+  // before producing index/order changes (design §10.1).
+  next.sort((left, right) => left.id.localeCompare(right.id));
   return b2SnapshotSchema.parse(next);
 }
 
 function changesFor(layer: StructuralPreviewLayer, baseline: StructuralPreviewLayerBaseline, output: StructuralPreviewParserOutputs): StructuralPreviewChange[] {
   if (layer === 'c2' && baseline.layer === 'c2') {
     const next = c2Projection(baseline.snapshot, output.c2);
-    const before = [{ ...baseline.snapshot, id: 'state' }, { ...baseline.snapshot.scene, id: 'scene' }, ...baseline.snapshot.characters].map((value) => value as Record<string, unknown>);
-    const after = [{ ...next, id: 'state' }, { ...next.scene, id: 'scene' }, ...next.characters].map((value) => value as Record<string, unknown>);
-    return diffLayer(layer, [arrayEntries('state', before)[0], arrayEntries('scene', before.slice(1, 2))[0], ...arrayEntries('character', before.slice(2))], [arrayEntries('state', after)[0], arrayEntries('scene', after.slice(1, 2))[0], ...arrayEntries('character', after.slice(2))]);
+    return diffLayer(layer, entriesForSnapshot(layer, baseline.snapshot), entriesForSnapshot(layer, next));
   }
   if (layer === 'c1' && baseline.layer === 'c1') {
     const next = materializeC1RelationshipOperations(baseline.snapshot, output.c1.ops);
-    return diffLayer(layer, arrayEntries('relationship', baseline.snapshot as unknown as Record<string, unknown>[]), arrayEntries('relationship', next as unknown as Record<string, unknown>[]));
+    return diffLayer(layer, entriesForSnapshot(layer, baseline.snapshot), entriesForSnapshot(layer, next));
   }
   if (layer === 'c3' && baseline.layer === 'c3') {
     const current: KnowledgeDocument = baseline.snapshot;
     assertKnowledgeStructure(current.entries, current.states);
     const next = materializeC3KnowledgeOperations(current, output.c3.ops);
-    return diffLayer(layer,
-      [...arrayEntries('knowledge-entry', current.entries as unknown as Record<string, unknown>[]), ...arrayEntries('knowledge-state', current.states as unknown as Record<string, unknown>[])],
-      [...arrayEntries('knowledge-entry', next.entries as unknown as Record<string, unknown>[]), ...arrayEntries('knowledge-state', next.states as unknown as Record<string, unknown>[])]);
+    return diffLayer(layer, entriesForSnapshot(layer, current as unknown as z.infer<typeof c3SnapshotSchema>), entriesForSnapshot(layer, next as unknown as z.infer<typeof c3SnapshotSchema>));
   }
   if (layer === 'c4' && baseline.layer === 'c4') {
     const next = c4Projection(baseline.snapshot, output.c4);
-    return diffLayer(layer, arrayEntries('canon-event', baseline.snapshot as unknown as Record<string, unknown>[]), arrayEntries('canon-event', next as unknown as Record<string, unknown>[]));
+    return diffLayer(layer, entriesForSnapshot(layer, baseline.snapshot), entriesForSnapshot(layer, next));
   }
   if (layer === 'b2' && baseline.layer === 'b2') {
     const next = b2Projection(baseline.snapshot, output.b2);
-    return diffLayer(layer, arrayEntries('world-entry', baseline.snapshot as unknown as Record<string, unknown>[]), arrayEntries('world-entry', next as unknown as Record<string, unknown>[]));
+    return diffLayer(layer, entriesForSnapshot(layer, baseline.snapshot), entriesForSnapshot(layer, next));
   }
   throw new Error(`Structural preview layer baseline mismatch: ${layer}`);
 }
@@ -316,6 +347,32 @@ export function assertStructuralPreviewPlanFresh(plan: StructuralPreviewPlan, cu
   if (!same(plan.generationBaseline, observed.generationBaseline)) throw new Error('Structural preview generation baseline is stale');
   const byLayer = new Map(plan.layerBaselines.map((baseline) => [baseline.layer, baseline.fingerprint]));
   for (const layer of layerSchema.options) if (byLayer.get(layer) !== observed.layerFingerprints[layer]) throw new Error(`Structural preview ${layer} baseline is stale`);
+}
+
+/** Compare committed owner snapshots with the exact hash/change projection shown before Gate. */
+export function scanStructuralPreviewCommit(
+  plan: StructuralPreviewPlan,
+  currentBaselines: readonly StructuralPreviewLayerBaseline[],
+): StructuralPreviewCommitScan {
+  const orderedCurrent = layerSchema.options.map((layer) => baselineFor(layer, currentBaselines));
+  for (const baseline of orderedCurrent) structuralPreviewLayerBaselineSchema.parse(baseline);
+  const actualChanges = layerSchema.options.flatMap((layer) => {
+    const before = baselineFor(layer, plan.layerBaselines);
+    const after = baselineFor(layer, orderedCurrent);
+    return diffLayer(layer, entriesForSnapshot(layer, before.snapshot), entriesForSnapshot(layer, after.snapshot));
+  });
+  const expectedChanges = plan.changes;
+  const mismatchedLayers = layerSchema.options.filter((layer) => {
+    const expected = expectedChanges.filter((change) => change.layer === layer);
+    const actual = actualChanges.filter((change) => change.layer === layer);
+    return !same(expected, actual);
+  });
+  return Object.freeze({
+    status: mismatchedLayers.length === 0 ? 'matched' : 'mismatch',
+    expectedChanges: Object.freeze([...expectedChanges]),
+    actualChanges: Object.freeze(actualChanges),
+    mismatchedLayers: Object.freeze(mismatchedLayers),
+  });
 }
 
 /**

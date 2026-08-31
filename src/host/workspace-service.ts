@@ -52,6 +52,7 @@ export interface WorkspaceEditorService {
   /** I61 受控编辑（design §5.12 / R13-2）：固定范围逐字保存（只写 C5）+ 变更 diff 证据。 */
   sceneEdit(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, baseHash?: string): Promise<{ scene: SceneReadResult['scene']; evidence: import('../core/edit/index.js').EditFingerprint }>;
   sceneReparsePropose(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, baseHash?: string): Promise<import('./text-edit-service.js').ReparseProposeResult>;
+  sceneReparsePreview(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, baseHash?: string): Promise<import('./text-edit-service.js').ReparseLayerPreview>;
   sceneReparseAccept(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, proposalId: string, baseHash?: string): Promise<{ status: 'written'; scene: SceneReadResult['scene']; layers: readonly import('./text-edit-service.js').ReparseLayer[] }>;
   sceneReparseReject(projectId: string, proposalId: string): Promise<{ proposalId: string; status: 'rejected' }>;
   projectList(): Promise<import('../core/schema/base.js').ProjectMeta[]>;
@@ -110,6 +111,10 @@ export function createWorkspaceEditorService(deps: WorkspaceEditorDeps): Workspa
     sceneReparsePropose: async (id, chapterId, sceneId, range, replacement, baseHash) => {
       await textEdit.open(id);
       return textEdit.reparsePropose(id, chapterId, sceneId, range, replacement, baseHash);
+    },
+    sceneReparsePreview: async (id, chapterId, sceneId, range, replacement, baseHash) => {
+      await textEdit.open(id);
+      return textEdit.reparsePreview(id, chapterId, sceneId, range, replacement, baseHash);
     },
     sceneReparseAccept: async (id, chapterId, sceneId, range, replacement, proposalId, baseHash) => {
       await textEdit.open(id);

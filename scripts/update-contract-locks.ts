@@ -17,7 +17,7 @@ import { hostContribution } from '../src/host/remote/host-contribution.js';
 import { branchInvocations } from '../src/host/remote/branch.js';
 import { writingInvocations, writingPreviewLayersInvocation, writingProposeAtInvocation } from '../src/host/remote/writing.js';
 import { reviewInvocations } from '../src/host/remote/review.js';
-import { c5Invocations } from '../src/host/remote/text.js';
+import { c5Invocations, sceneReparsePreviewInvocation } from '../src/host/remote/text.js';
 import { textMutationInvocations } from '../src/host/remote/text-mutation.js';
 import { queueStartAtInvocation } from '../src/host/remote/queue.js';
 import {
@@ -130,20 +130,22 @@ for (const lock of EXISTING_LOCKS) {
   ]);
   const i108DescriptorIds = new Set(outlineGenerationBaselineInvocations.map((descriptor) => descriptor.id));
   const i110DescriptorIds = new Set([writingPreviewLayersInvocation.id]);
+  const i111DescriptorIds = new Set([sceneReparsePreviewInvocation.id]);
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
     ...textDeletionInvocations,
     ...outlineGenerationBaselineInvocations,
     writingPreviewLayersInvocation,
+    sceneReparsePreviewInvocation,
   ];
   const resultDescriptors = [
     ...branchInvocations,
     ...writingInvocations.filter((descriptor) => descriptor !== writingProposeAtInvocation && descriptor !== writingPreviewLayersInvocation),
     ...reviewInvocations,
-    ...c5Invocations,
+    ...c5Invocations.filter((descriptor) => descriptor !== sceneReparsePreviewInvocation),
     ...textMutationInvocations,
     sceneOutlineBindingReadInvocation,
     sceneOutlineBindingImpactInvocation,
@@ -152,6 +154,7 @@ for (const lock of EXISTING_LOCKS) {
     ...textDeletionInvocations,
     ...outlineGenerationBaselineInvocations,
     writingPreviewLayersInvocation,
+    sceneReparsePreviewInvocation,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

@@ -1,4 +1,4 @@
-import type { El, WorkspaceNamespace } from '../shared.js';
+import type { El, UnwrapValue, WorkspaceNamespace } from '../shared.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import type { ChaptersEditOps } from './chapters.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
@@ -13,11 +13,13 @@ import { errorBlock, proseParagraphs } from './chapters-shared.js';
 /** I61 单一连续范围（半开区间 [start, end)，UTF-16 code unit 偏移）。 */
 export interface SceneEditRange { start: number; end: number; }
 
+export type ReparseLayerPreviewShape = UnwrapValue<Awaited<ReturnType<WorkspaceNamespace['sceneReparsePreview']>>>;
+
 /** I61 reparse 提案的 UI 状态机（kind 即三态 + 忙碌/终态）。 */
 export type ReparseUiState =
   | { readonly kind: 'idle' }
-  | { readonly kind: 'proposed'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string }
-  | { readonly kind: 'accepting'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string }
+  | { readonly kind: 'proposed'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string; readonly preview?: ReparseLayerPreviewShape; readonly previewError?: string }
+  | { readonly kind: 'accepting'; readonly proposalId: string; readonly range: SceneEditRange; readonly replacement: string; readonly baseHash: string; readonly preview?: ReparseLayerPreviewShape }
   | { readonly kind: 'rejected' }
   | { readonly kind: 'done'; readonly message: string }
   | { readonly kind: 'error'; readonly message: string };
@@ -87,8 +89,18 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
   } else if (state.reparse.kind === 'proposed') {
     reparsePanel = h('div', { className: 'nv-chapters__reparse nv-chapters__reparse--proposed', 'data-novel-scene-reparse-proposed': '', role: 'status', 'aria-live': 'polite' },
       h('p', { className: 'nv-chapters__reparse-status' }, '重解析提案已发起，确认后才会同步结构层。'),
+      state.reparse.preview === undefined
+        ? h('p', { className: 'nv-chapters__reparse-preview-error', 'data-novel-scene-reparse-preview-error': '' }, state.reparse.previewError ?? '正在准备五层变更预览…')
+        : h('details', { className: 'nv-chapters__reparse-preview', 'data-novel-scene-reparse-preview': '' },
+          h('summary', { 'data-novel-scene-reparse-preview-summary': '' }, `五层结构化变更预览（${state.reparse.preview.changes.length} 项）`),
+          state.reparse.preview.changes.length === 0
+            ? h('p', { className: 'nv-chapters__reparse-preview-empty', 'data-novel-scene-reparse-preview-empty': '' }, '五层没有需要写回的结构化变化。')
+            : h('ul', { className: 'nv-chapters__reparse-preview-list' }, state.reparse.preview.changes.map((change, index) =>
+              h('li', { key: `${change.layer}-${change.entityId}-${index}`, 'data-novel-scene-reparse-layer-change': `${change.layer}:${change.kind}` },
+                `${change.layer}：${change.kind} ${change.entityType}/${change.entityId}（${change.changedFields.join('、')}）`))),
+        ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-reparse-accept': '', onClick: () => ops.acceptReparse() }, '确认重解析'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-reparse-accept': '', disabled: state.reparse.preview === undefined, onClick: () => ops.acceptReparse() }, '确认重解析'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-reparse-reject': '', onClick: () => ops.rejectReparse() }, '拒绝'),
       ),
     );

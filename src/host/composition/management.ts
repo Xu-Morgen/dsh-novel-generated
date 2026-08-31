@@ -46,6 +46,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     confirmationService,
     textService,
     sceneOutlineBindingService,
+    outlineGenerationBaselineService,
     ruleService,
     styleService,
     knowledgeService,
@@ -142,6 +143,8 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     canon: canonService,
     worldview: worldviewService,
     confirmation: confirmationService,
+    sceneOutlineBinding: sceneOutlineBindingService,
+    outlineGenerationBaseline: outlineGenerationBaselineService,
     resolveSettings: resolveGenerationSettings,
     onDispose: onFiberDispose,
   });

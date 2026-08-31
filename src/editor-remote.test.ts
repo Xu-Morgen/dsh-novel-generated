@@ -18,7 +18,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
       'novelWorkspace/stateCurrent', 'novelWorkspace/stateSnapshots', 'novelWorkspace/stateRollback', 'novelWorkspace/stateDiff',
       'novelWorkspace/canonQuery', 'novelWorkspace/canonCorrectionPropose', 'novelWorkspace/canonCorrectionAccept',
       'novelWorkspace/chapterList', 'novelWorkspace/chapterRead', 'novelWorkspace/sceneRead',
-      'novelWorkspace/sceneEdit', 'novelWorkspace/sceneReparsePropose', 'novelWorkspace/sceneReparseAccept', 'novelWorkspace/sceneReparseReject',
+      'novelWorkspace/sceneEdit', 'novelWorkspace/sceneReparsePropose', 'novelWorkspace/sceneReparseAccept', 'novelWorkspace/sceneReparseReject', 'novelWorkspace/sceneReparsePreview',
     ]);
     expect(characterListInvocation.parameters[0]).toMatchObject({ name: 'projectId', wire: 'projectId', source: 'json' });
     expect(characterCreateInvocation.parameters[1]).toMatchObject({ name: 'input', wire: 'input', source: 'json' });
@@ -59,7 +59,7 @@ describe('I34 B3/B2 Host Remote editor contract', () => {
     await root.plugin(TypertRegistry);
     const disposer = root.typert.register(workspaceContribution);
     expect(root.typert.local.get(`${NOVEL_WORKSPACE_NAMESPACE}/viewModel`)).toBeDefined();
-    expect(workspaceRemoteContribution.descriptors).toHaveLength(35);
+    expect(workspaceRemoteContribution.descriptors).toHaveLength(36);
     disposer();
     expect(root.typert.local.get('novelWorkspace/characterCreate')).toBeUndefined();
     await root.fiber.dispose();

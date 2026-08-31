@@ -19,6 +19,7 @@ import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
 import { queueRemoteContribution } from './host/remote/queue.js';
 import { sceneOutlineBindingRemoteContribution } from './host/remote/scene-outline-binding.js';
+import { workspaceRemoteContribution } from './host/remote/editor.js';
 import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import type {
@@ -123,6 +124,13 @@ function fixtureFor(endpoint: string): unknown {
         candidateId: 'cand-1', sourceHash: 'a'.repeat(64),
         generationBaseline: { kind: 'no-outline-baseline' }, changes: [],
         validation: { status: 'pass', violations: [] },
+      };
+    case 'novelWorkspace/sceneReparsePreview':
+      return {
+        proposalId: 'scene-reparse-1', range: { start: 1, end: 2 }, replacement: 'x',
+        sourceHash: 'a'.repeat(64), targetHash: 'b'.repeat(64),
+        generationBaseline: { kind: 'no-outline-baseline' }, changes: [],
+        postScan: { status: 'pending', sourceMatched: false, mismatchedLayers: [] },
       };
     case 'novelSceneOutlineBinding/read':
     case 'novelSceneOutlineBinding/save':
@@ -239,6 +247,29 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       const result = await unwrap(writing.previewLayers('cand-1'));
       expect(result).toMatchObject({ candidateId: 'cand-1', sourceHash: 'a'.repeat(64), changes: [] });
       expect(calls).toEqual([{ endpoint: 'novelWriting/previewLayers', args: { candidateId: 'cand-1' } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I111 novelWorkspace.sceneReparsePreview：Gate pending projection 经真实 binder 往返', async () => {
+    const { client, calls, dispose } = await mount(workspaceRemoteContribution);
+    try {
+      const workspace = client.get('remote.novelWorkspace') as {
+        sceneReparsePreview: (...args: unknown[]) => Promise<unknown>;
+      };
+      const result = await unwrap(workspace.sceneReparsePreview(
+        'p1', 'chapter-1', 'scene-1', { start: 1, end: 2 }, 'x', 'a'.repeat(64),
+      )) as { proposalId: string; postScan: { status: string } };
+      expect(result).toMatchObject({ proposalId: 'scene-reparse-1', postScan: { status: 'pending' } });
+      expect(calls).toEqual([{
+        endpoint: 'novelWorkspace/sceneReparsePreview',
+        args: {
+          projectId: 'p1', chapterId: 'chapter-1', sceneId: 'scene-1',
+          range: { start: 1, end: 2 }, replacement: 'x', baseHash: 'a'.repeat(64),
+        },
+      }]);
     } finally {
       await dispose();
       await client.fiber.dispose();
