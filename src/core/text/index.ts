@@ -17,4 +17,4 @@ export {
   type TextRange,
 } from './codec.js';
 export { ChapterWriteQueue, type ChapterWriteQueueOptions, type PendingMirrorFailure, type ProjectCommitPhase } from './write-queue.js';
-export { TextRepository, type TextDeleteImpact, type TextDeleteResult, type TextRepositoryOptions } from './repository.js';
+export { TextRepository, type TextChangedEvent, type TextDeleteImpact, type TextDeleteResult, type TextRepositoryOptions } from './repository.js';

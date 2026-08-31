@@ -6,6 +6,7 @@ import { createRuleService } from '../rule-service.js';
 import { createStateService } from '../state-service.js';
 import { createStyleService } from '../style-service.js';
 import { createTextService } from '../text-service.js';
+import { createLinkIndexService, type NovelLinkIndexService } from '../link-index-service.js';
 import { createTextMutationRemote } from '../text-mutation-adapter.js';
 import { createSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import { createSceneOutlineBindingRemote } from '../scene-outline-binding-adapter.js';
@@ -73,7 +74,12 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
   ctx.provide('novelProject', projectService);
   ctx.provide('novelState', stateService);
   ctx.provide('novelCanon', canonService);
-  const textService = createTextService(projectsRoot);
+  let linkIndexService: NovelLinkIndexService | undefined;
+  const textService = createTextService(projectsRoot, {
+    onTextChanged: async (projectId, change) => { await linkIndexService?.invalidate(projectId, change); },
+  });
+  linkIndexService = createLinkIndexService({ text: textService, projectsRoot });
+  ctx.provide('novelLinkIndex', linkIndexService);
   // I104：descriptor.service 固定为 novelText，故 wire aliases 与既有 Host
   // domain API 必须共存于同一个 gateway receiver（不能另挂 service key）。
   ctx.provide('novelText', createTextMutationRemote(textService));
@@ -174,6 +180,7 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
     confirmationService,
     projectService,
     textService,
+    linkIndexService,
     sceneOutlineBindingService,
     outlineGenerationBaselineService,
     ruleService,

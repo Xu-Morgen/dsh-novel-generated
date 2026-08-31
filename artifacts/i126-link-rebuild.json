@@ -1,0 +1,18 @@
+{
+  "iteration": "I126",
+  "requirement": "R18-8c",
+  "guarantees": [
+    "versioned-deletable-links-index-derived-only-from-c5",
+    "deterministic-utf16-quote-rebuild-with-ambiguous-and-missing-failures",
+    "old-anchor-source-hash-stale-after-successful-c5-edit",
+    "c5-edit-invalidation-is-best-effort-and-never-vetoes-committed-prose",
+    "drop-and-rebuild-recover-corrupt-or-missing-derived-index"
+  ],
+  "focusedSuites": "I126 core rebuild, Host invalidation service, and resolver regression suites passed",
+  "explicitNonGoals": [
+    "markdown-link-carrier",
+    "portable-archive-sidecar",
+    "llm-relink-analysis",
+    "review-repair-workflow"
+  ]
+}

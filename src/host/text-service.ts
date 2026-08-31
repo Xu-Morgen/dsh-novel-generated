@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
-import { TextRepository, type TextDeleteImpact, type TextDeleteResult, type TextRange } from '../core/text/index.js';
+import { TextRepository, type TextChangedEvent, type TextDeleteImpact, type TextDeleteResult, type TextRange } from '../core/text/index.js';
 import type { AppendSceneInput, Chapter, CreateChapterInput, Scene } from '../core/schema/text.js';
 import type {
   ChapterCreateMutation,
@@ -39,8 +39,13 @@ export interface NovelTextMutationService {
 
 export type NovelTextServiceBundle = NovelTextService & NovelTextMutationService;
 
+export interface TextServiceOptions {
+  /** Optional derived-view invalidation hook; it is never allowed to veto C5. */
+  readonly onTextChanged?: (projectId: string, change: TextChangedEvent) => void | Promise<void>;
+}
+
 /** Host facade for I6 C5 storage; callers never receive filesystem paths. */
-export function createTextService(projectsRoot = join(homedir(), '.dsh', 'novel-projects')): NovelTextServiceBundle {
+export function createTextService(projectsRoot = join(homedir(), '.dsh', 'novel-projects'), options: TextServiceOptions = {}): NovelTextServiceBundle {
   const repositories = new Map<string, TextRepository>();
   const get = (projectId: string): TextRepository => {
     validateProjectId(projectId);
@@ -51,7 +56,9 @@ export function createTextService(projectsRoot = join(homedir(), '.dsh', 'novel-
   return {
     async open(projectId) {
       validateProjectId(projectId);
-      const repository = new TextRepository(projectDirectory(projectsRoot, projectId));
+      const repository = new TextRepository(projectDirectory(projectsRoot, projectId), {
+        onTextChanged: (change) => options.onTextChanged?.(projectId, change),
+      });
       await repository.open();
       repositories.set(projectId, repository);
     },

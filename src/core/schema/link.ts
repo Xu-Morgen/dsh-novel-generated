@@ -53,9 +53,36 @@ export const entityEntityLinkSchema = z.object({
 
 export const entityLinkSchema = z.discriminatedUnion('kind', [textEntityLinkSchema, entityEntityLinkSchema]);
 
+/** A deterministic request used to rebuild a text link from pure C5 prose. */
+export const textLinkSourceSchema = z.object({
+  id: entityIdSchema,
+  chapterId: entityIdSchema,
+  sceneId: entityIdSchema,
+  quote: z.string().min(1),
+}).strict();
+
+/** A resolved anchor kept in the rebuildable derived index. */
+export const textLinkRecordSchema = z.object({
+  id: entityIdSchema,
+  link: textEntityLinkSchema.extend({ anchor: textAnchorSchema }),
+  status: z.enum(['ready', 'stale']),
+}).strict();
+
+/** Versioned, deletable link index; C5 remains the only prose source of truth. */
+export const textLinkIndexSchema = z.object({
+  version: z.literal(1),
+  projectId: entityIdSchema,
+  sourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  sources: z.array(textLinkSourceSchema),
+  records: z.array(textLinkRecordSchema),
+}).strict();
+
 export type TextAnchor = z.infer<typeof textAnchorSchema>;
 export type EntityLink = z.infer<typeof entityLinkSchema>;
 export type EntityLinkKind = z.infer<typeof entityLinkKindSchema>;
+export type TextLinkSource = z.infer<typeof textLinkSourceSchema>;
+export type TextLinkRecord = z.infer<typeof textLinkRecordSchema>;
+export type TextLinkIndexFile = z.infer<typeof textLinkIndexSchema>;
 
 /**
  * Construct an anchor from the exact text currently shown to the caller.

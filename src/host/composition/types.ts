@@ -35,6 +35,7 @@ import type { NovelOutlineReconciliationService } from '../outline-reconciliatio
 import type { NovelReferenceAuditService } from '../reference-audit-service.js';
 import type { NovelReferenceCorrectionService } from '../reference-correction-service.js';
 import type { LongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
+import type { NovelLinkIndexService } from '../link-index-service.js';
 
 /**
  * I89 index.ts 组合根分段共享类型（review v2.0 §3.4 / 计划 §18 I89）。
@@ -82,6 +83,8 @@ export interface BaseServices {
   confirmationService: NovelConfirmationService;
   projectService: NovelProjectService;
   textService: NovelTextServiceBundle;
+  /** I126 rebuildable text-link index; derived and invalidated after C5 writes. */
+  linkIndexService: NovelLinkIndexService;
   sceneOutlineBindingService: NovelSceneOutlineBindingService;
   outlineGenerationBaselineService: NovelOutlineGenerationBaselineService;
   ruleService: NovelRuleService;

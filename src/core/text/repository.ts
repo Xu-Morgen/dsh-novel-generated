@@ -65,12 +65,21 @@ export interface TextDeleteResult {
   readonly fingerprint: string;
 }
 
-export interface TextRepositoryOptions extends ChapterWriteQueueOptions {}
+/** Successful C5 write notification for rebuildable derived consumers. */
+export interface TextChangedEvent {
+  readonly chapterIds: readonly string[];
+  readonly sceneIds: readonly string[];
+}
+
+export interface TextRepositoryOptions extends ChapterWriteQueueOptions {
+  /** Derived invalidation must never turn a committed C5 write into a failure. */
+  readonly onTextChanged?: (change: TextChangedEvent) => void | Promise<void>;
+}
 
 export class TextRepository {
   private readonly queue: ChapterWriteQueue;
 
-  constructor(projectDirectory: string, options: TextRepositoryOptions = {}) {
+  constructor(projectDirectory: string, private readonly options: TextRepositoryOptions = {}) {
     this.queue = new ChapterWriteQueue(projectDirectory, options);
   }
 
@@ -104,6 +113,7 @@ export class TextRepository {
       }
       if (exists) throw new Error(`Chapter already exists: ${chapter.id}`);
       await this.queue.commitChapter(chapter);
+      await this.notifyTextChanged({ chapterIds: [chapter.id], sceneIds: [] });
       return structuredClone(chapter);
     });
   }
@@ -151,6 +161,7 @@ export class TextRepository {
       const scene = sceneSchema.parse({ ...input, index: chapter.scenes.length, branches: [] });
       const updated = chapterSchema.parse({ ...chapter, scenes: [...chapter.scenes, scene] });
       await this.queue.commitChapter(updated);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [scene.id] });
       return structuredClone(scene);
     });
   }
@@ -173,6 +184,7 @@ export class TextRepository {
       next.splice(input.index - 1, 0, created);
       const normalized = next.map((chapter, position) => chapterSchema.parse({ ...chapter, index: position + 1 }));
       await this.queue.commitProject(normalized);
+      await this.notifyTextChanged({ chapterIds: normalized.map((chapter) => chapter.id), sceneIds: normalized.flatMap((chapter) => chapter.scenes.map((scene) => scene.id)) });
       return { chapter: structuredClone(normalized[input.index - 1]), fingerprint: textProjectFingerprint(normalized) };
     });
   }
@@ -188,6 +200,7 @@ export class TextRepository {
       const changed = chapterSchema.parse({ ...chapters[position], ...parsedPatch });
       chapters[position] = changed;
       await this.queue.commitChapter(changed);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: changed.scenes.map((scene) => scene.id) });
       return { chapter: structuredClone(changed), fingerprint: textProjectFingerprint(chapters) };
     });
   }
@@ -209,6 +222,7 @@ export class TextRepository {
       const changed = chapterSchema.parse({ ...chapter, scenes: normalizedScenes });
       chapters[chapterPosition] = changed;
       await this.queue.commitChapter(changed);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: changed.scenes.map((scene) => scene.id) });
       return { scene: structuredClone(normalizedScenes[index]), fingerprint: textProjectFingerprint(chapters) };
     });
   }
@@ -230,6 +244,7 @@ export class TextRepository {
       const changedChapter = chapterSchema.parse({ ...chapter, scenes });
       chapters[chapterPosition] = changedChapter;
       await this.queue.commitChapter(changedChapter);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
       return { scene: structuredClone(changedScene), fingerprint: textProjectFingerprint(chapters) };
     });
   }
@@ -262,6 +277,7 @@ export class TextRepository {
         normalized.push(chapterSchema.parse({ ...chapter, index: chapterPosition + 1, scenes }));
       });
       await this.queue.commitProject(normalized);
+      await this.notifyTextChanged({ chapterIds: normalized.map((chapter) => chapter.id), sceneIds: normalized.flatMap((chapter) => chapter.scenes.map((scene) => scene.id)) });
       return { chapters: structuredClone(normalized), fingerprint: textProjectFingerprint(normalized) };
     });
   }
@@ -305,6 +321,7 @@ export class TextRepository {
       const remaining = chapters.filter((item) => item.id !== chapterId)
         .map((item, position) => chapterSchema.parse({ ...item, index: position + 1 }));
       await this.queue.commitProject(remaining, [chapterId]);
+      await this.notifyTextChanged({ chapterIds: [chapterId, ...remaining.map((item) => item.id)], sceneIds: chapter.scenes.map((scene) => scene.id) });
       return { impact, fingerprint: textProjectFingerprint(remaining) };
     });
   }
@@ -328,6 +345,7 @@ export class TextRepository {
       const changedChapter = chapterSchema.parse({ ...chapter, scenes });
       chapters[chapterPosition] = changedChapter;
       await this.queue.commitChapter(changedChapter);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
       return { impact, fingerprint: textProjectFingerprint(chapters) };
     });
   }
@@ -393,6 +411,7 @@ export class TextRepository {
       const scenes = chapter.scenes.slice();
       scenes[position] = changed;
       await this.queue.commitChapter(chapterSchema.parse({ ...chapter, scenes }));
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
       return structuredClone(changed);
     });
   }
@@ -441,6 +460,7 @@ export class TextRepository {
       const scenes = chapter.scenes.slice();
       scenes[position] = changed;
       await this.queue.commitChapter(chapterSchema.parse({ ...chapter, scenes }));
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
       return structuredClone(changed);
     });
   }
@@ -465,6 +485,7 @@ export class TextRepository {
       const scenes = chapter.scenes.slice();
       scenes[position] = changed;
       await this.queue.commitChapter(chapterSchema.parse({ ...chapter, scenes }));
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
       return structuredClone(changed);
     });
   }
@@ -497,5 +518,14 @@ export class TextRepository {
       const chapter = await this.readChapterUnlocked(chapterId);
       return chapter.scenes.map((scene) => scene.content).join('\n\n');
     });
+  }
+
+  private async notifyTextChanged(change: TextChangedEvent): Promise<void> {
+    try {
+      await this.options.onTextChanged?.(change);
+    } catch {
+      // Derived index maintenance is retryable and must not roll back a
+      // successful C5 commit or make the author believe正文 was not saved.
+    }
   }
 }
