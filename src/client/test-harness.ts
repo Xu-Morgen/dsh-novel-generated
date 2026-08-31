@@ -140,6 +140,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const sceneOutlineBindingStub = mountOptions.sceneOutlineBinding;
   const textDeletionStub = mountOptions.textDeletion;
   const outlineReconciliationStub = mountOptions.outlineReconciliation;
+  const referenceAuditStub = mountOptions.referenceAudit;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -278,6 +279,9 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       reject: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.reject'); },
       finalize: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.finalize'); },
       continue: async () => { throw new Error('未注入 remote.novelOutlineReconciliation.continue'); },
+    })
+    : name === 'remote.novelReferenceAudit' ? (referenceAuditStub ?? {
+      list: async () => ({ ok: true, value: { projectId: 'fixture-project', records: [], nextCursor: null } }),
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));

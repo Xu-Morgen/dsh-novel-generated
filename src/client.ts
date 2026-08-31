@@ -211,6 +211,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           textMutation: serviceBag.textMutation,
           textDeletion: serviceBag.textDeletion,
           outlineReconciliation: serviceBag.outlineReconciliation,
+          referenceAuditNamespace: serviceBag.referenceAudit,
         },
       );
 
@@ -279,6 +280,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               textMutation: serviceBag.textMutation,
               textDeletion: serviceBag.textDeletion,
               outlineReconciliation: serviceBag.outlineReconciliation,
+              referenceAuditNamespace: serviceBag.referenceAudit,
               onboardingNamespace: serviceBag.onboarding,
             },
             ui,
@@ -286,6 +288,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               layers,
               chapters: s.chapters,
               review: s.review,
+              referenceReview: s.referenceReview,
               queue: s.queue,
               knowledge: s.knowledge,
               ruleStyle: s.ruleStyle,

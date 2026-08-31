@@ -1,4 +1,4 @@
-import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace } from '../shared.js';
+import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace } from '../shared.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingNamespace, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
@@ -21,6 +21,7 @@ import type { ImportExportEditOps, ImportExportLayerState } from '../layers/impo
 import type { SearchEditOps, SearchLayerState } from '../layers/search.js';
 import type { StatisticsEditOps, StatisticsLayerState } from '../layers/statistics.js';
 import type { TimelineEditOps, TimelineLayerState } from '../layers/timeline.js';
+import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layers/reference-review.js';
 
 /**
  * I82 创作台 Client store 契约层（架构审查 §5.1 / §9 #5 拆分：store/types.ts 承载
@@ -144,6 +145,8 @@ export type WorkbenchActions = {
   chaptersManagement(patch: Partial<ChapterManagementState>): void;
   /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
   reviewPatch(patch: Partial<ReviewLayerState>): void;
+  /** I117 引用更新审查：Host audit 只读投影 + 当前会话错误标记。 */
+  referenceReviewPatch(patch: Partial<ReferenceReviewLayerState>): void;
   /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
   queuePatch(patch: Partial<QueueLayerState>): void;
   /** I66 知情与揭示管理面（R14-1）：面板状态（投影/视图/选中/提案草稿/pending）。 */
@@ -236,6 +239,8 @@ export interface WorkbenchOps {
   readonly statistics: StatisticsEditOps;
   /** 方案 A：剧情时间线面板（刷新/自建/节点选择/编辑/手动设当前/保存）。 */
   readonly timeline: TimelineEditOps;
+  /** I117：引用更新审查（只读 audit + 本地错误标记）。 */
+  readonly referenceReview: ReferenceReviewEditOps;
 }
 
 /** 创作台全部领域状态（store 单一快照形状；render 层只消费，不经 actions 不写）。 */
@@ -269,6 +274,8 @@ export interface WorkbenchState {
   chapters: ChaptersLayerState;
   /** I64：一致性审校中心面板状态（投影/过滤/选中/审计记录，R13-5）。 */
   review: ReviewLayerState;
+  /** I117：引用更新审查状态；不承载任何叙事层写入。 */
+  referenceReview: ReferenceReviewLayerState;
   /** I65：生成队列面板状态（投影/范围勾选/配置草稿，R13-6）。 */
   queue: QueueLayerState;
   /** I66：知情与揭示面板状态（投影/视图/选中/提案草稿/pending，R14-1）。 */
@@ -324,6 +331,7 @@ export interface WorkbenchNamespaces {
   searchNamespace: SearchNamespace | undefined;
   statisticsNamespace: StatisticsNamespace | undefined;
   timelineNamespace: TimelineNamespace | undefined;
+  referenceAuditNamespace: ReferenceAuditNamespace | undefined;
   sceneOutlineBinding: SceneOutlineBindingNamespace | undefined;
   textMutation: TextMutationNamespace | undefined;
   textDeletion: TextDeletionNamespace | undefined;
@@ -336,6 +344,7 @@ export interface WorkbenchViewStates {
   layers: LayerData;
   chapters: ChaptersLayerState;
   review: ReviewLayerState;
+  referenceReview: ReferenceReviewLayerState;
   queue: QueueLayerState;
   knowledge: KnowledgeLayerState;
   ruleStyle: RuleStyleLayerState;

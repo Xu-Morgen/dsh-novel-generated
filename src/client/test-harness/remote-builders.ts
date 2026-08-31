@@ -34,6 +34,11 @@ export interface MountOptionsI114 {
   };
 }
 
+/** I117 read-only reference audit injection for the review-panel E2E fixture. */
+export interface MountOptionsI117 {
+  referenceAudit?: { list?: (projectId: string, input?: unknown) => Promise<unknown> };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
@@ -42,6 +47,7 @@ export interface MountOptions {
   branch?: MountOptionsI107['branch'];
   sceneReparsePreview?: (projectId: string, chapterId: string, sceneId: string, range: unknown, replacement: string, baseHash?: string) => Promise<unknown>;
   outlineReconciliation?: MountOptionsI114['outlineReconciliation'];
+  referenceAudit?: MountOptionsI117['referenceAudit'];
 }
 
 export interface WorkspaceOverrides {

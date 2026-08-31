@@ -16,6 +16,7 @@ import { createStateOps } from './state.js';
 import { createStatisticsOps } from './statistics.js';
 import { createTimelineOps } from './timeline.js';
 import { createWorldviewOps } from './worldview.js';
+import { createReferenceReviewOps } from './reference-review.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 
 /**
@@ -47,5 +48,6 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
     search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, chaptersRef),
     statistics: createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace }),
     timeline: createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace }),
+    referenceReview: createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace }),
   };
 }

@@ -359,9 +359,9 @@ describe('I48 B5/C1 结构化编辑器 (R10-5)', () => {
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     (layerButtons(render()).find((n) => n.props?.['data-novel-layer'] === 'relationship')?.props?.onClick as () => void)();
 
-    const textInputs = collect(render(), 'input').filter((n) => n.props?.['type'] === 'text');
-    (textInputs[0]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
-    (textInputs[1]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
+    const entitySelectors = collect(render(), 'select').filter((n) => n.props?.['data-novel-entity-select'] === 'relationship-from' || n.props?.['data-novel-entity-select'] === 'relationship-to');
+    (entitySelectors[0]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
+    (entitySelectors[1]?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero' } });
     ((byData(render(), 'data-novel-relationship-save', '') as FakeNode).props?.onClick as () => void)();
     await flush();
 

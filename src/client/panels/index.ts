@@ -28,6 +28,8 @@ import { importExportPanel } from '../layers/import-export.js';
 import { searchPanel } from '../layers/search.js';
 import { statisticsPanel } from '../layers/statistics.js';
 import { timelinePanel } from '../layers/timeline.js';
+import { referenceReviewPanel } from '../layers/reference-review.js';
+import type { EntityOption } from '../entity-selectors.js';
 import { llmSettingsPanel, type LlmConfigDraftShape, type LlmConfigNamespace, type LlmConfigViewShape } from '../settings.js';
 import { workbenchSettingsPanel, type WorkbenchSettingsDraftShape, type WorkbenchSettingsNamespace, type WorkbenchSettingsViewShape } from '../workbench-settings.js';
 import type { LayerData, WorkbenchNamespaces, WorkbenchOps, WorkbenchViewStates } from '../store/types.js';
@@ -88,8 +90,8 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
   review: ({ h, projectId, ns, states, ops }) => {
     const { reviewNamespace } = ns;
-    const { review: reviewState } = states;
-    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review));
+    const { review: reviewState, referenceReview: referenceReviewState } = states;
+    return h('div', { 'data-novel-view-panel': 'review' }, reviewPanel(h, projectId, reviewNamespace, reviewState, ops.review), referenceReviewPanel(h, projectId, ns.referenceAuditNamespace, referenceReviewState, ops.referenceReview));
   },
   // I65：生成队列（写作组）—— 场景卡范围/配置 + 暂停/继续/取消 + 任务列表（R13-6）。
   queue: ({ h, projectId, ns, states, ops }) => {
@@ -138,7 +140,10 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   timeline: ({ h, projectId, ns, states, ops }) => {
     const { timelineNamespace } = ns;
     const { timeline: timelineState } = states;
-    return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline));
+    const names = new Map(states.layers.characters.list.map((character) => [character.id, character.name]));
+    const relationshipOptions: EntityOption[] = states.layers.relationship.list.map((relationship) => ({ id: relationship.id, label: `${names.get(relationship.from) ?? relationship.from} ↔ ${names.get(relationship.to) ?? relationship.to}` }));
+    const knowledgeOptions: EntityOption[] = (states.knowledge.projection?.entries ?? []).map((entry) => ({ id: entry.id, label: entry.fact || entry.id }));
+    return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline, relationshipOptions, knowledgeOptions));
   },
 };
 
@@ -171,13 +176,13 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
   }
   if (layer.id === 'outline') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline));
+      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id }))));
   }
   if (layer.id === 'relationship') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
       // 关系 from/to 以 B3 角色 id 持久化；显示时 join 角色名（改名不换 id，见
       // CharacterRepository.update），未知 id 回退显示 id 本身。
-      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship));
+      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship, layers.canon.events.map((event) => ({ id: event.id, label: event.summary || event.id }))));
   }
   if (layer.id === 'state') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },

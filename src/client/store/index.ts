@@ -34,6 +34,8 @@ import type { StatisticsLayerState } from '../layers/statistics.js';
 import { freshStatistics } from '../layers/statistics.js';
 import type { TimelineLayerState } from '../layers/timeline.js';
 import { freshTimeline } from '../layers/timeline.js';
+import type { ReferenceReviewLayerState } from '../layers/reference-review.js';
+import { freshReferenceReview } from '../layers/reference-review.js';
 import { freshLlmConfigDraft } from '../settings.js';
 import { freshWorkbenchSettingsDraft } from '../workbench-settings.js';
 import type { DefineStore, StoreHandle, WorkbenchActions, WorkbenchState } from './types.js';
@@ -92,6 +94,7 @@ export function freshWorkbenchState(): WorkbenchState {
     canonEditor: freshCanonEditor(),
     chapters: freshChapters(),
     review: freshReview(),
+    referenceReview: freshReferenceReview(),
     queue: freshQueue(),
     knowledge: freshKnowledge(),
     ruleStyle: freshRuleStyle(),
@@ -149,7 +152,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       fail: (d, message: string) => { d.status = { status: 'error', message }; },
       setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
       selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.onboarding = undefined; d.leaveConfirm = false; },
+      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.onboarding = undefined; d.leaveConfirm = false; },
       browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
       cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
       showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -211,6 +214,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       chaptersMode: (d, mode: ChaptersMode) => { d.chapters = { ...d.chapters, mode }; },
       chaptersManagement: (d, patch: Partial<ChapterManagementState>) => { d.chapters = { ...d.chapters, management: { ...d.chapters.management, ...patch } }; },
       reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
+      referenceReviewPatch: (d, patch: Partial<ReferenceReviewLayerState>) => { d.referenceReview = { ...d.referenceReview, ...patch }; },
       queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },
       knowledgePatch: (d, patch: Partial<KnowledgeLayerState>) => { d.knowledge = { ...d.knowledge, ...patch }; },
       ruleStylePatch: (d, patch: Partial<RuleStyleLayerState>) => { d.ruleStyle = { ...d.ruleStyle, ...patch }; },

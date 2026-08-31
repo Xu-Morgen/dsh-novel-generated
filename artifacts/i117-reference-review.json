@@ -1,0 +1,18 @@
+{
+  "iteration": "I117",
+  "requirement": "R18-5c",
+  "guarantees": [
+    "host-reference-audit-to-client-review-panel",
+    "layer-and-status-filtering-with-local-session-error-mark",
+    "unknown-or-deleted-entity-ids-remain-visible",
+    "timeline-outline-relationship-manual-id-main-path-retired",
+    "selector-labels-and-fieldsets-are-accessible",
+    "error-marking-has-no-narrative-layer-write"
+  ],
+  "focusedSuites": "reference review E2E plus existing review/timeline regressions passed",
+  "explicitNonGoals": [
+    "LLM-reference-correction",
+    "reference-correction-writeback",
+    "new-reference-remote-mutation"
+  ]
+}
