@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-29-i106-chapter-management",
+  "currentTodo": "Remove invalidated guard/fence/recovery work and restart from simplified schema/impact",
+  "completedTodos": [
+    "2026-08-31 simplified spec and plan are authoritative"
+  ],
+  "activeSlice": "scope-reset",
+  "evidenceRefs": [
+    "Prior Task 1A evidence is historical only and does not satisfy the simplified spec"
+  ],
+  "blockedOn": "none",
+  "nextStep": "Classify current I106 diff into keep/remove, delete saga-only infrastructure, then implement simplified Task 1",
+  "updatedAt": "2026-08-31"
+}

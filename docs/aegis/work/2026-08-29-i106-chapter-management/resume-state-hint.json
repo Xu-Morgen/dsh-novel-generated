@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-08-29-i106-chapter-management",
+  "lastCheckpointRef": "docs/aegis/work/2026-08-29-i106-chapter-management/todo-checkpoint-draft.json",
+  "resumeInstruction": "Do not continue the old Task1A; first remove guard/fence/recovery work and follow the 2026-08-31 simplified spec and plan",
+  "knownPartialWork": [
+    "Old Task 1A implementation exists but its guard/fence/recovery direction is invalidated"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-08-29-i106-chapter-management/10-intent.md",
+    "docs/aegis/work/2026-08-29-i106-chapter-management/20-checkpoint.md",
+    "docs/aegis/work/2026-08-29-i106-chapter-management/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Do not preserve old code merely because its focused tests passed",
+    "Only pure deletion transforms and existing lane fixes that do not depend on guard/fence may be retained"
+  ]
+}

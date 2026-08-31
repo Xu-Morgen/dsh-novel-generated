@@ -178,3 +178,16 @@ Entries are workspace records, not authoritative runtime decisions.
 | 2026-08-28 | artifact | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/gate-input-pack.json | 2026-08-28-i85-dsh-rc2-upgrade gate input pack |
 | 2026-08-28 | work | docs/aegis/work/2026-08-28-i85-dsh-rc2-upgrade/proof-bundle.md | 2026-08-28-i85-dsh-rc2-upgrade proof bundle |
 | 2026-08-29 | plan | docs/aegis/plans/2026-08-29-i105-scene-outline-binding.md | I105 SceneOutlineBinding 与候选落点合同实施计划 |
+| 2026-08-31 | spec | docs/aegis/specs/2026-08-29-i106-chapter-management-design.md | I106 章节树管理、简化受控删除与空作品引导设计（替代 durable saga） |
+| 2026-08-31 | plan | docs/aegis/plans/2026-08-29-i106-chapter-management.md | I106 章节管理与简化受控删除实施计划 |
+| 2026-08-29 | work | docs/aegis/work/2026-08-29-i106-chapter-management/10-intent.md | I106 章节树管理与受控删除 intent |
+| 2026-08-29 | work | docs/aegis/work/2026-08-29-i106-chapter-management/20-checkpoint.md | I106 章节树管理与受控删除 checkpoint |
+| 2026-08-29 | work | docs/aegis/work/2026-08-29-i106-chapter-management/90-evidence.md | I106 章节树管理与受控删除 evidence |
+| 2026-08-29 | work | docs/aegis/work/2026-08-29-i106-chapter-management/99-reflection.md | I106 章节树管理与受控删除 reflection |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/task-intent-draft.json | I106 章节树管理与受控删除 task intent draft |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/baseline-read-set-hint.json | I106 章节树管理与受控删除 baseline read-set hint |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/baseline-usage-draft.json | I106 章节树管理与受控删除 baseline usage draft |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/impact-statement-draft.json | I106 章节树管理与受控删除 impact statement draft |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/todo-checkpoint-draft.json | I106 章节树管理与受控删除 todo checkpoint draft |
+| 2026-08-29 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/drift-check-draft.json | I106 章节树管理与受控删除 drift check draft |
+| 2026-08-30 | artifact | docs/aegis/work/2026-08-29-i106-chapter-management/resume-state-hint.json | 2026-08-29-i106-chapter-management resume state hint |

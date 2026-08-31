@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "完成 I106 R18-1c，单一 commit 并推送",
+  "goal": "完成 I106 R18-1c，单一 commit 并推送",
+  "successEvidence": [
+    "four strict deletion methods",
+    "binding and C5 complete in one request",
+    "proposalId retry is idempotent",
+    "real binder and Client journey",
+    "verify:i106 and smoke artifact"
+  ],
+  "stopCondition": "Stop when success evidence is satisfied or a blocker/risk requires pause.",
+  "nonGoals": [
+    "deletion saga/journal/audit",
+    "reservation/recovery barrier/fence",
+    "multi-process safety"
+  ],
+  "scope": "I106 only: local idempotent deletion, Chapters GUI, additive Remote, contracts and evidence",
+  "changeKinds": [
+    "feature"
+  ],
+  "riskHints": [
+    "binding-first failure is retried manually with the same proposalId"
+  ]
+}

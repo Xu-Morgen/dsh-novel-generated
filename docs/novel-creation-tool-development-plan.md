@@ -19,6 +19,7 @@
 - 当前排期为 **19 个阶段、128 个迭代（I1–I128）**。唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`；运行时观测、manifest/profile/lockfile 不再存在 rc.7 漂移。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
+- v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩 I118 为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
 
 ### 0.2 Goal
 
@@ -1047,12 +1048,12 @@ TDD Route:
 
 ### I106：章节树管理、受控删除与空作品引导（R18-1c）
 
-- **依赖**：I104、I105；**canonical owner**：Host deletion orchestration + I11；Client chapters ops/state 只持交互状态并消费 I104/I105 Remote。
+- **依赖**：I104、I105；**canonical owner**：现有 `TextRepository` project write lane + I11；Client chapters ops/state 只持交互状态并消费 I104/I105 Remote。
 - **目标**：把已交付的 CRUD、排序、元数据、绑定和候选落点接入 GUI，并新增唯一的受控硬删除工作流。
-- **兼容/退役**：复用 I104/I105 strict invocation，不复制 Remote；硬删除先返回含正文、branches、binding、活动 queue/candidate 与历史引用的影响报告并经 I11，source fingerprint 或 branch 集变化后旧确认失效。活动 queue/candidate 必须先取消/裁决；绑定在受控删除中清理，派生索引只失效/重建，历史 audit 记录保留并标为 stale 引用而非删除。
-- **交付物**：Client 章节树与场景表单/排序；绑定/落点选择；删除 impact→Gate→apply Host workflow 与 additive delete Remote；无章节/无场景引导态。
-- **验收**：GUI 经真实 binder 完成 CRUD/排序/绑定/落点；未确认、拒绝、source/branch fingerprint 变化、活动 queue 或活动 candidate 均零写；影响报告逐项包含 branches/绑定/活动项/历史引用；确认后 C5+镜像+绑定一致，历史 audit 仍存在且引用可识别为 stale；跨项目/非法表单拒绝；DOM 锚点和 dispose 绿。
-- **明确不做**：不做垃圾箱/恢复、富文本、ID 重命名或非空项目导入。
+- **兼容/退役**：复用 I104/I105 strict invocation，不复制 Remote。硬删除先返回含正文、branches、binding、活动 queue/candidate 与可定位历史引用的有界 impact 并经 I11；source/branch/binding fingerprint 变化使旧 proposal stale。活动 queue/candidate 必须先取消/裁决。apply 在现有本地 project write lane 内最终复验，以 proposalId 幂等地先清理 binding、再删除 C5；同一请求成功前完成两项，不建立后台叙事层补写。既有历史记录不修改，读取时依据目标存在性显示 stale；Markdown 镜像复用 I104 outbox。
+- **交付物**：Client 章节树与场景表单/排序；绑定/落点选择；简化的 deletion impact/propose/apply/reject Remote；无章节/无场景引导态；同一 proposal 重试夹具。
+- **验收**：GUI 经真实 binder 完成 CRUD/排序/绑定/落点；未确认、拒绝、stale fingerprint、活动 queue/candidate 均零写；确认后 binding 清理与 C5 删除在返回成功前完成；重复 apply 返回 already-deleted 且不重复副作用；binding 已清而 C5 尚在时重试可继续；既有历史记录保留并可投影 stale；跨项目/非法表单拒绝；DOM 锚点和 dispose 绿。
+- **明确不做**：不做持久 deletion saga/journal/audit、reservation、全局 recovery barrier、特殊 open/recovery 路径、垃圾箱/恢复、富文本、ID 重命名或非空项目导入。
 - **验证**：`pnpm run verify:i106`；`artifacts/i106-chapter-management-e2e.json`。
 
 ### I107：章节区四种互斥操作模式（R18-9）
@@ -1165,23 +1166,23 @@ TDD Route:
 - **明确不做**：不做“继续写作首页”或后台自动接受。
 - **验证**：`pnpm run verify:i117`；`artifacts/i117-revised-context.json`。
 
-### I118：章节润色批次协调与恢复（R18-4a）
+### I118：章节润色逐场景编排（R18-4a）
 
-- **依赖**：I106、I108、I117；**canonical owner**：`ChapterPolishBatchCoordinator`，单场景 candidate 仍由 writing-adjudication 拥有。
-- **目标**：把当前章节按 scene.index 创建独立 rewrite candidate 的可恢复批次。
-- **兼容/退役**：不扩 writing intent enum；批次用 `rewrite + polishMode`，每 scene 独立 sourceHash/状态。允许 partial accepted，不承诺整章原子性。
-- **交付物**：strict batch journal（含候选恢复所需最小数据）、queued/candidate-ready/accepted/rejected/failed 状态、pause/resume/cancel、预算与 Fiber dispose。
-- **验收**：重启恢复不重复生成/接受；单 scene stale/失败不污染其他 scene；已接受项保持，剩余可继续；跨项目/空章/并行批次拒绝。
+- **依赖**：I106、I108、I117；**canonical owner**：既有 writing-adjudication 单场景 candidate；Client 只持当前会话的 scene 游标和展示状态。
+- **目标**：按 scene.index 逐个为当前章节创建独立 rewrite candidate，提供最小章节级操作入口。
+- **兼容/退役**：不扩 writing intent enum；使用 `rewrite + polishMode`，每 scene 独立 sourceHash。章节级进度不持久化，刷新/重启后不恢复；已接受正文由既有 C5/branch 真相保留。单场景接受继续经现有 validation→preview→landing，在同一 Host 请求内实时、幂等完成获授权的多层写回。
+- **交付物**：纯函数 scene.index 顺序选择；会话级 currentSceneId/completedCount/error；启动下一场景、停止与重新开始动作；真实 existing candidate 消费者夹具；Fiber dispose 清理会话状态。
+- **验收**：每次至多创建一个场景候选；单 scene stale/失败不修改其他 scene；重复裁决不重复写；刷新后无批次恢复承诺但已接受正文保持；空章/跨项目拒绝；停止后不继续发起 LLM。
 - **明确不做**：不定义三种 prompt、不做全书批量或自动 accept。
-- **验证**：`pnpm run verify:i118`；`artifacts/i118-polish-batch.json`。
+- **验证**：`pnpm run verify:i118`；`artifacts/i118-polish-scene-flow.json`。
 
 ### I119：三种润色样本、prompt、UI 与裁决（R18-4b）
 
-- **依赖**：I118、I107；**canonical owner**：共享 rewrite pipeline + ChapterPolishBatchCoordinator。
-- **目标**：交付语言润色、压缩精简、扩写细节三个参数化模式及章节批次 UI。
+- **依赖**：I118、I107；**canonical owner**：共享 rewrite pipeline + Client 会话级逐场景编排。
+- **目标**：交付语言润色、压缩精简、扩写细节三个参数化模式及逐场景章节 UI。
 - **兼容/退役**：三模式共用一个 schema/service，不建三套 prompt owner；accepted scene 仍经现有 validation→preview→landing。
-- **交付物**：先冻结每模式 dev/held-out/gold（整体及每模式≥80%）与 fake backend；prompt preset；Client 启动/进度/逐场景审阅/恢复。
-- **验收**：三模式意图区分达标；非法输出、取消、模型失败、hard violation、reject 零写；partial 状态可见；accepted 逐场景版本与正文一致。
+- **交付物**：先冻结每模式 dev/held-out/gold（整体及每模式≥80%）与 fake backend；prompt preset；Client 启动/当前场景/逐场景审阅/停止/重新开始。
+- **验收**：三模式意图区分达标；非法输出、取消、模型失败、hard violation、reject 零写；当前会话进度可见；accepted 逐场景版本与正文一致且多层写回实时幂等。
 - **明确不做**：不新增整章自由文本拆分或全书润色。
 - **验证**：`pnpm run verify:i119`；`artifacts/i119-polish-heldout.json`。
 
@@ -1327,7 +1328,7 @@ Stage 17（review v2 修复迭代 I86–I102）完成时还必须证明：
 Stage 18（I103–I128）完成时还必须证明：
 
 - 既有 invocation 的方法、参数、结果逐字段向后兼容；所有 additive Remote 有 strict schema、返回类型耦合、contract lock 与真实 binder E2E，`novelBranches.list` 基线漂移已修复且无 caller fallback；
-- C5 CRUD/排序/硬删除、SceneOutlineBinding 与候选落点具有单一 owner、原子/幂等/失败零写证据；C5/B5 Schema 保持已裁决边界；
+- C5 CRUD/排序、SceneOutlineBinding 与候选落点具有单一 owner；本地硬删除在同一请求内实时、幂等完成 binding→C5，Gate 前失败零写且中途技术失败可用同一 proposal 重试；C5/B5 Schema 保持已裁决边界；
 - candidate/reparse 的五层 preview 与实际 writeback delta 一致，plan stale/restart 行为明确且未产生持久第二真相；
 - 自动引用、LLM 修正、长稿拆纲与三种润色均遵守样本优先、fake backend、I11、未确认零写和真实 held-out 阈值；
 - EntityLink/派生索引不进入 C5、Markdown、txt 或归档，七类跳转、返回上下文、stale/relink 与 round-trip 全绿；
@@ -1356,8 +1357,8 @@ Stage 18（I103–I128）完成时还必须证明：
 - **重构/修复回归风险**：I75–I84 与 I86–I102 纯机械重构/修复必须以既有全量测试 + stage 回归 + LLM 样本阈值兜底；出现回归先定位到具体迭代并回退上一可用 commit，不带着红灯进入下一迭代。
 - **修复迭代范围风险（v2.5）**：I86–I102 以 review v2.0 中级以上问题为界，禁止顺手夹带中-低/低项或新功能；I100 属公开 Remote 契约迁移，必须带兼容期与退役文档，禁止静默破坏既有调用方；审查证据行号以文件路径与职责为准。
 - **契约漂移风险**：I77/I78 改变 wire 形状推导方式时，必须以 strict codec wire smoke 证明形状等价；禁止继续在接线层以补丁掩盖契约不匹配。I103 起把 result 类型、descriptor lock 与真实 binder 纳入同一门，additive 不等于可跳过兼容审查。
-- **Stage 18 持久化风险**：SceneOutlineBinding、reference audit 与 polish batch journal 是明确的 Host owner，但都不是新叙事层；corrupt/stale/跨项目必须 fail closed。非空 C5 硬删除只能经 I11，禁止 caller 侧级联、后台清理或无影响报告删除。
-- **Stage 18 自动化风险**：StructuralPreviewPlan 只在会话内冻结；reference LLM、long-draft、polish、review repair 均只产候选，任何失败/取消/未确认零写。不得以“自动联动”恢复后台静默写层。
+- **Stage 18 本地持久化风险**：SceneOutlineBinding 与 reference audit 是明确的 Host owner；章节润色进度和删除操作不新增持久 journal。非空 C5 硬删除只能经 I11，并在现有本地 project write lane 内最终复验、同步幂等清理 binding/C5；禁止 caller 侧级联、后台叙事层补写或无影响报告删除。
+- **Stage 18 自动化风险**：StructuralPreviewPlan 与章节润色编排只在会话内存在；reference LLM、long-draft、polish、review repair 均只产候选，任何失败/取消/未确认零写。获授权的多层叙事内容写回必须在同一 Host 请求内实时且幂等，不得以“自动联动”恢复后台静默写层。
 - **Stage 18 派生数据与退役**：EntityLink/index、resolved session state 和 aggregate tree 不得成为第二真相；新 router/选择器验证后删除旧 direct-jump/手填 ID 主路径，不保留双 owner fallback。Markdown/txt/archive 零链接 sidecar。
 - **大文件拆分风险**：I82/I83 拆 `client.ts` 时保持 DOM 契约与既有测试锚点不变，测试迁移分批提交；禁止一迭代内同时改实现与语义。
 - **范围蔓延风险**：重构迭代禁止夹带新功能或领域语义调整；超范围想法记 backlog。

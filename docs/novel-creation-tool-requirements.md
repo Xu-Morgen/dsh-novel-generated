@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
 > 版本：v2.7
-> 日期：2026-08-29
+> 日期：2026-08-29（2026-08-31 Stage 18 范围修订）
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -460,6 +460,8 @@
 > 定位：R18-1–R18-10 是稳定产品需求 ID，不等同于实现迭代。v2.7（2026-08-29）在 Stage 17 / I86–I102 已完成的真实基线上，将原十张大卡拆为 I103–I128；I103 是全部新增公开合同的前置门，I104–I128 覆盖十项需求。既有 invocation 向后兼容，允许经过 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；§0.1 宿主基线与 13 层叙事模型不变。
 >
 > 产品方向：**建立/导入大纲 → AI 推导细纲 → 自动生成首版正文 → 作者微调保存 → 下一章消费细纲和作者修订正文 → Markdown/txt 发布**。正文保持轻量纯文本；不立项继续写作首页、富文本/专注编辑器、笔记素材库或 DOCX 编译。
+>
+> Stage 18 只面向本地单用户、单 Host 进程运行，不为多用户、跨进程并发或分布式事务建立额外基础设施。凡一次操作同时修改多个叙事真相层，必须在同一 Host 请求内实时完成，并以稳定 proposal/candidate/operation ID 保证重复调用幂等；失败不得留下后台异步补写叙事层的任务。派生索引与 Markdown 镜像继续遵守各自既有可重建/outbox 合同，不提升为叙事真相层。
 
 ### R18-P0 合同前置门
 
@@ -469,10 +471,10 @@
 
 | ID | 需求与已裁决行为 | 可机器验收与边界 | 计划迭代 |
 |---|---|---|---|
-| R18-1 | 场景/章节完整 CRUD、元数据、项目级排序；GUI 绑定场景与细纲卡并选择候选落点。绑定由独立 Host `SceneOutlineBinding` 持久化，不改 C5/B5 Schema。非空硬删除必须展示影响并经 I11，不提供垃圾箱。 | CRUD/排序重开一致；多章排序无中间重复 index；未确认、fingerprint 变化、活动任务/候选时删除零写；确认后 C5/镜像/绑定一致且历史审计不被伪删；重复/悬空/跨项目绑定拒绝；candidate-production、queue task targeting 与相关 Client projection 不再业务硬编码 `chapter-1`。 | I104–I106 |
+| R18-1 | 场景/章节完整 CRUD、元数据、项目级排序；GUI 绑定场景与细纲卡并选择候选落点。绑定由独立 Host `SceneOutlineBinding` 持久化，不改 C5/B5 Schema。非空硬删除必须展示影响并经 I11，不提供垃圾箱。删除按本地单进程模型实现，不新增持久 deletion saga、删除账本、全局 recovery barrier 或 reservation。 | CRUD/排序重开一致；多章排序无中间重复 index；未确认、fingerprint 变化、活动任务/候选时删除零写；确认后同一请求内幂等清理 binding 并删除 C5，重复 apply 不重复副作用；Markdown 镜像复用 I104 outbox；既有历史记录保留，读取时按目标存在性投影 stale；重复/悬空/跨项目绑定拒绝；candidate-production、queue task targeting 与相关 Client projection 不再业务硬编码 `chapter-1`。 | I104–I106 |
 | R18-2 | 接受 writing candidate 或 reparse 前展示 C1/C2/C3/C4/B2 结构化 diff；会话内冻结 parser outputs 与全部基线，accept 精确重放。Host 重启后旧预览失效并重新生成。 | `preview delta == committed delta`；sourceHash/任一层基线变化、parser 失败、取消、拒绝均零写；结果有界且无 live object/完整层泄漏；candidate 与 reparse 消费者夹具分别成立。 | I108–I110 |
 | R18-3 | Review 问题定位到稳定文本锚点并发起 rewrite 修复候选；接受后复扫。resolved 不持久化，当前 Client 会话保留 resolved 卡，完整重扫/重开后消失。 | UTF-16 range/quote/sourceHash 定位准确；stale 锚点拒绝；硬冲突阻止接受；复扫确认问题消失后才显示 resolved；无 Host resolved 第二真相。 | I124–I125 |
-| R18-4 | 当前章节提供语言润色、压缩精简、扩写细节；按场景创建独立 rewrite candidate，形成可恢复章节批次。允许部分场景已接受，其余继续处理。 | 每场景绑定独立 sourceHash；三模式均先候选零写；接受/拒绝/失败只影响对应场景，批次状态可恢复；硬约束仍执行；不承诺整章原子提交或全书批量。 | I118–I119 |
+| R18-4 | 当前章节提供语言润色、压缩精简、扩写细节；Client 在当前会话内按 scene.index 逐个创建独立 rewrite candidate，不建立持久章节批次或恢复状态机。 | 每场景绑定独立 sourceHash；三模式均先候选零写；接受/拒绝/失败只影响对应场景；重复裁决沿用既有 candidate 幂等；刷新或重启后不恢复章节级进度，已接受正文保持；硬约束仍执行；不承诺整章原子提交或全书批量。 | I118–I119 |
 | R18-5 | 确定性引用在写回获授权后、landing UoW commit 前参与同一事务；禁止 post-commit 第二写入器。需要语义推断的引用只生成 I11 修正候选。提供 operational audit、错误标记与 LLM 修正回路，验证新 owner 后退役旧手填 ID 主路径。 | 维护矩阵逐字段区分派生/作者语义/禁止自动项；幂等、单调知情、未知 ID、跨项目、失败补偿负测；后台 LLM 零静默写；旧 `listField` ID 输入零主路径引用。 | I111–I114 |
 | R18-6 | 长稿拆纲和初始化仅用于新建/空作品；非空项目在调用 LLM 前继续按 N-7 fail closed。逐章循环适用于所有项目，下一章消费当前细纲与按叙事顺序选择的作者已保存正文。 | 拆纲样本/held-out ≥80%，fake backend 先行，I11 接受前零写；非空项目拒绝；取消/恢复/重复 apply 幂等；context 消费 chapter.index/scene.index 顺序且不注入旧草稿。 | I115–I117 |
 | R18-7 | 全部 Stage 18 UI 完成后，将作者可见工程术语映射为作者语言；动态错误经单一 presentation mapper；技术徽标仅高级视图。 | denylist/allowlist 机器扫描；aria/title/error/empty state 覆盖；`novel_*`、wire 字段、测试夹具和 `data-novel-*` 锚点不变。 | I128 |
