@@ -1,0 +1,18 @@
+{
+  "iteration": "I125",
+  "requirement": "R18-8b",
+  "guarantees": [
+    "character-relationship-knowledge-review-timeline-search-and-scene-card-sources",
+    "thin-adapters-only-construct-entity-link-and-router-owns-navigation",
+    "host-projection-target-focus-and-safe-unknown-target-degradation",
+    "accessible-context-link-dom-anchors-and-return-selection-fixtures"
+  ],
+  "focusedSuites": "I125 seven-source adapter/target fixtures and I124 Router regression suite passed",
+  "explicitNonGoals": [
+    "derived-link-index-rebuild",
+    "stale-relink",
+    "link-persistence",
+    "export-carrier",
+    "text-relink"
+  ]
+}

@@ -5,6 +5,7 @@ import { relationshipTypeSchema, type RelationshipType } from '../../core/schema
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
 export type { RelationshipShape } from '../shapes.js';
 import type { RelationshipShape } from '../shapes.js';
+import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /** C1 关系类型下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const RELATIONSHIP_TYPES: readonly RelationshipType[] = relationshipTypeSchema.options;
@@ -20,7 +21,7 @@ export function newRelationshipDraft(): RelationshipShape {
 }
 
 /** C1 editor: all entity-valued fields use named selectors and preserve missing IDs. */
-export function relationshipLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, characters: readonly { id: string; name: string }[], layerState: RelationshipLayerState, editor: RelationshipEditor, ops: RelationshipEditOps, milestoneOptions: readonly EntityOption[] = []): unknown {
+export function relationshipLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, characters: readonly { id: string; name: string }[], layerState: RelationshipLayerState, editor: RelationshipEditor, ops: RelationshipEditOps, milestoneOptions: readonly EntityOption[] = [], links?: ContextLinkSink): unknown {
   const characterOptions = characters.map((character) => ({ id: character.id, label: character.name || character.id }));
   const nameOf = new Map(characters.map((character) => [character.id, character.name]));
   const labelOf = (id: string): string => nameOf.get(id) ?? id;
@@ -29,7 +30,10 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
   const d = editor.draft;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' }, h('button', { type: 'button', className: 'nv-btn', 'data-novel-relationship-new': '', onClick: ops.newDraft }, '新建关系')),
-    layerState.list.map((entry) => h('button', { key: entry.id, type: 'button', role: 'listitem', className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''), 'data-novel-relationship-id': entry.id, onClick: () => ops.select(entry) }, `${labelOf(entry.from)} → ${labelOf(entry.to)}`)),
+    layerState.list.map((entry) => h('div', { key: entry.id, className: 'nv-editor__item-row', role: 'listitem' },
+      h('button', { type: 'button', className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''), 'data-novel-relationship-id': entry.id, onClick: () => ops.select(entry) }, `${labelOf(entry.from)} → ${labelOf(entry.to)}`),
+      contextLinkButton(h, '定位关系', 'relationship', entityContextLink(_projectId, 'relationship', entry.id), links),
+    )),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '新建关系' : `编辑关系：${labelOf(d.from)} → ${labelOf(d.to)}`),

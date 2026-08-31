@@ -1,6 +1,6 @@
 import type { EntityLink } from '../../core/schema/link.js';
 import type { ChaptersEditOps, ChaptersMode } from '../layers/chapters.js';
-import { captureRoute, linkFromSearchHit, popRoute, pushRoute, routeForLink, type RouterEditOps } from '../router.js';
+import { captureRoute, linkForRouteFocus, linkFromSearchHit, popRoute, pushRoute, routeForLink, type RouterEditOps, type RouterTargetFocus } from '../router.js';
 import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
 import type { OpsRuntime } from './context.js';
 
@@ -25,7 +25,7 @@ function restoreRoute(act: WorkbenchActions, chapters: ChaptersEditOps | undefin
 }
 
 /** Client router owner: all forward/back navigation passes through this module. */
-export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: ChaptersEditOps }): RouterEditOps {
+export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: ChaptersEditOps }, targetFocus: RouterTargetFocus): RouterEditOps {
   const { act, snapshot } = runtime;
   const projectId = runtime.projectId;
   const routeError = (error: { code: 'invalid-link' | 'cross-project' | 'unknown-target' | 'unsupported-target'; message: string }): void => act.routerPatch({ error });
@@ -37,6 +37,7 @@ export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: Ch
       chaptersRef.current?.openScene(result.route.selection.chapterId!, result.route.selection.sceneId!);
       return;
     }
+    if (!targetFocus.focus(link)) { routeError({ code: 'unknown-target', message: '目标实体不存在或已不在当前作品中' }); return; }
     const source = captureRoute(projectId, snapshot);
     act.routerPatch(pushRoute(snapshot.router, source, result.route));
     restoreRoute(act, chaptersRef.current, snapshot, result.route);
@@ -59,6 +60,10 @@ export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: Ch
       }
       act.routerPatch(popped.state);
       restoreRoute(act, chaptersRef.current, snapshot, popped.route);
+      const sourceFocus = linkForRouteFocus(popped.route);
+      if (sourceFocus !== undefined && sourceFocus.kind !== 'text' && !targetFocus.focus(sourceFocus)) {
+        act.routerPatch({ error: { code: 'unknown-target', message: '返回来源的目标已不在当前作品中' } });
+      }
     },
     dismissError() { act.routerPatch({ error: undefined }); },
   };

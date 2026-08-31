@@ -1,6 +1,7 @@
 import { characterText, type El, type TimelineNamespace } from '../shared.js';
 import { entityMultiSelect, type EntityOption } from '../entity-selectors.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
+import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /**
  * 方案 A 剧情时间线面板（design §8「相关角色对」/ 剧情时间线）。
@@ -48,6 +49,7 @@ export function timelinePanel(
   ops: TimelineEditOps,
   relationshipOptions: readonly EntityOption[] = [],
   knowledgeOptions: readonly EntityOption[] = [],
+  links?: ContextLinkSink,
 ): unknown {
   if (namespace === undefined) return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'error', role: 'alert' }, '时间线服务不可用（novelTimeline Remote 未挂载）。');
   if (state.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-view-panel': 'timeline', 'data-novel-timeline-state': 'loading' }, '正在加载时间线…');
@@ -67,7 +69,10 @@ export function timelinePanel(
   const node = timeline.nodes.find((item) => item.id === selected) ?? timeline.nodes[0];
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' }, h('button', { type: 'button', className: 'nv-btn', 'data-novel-timeline-refresh': '', onClick: ops.refresh }, '刷新')),
-    timeline.nodes.map((item) => h('button', { key: item.id, type: 'button', role: 'listitem', className: 'nv-editor__item' + (selected === item.id ? ' is-active' : '') + (current === item.id ? ' nv-timeline__current' : ''), 'data-novel-timeline-node': item.id, 'data-novel-timeline-current': current === item.id ? '' : undefined, onClick: () => ops.select(item.id) }, `${item.order + 1}. ${item.label}${item.storyTime ? `（${item.storyTime}）` : ''}`)),
+    timeline.nodes.map((item) => h('div', { key: item.id, className: 'nv-editor__item-row', role: 'listitem' },
+      h('button', { type: 'button', className: 'nv-editor__item' + (selected === item.id ? ' is-active' : '') + (current === item.id ? ' nv-timeline__current' : ''), 'data-novel-timeline-node': item.id, 'data-novel-timeline-current': current === item.id ? '' : undefined, onClick: () => ops.select(item.id) }, `${item.order + 1}. ${item.label}${item.storyTime ? `（${item.storyTime}）` : ''}`),
+      contextLinkButton(h, '定位时间点', 'timeline', entityContextLink(projectId, 'timeline', item.id), links),
+    )),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title', 'data-novel-timeline-node-title': node.id }, `${node.order + 1}. ${node.label}`),

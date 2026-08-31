@@ -4,6 +4,7 @@ import { characterKindSchema, type CharacterKind } from '../../core/schema/chara
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
 export type { CharacterShape } from '../shapes.js';
 import type { CharacterShape } from '../shapes.js';
+import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /** B3 kind 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2 #6）。 */
 export const CHARACTER_KINDS: readonly CharacterKind[] = characterKindSchema.options;
@@ -65,6 +66,7 @@ export function characterLayer(
   layerState: CharacterLayerState,
   editor: CharacterEditor,
   ops: CharacterEditOps,
+  links?: ContextLinkSink,
 ): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'loading' }, '\u6b63\u5728\u88c5\u8f7d\u89d2\u8272\u2026');
@@ -78,14 +80,15 @@ export function characterLayer(
     h('div', { className: 'nv-editor__toolbar' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-character-new': '', onClick: ops.newDraft }, '\u65b0\u5efa\u89d2\u8272'),
     ),
-    layerState.list.map((character) => h('button', {
-      key: character.id,
-      type: 'button',
-      role: 'listitem',
-      className: 'nv-editor__item' + (editor.selectedId === character.id ? ' is-active' : ''),
-      'data-novel-character-id': character.id,
-      onClick: () => ops.select(character),
-    }, character.name)),
+    layerState.list.map((character) => h('div', { key: character.id, className: 'nv-editor__item-row', role: 'listitem' },
+      h('button', {
+        type: 'button',
+        className: 'nv-editor__item' + (editor.selectedId === character.id ? ' is-active' : ''),
+        'data-novel-character-id': character.id,
+        onClick: () => ops.select(character),
+      }, character.name),
+      contextLinkButton(h, '定位角色', 'character', entityContextLink(_projectId, 'character', character.id), links),
+    )),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title' }, editing ? `\u7f16\u8f91\u89d2\u8272\uff1a${d.name}` : '\u65b0\u5efa\u89d2\u8272'),

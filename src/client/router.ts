@@ -57,12 +57,26 @@ export interface RouterEditOps {
   dismissError(): void;
 }
 
+/** Target selection is injected by the ops composition root; Router owns only traversal. */
+export interface RouterTargetFocus {
+  focus(link: EntityLink): boolean;
+}
+
 export function freshRouter(): RouterState {
   return { backStack: [] };
 }
 
 /** Capture only UI context, preserving filter/mode/selection across a jump. */
 export function captureRoute(projectId: string, state: WorkbenchState): WorkbenchRoute {
+  const focus = state.activeView === 'characters' ? state.characterEditor.selectedId === undefined ? undefined : { kind: 'character' as const, id: state.characterEditor.selectedId }
+    : state.activeView === 'worldview' ? state.worldEditor.selectedId === undefined ? undefined : { kind: 'worldview' as const, id: state.worldEditor.selectedId }
+      : state.activeView === 'relationship' ? state.relationshipEditor.selectedId === undefined ? undefined : { kind: 'relationship' as const, id: state.relationshipEditor.selectedId }
+        : state.activeView === 'canon' ? state.canonEditor.selectedId === undefined ? undefined : { kind: 'canon' as const, id: state.canonEditor.selectedId }
+          : state.activeView === 'knowledge' ? state.knowledge.selectedEntryId === undefined ? undefined : { kind: 'knowledge' as const, id: state.knowledge.selectedEntryId }
+            : state.activeView === 'review' ? state.review.selected[0] === undefined ? undefined : { kind: 'review' as const, id: state.review.selected[0] }
+              : state.activeView === 'timeline' ? state.timeline.selectedId === undefined ? undefined : { kind: 'timeline' as const, id: state.timeline.selectedId }
+                : state.activeView === 'outline' ? state.outlineEditor.selectedDetailId === undefined ? undefined : { kind: 'scene-card' as const, id: state.outlineEditor.selectedDetailId }
+                  : undefined;
   return {
     projectId,
     view: state.activeView,
@@ -73,12 +87,13 @@ export function captureRoute(projectId: string, state: WorkbenchState): Workbenc
       searchPov: state.search.pov,
       searchReferenceKey: state.search.referenceKey,
     },
+    focus,
   };
 }
 
 const entityTargetViews: Record<Exclude<EntityLink['kind'], 'text'>, WorkbenchViewId> = {
   character: 'characters', worldview: 'worldview', relationship: 'relationship', outline: 'outline',
-  canon: 'canon', knowledge: 'knowledge', review: 'review', timeline: 'timeline', search: 'search', 'scene-card': 'chapters',
+  canon: 'canon', knowledge: 'knowledge', review: 'review', timeline: 'timeline', search: 'search', 'scene-card': 'outline',
 };
 
 /** Convert a strict link into a route; only navigation shape is decided here. */
@@ -135,4 +150,13 @@ export function popRoute(state: RouterState): { readonly state: RouterState; rea
   const route = state.backStack[state.backStack.length - 1];
   if (route === undefined) return { state };
   return { state: { current: route, backStack: state.backStack.slice(0, -1), error: undefined }, route };
+}
+
+export function linkForRouteFocus(route: WorkbenchRoute): EntityLink | undefined {
+  if (route.focus === undefined) return undefined;
+  if (route.focus.kind === 'text') {
+    if (route.selection.chapterId === undefined || route.selection.sceneId === undefined) return undefined;
+    return { projectId: route.projectId, kind: 'text', chapterId: route.selection.chapterId, sceneId: route.selection.sceneId };
+  }
+  return { projectId: route.projectId, kind: route.focus.kind, entityId: route.focus.id };
 }

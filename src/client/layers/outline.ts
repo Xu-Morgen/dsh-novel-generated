@@ -12,6 +12,7 @@ import {
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
 export type { OutlineShape, OutlineActShape, OutlineBeatShape, OutlineDetailBeatShape } from '../shapes.js';
 import type { OutlineShape, OutlineActShape, OutlineBeatShape, OutlineDetailBeatShape } from '../shapes.js';
+import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /** B5 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const OUTLINE_STRUCTURES: readonly OutlineStructure[] = outlineStructureSchema.options;
@@ -40,13 +41,16 @@ function currentAct(draft: OutlineShape, actId: string): OutlineActShape { retur
 function currentBeat(act: OutlineActShape, beatId: string): OutlineBeatShape { return act.beats.find((beat) => beat.id === beatId) ?? { id: beatId, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }; }
 function emptyDetailBeat(actId: string, beatId: string, index: number): OutlineDetailBeatShape { return { id: `detail-${actId}-${beatId}-${index + 1}`, title: '', summary: '', pov: '', wordTarget: 500, points: [], status: 'planned' }; }
 
-function sceneCards(h: El, beat: OutlineBeatShape, selectedDetailId: string | undefined, onSelect: (id: string) => void): unknown {
+function sceneCards(h: El, projectId: string, beat: OutlineBeatShape, selectedDetailId: string | undefined, onSelect: (id: string) => void, links?: ContextLinkSink): unknown {
   const cards = beat.detailBeats;
   if (cards.length === 0) return h('p', { className: 'nv-outline__nodetail' }, '此节暂无细纲场景卡。');
-  return h('div', { className: 'nv-outline__cards', 'data-novel-beat-cards': '' }, cards.map((card) => h('button', {
-    key: card.id, type: 'button', className: 'nv-outline__card' + (selectedDetailId === card.id ? ' is-active' : ''),
-    'data-novel-detail-card': card.id, onClick: () => onSelect(card.id),
-  }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov || '—'} · ${card.wordTarget} 字 · ${card.status}`), h('span', { className: 'nv-outline__card-summary' }, card.summary))));
+  return h('div', { className: 'nv-outline__cards', 'data-novel-beat-cards': '' }, cards.map((card) => h('div', { key: card.id, className: 'nv-outline__card-row' },
+    h('button', {
+      type: 'button', className: 'nv-outline__card' + (selectedDetailId === card.id ? ' is-active' : ''),
+      'data-novel-detail-card': card.id, onClick: () => onSelect(card.id),
+    }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov || '—'} · ${card.wordTarget} 字 · ${card.status}`), h('span', { className: 'nv-outline__card-summary' }, card.summary)),
+    contextLinkButton(h, '定位场景卡', 'scene-card', entityContextLink(projectId, 'scene-card', card.id), links),
+  )));
 }
 
 function detailBeatEditor(h: El, card: OutlineDetailBeatShape, setDetail: (update: (item: OutlineDetailBeatShape) => OutlineDetailBeatShape) => void, remove: () => void): unknown {
@@ -68,7 +72,7 @@ function detailBeatEditor(h: El, card: OutlineDetailBeatShape, setDetail: (updat
  * B5 editor. Character and prerequisite IDs use named selectors; free-form
  * text lists remain text fields because they are prose/content, not references.
  */
-export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, ops: OutlineEditOps, characterOptions: readonly EntityOption[] = []): unknown {
+export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, ops: OutlineEditOps, characterOptions: readonly EntityOption[] = [], links?: ContextLinkSink): unknown {
   if (layerState.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'loading' }, '正在装载大纲…');
   if (layerState.status === 'error') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '大纲读取失败');
   const setAct = (id: string, update: (act: OutlineActShape) => OutlineActShape): void => ops.mutate((draft) => ({ ...draft, acts: upsert(draft.acts, update(currentAct(draft, id))) }));
@@ -87,7 +91,7 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
     entityMultiSelect(h, '前置节', beat.prerequisites, beatOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, prerequisites: value })), 'outline-prerequisites'),
     h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '可选节'), h('input', { type: 'checkbox', className: 'nv-field__check', checked: beat.optional, onChange: (event: { target: { checked: boolean } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, optional: event.target.checked })) })),
     h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-detail': '', onClick: () => ops.addDetailBeat(act!.id, beat.id) }, '+ 细纲场景卡')),
-    h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'), sceneCards(h, beat, editor.selectedDetailId, ops.selectDetail),
+    h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'), sceneCards(h, _projectId, beat, editor.selectedDetailId, ops.selectDetail, links),
     detail === undefined ? null : detailBeatEditor(h, detail, (update) => setDetail(act!.id, beat.id, detail.id, update), () => ops.removeDetailBeat(act!.id, beat.id, detail.id)),
   ));
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'ready' },

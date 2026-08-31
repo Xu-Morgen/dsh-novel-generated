@@ -1,4 +1,5 @@
 import type { El, KnowledgeNamespace } from '../shared.js';
+import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /**
  * I66 C3 知情与揭示管理面面板（design §14.10「C3 知情与揭示」/ R14-1）。
@@ -126,7 +127,7 @@ export const KNOWLEDGE_STATUS_LABELS: Readonly<Record<string, string>> = {
   hidden: '隐藏', 'partially-revealed': '部分揭示', revealed: '已揭示',
 };
 
-function factCard(h: El, fact: KnowledgeFactShape, nameOf: ReadonlyMap<string, string>, selected: boolean, ops: KnowledgeEditOps): unknown {
+function factCard(h: El, projectId: string, fact: KnowledgeFactShape, nameOf: ReadonlyMap<string, string>, selected: boolean, ops: KnowledgeEditOps, links?: ContextLinkSink): unknown {
   const holderNames = fact.holders.map((id) => nameOf.get(id) ?? id).join('、');
   const planNames = fact.revealPlan.revealTo.map((id) => nameOf.get(id) ?? id).join('、');
   return h('li', { className: 'nv-knowledge__fact' + (selected ? ' is-selected' : ''), 'data-novel-knowledge-fact': fact.id, 'data-novel-knowledge-fact-status': fact.status },
@@ -139,6 +140,7 @@ function factCard(h: El, fact: KnowledgeFactShape, nameOf: ReadonlyMap<string, s
       `知情：${fact.holders.length === 0 ? '无' : holderNames} · 计划揭示：${fact.revealPlan.revealTo.length === 0 ? '无' : `${planNames}（${fact.revealPlan.revealAt}）`}`),
     // POV 边界提示（Host 解析角色名生成；作者视角速览，R14-1 POV 边界）。
     h('p', { className: 'nv-knowledge__pov-hint', 'data-novel-knowledge-pov-hint': '' }, fact.povHint),
+    contextLinkButton(h, '定位事实', 'knowledge', entityContextLink(projectId, 'knowledge', fact.id), links),
     h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-fact-action': fact.id, onClick: () => ops.selectFact(fact.id) },
       selected ? '收起操作' : '揭示 / 变更 holder'),
   );
@@ -163,7 +165,7 @@ function characterCard(h: El, character: KnowledgeCharacterShape, factsById: Rea
  * 知情与揭示管理面板。状态机：idle → loading → ready / error。ready 后按当前
  * 视图渲染事实卡或角色卡；选中事实后渲染揭示/变更表单，提案经 Gate 确认才写回。
  */
-export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNamespace | undefined, state: KnowledgeLayerState, ops: KnowledgeEditOps): unknown {
+export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNamespace | undefined, state: KnowledgeLayerState, ops: KnowledgeEditOps, links?: ContextLinkSink): unknown {
   const available = knowledge !== undefined && projectId !== undefined;
   const busy = (state.busy.propose === true || state.busy.accept === true) || state.status === 'loading';
   let body: unknown;
@@ -198,7 +200,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
           ? h('p', { className: 'nv-knowledge__empty', 'data-novel-knowledge-empty': '' }, '尚无 C3 事实（初始化不推断知情；可在六层初始化后经正文解析或手动录入建立）。')
           : h('div', { 'data-novel-knowledge-view': 'facts' },
             h('ul', { className: 'nv-knowledge__facts', 'data-novel-knowledge-facts': '' },
-              (projection?.entries ?? []).map((fact) => factCard(h, fact, nameOf, fact.id === state.selectedEntryId, ops))),
+              (projection?.entries ?? []).map((fact) => factCard(h, projectId, fact, nameOf, fact.id === state.selectedEntryId, ops, links))),
             // 选中事实的揭示 / holder 变更表单（提案先经 Host 校验 + Gate pending）。
             selectedFact === undefined ? null : h('div', { className: 'nv-knowledge__action', 'data-novel-knowledge-action': selectedFact.id },
               h('p', { className: 'nv-knowledge__action-title', 'data-novel-knowledge-action-title': '' }, `对「${selectedFact.fact}」发起变更（知情只增不退）`),

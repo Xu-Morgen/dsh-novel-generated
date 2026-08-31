@@ -1,5 +1,6 @@
 import type { El, ReviewNamespace } from '../shared.js';
 import { filterReviewIssues } from '../../core/review/issue.js';
+import { contextLinkButton, textContextLink, type ContextLinkSink } from '../link-adapters.js';
 
 /**
  * I64 一致性审校中心面板（design §14.9 / R13-5）。
@@ -122,7 +123,7 @@ function filterRow(h: El, label: string, kind: 'categories' | 'severities' | 'st
 }
 
 /** 单条问题卡：严重度徽标 + 分类 + kind + 消息 + 引用 + 正文定位 + 状态 + 勾选。 */
-function issueCard(h: El, issue: ReviewIssueShape, selected: boolean, selectIssue: (issueId: string) => void): unknown {
+function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: boolean, selectIssue: (issueId: string) => void, links?: ContextLinkSink): unknown {
   return h('li', { className: 'nv-review__issue nv-review__issue--' + issue.severity, 'data-novel-review-issue': issue.id, 'data-novel-review-issue-severity': issue.severity },
     h('label', { className: 'nv-review__issue-select' },
       h('input', { type: 'checkbox', 'data-novel-review-select': issue.id, checked: selected, onChange: () => selectIssue(issue.id) }),
@@ -138,6 +139,7 @@ function issueCard(h: El, issue: ReviewIssueShape, selected: boolean, selectIssu
         issue.references.length === 0 ? null : ` · 引用：${issue.references.join('、')}`,
         ` · 状态：${STATUS_LABELS[issue.status] ?? issue.status}`,
       ),
+      issue.location === undefined ? null : contextLinkButton(h, '定位正文', 'review', textContextLink(projectId, issue.location.chapterId, issue.location.sceneId), links),
     ),
   );
 }
@@ -146,7 +148,7 @@ function issueCard(h: El, issue: ReviewIssueShape, selected: boolean, selectIssu
  * 审校中心面板。状态机：idle（未扫描）→ scanning → ready（问题列表 + 过滤 +
  * 裁决）/ error。ready 前不渲染裁决按钮；硬冲突存在时「继续」按钮禁用。
  */
-export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | undefined, state: ReviewLayerState, ops: ReviewEditOps): unknown {
+export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | undefined, state: ReviewLayerState, ops: ReviewEditOps, links?: ContextLinkSink): unknown {
   const available = review !== undefined && projectId !== undefined;
   const busy = state.status === 'scanning' || state.acting;
   let body: unknown;
@@ -189,7 +191,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
       issues.length === 0
         ? h('p', { className: 'nv-review__empty', 'data-novel-review-empty': '' }, '当前过滤下没有问题。')
         : h('ul', { className: 'nv-review__issues', 'data-novel-review-issues': '' },
-          issues.map((issue) => issueCard(h, issue, state.selected.includes(issue.id), ops.selectIssue))),
+          issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, links))),
       h('div', { className: 'nv-editor__actions' },
         h('button', {
           type: 'button',
