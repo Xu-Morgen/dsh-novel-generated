@@ -23,12 +23,14 @@ import { workspaceRemoteContribution } from './host/remote/editor.js';
 import { textMutationRemoteContribution } from './host/remote/text-mutation.js';
 import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import { textChangeImpactRemoteContribution } from './host/remote/text-change-impact.js';
+import { outlineReconciliationRemoteContribution } from './host/remote/outline-reconciliation.js';
 import type {
   QueueNamespace,
   SceneOutlineBindingNamespace,
   TextMutationNamespace,
   TextDeletionNamespace,
   TextChangeImpactNamespace,
+  OutlineReconciliationNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
@@ -187,6 +189,21 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelTextChangeImpact/cancel':
       return { impactId: 'impact-1', status: 'cancelled' };
+    case 'novelOutlineReconciliation/prepare':
+    case 'novelOutlineReconciliation/regenerateOne':
+      return {
+        planId: 'reconcile-1', projectId: 'p1', reportId: 'impact-1', baselineId: 'baseline-1',
+        baselineSourceHash: 'a'.repeat(64), finalSourceHash: 'b'.repeat(64), b5ContentFingerprint: 'c'.repeat(64), bindingFingerprint: 'd'.repeat(64),
+        reportClassification: 'story-fact', items: [], revision: 1, status: 'ready', createdAt: ISO, updatedAt: ISO,
+      };
+    case 'novelOutlineReconciliation/read':
+      return {
+        planId: 'reconcile-1', projectId: 'p1', reportId: 'impact-1', baselineId: 'baseline-1',
+        baselineSourceHash: 'a'.repeat(64), finalSourceHash: 'b'.repeat(64), b5ContentFingerprint: 'c'.repeat(64), bindingFingerprint: 'd'.repeat(64),
+        reportClassification: 'story-fact', items: [], revision: 1, status: 'ready', createdAt: ISO, updatedAt: ISO,
+      };
+    case 'novelOutlineReconciliation/cancel':
+      return { planId: 'reconcile-1', status: 'cancelled' };
     case 'novelQueue/startAt':
       return {
         projectId: 'p1', runState: 'idle',
@@ -390,6 +407,25 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     }
   });
 
+  it('I113 outline-reconciliation namespace uses strict candidate methods and exact wire args', async () => {
+    const mounted = await mount(outlineReconciliationRemoteContribution);
+    try {
+      const reconciliation = mounted.client.get('remote.novelOutlineReconciliation') as OutlineReconciliationNamespace;
+      const prepared = await unwrap(reconciliation.prepare('p1', { report: fixtureFor('novelTextChangeImpact/read') } as never, undefined));
+      expect(prepared).toMatchObject({ planId: 'reconcile-1', status: 'ready', items: [] });
+      await expect(unwrap(reconciliation.regenerateOne('p1', { planId: 'reconcile-1', detailBeatId: 'detail-2' }, undefined))).resolves.toMatchObject({ revision: 1 });
+      await expect(unwrap(reconciliation.read('p1', 'reconcile-1'))).resolves.toMatchObject({ reportClassification: 'story-fact' });
+      await expect(unwrap(reconciliation.cancel('p1', 'reconcile-1'))).resolves.toEqual({ planId: 'reconcile-1', status: 'cancelled' });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelOutlineReconciliation/prepare', 'novelOutlineReconciliation/regenerateOne',
+        'novelOutlineReconciliation/read', 'novelOutlineReconciliation/cancel',
+      ]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
   it('I105 strict binder negatives reject missing/extra/invalid inputs before RPC', async () => {
     const bindingMount = await mount(sceneOutlineBindingRemoteContribution);
     try {
@@ -438,6 +474,7 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     ['proposeAt', writingRemoteContribution, 'remote.novelWriting', 'proposeAt', ['p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' }, undefined]],
     ['startAt', queueRemoteContribution, 'remote.novelQueue', 'startAt', ['p1', { chapterId: 'chapter-1', cardIds: [] }]],
     ['text-impact-read', textChangeImpactRemoteContribution, 'remote.novelTextChangeImpact', 'read', ['p1', 'impact-1']],
+    ['outline-reconciliation-read', outlineReconciliationRemoteContribution, 'remote.novelOutlineReconciliation', 'read', ['p1', 'reconcile-1']],
   ])('I105 malformed %s result is rejected by the real Client binder', async (_label, contribution, service, method, args) => {
     const mounted = await mount(contribution, () => ({ malformed: true }));
     try {

@@ -1,0 +1,101 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": [
+    "fact-map",
+    "fact-negation",
+    "fact-identity",
+    "direction-route",
+    "direction-alliance",
+    "direction-goal",
+    "mixed-objective",
+    "mixed-pov"
+  ],
+  "heldOutCaseIds": ["heldout-fact", "heldout-direction", "heldout-points", "heldout-word-target"],
+  "cases": [
+    {
+      "id": "fact-map",
+      "category": "story-fact",
+      "detailBeatId": "detail-2",
+      "before": { "title": "核对地图", "summary": "米拉核对旧地图。", "pov": "mira", "wordTarget": 500, "points": ["旧地图"] },
+      "expected": { "title": "核对铜钥匙与地图", "summary": "米拉将铜钥匙和旧地图放在一起核对。", "pov": "mira", "wordTarget": 600, "points": ["铜钥匙", "旧地图"] }
+    },
+    {
+      "id": "fact-negation",
+      "category": "story-fact",
+      "detailBeatId": "detail-2",
+      "before": { "title": "寻找银币", "summary": "钟楼里藏着银币。", "pov": "mira", "wordTarget": 500, "points": ["银币"] },
+      "expected": { "title": "确认银币不在钟楼", "summary": "米拉确认钟楼里没有那枚银币。", "pov": "mira", "wordTarget": 500, "points": ["否定银币线索"] }
+    },
+    {
+      "id": "fact-identity",
+      "category": "story-fact",
+      "detailBeatId": "detail-2",
+      "before": { "title": "辨认守门人", "summary": "守门人认识米拉。", "pov": "mira", "wordTarget": 450, "points": ["守门人"] },
+      "expected": { "title": "确认守门人不认识米拉", "summary": "米拉发现守门人并不认识自己。", "pov": "mira", "wordTarget": 500, "points": ["身份误会"] }
+    },
+    {
+      "id": "direction-route",
+      "category": "plot-direction",
+      "detailBeatId": "detail-3",
+      "before": { "title": "穿过北门", "summary": "他们今晚从北门进入内城。", "pov": "mira", "wordTarget": 700, "points": ["北门", "内城"] },
+      "expected": { "title": "改道穿过盐沼", "summary": "他们放弃北门，改道穿过盐沼前往内城。", "pov": "mira", "wordTarget": 800, "points": ["盐沼", "三天后抵达"] }
+    },
+    {
+      "id": "direction-alliance",
+      "category": "plot-direction",
+      "detailBeatId": "detail-3",
+      "before": { "title": "接受林恩帮助", "summary": "林恩帮助米拉穿过北门。", "pov": "mira", "wordTarget": 600, "points": ["林恩", "北门"] },
+      "expected": { "title": "应对林恩背叛", "summary": "林恩背叛米拉并带守卫封锁北门。", "pov": "mira", "wordTarget": 750, "points": ["背叛", "封锁北门"] }
+    },
+    {
+      "id": "direction-goal",
+      "category": "plot-direction",
+      "detailBeatId": "detail-4",
+      "before": { "title": "等待援军", "summary": "米拉留在北港等待援军。", "pov": "mira", "wordTarget": 500, "points": ["北港", "援军"] },
+      "expected": { "title": "独自前往荒原", "summary": "米拉离开北港，独自前往荒原。", "pov": "mira", "wordTarget": 650, "points": ["离开北港", "荒原"] }
+    },
+    {
+      "id": "mixed-objective",
+      "category": "mixed",
+      "detailBeatId": "detail-3",
+      "before": { "title": "追查灯塔", "summary": "米拉沿原路追查灯塔的秘密。", "pov": "mira", "wordTarget": 700, "points": ["灯塔", "追查"] },
+      "expected": { "title": "携钥匙寻找新入口", "summary": "米拉带着铜钥匙改走地下入口，继续追查灯塔秘密。", "pov": "mira", "wordTarget": 850, "points": ["铜钥匙", "地下入口", "灯塔"] }
+    },
+    {
+      "id": "mixed-pov",
+      "category": "mixed",
+      "detailBeatId": "detail-4",
+      "before": { "title": "守门人拦截", "summary": "米拉观察守门人如何封锁码头。", "pov": "mira", "wordTarget": 550, "points": ["封锁码头"] },
+      "expected": { "title": "从守门人视角封锁码头", "summary": "守门人决定封锁码头并寻找米拉。", "pov": "gatekeeper", "wordTarget": 650, "points": ["守门人决定", "寻找米拉"] }
+    },
+    {
+      "id": "heldout-fact",
+      "category": "story-fact",
+      "detailBeatId": "detail-2",
+      "before": { "title": "确认旧桥", "summary": "旧桥仍然可以通行。", "pov": "mira", "wordTarget": 400, "points": ["旧桥"] },
+      "expected": { "title": "确认旧桥已断", "summary": "米拉发现旧桥已经断裂，无法继续通行。", "pov": "mira", "wordTarget": 450, "points": ["断桥", "无法通行"] }
+    },
+    {
+      "id": "heldout-direction",
+      "category": "plot-direction",
+      "detailBeatId": "detail-3",
+      "before": { "title": "返回港口", "summary": "他们决定返回北港等待消息。", "pov": "mira", "wordTarget": 500, "points": ["返回北港"] },
+      "expected": { "title": "深入荒原", "summary": "他们放弃返回北港，决定深入荒原寻找答案。", "pov": "mira", "wordTarget": 700, "points": ["放弃返回", "深入荒原"] }
+    },
+    {
+      "id": "heldout-points",
+      "category": "story-fact",
+      "detailBeatId": "detail-2",
+      "before": { "title": "记录潮汐", "summary": "米拉记录码头的潮汐时间。", "pov": "mira", "wordTarget": 450, "points": ["潮汐"] },
+      "expected": { "title": "记录异常潮汐", "summary": "米拉记录到潮汐比旧记录提前了两个时辰。", "pov": "mira", "wordTarget": 500, "points": ["提前两个时辰", "异常潮汐"] }
+    },
+    {
+      "id": "heldout-word-target",
+      "category": "plot-direction",
+      "detailBeatId": "detail-4",
+      "before": { "title": "等待天亮", "summary": "米拉留在码头等待天亮。", "pov": "mira", "wordTarget": 300, "points": ["等待天亮"] },
+      "expected": { "title": "连夜离开码头", "summary": "米拉不再等待天亮，连夜离开码头。", "pov": "mira", "wordTarget": 900, "points": ["连夜离开", "不再等待"] }
+    }
+  ]
+}

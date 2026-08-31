@@ -1,0 +1,64 @@
+{
+  "iteration": "I113",
+  "requirement": "R18-11c",
+  "remoteNamespace": "novelOutlineReconciliation",
+  "planShape": [
+    "planId",
+    "projectId",
+    "reportId",
+    "baselineId",
+    "baselineSourceHash",
+    "finalSourceHash",
+    "b5ContentFingerprint",
+    "bindingFingerprint",
+    "reportClassification",
+    "items",
+    "revision",
+    "status",
+    "createdAt",
+    "updatedAt"
+  ],
+  "itemChoices": [
+    "keep",
+    "ai",
+    "manual",
+    "pending"
+  ],
+  "aiEditableFields": [
+    "title",
+    "summary",
+    "pov",
+    "wordTarget",
+    "points"
+  ],
+  "guarantees": [
+    "frozen-12-case-corpus-with-4-held-out-cases-and-80-percent-threshold",
+    "I112-report-and-live-C5-B5-binding-freshness-validation",
+    "future-planned-card-only-window-with-stable-position-order",
+    "identity-status-act-beat-and-array-order-preserved",
+    "canonical-five-field-B5-pure-diff",
+    "keep-ai-manual-pending-mixed-plan-expression",
+    "regenerate-one-replaces-only-one-plan-item",
+    "stale-unknown-duplicate-illegal-output-and-cancel-fail-closed",
+    "real-I112-report-to-planner-to-outline-dry-run-consumer",
+    "real-DSH-client-binder-strict-Remote-fixture"
+  ],
+  "explicitNonGoals": [
+    "B5-apply",
+    "C6-write",
+    "ConfirmationGate",
+    "background-reconciliation",
+    "new-delete-or-reorder-card"
+  ],
+  "contractLock": {
+    "descriptorCount": 139,
+    "resultSchemaCount": 45,
+    "additiveSuffix": [
+      "novel-creation-tool/novelOutlineReconciliation/prepare",
+      "novel-creation-tool/novelOutlineReconciliation/regenerateOne",
+      "novel-creation-tool/novelOutlineReconciliation/read",
+      "novel-creation-tool/novelOutlineReconciliation/cancel"
+    ]
+  },
+  "focusedSuites": "frozen parser samples, real I112-to-planner consumer, binder and contract lock suites passed"
+}

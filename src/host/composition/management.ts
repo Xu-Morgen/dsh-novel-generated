@@ -10,6 +10,7 @@ import { createQueueService, type QueueStartAtInput, type QueueStartInput } from
 import { createTextDeletionService } from '../text-deletion-service.js';
 import { createTextDeletionRemote } from '../text-deletion-adapter.js';
 import { createTextChangeImpactService } from '../text-change-impact-service.js';
+import { createOutlineReconciliationPlannerService } from '../outline-reconciliation-planner-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -21,6 +22,7 @@ import { writingInvocations } from '../remote/writing.js';
 import { reviewInvocations } from '../remote/review.js';
 import { queueInvocations } from '../remote/queue.js';
 import { textChangeImpactInvocations } from '../remote/text-change-impact.js';
+import { outlineReconciliationInvocations } from '../remote/outline-reconciliation.js';
 import { resolveGenerationSettings as validateGenerationSettings, type GenerationSettings } from '../../llm/port/index.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
@@ -283,6 +285,20 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'read', call: (projectId: string, impactId: string) => textChangeImpactService.read(projectId, impactId) },
     { method: 'cancel', call: (projectId: string, impactId: string) => textChangeImpactService.cancel(projectId, impactId) },
   ], textChangeImpactInvocations));
+  const outlineReconciliationPlannerService = createOutlineReconciliationPlannerService({
+    llm,
+    text: textService,
+    outline: outlineService,
+    binding: sceneOutlineBindingService,
+    baseline: outlineGenerationBaselineService,
+    onDispose: onFiberDispose,
+  });
+  ctx.provide('novelOutlineReconciliation', defineRemote('novelOutlineReconciliation', 'novelOutlineReconciliation', outlineReconciliationPlannerService, [
+    { method: 'prepare', call: async (projectId: string, input: Parameters<typeof outlineReconciliationPlannerService.prepare>[1], settings?: GenerationSettings) => outlineReconciliationPlannerService.prepare(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'regenerateOne', call: async (projectId: string, input: Parameters<typeof outlineReconciliationPlannerService.regenerateOne>[1], settings?: GenerationSettings) => outlineReconciliationPlannerService.regenerateOne(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'read', call: (projectId: string, planId: string) => outlineReconciliationPlannerService.read(projectId, planId) },
+    { method: 'cancel', call: (projectId: string, planId: string) => outlineReconciliationPlannerService.cancel(projectId, planId) },
+  ], outlineReconciliationInvocations));
   return {
     timelineService,
     controlledTextEditService,
@@ -291,5 +307,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     queueService,
     textDeletionService,
     textChangeImpactService,
+    outlineReconciliationPlannerService,
   };
 }

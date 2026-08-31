@@ -30,6 +30,7 @@ import type { QueueService } from '../queue-service.js';
 import type { NextSceneContextProvider } from '../writing-context.js';
 import type { NovelTextDeletionService } from '../text-deletion-service.js';
 import type { NovelTextChangeImpactService } from '../text-change-impact-service.js';
+import type { NovelOutlineReconciliationPlannerService } from '../outline-reconciliation-planner-service.js';
 
 /**
  * I89 index.ts 组合根分段共享类型（review v2.0 §3.4 / 计划 §18 I89）。
@@ -100,4 +101,5 @@ export interface ManagementServices {
   queueService: QueueService;
   textDeletionService: NovelTextDeletionService;
   textChangeImpactService: NovelTextChangeImpactService;
+  outlineReconciliationPlannerService: NovelOutlineReconciliationPlannerService;
 }

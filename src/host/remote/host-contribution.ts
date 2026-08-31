@@ -23,6 +23,7 @@ import { sceneOutlineBindingInvocations } from './scene-outline-binding.js';
 import { textDeletionInvocations } from './text-deletion.js';
 import { outlineGenerationBaselineInvocations } from './outline-generation-baseline.js';
 import { textChangeImpactInvocations } from './text-change-impact.js';
+import { outlineReconciliationInvocations } from './outline-reconciliation.js';
 
 /**
  * Host-only Typert face. Keeping the I108 baseline descriptors here prevents
@@ -31,5 +32,5 @@ import { textChangeImpactInvocations } from './text-change-impact.js';
  */
 export const hostContribution: TypertContribution = {
   package: 'novel-creation-tool', face: 'host', schemas: [], model: { services: [], events: [], objects: [] },
-  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations.filter((descriptor) => descriptor !== writingPreviewLayersInvocation), ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations, ...timelineInvocations, ...textMutationInvocations, ...sceneOutlineBindingInvocations, ...textDeletionInvocations, ...outlineGenerationBaselineInvocations, ...textChangeImpactInvocations, writingPreviewLayersInvocation],
+  invocations: [probeInvocation, workspaceViewModelInvocation, ...editorInvocations, ...projectLifecycleInvocations, ...uploadInvocations, ...onboardingInvocations, ...onboardingAnalyzerInvocations, ...llmConfigInvocations, ...workbenchSettingsInvocations, ...writingInvocations.filter((descriptor) => descriptor !== writingPreviewLayersInvocation), ...reviewInvocations, ...queueInvocations, ...knowledgeInvocations, ...ruleStyleInvocations, ...progressInvocations, ...importExportInvocations, ...branchInvocations, ...searchInvocations, ...statisticsInvocations, ...timelineInvocations, ...textMutationInvocations, ...sceneOutlineBindingInvocations, ...textDeletionInvocations, ...outlineGenerationBaselineInvocations, ...textChangeImpactInvocations, ...outlineReconciliationInvocations, writingPreviewLayersInvocation],
 };
