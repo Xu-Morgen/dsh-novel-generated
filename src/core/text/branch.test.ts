@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { TextRepository, branchIdFor, migrateLegacyChapter, parseChapterDocument } from './index.js';
+import { TextRepository, branchIdFor, migrateLegacyChapter, parseChapterDocument, textContentHash } from './index.js';
 import { diffTextLines } from './diff.js';
 import { legacyChapterSchema } from '../schema/text.js';
 
@@ -85,6 +85,18 @@ describe('I70 C5 版本/分支模型（design §14.10 / R14-5）', () => {
     const back = await repository.chooseSceneBranch('chapter-1', 'scene-1', branches.find((branch) => branch.chosen)!.id);
     expect(back.content).toBe('版本二');
     expect(back.branches.filter((branch) => branch.chosen)).toHaveLength(1);
+  });
+
+  it('I131 chooseSceneBranchFresh：sourceHash 在写队列内核对，过期 token 零写拒绝', async () => {
+    const repository = await seededRepository(await temporaryRoot());
+    await repository.commitSceneVersion('chapter-1', 'scene-1', '新正文', '新版本');
+    const before = await repository.readChapter('chapter-1');
+    const chosen = before.scenes[0].branches.find((branch) => branch.chosen)!;
+    const previous = before.scenes[0].branches.find((branch) => !branch.chosen)!;
+    const switched = await repository.chooseSceneBranchFresh('chapter-1', 'scene-1', previous.id, textContentHash(before.scenes[0].content));
+    expect(switched.content).toBe(previous.content);
+    await expect(repository.chooseSceneBranchFresh('chapter-1', 'scene-1', chosen.id, textContentHash(before.scenes[0].content))).rejects.toThrow(/Stale branch source/);
+    expect((await repository.readChapter('chapter-1')).scenes[0].content).toBe(previous.content);
   });
 
   it('replaceRange 只同步 chosen 分支 content，不隐式造分支', async () => {

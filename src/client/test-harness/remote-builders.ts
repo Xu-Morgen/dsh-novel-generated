@@ -16,7 +16,7 @@ export interface MountOptionsI106 {
 
 // I107 章节模式夹具：版本 Remote 只在进入 versions 模式时才应被调用。
 export interface MountOptionsI107 {
-  branch?: { list?: (projectId: string, chapterId: string, sceneId: string) => Promise<unknown>; read?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; save?: (projectId: string, chapterId: string, sceneId: string, label: string) => Promise<unknown>; choose?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; diff?: (projectId: string, chapterId: string, sceneId: string, branchId: string, toBranchId?: string) => Promise<unknown> };
+  branch?: { list?: (projectId: string, chapterId: string, sceneId: string) => Promise<unknown>; read?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; save?: (projectId: string, chapterId: string, sceneId: string, label: string) => Promise<unknown>; choose?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; diff?: (projectId: string, chapterId: string, sceneId: string, branchId: string, toBranchId?: string) => Promise<unknown>; aggregate?: (projectId: string) => Promise<unknown>; chooseFresh?: (projectId: string, chapterId: string, sceneId: string, branchId: string, sourceHash: string) => Promise<unknown> };
 }
 
 /** I114 reconciliation namespace injection for materials-mode Client E2E. */

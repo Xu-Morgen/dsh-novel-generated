@@ -1,5 +1,6 @@
 import type { El, BranchNamespace } from '../shared.js';
 import type { ChaptersEditOps } from './chapters.js';
+import type { BranchAggregate } from '../../core/schema/branch-aggregate.js';
 
 /**
  * I95 版本/分支片（计划 §18 I95 拆分：chapters 五职中的「分支」）：I70 版本与
@@ -28,6 +29,20 @@ export type BranchDiffState =
   | { readonly status: 'error'; readonly lines: []; readonly message?: string }
   | { readonly status: 'ready'; readonly fromLabel?: string; readonly toLabel?: string; readonly lines: BranchDiffLineShape[] };
 
+/** I131 版本树聚合读取状态；树只含元数据，正文仍按需经 diff/read 获取。 */
+export interface BranchAggregateState {
+  readonly status: 'idle' | 'loading' | 'error' | 'ready';
+  readonly tree?: BranchAggregate;
+  readonly message?: string;
+}
+
+/** 版本树中的 Client 选择，不等于 Host chosen；只有明确点击切换才写入 C5。 */
+export interface VersionSelection {
+  readonly chapterId: string;
+  readonly sceneId: string;
+  readonly branchId?: string;
+}
+
 /** I70 分支面板状态（列表/装载/存档/选用/对比 + 命名草稿）。 */
 export interface BranchPanelState {
   readonly status: 'idle' | 'loading' | 'error' | 'ready';
@@ -36,10 +51,17 @@ export interface BranchPanelState {
   readonly acting: boolean;
   readonly message: string | undefined;
   readonly diff: BranchDiffState;
+  readonly aggregate: BranchAggregateState;
+  readonly versionSelection?: VersionSelection;
+  readonly versionDiffTarget?: VersionSelection;
 }
 
 export function freshBranchPanel(): BranchPanelState {
-  return { status: 'idle', list: [], labelDraft: '', acting: false, message: undefined, diff: { status: 'idle', lines: [] } };
+  return {
+    status: 'idle', list: [], labelDraft: '', acting: false, message: undefined,
+    diff: { status: 'idle', lines: [] }, aggregate: { status: 'idle' },
+    versionSelection: undefined, versionDiffTarget: undefined,
+  };
 }
 
 /**
@@ -124,5 +146,78 @@ export function branchPanel(h: El, projectId: string, branches: BranchNamespace 
   return h('section', { className: 'nv-branch', 'data-novel-branch-panel': '', 'data-novel-branch-state': state.status },
     h('h3', { className: 'nv-editor__title' }, '版本与分支'),
     body,
+  );
+}
+
+/**
+ * I131 versions 模式（design §14.14.2 D25 / R18-10）：消费 Host 一次性聚合树，
+ * 保留场景级旧 branchPanel 作为兼容消费者。树节点不带正文；选择只改变本地
+ * focus，diff 与 chooseFresh 才按需触达 Host。
+ */
+export function versionsPanel(h: El, projectId: string, branches: BranchNamespace | undefined, state: BranchPanelState, ops: ChaptersEditOps): unknown {
+  const unavailable = branches === undefined || projectId === undefined;
+  let body: unknown;
+  if (unavailable) {
+    body = h('p', { className: 'nv-branch__hint', 'data-novel-version-unavailable': '' }, '版本服务不可用（novelBranches Remote 未挂载）。');
+  } else if (state.aggregate.status === 'loading') {
+    body = h('p', { className: 'nv-branch__hint', 'data-novel-version-loading': '' }, '正在读取版本树…');
+  } else if (state.aggregate.status === 'error') {
+    body = h('div', { className: 'nv-branch__error', 'data-novel-version-error': '', role: 'alert' },
+      h('p', { className: 'nv-chapters__error-text' }, state.aggregate.message ?? '版本树读取失败'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-retry': '', onClick: () => ops.versionsLoad() }, '重试'),
+    );
+  } else {
+    const tree = state.aggregate.tree;
+    const chapters = tree?.chapters ?? [];
+    const chapterNodes = chapters.length === 0
+      ? h('p', { className: 'nv-branch__hint', 'data-novel-version-empty': '' }, '尚无章节版本。')
+      : h('div', { className: 'nv-version-tree', 'data-novel-version-tree': '' }, chapters.map((chapter) =>
+        h('article', { key: chapter.id, className: 'nv-version-tree__chapter', 'data-novel-version-chapter': chapter.id },
+          h('h4', { className: 'nv-version-tree__chapter-title' }, `${chapter.index}. ${chapter.title}`),
+          chapter.scenes.length === 0
+            ? h('p', { className: 'nv-branch__hint' }, '本章暂无场景。')
+            : h('ul', { className: 'nv-version-tree__scenes' }, chapter.scenes.map((scene) => {
+              const selected = state.versionSelection?.chapterId === chapter.id && state.versionSelection.sceneId === scene.id;
+              const sceneBranches = scene.branches;
+              return h('li', { key: scene.id, className: 'nv-version-tree__scene' + (selected ? ' is-selected' : ''), 'data-novel-version-scene': scene.id },
+                h('button', { type: 'button', className: 'nv-version-tree__scene-select', 'data-novel-version-select': `${chapter.id}:${scene.id}`, onClick: () => ops.versionSelect(chapter.id, scene.id) }, `${scene.index + 1}. ${scene.summary || '未命名场景'}`),
+                sceneBranches.length === 0
+                  ? h('p', { className: 'nv-branch__hint', 'data-novel-version-implicit': `${chapter.id}:${scene.id}` }, '隐含单版本（正文按需读取）')
+                  : h('ul', { className: 'nv-version-tree__branches' }, sceneBranches.map((branch) => {
+                    const branchSelected = state.versionSelection?.chapterId === chapter.id && state.versionSelection.sceneId === scene.id && state.versionSelection.branchId === branch.id;
+                    return h('li', { key: branch.id, className: 'nv-version-tree__branch' + (branchSelected ? ' is-selected' : '') + (branch.chosen ? ' is-chosen' : ''), 'data-novel-version-branch': branch.id },
+                      h('span', { className: 'nv-branch__label' }, branch.label || '未命名版本'),
+                      branch.chosen ? h('span', { className: 'nv-branch__badge', 'data-novel-version-chosen': '' }, '当前') : null,
+                      h('span', { className: 'nv-branch__meta' }, `${branch.charCount} 字 · ${branch.hash.slice(0, 8)}`),
+                      h('div', { className: 'nv-editor__actions' },
+                        h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-select-branch': '', disabled: state.acting, onClick: () => ops.versionSelect(chapter.id, scene.id, branch.id) }, branchSelected ? '已选中' : '查看版本'),
+                        h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-diff': '', disabled: state.acting, onClick: () => ops.versionDiff(chapter.id, scene.id, branch.id) }, '对比'),
+                        h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-choose': '', disabled: branch.chosen || state.acting, onClick: () => ops.versionChoose(chapter.id, scene.id, branch.id) }, branch.chosen ? '当前版本' : '切换版本'),
+                      ),
+                    );
+                  })),
+              );
+            })),
+        ),
+      ));
+    let diffBlock: unknown = null;
+    const diff = state.diff;
+    if (diff.status === 'loading') {
+      diffBlock = h('p', { className: 'nv-branch__hint', 'data-novel-version-diff-loading': '' }, '正在按需对比…');
+    } else if (diff.status === 'error') {
+      diffBlock = h('p', { className: 'nv-chapters__error-text', 'data-novel-version-diff-error': '', role: 'alert' }, diff.message ?? '对比失败');
+    } else if (diff.status === 'ready') {
+      diffBlock = h('div', { className: 'nv-branch__diff', 'data-novel-version-diff-view': '' },
+        h('p', { className: 'nv-branch__diff-title' }, `对比：${diff.fromLabel ?? '—'} → ${diff.toLabel ?? '当前'}`),
+        h('div', { className: 'nv-branch__diff-lines' }, diff.lines.length === 0
+          ? h('p', { className: 'nv-branch__hint' }, '两个版本内容相同。')
+          : diff.lines.map((line, index) => h('p', { key: index, className: `nv-branch__line nv-branch__line--${line.kind}`, 'data-novel-version-line': line.kind }, `${line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' '} ${line.text}`))),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-version-diff-close': '', onClick: () => ops.branchCloseDiff() }, '关闭对比'),
+      );
+    }
+    body = h('div', { className: 'nv-version-tree__body' }, chapterNodes, state.message === undefined ? null : h('p', { className: 'nv-branch__hint nv-branch__message', 'data-novel-version-message': '', role: 'status', 'aria-live': 'polite' }, state.message), diffBlock);
+  }
+  return h('section', { className: 'nv-branch nv-version-tree-panel', 'data-novel-version-panel': '', 'data-novel-version-state': state.aggregate.status },
+    h('h3', { className: 'nv-editor__title' }, '版本树'), body,
   );
 }

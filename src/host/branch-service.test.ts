@@ -117,6 +117,26 @@ describe('I70 NovelBranchService（design §14.10 / R14-5）', () => {
     expect(Object.keys(aggregate.chapters[0].scenes[1].branches[0])).toEqual(['id', 'label', 'chosen', 'charCount', 'hash']);
   });
 
+  it('I131 chooseFresh：按聚合 chosen hash 原子切换，陈旧 token/跨项目 fail closed', async () => {
+    const root = await temporaryRoot();
+    const repository = new TextRepository(join(root, 'demo'));
+    await repository.open();
+    await repository.createChapter({ id: 'chapter-1', index: 1, title: '第一章', pov: 'mira', status: 'draft' });
+    await repository.appendScene('chapter-1', { id: 'scene-1', content: '旧正文', summary: '开场', beats: [], canonEvents: [], notes: '' });
+    await repository.commitSceneVersion('chapter-1', 'scene-1', '新正文', '新版本');
+    const service = createBranchService(root);
+    await service.open('demo');
+    const aggregateBefore = await service.aggregate('demo');
+    const scene = aggregateBefore.chapters[0].scenes[0];
+    const chosen = scene.branches.find((branch) => branch.chosen)!;
+    const previous = scene.branches.find((branch) => !branch.chosen)!;
+    const switched = await service.chooseFresh('demo', 'chapter-1', 'scene-1', previous.id, chosen.hash);
+    expect(switched.content).toBe('旧正文');
+    await expect(service.chooseFresh('demo', 'chapter-1', 'scene-1', chosen.id, chosen.hash)).rejects.toThrow(/Stale branch source/);
+    await expect(service.chooseFresh('missing', 'chapter-1', 'scene-1', chosen.id, chosen.hash)).rejects.toThrow(/not open/);
+    expect((await repository.readChapter('chapter-1')).scenes[0].content).toBe('旧正文');
+  });
+
   it('I130 aggregate 负向：未知项目、重复/多 chosen/超限版本树均 fail closed', async () => {
     const root = await temporaryRoot();
     const emptyService = createBranchService(root);

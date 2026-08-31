@@ -1,0 +1,25 @@
+{
+  "iteration": "I131",
+  "requirement": "R18-10b",
+  "guarantees": [
+    "versions-mode-consumes-one-host-aggregate-and-does-not-rebuild-via-n-plus-one-list-calls",
+    "aggregate-tree-preserves-chapter-scene-order-and-explicit-implicit-single-mode",
+    "diff-is-requested-on-demand-without-prose-in-the-aggregate-tree",
+    "chooseFresh-carries-the-chosen-source-hash-and-rejects-stale-or-cross-project-targets",
+    "successful-current-scene-switch-reloads-editor-and-preserves-the-selected-focus",
+    "legacy-four-parameter-choose-and-local-branch-panel-remain-compatible",
+    "real-repository-client-binder-and-client-consumer-regressions-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 161,
+    "resultSchemaCount": 67
+  },
+  "focusedSuites": "I131 repository, Host service, Client tree, real DSH binder, and contract-lock suites passed",
+  "explicitNonGoals": [
+    "full-book-revision-timeline",
+    "batch-switch",
+    "implicit-save",
+    "new-confirmation-gate",
+    "c5-schema-change"
+  ]
+}

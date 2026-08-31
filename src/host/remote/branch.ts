@@ -1,6 +1,6 @@
 import type { InvocationParameterDescriptor, TypertCodec } from '@deepseek-ai/dsh-typert-protocol';
 import { z } from 'zod';
-import { branchAggregateSchema } from '../../core/schema/branch-aggregate.js';
+import { branchAggregateSchema, branchSourceHashSchema } from '../../core/schema/branch-aggregate.js';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
 
@@ -14,6 +14,8 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
  * - `choose`：可逆切换 chosen 分支并同步正文（只写 C5，绝不隐式改结构层）；
  * - `diff`：分支 A → 分支 B 的确定性行 diff（B 缺省 = 当前 chosen 分支）。
  * - `aggregate`：一次性有界的章节→场景→版本元数据树（无正文）；正文仍按需读取。
+ * - `chooseFresh`：携带 aggregate 返回的 sourceHash 做原子 freshness 核对后切换；
+ *   既有四参数 `choose` 保持原 descriptor 与行为不变。
  *
  * 不变式：所有参数/结果都是最小 owned JSON；Client 不持有任何领域真相与文件
  * 路径；服务端（novelBranches）经 TextRepository（C5 唯一存储 owner）复验与写回，
@@ -75,6 +77,7 @@ const sceneParameter = param('sceneId', stringCodec);
 const branchIdParameter = param('branchId', stringCodec);
 const labelParameter = param('label', stringCodec);
 const toBranchIdParameter = param('toBranchId', stringCodec, true);
+const sourceHashParameter = param('sourceHash', strictCodec('novel-creation-tool#novelBranches:sourceHash', branchSourceHashSchema));
 
 export const branchListInvocation = branchInvocation('list', [projectParameter, chapterParameter, sceneParameter], strictCodec('novel-creation-tool#novelBranches:list', branchListResultWireSchema));
 export const branchReadInvocation = branchInvocation('read', [projectParameter, chapterParameter, sceneParameter, branchIdParameter], strictCodec('novel-creation-tool#novelBranches:read', branchReadResultWireSchema));
@@ -82,6 +85,7 @@ export const branchSaveInvocation = branchInvocation('save', [projectParameter, 
 export const branchChooseInvocation = branchInvocation('choose', [projectParameter, chapterParameter, sceneParameter, branchIdParameter], strictCodec('novel-creation-tool#novelBranches:choose', branchMutateResultWireSchema));
 export const branchDiffInvocation = branchInvocation('diff', [projectParameter, chapterParameter, sceneParameter, branchIdParameter, toBranchIdParameter], strictCodec('novel-creation-tool#novelBranches:diff', branchDiffResultWireSchema));
 export const branchAggregateInvocation = branchInvocation('aggregate', [projectParameter], strictCodec('novel-creation-tool#novelBranches:aggregate', branchAggregateWireSchema));
+export const branchChooseFreshInvocation = branchInvocation('chooseFresh', [projectParameter, chapterParameter, sceneParameter, branchIdParameter, sourceHashParameter], strictCodec('novel-creation-tool#novelBranches:chooseFresh', branchMutateResultWireSchema));
 
 export const branchInvocations = [
   branchListInvocation,
@@ -90,6 +94,7 @@ export const branchInvocations = [
   branchChooseInvocation,
   branchDiffInvocation,
   branchAggregateInvocation,
+  branchChooseFreshInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。

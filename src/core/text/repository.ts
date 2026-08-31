@@ -472,22 +472,36 @@ export class TextRepository {
    * 重复切换幂等（零写）。
    */
   async chooseSceneBranch(chapterId: string, sceneId: string, branchId: string): Promise<Scene> {
-    return this.queue.enqueue(async () => {
-      const chapter = await this.readChapterUnlocked(chapterId);
-      const position = chapter.scenes.findIndex((scene) => scene.id === sceneId);
-      if (position < 0) throw new Error(`Unknown scene: ${sceneId}`);
-      const scene = chapter.scenes[position];
-      const branch = scene.branches.find((item) => item.id === branchId);
-      if (branch === undefined) throw new Error(`Unknown branch: ${branchId}`);
-      if (branch.chosen) return structuredClone(scene);
-      const branches = scene.branches.map((item) => ({ ...item, chosen: item.id === branchId }));
-      const changed = sceneSchema.parse({ ...scene, content: branch.content, branches });
-      const scenes = chapter.scenes.slice();
-      scenes[position] = changed;
-      await this.queue.commitChapter(chapterSchema.parse({ ...chapter, scenes }));
-      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
-      return structuredClone(changed);
-    });
+    return this.queue.enqueue(() => this.chooseSceneBranchUnlocked(chapterId, sceneId, branchId));
+  }
+
+  /**
+   * I131 freshness-safe branch switch（design §14.14.2 D25）：在同一写队列中核对
+   * 当前 scene.content 的 sha256，再执行既有唯一 chosen 切换。sourceHash 过期时
+   * 零写失败；因此并发编辑/切换不能把聚合树里的旧选择悄悄覆盖掉。
+   */
+  async chooseSceneBranchFresh(chapterId: string, sceneId: string, branchId: string, sourceHash: string): Promise<Scene> {
+    return this.queue.enqueue(() => this.chooseSceneBranchUnlocked(chapterId, sceneId, branchId, sourceHash));
+  }
+
+  private async chooseSceneBranchUnlocked(chapterId: string, sceneId: string, branchId: string, expectedSourceHash?: string): Promise<Scene> {
+    const chapter = await this.readChapterUnlocked(chapterId);
+    const position = chapter.scenes.findIndex((scene) => scene.id === sceneId);
+    if (position < 0) throw new Error(`Unknown scene: ${sceneId}`);
+    const scene = chapter.scenes[position];
+    if (expectedSourceHash !== undefined && textContentHash(scene.content) !== expectedSourceHash) {
+      throw new Error(`Stale branch source: ${sceneId}`);
+    }
+    const branch = scene.branches.find((item) => item.id === branchId);
+    if (branch === undefined) throw new Error(`Unknown branch: ${branchId}`);
+    if (branch.chosen) return structuredClone(scene);
+    const branches = scene.branches.map((item) => ({ ...item, chosen: item.id === branchId }));
+    const changed = sceneSchema.parse({ ...scene, content: branch.content, branches });
+    const scenes = chapter.scenes.slice();
+    scenes[position] = changed;
+    await this.queue.commitChapter(chapterSchema.parse({ ...chapter, scenes }));
+    await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
+    return structuredClone(changed);
   }
 
   /** 列出场景的全部版本分支（chosen 唯一；无分支时返回空数组 = 隐含单版本）。 */

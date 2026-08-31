@@ -4,7 +4,7 @@ import type { ChapterStatus } from '../../core/schema/text.js';
 import type { DetailBeat } from '../../core/schema/outline.js';
 import type { OutlineReconciliationChoice, OutlineReconciliationPlan } from '../../core/schema/outline-reconciliation.js';
 import type { OutlineReconciliationContinueResult, OutlineReconciliationFinalizeResult } from '../../core/schema/outline-reconciliation-application.js';
-import { branchPanel, freshBranchPanel, type BranchPanelState } from './branch.js';
+import { versionsPanel, branchPanel, freshBranchPanel, type BranchPanelState } from './branch.js';
 import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from './candidate.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
 import { freshSceneEditor, sceneEditorPanel, type SceneEditorState } from './scene-editor.js';
@@ -145,6 +145,10 @@ export interface ChaptersEditOps {
   branchChoose(branchId: string): void;
   branchDiff(branchId: string): void;
   branchCloseDiff(): void;
+  versionsLoad(): void;
+  versionSelect(chapterId: string, sceneId: string, branchId?: string): void;
+  versionDiff(chapterId: string, sceneId: string, branchId: string): void;
+  versionChoose(chapterId: string, sceneId: string, branchId: string): void;
   setMode(mode: ChaptersMode): void;
   chapterDraft(patch: Partial<ChapterManagementDraft>): void;
   sceneDraft(patch: Partial<SceneManagementDraft>): void;
@@ -260,7 +264,10 @@ function modeBadge(state: ChaptersLayerState, mode: ChaptersMode): string | unde
     const kind = state.candidate.ui.kind;
     return kind === 'proposing' || kind === 'ready' || kind === 'acting' ? '待处理' : undefined;
   }
-  if (mode === 'versions') return state.branches.list.length > 0 ? String(state.branches.list.length) : undefined;
+  if (mode === 'versions') {
+    const count = state.branches.aggregate.tree?.chapters.reduce((total, chapter) => total + chapter.scenes.reduce((sceneTotal, scene) => sceneTotal + scene.branches.length, 0), 0) ?? 0;
+    return count > 0 ? String(count) : undefined;
+  }
   if (mode === 'materials') {
     const status = state.management.deletion.status;
     return status === 'pending' || status === 'proposing' || status === 'applying' ? '待确认' : undefined;
@@ -312,7 +319,7 @@ function modePanel(h: El, projectId: string, writing: WritingNamespace | undefin
     : state.mode === 'candidate'
       ? candidatePanel(h, projectId, writing, state.candidate, ops)
       : state.mode === 'versions'
-        ? branchPanel(h, projectId, branches, state.branches, ops)
+        ? versionsPanel(h, projectId, branches, state.branches, ops)
         : managementPanel(h, state, ops);
   return h('div', {
     id: 'novel-chapters-mode-panel',
@@ -511,6 +518,6 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
 }
 
 // I95 兼容重导出（拆分后外部符号入口不变）。
-export { freshBranchPanel, branchPanel, type BranchDiffLineShape, type BranchDiffState, type BranchPanelState, type BranchSummaryShape } from './branch.js';
+export { freshBranchPanel, branchPanel, versionsPanel, type BranchAggregateState, type BranchDiffLineShape, type BranchDiffState, type BranchPanelState, type BranchSummaryShape, type VersionSelection } from './branch.js';
 export { freshCandidatePanel, candidatePanel, type CandidatePanelState, type CandidateReviewShape, type CandidateTraceSectionShape, type CandidateTraceShape, type CandidateUiState, type CandidateValidationShape } from './candidate.js';
 export { computeEditRange, freshSceneEditor, reparseLocked, sceneEditorPanel, type ReparseUiState, type SceneEditRange, type SceneEditorState } from './scene-editor.js';

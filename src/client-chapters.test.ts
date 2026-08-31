@@ -188,7 +188,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
   });
 
   it('I107 章节区四种模式互斥：隐藏面板零读取，导航世代丢弃旧候选，草稿与键盘焦点行为保持确定', async () => {
-    let branchReads = 0;
+    let aggregateReads = 0;
     let fingerprintReads = 0;
     let bindingReads = 0;
     let previewReads = 0;
@@ -199,9 +199,9 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
       sceneRead: async (_projectId, _chapterId, sceneId) => (sceneId === 'scene-1' ? SCENE_1_READ : SCENE_2_READ),
     }, {
       branch: {
-        list: async () => {
-          branchReads += 1;
-          return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 8, hash: 'hash-1' }] };
+        aggregate: async () => {
+          aggregateReads += 1;
+          return { projectId: 'fixture-project', chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '相遇', versionMode: 'branched', branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 8, hash: 'a'.repeat(64) }] }] }] };
         },
       },
       writing: {
@@ -229,7 +229,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(false);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(false);
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-chapter-management'] !== undefined)).toBe(false);
-    expect(branchReads).toBe(0);
+    expect(aggregateReads).toBe(0);
     expect(fingerprintReads).toBe(0);
     expect(bindingReads).toBe(0);
 
@@ -239,7 +239,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(true);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(false);
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-chapter-management'] !== undefined)).toBe(false);
-    expect(branchReads).toBe(0);
+    expect(aggregateReads).toBe(0);
     expect(fingerprintReads).toBe(0);
     expect(bindingReads).toBe(0);
 
@@ -257,14 +257,14 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     (mode('versions')?.props?.onClick as () => void)();
     await flush();
     expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('versions');
-    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(true);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-version-panel'] !== undefined)).toBe(true);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(false);
-    expect(branchReads).toBe(1);
+    expect(aggregateReads).toBe(1);
     (mode('writing')?.props?.onClick as () => void)();
     await flush();
     (mode('versions')?.props?.onClick as () => void)();
     await flush();
-    expect(branchReads).toBe(1);
+    expect(aggregateReads).toBe(1);
 
     (mode('materials')?.props?.onClick as () => void)();
     await flush();
@@ -292,6 +292,84 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     (mode('writing')?.props?.onClick as () => void)();
     await flush();
     expect(collect(render(), 'textarea').find((node) => node.props?.['data-novel-scene-text'] !== undefined)?.props?.value).toBe('保留中的未保存稿');
+  });
+
+  it('I131 versions 模式：一次聚合树、按需 diff、fresh 切换重载当前场景，陈旧响应不写入', async () => {
+    let aggregateReads = 0;
+    let sceneReads = 0;
+    const diffCalls: unknown[][] = [];
+    const chooseCalls: unknown[][] = [];
+    let currentContent = '当前正文';
+    let currentTree = {
+      projectId: 'fixture-project',
+      chapters: [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft', scenes: [
+        { id: 'scene-1', index: 0, summary: '相遇', versionMode: 'branched' as const, branches: [
+          { id: 'branch-old', label: '旧稿', chosen: true, charCount: 4, hash: 'a'.repeat(64) },
+          { id: 'branch-new', label: '新稿', chosen: false, charCount: 4, hash: 'b'.repeat(64) },
+        ] },
+        { id: 'scene-2', index: 1, summary: '分别', versionMode: 'implicit-single' as const, branches: [] },
+      ] }],
+    };
+    const m = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => [{ id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft', sceneCount: 2 }],
+      chapterRead: async () => ({ id: 'chapter-1', index: 1, title: '第一章', pov: 'lin', status: 'draft', scenes: [{ id: 'scene-1', index: 0, summary: '相遇' }, { id: 'scene-2', index: 1, summary: '分别' }] }),
+      sceneRead: async () => { sceneReads += 1; return { chapter: { id: 'chapter-1', index: 1, title: '第一章', pov: 'lin' }, scene: { id: 'scene-1', index: 0, summary: '相遇', content: currentContent, beats: [], canonEvents: [], notes: '' } }; },
+    }, {
+      branch: {
+        aggregate: async () => { aggregateReads += 1; return structuredClone(currentTree); },
+        diff: async (...args) => { diffCalls.push(args); return { from: { id: 'branch-new', label: '新稿', chosen: false, content: '新正文' }, to: { id: 'branch-old', label: '旧稿', chosen: true, content: '旧正文' }, lines: [{ kind: 'del' as const, text: '旧正文' }, { kind: 'add' as const, text: '新正文' }] }; },
+        chooseFresh: async (...args) => {
+          chooseCalls.push(args);
+          if (chooseCalls.length > 1) throw new Error('Stale branch source');
+          currentContent = '新正文';
+          const scene = currentTree.chapters[0].scenes[0];
+          scene.branches = scene.branches.map((branch) => ({ ...branch, chosen: branch.id === 'branch-new' }));
+          return { branches: scene.branches, content: currentContent };
+        },
+      },
+    });
+    await flush();
+    const render = () => m.registrations['shell.overlay'][0].component() as FakeNode;
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-view'] === 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'versions')?.props?.onClick as () => void)();
+    await flush();
+
+    const versionPanel = () => collect(render(), 'section').find((node) => node.props?.['data-novel-version-panel'] !== undefined);
+    const branchItem = (id: string) => collect(versionPanel() ?? {}, 'li').find((node) => node.props?.['data-novel-version-branch'] === id);
+    expect(aggregateReads).toBe(1);
+    expect(collect(versionPanel() ?? {}, 'article').map((node) => node.props?.['data-novel-version-chapter'])).toEqual(['chapter-1']);
+    expect(collect(versionPanel() ?? {}, 'li').filter((node) => node.props?.['data-novel-version-scene'] !== undefined).map((node) => node.props?.['data-novel-version-scene'])).toEqual(['scene-1', 'scene-2']);
+    expect(collect(versionPanel() ?? {}, 'p').some((node) => node.props?.['data-novel-version-implicit'] !== undefined)).toBe(true);
+    expect(JSON.stringify(versionPanel())).not.toContain('旧正文');
+    expect(JSON.stringify(versionPanel())).not.toContain('新正文');
+
+    const newBranchButtons = collect(branchItem('branch-new') ?? {}, 'button');
+    (newBranchButtons.find((node) => node.props?.['data-novel-version-diff'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(diffCalls).toEqual([['fixture-project', 'chapter-1', 'scene-1', 'branch-new', undefined]]);
+    expect(collect(versionPanel() ?? {}, 'div').some((node) => node.props?.['data-novel-version-diff-view'] !== undefined)).toBe(true);
+    expect(aggregateReads).toBe(1);
+
+    (collect(branchItem('branch-new') ?? {}, 'button').find((node) => node.props?.['data-novel-version-choose'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(chooseCalls).toEqual([['fixture-project', 'chapter-1', 'scene-1', 'branch-new', 'a'.repeat(64)]]);
+    expect(aggregateReads).toBe(2);
+    expect(sceneReads).toBe(2);
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'writing')?.props?.onClick as () => void)();
+    await flush();
+    expect(paragraphs(render())).toContain('新正文');
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'versions')?.props?.onClick as () => void)();
+    await flush();
+
+    (collect(branchItem('branch-old') ?? {}, 'button').find((node) => node.props?.['data-novel-version-choose'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    expect(chooseCalls).toHaveLength(2);
+    expect(sceneReads).toBe(2);
+    expect(aggregateReads).toBe(2);
+    expect(collect(versionPanel() ?? {}, 'p').some((node) => node.children?.[0] === 'Stale branch source')).toBe(true);
   });
 });
 

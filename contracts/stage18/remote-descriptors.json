@@ -162,6 +162,7 @@
     "novel-creation-tool/novelLongDraft/reject",
     "novel-creation-tool/novelLongDraft/recover",
     "novel-creation-tool/novelBranches/aggregate",
+    "novel-creation-tool/novelBranches/chooseFresh",
     "novel-creation-tool/novelReviewRepair/propose"
   ],
   "descriptors": {
@@ -35205,6 +35206,142 @@
         }
       }
     },
+    "novel-creation-tool/novelBranches/chooseFresh": {
+      "id": "novel-creation-tool/novelBranches/chooseFresh",
+      "service": "novelBranches",
+      "namespace": "novelBranches",
+      "method": "chooseFresh",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "chapterId",
+          "wire": "chapterId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "sceneId",
+          "wire": "sceneId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "branchId",
+          "wire": "branchId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "sourceHash",
+          "wire": "sourceHash",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#novelBranches:sourceHash",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#novelBranches:chooseFresh",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "branches": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "chosen": {
+                    "type": "boolean"
+                  },
+                  "charCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "hash": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "chosen",
+                  "charCount",
+                  "hash"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "branches",
+            "content"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
     "novel-creation-tool/novelReviewRepair/propose": {
       "id": "novel-creation-tool/novelReviewRepair/propose",
       "service": "novelReviewRepair",
@@ -35575,6 +35712,7 @@
     "novel-creation-tool/novelLongDraft/reject",
     "novel-creation-tool/novelLongDraft/recover",
     "novel-creation-tool/novelBranches/aggregate",
+    "novel-creation-tool/novelBranches/chooseFresh",
     "novel-creation-tool/novelReviewRepair/propose"
   ],
   "resultSchemas": {
@@ -48413,6 +48551,56 @@
       "required": [
         "projectId",
         "chapters"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelBranches/chooseFresh": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "branches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "label": {
+                "type": "string"
+              },
+              "chosen": {
+                "type": "boolean"
+              },
+              "charCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hash": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "chosen",
+              "charCount",
+              "hash"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "branches",
+        "content"
       ],
       "additionalProperties": false
     },

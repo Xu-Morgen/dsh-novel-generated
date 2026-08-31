@@ -164,6 +164,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'choose', call: (projectId: string, chapterId: string, sceneId: string, branchId: string) => branchService.chooseBranch(projectId, chapterId, sceneId, branchId) },
     { method: 'diff', call: (projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string) => branchService.diffBranches(projectId, chapterId, sceneId, fromBranchId, toBranchId) },
     { method: 'aggregate', call: (projectId: string) => branchAggregateWireAdapter(branchService, projectId) },
+    { method: 'chooseFresh', call: (projectId: string, chapterId: string, sceneId: string, branchId: string, sourceHash: string) => branchService.chooseFresh(projectId, chapterId, sceneId, branchId, sourceHash) },
   ], branchInvocations));
   // I71 全局搜索与上下文追踪（design §14.10「搜索与上下文追踪」/ R14-6）：可重建
   // 搜索投影 + 实体交叉引用 + 结果跳转 + 生成注入解释（trace）。搜索索引是派生视图

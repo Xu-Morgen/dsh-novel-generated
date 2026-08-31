@@ -11,6 +11,7 @@ import {
   BRANCH_AGGREGATE_MAX_BYTES,
   BRANCH_AGGREGATE_MAX_CHAPTERS,
   BRANCH_AGGREGATE_MAX_SCENES,
+  branchSourceHashSchema,
   type BranchAggregate,
 } from '../core/schema/branch-aggregate.js';
 
@@ -65,6 +66,8 @@ export interface NovelBranchService {
   saveBranch(projectId: string, chapterId: string, sceneId: string, label: string): Promise<{ branches: SceneBranchSummary[]; content: string }>;
   /** 可逆切换 chosen 分支（只写 C5；返回新分支列表与新正文）。 */
   chooseBranch(projectId: string, chapterId: string, sceneId: string, branchId: string): Promise<{ branches: SceneBranchSummary[]; content: string }>;
+  /** 带聚合树 freshness token 的原子切换；sourceHash 过期时零写拒绝。 */
+  chooseFresh(projectId: string, chapterId: string, sceneId: string, branchId: string, sourceHash: string): Promise<{ branches: SceneBranchSummary[]; content: string }>;
   /** 比较分支 A → 分支 B（B 缺省 = 当前 chosen 分支）。 */
   diffBranches(projectId: string, chapterId: string, sceneId: string, fromBranchId: string, toBranchId?: string): Promise<BranchDiffResult>;
   /** 一次性读取的有界版本元数据树；正文仍由 read/diff 按需读取。 */
@@ -118,6 +121,11 @@ export function createBranchService(projectsRoot = join(homedir(), '.dsh', 'nove
     },
     async chooseBranch(projectId, chapterId, sceneId, branchId) {
       const changed = await get(projectId).chooseSceneBranch(chapterId, sceneId, branchId);
+      return Object.freeze({ branches: changed.branches.map(toSummary), content: changed.content });
+    },
+    async chooseFresh(projectId, chapterId, sceneId, branchId, sourceHash) {
+      const validSourceHash = branchSourceHashSchema.parse(sourceHash);
+      const changed = await get(projectId).chooseSceneBranchFresh(chapterId, sceneId, branchId, validSourceHash);
       return Object.freeze({ branches: changed.branches.map(toSummary), content: changed.content });
     },
     async diffBranches(projectId, chapterId, sceneId, fromBranchId, toBranchId) {

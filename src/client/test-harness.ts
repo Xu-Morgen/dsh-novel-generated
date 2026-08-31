@@ -255,6 +255,8 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       save: async () => ({ branches: [], content: '' }),
       choose: async () => ({ branches: [], content: '' }),
       diff: async () => ({ from: { id: 'fixture-branch', label: 'fixture', chosen: true, content: '' }, to: { id: 'fixture-branch', label: 'fixture', chosen: true, content: '' }, lines: [] }),
+      aggregate: async () => ({ projectId: 'fixture-project', chapters: [] }),
+      chooseFresh: async () => ({ branches: [], content: '' }),
     })
     : name === 'remote.novelText' ? (textMutationStub ?? {
       fingerprint: async () => ({ fingerprint: 'a'.repeat(64) }),

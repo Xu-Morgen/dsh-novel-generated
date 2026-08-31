@@ -14,13 +14,16 @@ export const BRANCH_AGGREGATE_MAX_BRANCHES_PER_SCENE = 64;
 export const BRANCH_AGGREGATE_MAX_SUMMARY_CHARS = 2000;
 export const BRANCH_AGGREGATE_MAX_BYTES = 4 * 1024 * 1024;
 
+/** I131 freshness token：只接受 Host 产生的 sha256 hex，禁止 Client 自造宽松 token。 */
+export const branchSourceHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
+
 /** 版本树只携带版本元数据；正文必须经既有 read/diff 按需读取。 */
 export const branchAggregateBranchSchema = z.object({
   id: entityIdSchema,
   label: z.string().max(2000),
   chosen: z.boolean(),
   charCount: z.number().int().nonnegative(),
-  hash: z.string().regex(/^[a-f0-9]{64}$/),
+  hash: branchSourceHashSchema,
 }).strict().readonly();
 
 export const branchAggregateVersionModeSchema = z.enum(['implicit-single', 'branched']);

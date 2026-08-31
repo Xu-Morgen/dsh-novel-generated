@@ -28,8 +28,8 @@ export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref:
     runtime.act.chaptersMode(mode);
     // I107：模式容器是唯一的 Remote 激活点；隐藏版本/素材面板不注册重复
     // 读取。场景导航会把对应状态重置为 idle，显式重新进入即可确定性刷新。
-    if (mode === 'versions' && (runtime.snapshot.chapters.branches.status === 'idle' || runtime.snapshot.chapters.branches.status === 'error')) {
-      branch.branchesLoad();
+    if (mode === 'versions' && (runtime.snapshot.chapters.branches.aggregate.status === 'idle' || runtime.snapshot.chapters.branches.aggregate.status === 'error')) {
+      branch.versionsLoad();
     } else if (mode === 'materials' && (runtime.snapshot.chapters.management.status === 'idle' || runtime.snapshot.chapters.management.status === 'error')) {
       management.refreshManagement();
     }

@@ -179,6 +179,8 @@ function fixtureFor(endpoint: string): unknown {
           }],
         }],
       };
+    case 'novelBranches/chooseFresh':
+      return { branches: [{ id: 'branch-2', label: '新版本', chosen: true, charCount: 3, hash: 'b'.repeat(64) }], content: '新正文' };
     case 'novelText/fingerprint':
       return { fingerprint: 'a'.repeat(64) };
     case 'novelText/chapterCreate':
@@ -743,6 +745,30 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     try {
       const branches = client.get('remote.novelBranches') as { aggregate: (...args: unknown[]) => Promise<unknown> };
       await expect(unwrap(branches.aggregate('p1'))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I131 novelBranches.chooseFresh：strict sourceHash 入参与原子切换结果经真实 Client binder 往返', async () => {
+    const { client, calls, dispose } = await mount(branchRemoteContribution);
+    try {
+      const branches = client.get('remote.novelBranches') as { chooseFresh: (...args: unknown[]) => Promise<unknown> };
+      const result = await unwrap(branches.chooseFresh('p1', 'c1', 's1', 'branch-2', 'a'.repeat(64))) as { content: string };
+      expect(result.content).toBe('新正文');
+      expect(calls).toEqual([{ endpoint: 'novelBranches/chooseFresh', args: { projectId: 'p1', chapterId: 'c1', sceneId: 's1', branchId: 'branch-2', sourceHash: 'a'.repeat(64) } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I131 novelBranches.chooseFresh 负向：sourceHash 非 sha256 时在真实绑定器入参层拒绝', async () => {
+    const { client, dispose } = await mount(branchRemoteContribution);
+    try {
+      const branches = client.get('remote.novelBranches') as { chooseFresh: (...args: unknown[]) => Promise<unknown> };
+      await expect(unwrap(branches.chooseFresh('p1', 'c1', 's1', 'branch-2', 'stale'))).rejects.toThrow(/sourceHash/);
     } finally {
       await dispose();
       await client.fiber.dispose();
