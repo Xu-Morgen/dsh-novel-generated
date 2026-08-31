@@ -1,0 +1,14 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "language-01",
+    "language-02",
+    "language-03",
+    "condense-01",
+    "condense-02",
+    "condense-03",
+    "expand-01",
+    "expand-02",
+    "expand-03"
+  ]
+}

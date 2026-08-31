@@ -1,0 +1,32 @@
+{
+  "iteration": "I123",
+  "requirement": "R18-4b",
+  "samples": {
+    "corpus": "samples/i123/cases.json",
+    "dev": "samples/i123/dev.json",
+    "heldOut": 3,
+    "gold": "samples/i123/gold.json",
+    "threshold": 0.8,
+    "total": 12,
+    "perMode": {
+      "language": 4,
+      "condense": 4,
+      "expand": 4
+    }
+  },
+  "guarantees": [
+    "three-mode-frozen-dev-heldout-gold-corpus",
+    "shared-parameterized-rewrite-pipeline-with-single-prompt-owner",
+    "language-condense-expand-intent-presets-are-distinct",
+    "Client-start-current-scene-next-stop-restart-mode-controls",
+    "illegal-output-cancellation-model-failure-and-hard-violation-stay-zero-write",
+    "accepted-scene-reuses-existing-validation-preview-landing-idempotency"
+  ],
+  "focusedSuites": "I123 sample/preset, Host rewrite, adjudication, and Client session suites passed",
+  "explicitNonGoals": [
+    "free-text-chapter-splitting",
+    "full-book-polish",
+    "auto-accept",
+    "three-independent-pipelines"
+  ]
+}

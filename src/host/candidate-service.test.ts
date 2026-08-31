@@ -134,6 +134,24 @@ describe('I62 unified writing candidate command contract', () => {
     expect(await snapshot(root)).toBe(before);
   });
 
+  it('I123 三种 polishMode 共用 rewrite pipeline，并由 preset 区分生成意图', async () => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i123-'));
+    roots.push(projectsRoot);
+    const seen: string[] = [];
+    const { service } = await openProject(projectsRoot, fakeLlm(seen, '润色后的正文。'));
+    for (const [index, mode] of (['language', 'condense', 'expand'] as const).entries()) {
+      const result = await service.propose({
+        id: `cand-polish-${mode}`,
+        intent: 'rewrite',
+        target: { projectId: 'demo', chapterId: CHAPTER_ID, sceneId: SCENE_ID, sourceHash: hashText(ORIGINAL) },
+        prompt: '保持故事事实不变。', polishMode: mode, settings,
+      });
+      expect(result.candidate.text).toBe('润色后的正文。');
+      expect(seen[index]).toContain(`[polishMode:${mode}]`);
+    }
+    expect(new Set(seen.map((prompt) => prompt.split('\n')[2])).size).toBe(3);
+  });
+
   it('rejects misbound rewrite targets with zero writes', async () => {
     const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i62-'));
     roots.push(projectsRoot);

@@ -21,6 +21,7 @@ import type { GenerationSettings } from '../llm/port/index.js';
 import { buildChapterWritingPrompt } from '../write/chapter.js';
 import { assertCompleteProse } from '../write/chapter.js';
 import { buildContinuationPrompt } from '../write/continuation.js';
+import { buildPolishPrompt } from '../write/polish.js';
 
 /** I62 四种意图的候选请求：同一 Host 命令，只产生候选、绝不落地任何层（R13-3）。 */
 interface CandidateRequestBase {
@@ -153,9 +154,7 @@ export function createWritingCandidateService(deps: WritingCandidateServiceDeps)
         return buildChapterWritingPrompt(request.card, request.navigation);
       case 'rewrite': {
         if (!request.prompt.trim()) throw new Error('Rewrite candidate requires a non-empty prompt');
-        return request.polishMode === undefined
-          ? request.prompt
-          : `[polishMode:${request.polishMode}]\n${request.prompt}`;
+        return request.polishMode === undefined ? request.prompt : buildPolishPrompt(request.polishMode, request.prompt);
       }
     }
   };

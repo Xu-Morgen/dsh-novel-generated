@@ -246,7 +246,7 @@ function polishSessionPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditO
       session.mode === undefined ? null : h('span', { className: 'nv-chapters__item-meta', 'data-novel-polish-mode': session.mode }, `模式：${session.mode}`),
     ),
     h('div', { className: 'nv-editor__actions' },
-      canStart ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-start': '', onClick: () => ops.startPolish() }, '开始章节润色') : null,
+      canStart ? ['language', 'condense', 'expand'].map((mode) => h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-start': mode, onClick: () => ops.startPolish(mode as PolishMode) }, mode === 'language' ? '语言润色' : mode === 'condense' ? '压缩精简' : '扩写细节')) : null,
       canNext ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-next': '', onClick: () => ops.nextPolishScene() }, '启动下一场景') : null,
       session.status === 'running' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-polish-stop': '', onClick: () => ops.stopPolish() }, '停止') : null,
       session.status !== 'running' && (session.status === 'stopped' || session.status === 'error' || session.status === 'completed')

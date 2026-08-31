@@ -1,0 +1,103 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "modes": ["language", "condense", "expand"],
+  "canonicalCaseIds": [
+    "language-01",
+    "language-02",
+    "language-03",
+    "condense-01",
+    "condense-02",
+    "condense-03",
+    "expand-01",
+    "expand-02",
+    "expand-03"
+  ],
+  "heldOutCaseIds": ["language-heldout", "condense-heldout", "expand-heldout"],
+  "cases": [
+    {
+      "id": "language-01",
+      "mode": "language",
+      "source": "米拉看见那扇门，走过去。门开着。",
+      "instruction": "让句子更自然，但不要增加事实。",
+      "expected": "米拉看见那扇门，便走了过去。门开着。"
+    },
+    {
+      "id": "language-02",
+      "mode": "language",
+      "source": "林恩没有回答。他只是看着米拉。",
+      "instruction": "调整节奏，让表达更流畅。",
+      "expected": "林恩没有回答，只是看着米拉。"
+    },
+    {
+      "id": "language-03",
+      "mode": "language",
+      "source": "雨落在窗上，声音很清楚。米拉听见了。",
+      "instruction": "润色语句，保持原有信息。",
+      "expected": "雨点清晰地敲在窗上，米拉听见了。"
+    },
+    {
+      "id": "language-heldout",
+      "mode": "language",
+      "source": "她把地图收起来，然后走向码头。",
+      "instruction": "消除重复连接词，让句子简洁自然。",
+      "expected": "她收起地图，走向码头。"
+    },
+    {
+      "id": "condense-01",
+      "mode": "condense",
+      "source": "米拉慢慢地、一步一步地走进了房间，房间里面很安静，没有任何声音。",
+      "instruction": "压缩冗余表达，保留动作和环境事实。",
+      "expected": "米拉走进安静的房间。"
+    },
+    {
+      "id": "condense-02",
+      "mode": "condense",
+      "source": "林恩抬起头来，看向站在门口的米拉，然后开口说道：‘你来了。’",
+      "instruction": "删去不必要的铺陈，保留人物动作与对白。",
+      "expected": "林恩抬头看向门口的米拉，说：“你来了。”"
+    },
+    {
+      "id": "condense-03",
+      "mode": "condense",
+      "source": "她仔细地观察着那张旧地图，试图努力找出一条能够通往北港的路线。",
+      "instruction": "在不改变目标的前提下精简句子。",
+      "expected": "她查看旧地图，寻找通往北港的路线。"
+    },
+    {
+      "id": "condense-heldout",
+      "mode": "condense",
+      "source": "雨水不停地持续落下，打湿了米拉身上的外衣和她的头发。",
+      "instruction": "去掉重复含义，保留受影响的人和物。",
+      "expected": "雨水打湿了米拉的外衣和头发。"
+    },
+    {
+      "id": "expand-01",
+      "mode": "expand",
+      "source": "米拉打开了信。",
+      "instruction": "补充有限的动作细节，不改变事实。",
+      "expected": "米拉拆开信封，展开里面的纸张，低头读了起来。"
+    },
+    {
+      "id": "expand-02",
+      "mode": "expand",
+      "source": "林恩站在桥边。",
+      "instruction": "增加克制的环境与动作细节，保持原意。",
+      "expected": "林恩站在桥边，手扶着冰冷的栏杆，望着桥下缓慢流过的水。"
+    },
+    {
+      "id": "expand-03",
+      "mode": "expand",
+      "source": "门后传来脚步声。",
+      "instruction": "扩写紧张感，但不要添加人物身份或新事件。",
+      "expected": "门后的脚步声一下一下靠近，短暂的停顿让门外更加安静。"
+    },
+    {
+      "id": "expand-heldout",
+      "mode": "expand",
+      "source": "她把钥匙放在桌上。",
+      "instruction": "补充可观察的动作细节，不改变物件和动作。",
+      "expected": "她把钥匙放在桌上，金属碰到桌面，发出一声轻响。"
+    }
+  ]
+}
