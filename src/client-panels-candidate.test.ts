@@ -50,9 +50,10 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     },
   };
 
-  it('续写候选生成后先展示正文/diff/校验结果（ready），accept 才提交裁决；双击幂等', async () => {
+  it('续写候选生成后先展示正文/diff/校验结果（ready），接受为草稿才写入 C5；双击幂等', async () => {
     const proposes: Array<{ projectId: string; input: { intent: string; chapterId: string; sceneId: string } }> = [];
     const adjudicates: string[] = [];
+    const adoptions: string[] = [];
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       CHAPTER_WORKSPACE,
@@ -60,6 +61,7 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
         writing: {
           proposeAt: async (projectId, input) => { proposes.push({ projectId, input }); return { ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId, chapterId: 'chapter-main', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }; },
           preview: async (candidateId) => { expect(candidateId).toBe('cand-1'); return REVIEW; },
+          adoptDraft: async (candidateId) => { adoptions.push(candidateId); return { ok: true, value: { projectId: 'fixture-project', candidateId, chapterId: 'chapter-main', sceneId: 'scene-next', status: 'adopted', sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64) } }; },
           adjudicate: async (candidateId, decision) => { adjudicates.push(`${candidateId}:${decision}`); return { ok: true, value: { status: 'written', candidateId, scene: { chapterId: 'chapter-main', sceneId: 'scene-next', index: 0, content: '米拉在码头找到铜钥匙。' }, layers: ['c2', 'c1', 'c3', 'c4', 'b2'] } }; },
         },
       },
@@ -90,12 +92,13 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     expect(collect(render(), 'p').some((n) => n.props?.['data-novel-candidate-diff'] === 'new-scene' && String(n.children?.[0] ?? '').includes('追加到当前选中的位置'))).toBe(true);
     expect(collect(render(), 'div').some((n) => n.props?.['data-novel-candidate-validation'] === 'pass')).toBe(true);
 
-    // 双击接受：至多一次 adjudicate（inflight 幂等）；成功后显示完成态。
+    // 双击接受为草稿：至多一次 adoptDraft（inflight 幂等）；成功后显示完成态。
     const accept = () => collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-accept'] === '');
     (accept()?.props?.onClick as () => void)();
     (accept()?.props?.onClick as () => void)();
     await flush();
-    expect(adjudicates).toEqual(['cand-1:accept']);
+    expect(adoptions).toEqual(['cand-1']);
+    expect(adjudicates).toEqual([]);
     // I107：接受后重读章节会清理旧候选 target；模式徽标随之清除并回到 idle。
     expect(candidatePanel(render())?.props?.['data-novel-candidate-state']).toBe('idle');
   });

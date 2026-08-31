@@ -132,6 +132,17 @@ const outlineDetailCandidate = {
   generatedDetailBeatCount: 1, revision: 1, status: 'ready', rationale: '只补缺失卡。', createdAt: ISO, updatedAt: ISO,
 };
 
+const finalizationPlan = {
+  planId: 'final-plan-1', projectId: 'p1', candidateId: 'cand-1', chapterId: 'chapter-1', sceneId: 'scene-1',
+  draftSourceHash: 'a'.repeat(64), finalSourceHash: 'b'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' },
+  layerFingerprints: { c2: 'c'.repeat(64), c1: 'd'.repeat(64), c3: 'e'.repeat(64), c4: 'f'.repeat(64), b2: 'a'.repeat(64) },
+  layerChanges: [],
+  references: { deterministic: [], semanticCandidates: [], forbiddenAutomatic: [{ owner: 'c5', entityId: 'scene-1', field: 'scene.content', disposition: 'forbidden-automatic', reason: '正文由 C5 草稿保存。' }] },
+  reconciliation: { status: 'degraded', reason: 'no-generation-baseline', items: [] },
+  completion: { current: { detailBeatId: null, status: 'unchanged' }, next: { status: 'deferred', reason: 'application-owned-by-i136' } },
+  degradedReasons: ['no-generation-baseline'], createdAt: ISO,
+};
+
 /** 每个 endpoint 的合法 result fixture（须通过 descriptor 的 strict result codec）。 */
 function fixtureFor(endpoint: string): unknown {
   switch (endpoint) {
@@ -147,6 +158,16 @@ function fixtureFor(endpoint: string): unknown {
         generationBaseline: { kind: 'no-outline-baseline' }, changes: [],
         validation: { status: 'pass', violations: [] },
       };
+    case 'novelWriting/adoptDraft':
+      return {
+        projectId: 'p1', candidateId: 'cand-1', chapterId: 'chapter-1', sceneId: 'scene-1', status: 'adopted',
+        sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64),
+      };
+    case 'novelWriting/prepareFinalizationPlan':
+    case 'novelWriting/readFinalizationPlan':
+      return finalizationPlan;
+    case 'novelWriting/cancelFinalizationPlan':
+      return { projectId: 'p1', planId: 'final-plan-1', status: 'cancelled' };
     case 'novelWorkspace/sceneReparsePreview':
       return {
         proposalId: 'scene-reparse-1', range: { start: 1, end: 2 }, replacement: 'x',
@@ -389,6 +410,28 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     }
   });
 
+  it('I135 novelWriting 草稿接受与统一定稿计划经真实 binder 往返，wire 参数不漂移', async () => {
+    const { client, calls, dispose } = await mount(writingRemoteContribution);
+    try {
+      const writing = client.get('remote.novelWriting') as WritingNamespace;
+      await expect(unwrap(writing.adoptDraft('cand-1'))).resolves.toMatchObject({ status: 'adopted', sceneId: 'scene-1' });
+      await expect(unwrap(writing.prepareFinalizationPlan('p1', { candidateId: 'cand-1', finalSourceHash: 'b'.repeat(64) }, undefined))).resolves.toMatchObject({ planId: 'final-plan-1' });
+      await expect(unwrap(writing.readFinalizationPlan('p1', 'final-plan-1'))).resolves.toMatchObject({ planId: 'final-plan-1' });
+      await expect(unwrap(writing.cancelFinalizationPlan('p1', 'final-plan-1'))).resolves.toEqual({ projectId: 'p1', planId: 'final-plan-1', status: 'cancelled' });
+      await expect(Reflect.apply(writing.adoptDraft, writing, [])).rejects.toThrow(/expected 1 argument\(s\), got 0/);
+      await expect(Reflect.apply(writing.prepareFinalizationPlan, writing, ['p1', { candidateId: 'cand-1', finalSourceHash: 'invalid' }, undefined])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toEqual([
+        { endpoint: 'novelWriting/adoptDraft', args: { candidateId: 'cand-1' } },
+        { endpoint: 'novelWriting/prepareFinalizationPlan', args: { projectId: 'p1', input: { candidateId: 'cand-1', finalSourceHash: 'b'.repeat(64) } } },
+        { endpoint: 'novelWriting/readFinalizationPlan', args: { projectId: 'p1', planId: 'final-plan-1' } },
+        { endpoint: 'novelWriting/cancelFinalizationPlan', args: { projectId: 'p1', planId: 'final-plan-1' } },
+      ]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
   it('I111 novelWorkspace.sceneReparsePreview：Gate pending projection 经真实 binder 往返', async () => {
     const { client, calls, dispose } = await mount(workspaceRemoteContribution);
     try {
@@ -622,6 +665,10 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     ['binding-read', sceneOutlineBindingRemoteContribution, 'remote.novelSceneOutlineBinding', 'read', ['p1']],
     ['binding-impact', sceneOutlineBindingRemoteContribution, 'remote.novelSceneOutlineBinding', 'impact', ['p1', { kind: 'scene', sceneId: 'scene-1' }]],
     ['proposeAt', writingRemoteContribution, 'remote.novelWriting', 'proposeAt', ['p1', { intent: 'continue', chapterId: 'chapter-1', sceneId: 'scene-1' }, undefined]],
+    ['adoptDraft', writingRemoteContribution, 'remote.novelWriting', 'adoptDraft', ['cand-1']],
+    ['prepare-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'prepareFinalizationPlan', ['p1', { candidateId: 'cand-1', finalSourceHash: 'a'.repeat(64) }, undefined]],
+    ['read-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'readFinalizationPlan', ['p1', 'final-plan-1']],
+    ['cancel-finalization-plan', writingRemoteContribution, 'remote.novelWriting', 'cancelFinalizationPlan', ['p1', 'final-plan-1']],
     ['startAt', queueRemoteContribution, 'remote.novelQueue', 'startAt', ['p1', { chapterId: 'chapter-1', cardIds: [] }]],
     ['text-impact-read', textChangeImpactRemoteContribution, 'remote.novelTextChangeImpact', 'read', ['p1', 'impact-1']],
     ['outline-reconciliation-read', outlineReconciliationRemoteContribution, 'remote.novelOutlineReconciliation', 'read', ['p1', 'reconcile-1']],

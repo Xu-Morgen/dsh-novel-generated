@@ -1,0 +1,24 @@
+{
+  "iteration": "I135",
+  "requirement": "R18-13a",
+  "guarantees": [
+    "adopt-draft-writes-only-chosen-c5-content-with-project-cas",
+    "adoption-is-idempotent-and-stale-source-fails-closed",
+    "finalization-plan-reuses-pure-five-layer-preview-and-final-source-hash",
+    "no-baseline-is-explicitly-degraded-without-fake-b5-reconciliation",
+    "wording-only-uses-existing-impact-owner-without-b5-mutation",
+    "finalization-plan-is-bounded-and-excludes-prose-and-live-objects",
+    "additive-remote-contract-and-real-client-binder-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 175,
+    "resultSchemaCount": 81
+  },
+  "focusedSuites": "C5 adoption, FinalizationPlanBuilder, typed adapter, real binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "apply-finalization-plan",
+    "automatic-card-completion",
+    "automatic-b5-reconciliation",
+    "remove-legacy-candidate-accept"
+  ]
+}

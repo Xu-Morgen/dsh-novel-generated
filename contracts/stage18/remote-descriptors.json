@@ -173,7 +173,11 @@
     "novel-creation-tool/novelOutlineDetailGeneration/propose",
     "novel-creation-tool/novelOutlineDetailGeneration/accept",
     "novel-creation-tool/novelOutlineDetailGeneration/reject",
-    "novel-creation-tool/novelOutlineDetailGeneration/cancel"
+    "novel-creation-tool/novelOutlineDetailGeneration/cancel",
+    "novel-creation-tool/novelWriting/adoptDraft",
+    "novel-creation-tool/novelWriting/prepareFinalizationPlan",
+    "novel-creation-tool/novelWriting/readFinalizationPlan",
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -39245,6 +39249,1736 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelWriting/adoptDraft": {
+      "id": "novel-creation-tool/novelWriting/adoptDraft",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "adoptDraft",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "candidateId",
+          "wire": "candidateId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingAdoptDraft:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "chapterId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sceneId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "adopted",
+                "already-adopted"
+              ]
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "projectFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "generationBaselineId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            }
+          },
+          "required": [
+            "projectId",
+            "candidateId",
+            "chapterId",
+            "sceneId",
+            "status",
+            "sourceHash",
+            "projectFingerprint"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelWriting/prepareFinalizationPlan": {
+      "id": "novel-creation-tool/novelWriting/prepareFinalizationPlan",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "prepareFinalizationPlan",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#writingFinalizationPrepareInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "candidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "finalSourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "candidateId",
+                "finalSourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "settings",
+          "wire": "settings",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#json",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema"
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationPlan:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "chapterId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sceneId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "draftSourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "finalSourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "generationBaseline": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "baseline"
+                    },
+                    "generationBaselineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "baselineRevision": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "b5ContentFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindingFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "authoringSourceHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "generationBaselineId",
+                    "baselineRevision",
+                    "detailBeatId",
+                    "b5ContentFingerprint",
+                    "bindingFingerprint",
+                    "authoringSourceHash"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "no-outline-baseline"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "layerFingerprints": {
+              "type": "object",
+              "properties": {
+                "c2": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c1": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c3": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c4": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "b2": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "c2",
+                "c1",
+                "c3",
+                "c4",
+                "b2"
+              ],
+              "additionalProperties": false
+            },
+            "layerChanges": {
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "c2",
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b2"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "update",
+                      "remove"
+                    ]
+                  },
+                  "entityType": {
+                    "type": "string",
+                    "enum": [
+                      "state",
+                      "scene",
+                      "character",
+                      "relationship",
+                      "knowledge-entry",
+                      "knowledge-state",
+                      "canon-event",
+                      "world-entry"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "beforeHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "afterHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "beforeIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "afterIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "changedFields": {
+                    "maxItems": 40,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                },
+                "required": [
+                  "layer",
+                  "kind",
+                  "entityType",
+                  "entityId",
+                  "changedFields"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "references": {
+              "type": "object",
+              "properties": {
+                "deterministic": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "semanticCandidates": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "forbiddenAutomatic": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "deterministic",
+                "semanticCandidates",
+                "forbiddenAutomatic"
+              ],
+              "additionalProperties": false
+            },
+            "reconciliation": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "ready",
+                    "degraded"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "wording-only",
+                    "no-affected-future-cards",
+                    "no-generation-baseline"
+                  ]
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "reportId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "classification": {
+                  "type": "string",
+                  "enum": [
+                    "wording-only",
+                    "story-fact",
+                    "plot-direction"
+                  ]
+                },
+                "items": {
+                  "maxItems": 32,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "choice": {
+                        "type": "string",
+                        "enum": [
+                          "keep",
+                          "ai",
+                          "manual",
+                          "pending"
+                        ]
+                      },
+                      "before": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "after": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "manualValue": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "detailBeatId",
+                      "position",
+                      "choice",
+                      "before",
+                      "after",
+                      "rationale"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "items"
+              ],
+              "additionalProperties": false
+            },
+            "completion": {
+              "type": "object",
+              "properties": {
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "detailBeatId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "unchanged"
+                    }
+                  },
+                  "required": [
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "next": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "deferred"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "const": "application-owned-by-i136"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "current",
+                "next"
+              ],
+              "additionalProperties": false
+            },
+            "degradedReasons": {
+              "maxItems": 2,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "no-generation-baseline",
+                  "legacy-unbound-candidate"
+                ]
+              }
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "planId",
+            "projectId",
+            "candidateId",
+            "chapterId",
+            "sceneId",
+            "draftSourceHash",
+            "finalSourceHash",
+            "generationBaseline",
+            "layerFingerprints",
+            "layerChanges",
+            "references",
+            "reconciliation",
+            "completion",
+            "degradedReasons",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelWriting/readFinalizationPlan": {
+      "id": "novel-creation-tool/novelWriting/readFinalizationPlan",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "readFinalizationPlan",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "planId",
+          "wire": "planId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationPlan:read",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "candidateId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "chapterId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sceneId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "draftSourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "finalSourceHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "generationBaseline": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "baseline"
+                    },
+                    "generationBaselineId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "baselineRevision": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "detailBeatId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "b5ContentFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "bindingFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "authoringSourceHash": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "generationBaselineId",
+                    "baselineRevision",
+                    "detailBeatId",
+                    "b5ContentFingerprint",
+                    "bindingFingerprint",
+                    "authoringSourceHash"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "no-outline-baseline"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "layerFingerprints": {
+              "type": "object",
+              "properties": {
+                "c2": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c1": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c3": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "c4": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "b2": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "c2",
+                "c1",
+                "c3",
+                "c4",
+                "b2"
+              ],
+              "additionalProperties": false
+            },
+            "layerChanges": {
+              "maxItems": 512,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string",
+                    "enum": [
+                      "c2",
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b2"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "update",
+                      "remove"
+                    ]
+                  },
+                  "entityType": {
+                    "type": "string",
+                    "enum": [
+                      "state",
+                      "scene",
+                      "character",
+                      "relationship",
+                      "knowledge-entry",
+                      "knowledge-state",
+                      "canon-event",
+                      "world-entry"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "beforeHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "afterHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "beforeIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "afterIndex": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "changedFields": {
+                    "maxItems": 40,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                },
+                "required": [
+                  "layer",
+                  "kind",
+                  "entityType",
+                  "entityId",
+                  "changedFields"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "references": {
+              "type": "object",
+              "properties": {
+                "deterministic": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "semanticCandidates": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "forbiddenAutomatic": {
+                  "maxItems": 128,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "owner": {
+                        "type": "string",
+                        "enum": [
+                          "c1",
+                          "c3",
+                          "c4",
+                          "b5",
+                          "timeline",
+                          "c5"
+                        ]
+                      },
+                      "entityId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "disposition": {
+                        "type": "string",
+                        "enum": [
+                          "deterministic-derived",
+                          "author-semantic-candidate",
+                          "forbidden-automatic"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 240
+                      }
+                    },
+                    "required": [
+                      "owner",
+                      "entityId",
+                      "field",
+                      "disposition",
+                      "reason"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "deterministic",
+                "semanticCandidates",
+                "forbiddenAutomatic"
+              ],
+              "additionalProperties": false
+            },
+            "reconciliation": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "ready",
+                    "degraded"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "wording-only",
+                    "no-affected-future-cards",
+                    "no-generation-baseline"
+                  ]
+                },
+                "planId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "reportId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "classification": {
+                  "type": "string",
+                  "enum": [
+                    "wording-only",
+                    "story-fact",
+                    "plot-direction"
+                  ]
+                },
+                "items": {
+                  "maxItems": 32,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "detailBeatId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "choice": {
+                        "type": "string",
+                        "enum": [
+                          "keep",
+                          "ai",
+                          "manual",
+                          "pending"
+                        ]
+                      },
+                      "before": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "after": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "manualValue": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "summary": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "pov": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "wordTarget": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "points": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "planned",
+                              "writing",
+                              "done"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "summary",
+                          "pov",
+                          "wordTarget",
+                          "points",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "detailBeatId",
+                      "position",
+                      "choice",
+                      "before",
+                      "after",
+                      "rationale"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "items"
+              ],
+              "additionalProperties": false
+            },
+            "completion": {
+              "type": "object",
+              "properties": {
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "detailBeatId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "unchanged"
+                    }
+                  },
+                  "required": [
+                    "detailBeatId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                },
+                "next": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "deferred"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "const": "application-owned-by-i136"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "current",
+                "next"
+              ],
+              "additionalProperties": false
+            },
+            "degradedReasons": {
+              "maxItems": 2,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "no-generation-baseline",
+                  "legacy-unbound-candidate"
+                ]
+              }
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "planId",
+            "projectId",
+            "candidateId",
+            "chapterId",
+            "sceneId",
+            "draftSourceHash",
+            "finalSourceHash",
+            "generationBaseline",
+            "layerFingerprints",
+            "layerChanges",
+            "references",
+            "reconciliation",
+            "completion",
+            "degradedReasons",
+            "createdAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan": {
+      "id": "novel-creation-tool/novelWriting/cancelFinalizationPlan",
+      "service": "novelWriting",
+      "namespace": "novelWriting",
+      "method": "cancelFinalizationPlan",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "planId",
+          "wire": "planId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#writingFinalizationPlan:cancel",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "status": {
+              "type": "string",
+              "const": "cancelled"
+            }
+          },
+          "required": [
+            "projectId",
+            "planId",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -39324,7 +41058,11 @@
     "novel-creation-tool/novelOutlineDetailGeneration/propose",
     "novel-creation-tool/novelOutlineDetailGeneration/accept",
     "novel-creation-tool/novelOutlineDetailGeneration/reject",
-    "novel-creation-tool/novelOutlineDetailGeneration/cancel"
+    "novel-creation-tool/novelOutlineDetailGeneration/cancel",
+    "novel-creation-tool/novelWriting/adoptDraft",
+    "novel-creation-tool/novelWriting/prepareFinalizationPlan",
+    "novel-creation-tool/novelWriting/readFinalizationPlan",
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -55007,6 +56745,1547 @@
       "required": [
         "projectId",
         "candidateId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/adoptDraft": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "chapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sceneId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "adopted",
+            "already-adopted"
+          ]
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "projectFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "generationBaselineId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        }
+      },
+      "required": [
+        "projectId",
+        "candidateId",
+        "chapterId",
+        "sceneId",
+        "status",
+        "sourceHash",
+        "projectFingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/prepareFinalizationPlan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "chapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sceneId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "draftSourceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "finalSourceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "generationBaseline": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "baseline"
+                },
+                "generationBaselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineRevision": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "b5ContentFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindingFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "authoringSourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "generationBaselineId",
+                "baselineRevision",
+                "detailBeatId",
+                "b5ContentFingerprint",
+                "bindingFingerprint",
+                "authoringSourceHash"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "no-outline-baseline"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "layerFingerprints": {
+          "type": "object",
+          "properties": {
+            "c2": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c1": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c3": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c4": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "b2": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "c2",
+            "c1",
+            "c3",
+            "c4",
+            "b2"
+          ],
+          "additionalProperties": false
+        },
+        "layerChanges": {
+          "maxItems": 512,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "layer": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2"
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "update",
+                  "remove"
+                ]
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "state",
+                  "scene",
+                  "character",
+                  "relationship",
+                  "knowledge-entry",
+                  "knowledge-state",
+                  "canon-event",
+                  "world-entry"
+                ]
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "beforeHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "afterHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "beforeIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "afterIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "changedFields": {
+                "maxItems": 40,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              }
+            },
+            "required": [
+              "layer",
+              "kind",
+              "entityType",
+              "entityId",
+              "changedFields"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "references": {
+          "type": "object",
+          "properties": {
+            "deterministic": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "semanticCandidates": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "forbiddenAutomatic": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "deterministic",
+            "semanticCandidates",
+            "forbiddenAutomatic"
+          ],
+          "additionalProperties": false
+        },
+        "reconciliation": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "none",
+                "ready",
+                "degraded"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "wording-only",
+                "no-affected-future-cards",
+                "no-generation-baseline"
+              ]
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "reportId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "classification": {
+              "type": "string",
+              "enum": [
+                "wording-only",
+                "story-fact",
+                "plot-direction"
+              ]
+            },
+            "items": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "detailBeatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "choice": {
+                    "type": "string",
+                    "enum": [
+                      "keep",
+                      "ai",
+                      "manual",
+                      "pending"
+                    ]
+                  },
+                  "before": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "after": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "manualValue": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "detailBeatId",
+                  "position",
+                  "choice",
+                  "before",
+                  "after",
+                  "rationale"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "status",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "completion": {
+          "type": "object",
+          "properties": {
+            "current": {
+              "type": "object",
+              "properties": {
+                "detailBeatId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "const": "unchanged"
+                }
+              },
+              "required": [
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "next": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "deferred"
+                },
+                "reason": {
+                  "type": "string",
+                  "const": "application-owned-by-i136"
+                }
+              },
+              "required": [
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "current",
+            "next"
+          ],
+          "additionalProperties": false
+        },
+        "degradedReasons": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "no-generation-baseline",
+              "legacy-unbound-candidate"
+            ]
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "planId",
+        "projectId",
+        "candidateId",
+        "chapterId",
+        "sceneId",
+        "draftSourceHash",
+        "finalSourceHash",
+        "generationBaseline",
+        "layerFingerprints",
+        "layerChanges",
+        "references",
+        "reconciliation",
+        "completion",
+        "degradedReasons",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/readFinalizationPlan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "candidateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "chapterId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sceneId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "draftSourceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "finalSourceHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "generationBaseline": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "baseline"
+                },
+                "generationBaselineId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "baselineRevision": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "detailBeatId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "b5ContentFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "bindingFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "authoringSourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "generationBaselineId",
+                "baselineRevision",
+                "detailBeatId",
+                "b5ContentFingerprint",
+                "bindingFingerprint",
+                "authoringSourceHash"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "const": "no-outline-baseline"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "layerFingerprints": {
+          "type": "object",
+          "properties": {
+            "c2": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c1": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c3": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "c4": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "b2": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "c2",
+            "c1",
+            "c3",
+            "c4",
+            "b2"
+          ],
+          "additionalProperties": false
+        },
+        "layerChanges": {
+          "maxItems": 512,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "layer": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2"
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "add",
+                  "update",
+                  "remove"
+                ]
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "state",
+                  "scene",
+                  "character",
+                  "relationship",
+                  "knowledge-entry",
+                  "knowledge-state",
+                  "canon-event",
+                  "world-entry"
+                ]
+              },
+              "entityId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "beforeHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "afterHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "beforeIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "afterIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "changedFields": {
+                "maxItems": 40,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              }
+            },
+            "required": [
+              "layer",
+              "kind",
+              "entityType",
+              "entityId",
+              "changedFields"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "references": {
+          "type": "object",
+          "properties": {
+            "deterministic": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "semanticCandidates": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "forbiddenAutomatic": {
+              "maxItems": 128,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "owner": {
+                    "type": "string",
+                    "enum": [
+                      "c1",
+                      "c3",
+                      "c4",
+                      "b5",
+                      "timeline",
+                      "c5"
+                    ]
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "field": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "deterministic-derived",
+                      "author-semantic-candidate",
+                      "forbidden-automatic"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 240
+                  }
+                },
+                "required": [
+                  "owner",
+                  "entityId",
+                  "field",
+                  "disposition",
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "deterministic",
+            "semanticCandidates",
+            "forbiddenAutomatic"
+          ],
+          "additionalProperties": false
+        },
+        "reconciliation": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "none",
+                "ready",
+                "degraded"
+              ]
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "wording-only",
+                "no-affected-future-cards",
+                "no-generation-baseline"
+              ]
+            },
+            "planId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "reportId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "classification": {
+              "type": "string",
+              "enum": [
+                "wording-only",
+                "story-fact",
+                "plot-direction"
+              ]
+            },
+            "items": {
+              "maxItems": 32,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "detailBeatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "choice": {
+                    "type": "string",
+                    "enum": [
+                      "keep",
+                      "ai",
+                      "manual",
+                      "pending"
+                    ]
+                  },
+                  "before": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "after": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "manualValue": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "rationale": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "detailBeatId",
+                  "position",
+                  "choice",
+                  "before",
+                  "after",
+                  "rationale"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "status",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "completion": {
+          "type": "object",
+          "properties": {
+            "current": {
+              "type": "object",
+              "properties": {
+                "detailBeatId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "const": "unchanged"
+                }
+              },
+              "required": [
+                "detailBeatId",
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            "next": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "deferred"
+                },
+                "reason": {
+                  "type": "string",
+                  "const": "application-owned-by-i136"
+                }
+              },
+              "required": [
+                "status",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "current",
+            "next"
+          ],
+          "additionalProperties": false
+        },
+        "degradedReasons": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "no-generation-baseline",
+              "legacy-unbound-candidate"
+            ]
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "planId",
+        "projectId",
+        "candidateId",
+        "chapterId",
+        "sceneId",
+        "draftSourceHash",
+        "finalSourceHash",
+        "generationBaseline",
+        "layerFingerprints",
+        "layerChanges",
+        "references",
+        "reconciliation",
+        "completion",
+        "degradedReasons",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWriting/cancelFinalizationPlan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "planId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "status": {
+          "type": "string",
+          "const": "cancelled"
+        }
+      },
+      "required": [
+        "projectId",
+        "planId",
         "status"
       ],
       "additionalProperties": false

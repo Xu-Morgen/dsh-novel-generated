@@ -253,10 +253,45 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     });
   };
 
-  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adjudicateCandidate' | 'dismissCandidate' | 'startPolish' | 'nextPolishScene' | 'stopPolish' | 'restartPolish'> = {
+  /**
+   * I135 main path: only the chosen C5 prose is written. The legacy accept
+   * command remains available above for compatibility, but the author-facing
+   * button deliberately calls this additive Host method.
+   */
+  const adoptDraftCandidate = (): void => {
+    const target = writing;
+    const ui = snapshot.chapters.candidate.ui;
+    if (!target || projectId === undefined || ui.kind !== 'ready') return;
+    const candidateId = ui.review.candidateId;
+    const navigationRevision = snapshot.chapters.navigationRevision;
+    if (!beginOp(`writing:adoptDraft:${candidateId}`)) return;
+    const release = (): void => endOp(`writing:adoptDraft:${candidateId}`);
+    candidatePatchForRevision({ ui: { kind: 'acting', review: ui.review, layerPreview: ui.layerPreview, action: 'adopt' } }, navigationRevision);
+    void unwrap(target.adoptDraft(candidateId)).then((result) => {
+      release();
+      if (!isActive()) return;
+      candidatePatchForRevision({ ui: { kind: 'done', message: result.status === 'already-adopted' ? '候选已是草稿，正文保持不变。' : '候选已接受为草稿，可继续编辑正文。' } }, navigationRevision);
+      const polish = snapshot.chapters.polish;
+      if (polish.status === 'running' && polish.currentSceneId === result.sceneId && polish.chapterId === result.chapterId) {
+        polishPatchForRevision(completePolishScene(polish, result.sceneId), navigationRevision);
+      }
+      workflowPatchForRevision({ status: 'saved', projectId, chapterId: result.chapterId, sceneId: result.sceneId, sourceHash: result.sourceHash, message: '草稿已保存；请编辑正文后再生成定稿预览。' }, navigationRevision);
+      // 润色会话必须保留当前游标；普通候选接受仍刷新章节投影。
+      if (snapshot.chapters.polish.status !== 'running') reloadChapters();
+    }, (cause: Error) => {
+      release();
+      if (!isActive()) return;
+      const message = toUserMessage(cause);
+      candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision);
+      workflowPatchForRevision({ status: 'error', message }, navigationRevision);
+    });
+  };
+
+  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adoptDraftCandidate' | 'adjudicateCandidate' | 'dismissCandidate' | 'startPolish' | 'nextPolishScene' | 'stopPolish' | 'restartPolish'> = {
     proposeWriting,
     rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
     proposeRewrite,
+    adoptDraftCandidate,
     adjudicateCandidate,
     dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); act.chaptersWorkflow({ status: 'idle', message: undefined, sourceHash: undefined, traceSectionCount: undefined }); },
     startPolish,

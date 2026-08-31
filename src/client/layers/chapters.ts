@@ -138,6 +138,8 @@ export interface ChaptersEditOps {
   proposeWriting(intent: 'continue' | 'scene-card'): void;
   rewritePromptChange(value: string): void;
   proposeRewrite(): void;
+  /** I135 main path: adopt candidate prose into C5 without structured sync. */
+  adoptDraftCandidate(): void;
   adjudicateCandidate(decision: 'accept' | 'reject' | 'rewrite'): void;
   dismissCandidate(): void;
   branchesLoad(): void;
@@ -520,5 +522,5 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
 
 // I95 兼容重导出（拆分后外部符号入口不变）。
 export { freshBranchPanel, branchPanel, versionsPanel, type BranchAggregateState, type BranchDiffLineShape, type BranchDiffState, type BranchPanelState, type BranchSummaryShape, type VersionSelection } from './branch.js';
-export { freshCandidatePanel, candidatePanel, type CandidatePanelState, type CandidateReviewShape, type CandidateTraceSectionShape, type CandidateTraceShape, type CandidateUiState, type CandidateValidationShape } from './candidate.js';
+export { freshCandidatePanel, candidatePanel, type CandidateDraftAdoptionShape, type CandidatePanelState, type CandidateReviewShape, type CandidateTraceSectionShape, type CandidateTraceShape, type CandidateUiState, type CandidateValidationShape } from './candidate.js';
 export { computeEditRange, freshSceneEditor, reparseLocked, sceneEditorPanel, type ReparseUiState, type SceneEditRange, type SceneEditorState } from './scene-editor.js';

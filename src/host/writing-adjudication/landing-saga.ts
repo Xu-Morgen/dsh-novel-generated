@@ -63,6 +63,15 @@ export async function replayStructuralPreviewPlan(
  */
 export interface LandingSaga {
   prepareStructuralPreviewPlan(entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<StructuralPreviewPlan>;
+  /** I135 pure consumer seam: parse supplied final C5 text without any write. */
+  prepareStructuralPreviewPlanForText(
+    entry: CandidateEntry,
+    text: string,
+    sourceHash: string,
+    generationBaseline: StructuralPreviewOutlineBaseline,
+    settings?: unknown,
+    signal?: AbortSignal,
+  ): Promise<StructuralPreviewPlan>;
   accept(entry: CandidateEntry, settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
 }
 
@@ -159,8 +168,11 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
   };
 
   /** Parse once into the I109 session plan; this is the only preview parser entrypoint. */
-  const prepareStructuralPreviewPlan = async (
+  const prepareStructuralPreviewPlanForText = async (
     entry: CandidateEntry,
+    text: string,
+    sourceHash: string,
+    outlineBaseline: StructuralPreviewOutlineBaseline,
     settings?: unknown,
     signal?: AbortSignal,
   ): Promise<StructuralPreviewPlan> => {
@@ -169,24 +181,39 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     const repository = await deps.ensureOpen(projectId);
     const inputs = await buildParserInputs(projectId);
     const resolved = (settings as GenerationSettings | undefined) ?? entry.request.settings;
-    const outlineBaseline = await generationBaseline(entry, true);
     const [c2, c1, c3, c4, b2] = await Promise.all([
-      parseC2StateFromNarrative(backend, { prose: candidate.text, ...inputs.c2 }, resolved, signal),
-      parseC1RelationshipsFromNarrative(backend, { prose: candidate.text, ...inputs.c1 }, resolved, signal),
-      parseC3KnowledgeFromNarrative(backend, { prose: candidate.text, ...inputs.c3 }, resolved, signal),
-      parseC4CanonFromNarrative(backend, { prose: candidate.text, ...inputs.c4 }, resolved, signal),
-      parseB2WorldviewFromNarrative(backend, { prose: candidate.text, ...inputs.b2 }, resolved, signal),
+      parseC2StateFromNarrative(backend, { prose: text, ...inputs.c2 }, resolved, signal),
+      parseC1RelationshipsFromNarrative(backend, { prose: text, ...inputs.c1 }, resolved, signal),
+      parseC3KnowledgeFromNarrative(backend, { prose: text, ...inputs.c3 }, resolved, signal),
+      parseC4CanonFromNarrative(backend, { prose: text, ...inputs.c4 }, resolved, signal),
+      parseB2WorldviewFromNarrative(backend, { prose: text, ...inputs.b2 }, resolved, signal),
     ]);
     return buildStructuralPreviewPlan({
-      planId: `preview-${candidate.id}`,
+      planId: `preview-${candidate.id}-${sourceHash.slice(0, 12)}`,
       projectId,
       candidateId: candidate.id,
-      sourceHash: await sourceHashFor(entry, repository),
+      sourceHash,
       generationBaseline: outlineBaseline,
       layerBaselines: layerBaselinesFor(inputs),
       parserOutputs: { c2, c1, c3, c4, b2 },
       createdAt: new Date().toISOString(),
     });
+  };
+
+  const prepareStructuralPreviewPlan = async (
+    entry: CandidateEntry,
+    settings?: unknown,
+    signal?: AbortSignal,
+  ): Promise<StructuralPreviewPlan> => {
+    const repository = await deps.ensureOpen(entry.candidate.target.projectId);
+    return prepareStructuralPreviewPlanForText(
+      entry,
+      entry.candidate.text,
+      await sourceHashFor(entry, repository),
+      await generationBaseline(entry, true),
+      settings,
+      signal,
+    );
   };
 
   /** Freeze every value C5 consumes before the first landing attempt. */
@@ -384,5 +411,5 @@ export function createLandingSaga(deps: LandingSagaDeps): LandingSaga {
     return finishPendingC5(entry);
   };
 
-  return Object.freeze({ prepareStructuralPreviewPlan, accept });
+  return Object.freeze({ prepareStructuralPreviewPlan, prepareStructuralPreviewPlanForText, accept });
 }

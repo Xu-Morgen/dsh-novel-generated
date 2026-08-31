@@ -10,6 +10,7 @@ import type { ChaptersEditOps } from './chapters.js';
 /** I63 preview 的 Client 形状直接派生自 canonical Remote descriptor，禁止手抄漂移。 */
 export type CandidateReviewShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['preview']>>>;
 export type CandidateLayerPreviewShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['previewLayers']>>>;
+export type CandidateDraftAdoptionShape = UnwrapValue<Awaited<ReturnType<WritingNamespace['adoptDraft']>>>;
 export type CandidateValidationShape = CandidateReviewShape['validation'];
 /** I71 生成注入解释投影（design §14.10 / R14-6）：只含层/触发/预算摘要，无 secret 内容。 */
 export type CandidateTraceShape = CandidateReviewShape['trace'];
@@ -20,7 +21,7 @@ export type CandidateUiState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'proposing'; readonly intent: string }
   | { readonly kind: 'ready'; readonly review: CandidateReviewShape; readonly layerPreview?: CandidateLayerPreviewShape }
-  | { readonly kind: 'acting'; readonly review: CandidateReviewShape; readonly action: 'accept' | 'reject' | 'rewrite'; readonly layerPreview?: CandidateLayerPreviewShape }
+  | { readonly kind: 'acting'; readonly review: CandidateReviewShape; readonly action: 'accept' | 'adopt' | 'reject' | 'rewrite'; readonly layerPreview?: CandidateLayerPreviewShape }
   | { readonly kind: 'done'; readonly message: string }
   | { readonly kind: 'error'; readonly message: string };
 
@@ -138,7 +139,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
       layerPreviewBlock,
       traceBlock,
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-accept': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('accept') }, acting === 'accept' ? '正在接受…' : '接受'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-accept': '', 'data-novel-candidate-adopt-draft': '', disabled: acting !== undefined, onClick: () => ops.adoptDraftCandidate() }, acting === 'adopt' ? '正在接受为草稿…' : '接受为草稿'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-reject': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('reject') }, acting === 'reject' ? '正在拒绝…' : '拒绝'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-rewrite': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('rewrite') }, acting === 'rewrite' ? '正在重写…' : '重写'),
       ),

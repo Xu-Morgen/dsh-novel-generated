@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { CandidateAdjudicationLedger } from '../core/candidate/adjudication.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { TextRepository } from '../core/text/index.js';
+import { hashText } from '../core/candidate/index.js';
 import type { CandidateTarget, PolishMode, WritingCandidate, WritingIntent } from '../core/candidate/index.js';
 import type { ConsistencyAdjudication } from '../core/validate/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
@@ -30,6 +31,11 @@ import { createCandidateProduction } from './writing-adjudication/candidate-prod
 import { createValidationProjection } from './writing-adjudication/validation-projection.js';
 import { createLandingSaga } from './writing-adjudication/landing-saga.js';
 import type { StructuralPreviewChange, StructuralPreviewPlan } from './writing-adjudication/structural-preview-plan.js';
+import type { StructuralPreviewOutlineBaseline } from './writing-adjudication/structural-preview-plan.js';
+import {
+  draftAdoptionResultSchema,
+  type DraftAdoptionResult,
+} from '../core/schema/finalization.js';
 
 /**
  * I63 候选审阅与生成后裁决 Host owner（design §14.9「候选优先」/ R13-4）。
@@ -124,6 +130,12 @@ export interface NovelWritingAdjudicationService {
   preview(candidateId: string, signal?: AbortSignal): Promise<CandidateReview>;
   /** I110 additive preview：返回有界五层 change projection，并缓存会话 plan。 */
   previewLayers(candidateId: string, signal?: AbortSignal): Promise<WritingLayerPreview>;
+  /** I135 main author path: land candidate prose into C5 only. */
+  adoptDraft?(candidateId: string, signal?: AbortSignal): Promise<DraftAdoptionResult>;
+  /** Host-only seam consumed by FinalizationPlanBuilder; never a Remote method. */
+  adoptedDraft?(candidateId: string): DraftAdoptionResult;
+  /** Host-only pure structural preview for the final saved C5 prose. */
+  prepareFinalizationStructuralPreview?(candidateId: string, text: string, sourceHash: string, generationBaseline: StructuralPreviewOutlineBaseline, settings?: unknown, signal?: AbortSignal): Promise<StructuralPreviewPlan>;
   /** 唯一裁决入口：accept 进入标准生命周期并受控写回；reject 零写；rewrite 后继候选。 */
   adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal): Promise<WritingAdjudicationOutcome>;
   /**
@@ -147,7 +159,7 @@ export interface WritingAdjudicationServiceDeps {
   /** Task1 canonical binding resolver owns target capture/freshness. */
   readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
   /** I104 CAS mutation seam used for the final C5 append. */
-  readonly textMutation: Pick<NovelTextMutationService, 'createSceneMutation'>;
+  readonly textMutation: Pick<NovelTextMutationService, 'createSceneMutation'> & Partial<Pick<NovelTextMutationService, 'projectFingerprint' | 'replaceSceneContentMutation'>>;
   /** 结构化层写回 owner（既有 Domain Service；低置信 fail-closed）。 */
   readonly state: NovelStateService;
   readonly relationship: NovelRelationshipService;
@@ -268,6 +280,72 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         validation: review.validation,
       });
     },
+    async adoptDraft(candidateId: string, signal?: AbortSignal): Promise<DraftAdoptionResult> {
+      const observedEntry = production.requireEntry(candidateId);
+      const observedProjectId = observedEntry.candidate.target.projectId;
+      return inProjectLane(observedProjectId, async () => {
+        const entry = production.requireEntry(candidateId);
+        const candidate = entry.candidate;
+        const projectId = candidate.target.projectId;
+        if (projectId !== observedProjectId) throw new Error(`Candidate project changed concurrently: ${candidateId}`);
+        if (entry.draftAdoption !== undefined) return entry.draftAdoption;
+        const status = ledger.statusOf(candidateId);
+        if (status === 'accepted') throw new Error(`Candidate already accepted: ${candidateId}`);
+        if (status === 'rejected') throw new Error(`Candidate already rejected: ${candidateId}`);
+        if (status === 'superseded') throw new Error(`Candidate superseded: ${candidateId}`);
+        const chapterId = candidate.target.chapterId;
+        const sceneId = candidate.target.sceneId;
+        if (chapterId === undefined || sceneId === undefined) throw new Error(`Candidate has no C5 target: ${candidateId}`);
+        let scene: { id: string; content: string };
+        let projectFingerprint: string;
+        if (candidate.target.sourceHash !== undefined) {
+          const repository = await ensureOpen(projectId);
+          const chapter = await repository.readChapter(chapterId);
+          const current = chapter.scenes.find((item) => item.id === sceneId);
+          if (current === undefined) throw new Error(`Unknown scene: ${sceneId}`);
+          if (hashText(current.content) !== candidate.target.sourceHash) throw new Error(`Candidate sourceHash is stale: ${candidateId}`);
+          if (deps.textMutation.projectFingerprint === undefined || deps.textMutation.replaceSceneContentMutation === undefined) throw new Error('C5 content mutation seam is unavailable');
+          const result = await deps.textMutation.replaceSceneContentMutation(projectId, {
+            chapterId, sceneId, content: candidate.text, expectedFingerprint: await deps.textMutation.projectFingerprint(projectId),
+          });
+          scene = result.scene;
+          projectFingerprint = result.fingerprint;
+        } else {
+          if (entry.targetSnapshot === undefined) throw new Error(`Candidate has no target freshness snapshot: ${candidateId}`);
+          await deps.sceneOutlineBinding.assertCandidateTargetFresh(projectId, entry.targetSnapshot);
+          const repository = await ensureOpen(projectId);
+          const chapter = await repository.readChapter(chapterId);
+          if (chapter.scenes.some((item) => item.id === sceneId)) throw new Error(`Target scene already exists: ${sceneId}`);
+          const card = entry.context?.card ?? entry.recovery?.card;
+          const navigation = entry.context?.navigation ?? entry.recovery?.navigation;
+          const result = await deps.textMutation.createSceneMutation(projectId, {
+            chapterId,
+            index: chapter.scenes.length,
+            scene: { id: sceneId, content: candidate.text, summary: card?.summary ?? '', beats: navigation === undefined ? [] : [navigation.beatId], canonEvents: [], notes: '' },
+            expectedFingerprint: entry.targetSnapshot.textFingerprint,
+          });
+          scene = result.scene;
+          projectFingerprint = result.fingerprint;
+        }
+        const adoption = draftAdoptionResultSchema.parse({
+          projectId, candidateId, chapterId, sceneId, status: 'adopted', sourceHash: hashText(scene.content),
+          projectFingerprint,
+          generationBaselineId: entry.context?.provenance.baseline?.baselineId,
+        });
+        entry.draftAdoption = adoption;
+        return adoption;
+      });
+    },
+    adoptedDraft(candidateId: string): DraftAdoptionResult {
+      const entry = production.requireEntry(candidateId);
+      if (entry.draftAdoption === undefined) throw new Error(`Candidate has not been adopted as a draft: ${candidateId}`);
+      return entry.draftAdoption;
+    },
+    async prepareFinalizationStructuralPreview(candidateId: string, text: string, sourceHash: string, generationBaseline: StructuralPreviewOutlineBaseline, settings?: unknown, signal?: AbortSignal) {
+      const entry = production.requireEntry(candidateId);
+      if (entry.draftAdoption === undefined) throw new Error(`Candidate has not been adopted as a draft: ${candidateId}`);
+      return saga.prepareStructuralPreviewPlanForText({ ...entry, candidate: { ...entry.candidate, text } }, text, sourceHash, generationBaseline, settings, signal);
+    },
     async adjudicate(candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown, signal?: AbortSignal) {
       const observedEntry = production.requireEntry(candidateId);
       const observedProjectId = observedEntry.candidate.target.projectId;
@@ -296,6 +374,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
           return Object.freeze({ status: 'rewritten' as const, candidateId, superseded: candidateId, candidate: successor.candidate });
         }
         // accept
+        if (entry.draftAdoption !== undefined) throw new Error(`Candidate is already an adopted draft; use finalization: ${candidateId}`);
         if (status === 'accepted') {
           if (entry.outcome !== undefined) return entry.outcome;
           throw new Error(`Candidate already accepted: ${candidateId}`);

@@ -111,6 +111,13 @@ describe('I122 章节润色逐场景会话', () => {
           changes: [], validation: { status: 'pass', violations: [] },
         },
       }),
+      adoptDraft: async (candidateId: string) => ({
+        ok: true,
+        value: {
+          projectId: 'fixture-project', candidateId, chapterId: 'chapter-1', sceneId: candidateId.replace('candidate-', ''),
+          status: 'adopted', sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64),
+        },
+      }),
       adjudicate: async (candidateId: string, decision: string) => {
         adjudications.push(`${candidateId}:${decision}`);
         const sceneId = candidateId.replace('candidate-', '');
@@ -154,7 +161,7 @@ describe('I122 章节润色逐场景会话', () => {
     await flush();
     click('data-novel-candidate-accept');
     await flush();
-    expect(adjudications).toEqual(['candidate-scene-first:accept']);
+    expect(adjudications).toEqual([]);
     expect(proposals).toHaveLength(1);
     expect(JSON.stringify(render())).toContain('已完成 1/3 个场景');
     expect(collect(render(), 'button').some((node) => node.props?.['data-novel-polish-next'] !== undefined)).toBe(true);

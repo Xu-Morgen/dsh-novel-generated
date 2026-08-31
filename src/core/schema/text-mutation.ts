@@ -53,6 +53,14 @@ export const sceneMetadataPatchSchema = z.object({
   notes: z.string().optional(),
 }).strict().refine((patch) => Object.keys(patch).length > 0, 'Scene metadata patch must not be empty');
 
+/** I135 draft adoption command: replace only the chosen C5 scene content. */
+export const sceneContentMutationSchema = z.object({
+  chapterId: entityIdSchema,
+  sceneId: entityIdSchema,
+  content: z.string(),
+  expectedFingerprint: projectFingerprintSchema,
+}).strict();
+
 export const sceneUpdateMutationSchema = z.object({
   chapterId: entityIdSchema,
   sceneId: entityIdSchema,
@@ -106,6 +114,7 @@ export type ChapterMetadataPatch = z.infer<typeof chapterMetadataPatchSchema>;
 export type ChapterUpdateMutation = z.infer<typeof chapterUpdateMutationSchema>;
 export type SceneCreateMutation = z.infer<typeof sceneCreateMutationSchema>;
 export type SceneMetadataPatch = z.infer<typeof sceneMetadataPatchSchema>;
+export type SceneContentMutation = z.infer<typeof sceneContentMutationSchema>;
 export type SceneUpdateMutation = z.infer<typeof sceneUpdateMutationSchema>;
 export type ProjectReorderMutation = z.infer<typeof projectReorderMutationSchema>;
 export type ChapterMutationView = z.infer<typeof chapterMutationViewSchema>;

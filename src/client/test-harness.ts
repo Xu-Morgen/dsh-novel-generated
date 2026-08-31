@@ -174,7 +174,11 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
         candidateId, sourceHash: '0'.repeat(64), generationBaseline: { kind: 'no-outline-baseline' as const }, changes: [],
         validation: { status: 'pass' as const, violations: [] },
       })),
+      adoptDraft: writingStub?.adoptDraft ?? (async () => { throw new Error('未注入 remote.novelWriting.adoptDraft'); }),
       adjudicate: writingStub?.adjudicate ?? (async () => { throw new Error('未注入 remote.novelWriting.adjudicate'); }),
+      prepareFinalizationPlan: writingStub?.prepareFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.prepareFinalizationPlan'); }),
+      readFinalizationPlan: writingStub?.readFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.readFinalizationPlan'); }),
+      cancelFinalizationPlan: writingStub?.cancelFinalizationPlan ?? (async () => { throw new Error('未注入 remote.novelWriting.cancelFinalizationPlan'); }),
     }
     : name === 'remote.novelReview' ? (reviewStub ?? {
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },

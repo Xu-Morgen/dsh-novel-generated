@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { branchListInvocation } from './branch.js';
 import { onboardingAnalysisCancelInvocation } from './onboarding-analyzer.js';
 import { textChapterCreateInvocation } from './text-mutation.js';
-import { writingProposeAtInvocation } from './writing.js';
+import { writingAdoptDraftInvocation, writingPrepareFinalizationPlanInvocation, writingProposeAtInvocation } from './writing.js';
 import { queueStartAtInvocation } from './queue.js';
 import type { MethodSpecFor } from './shared.js';
 
@@ -57,12 +57,33 @@ const invalidStartAtResultSpec: MethodSpecFor<typeof queueStartAtInvocation> = {
   call: async () => ({ projectId: 'project', runState: 'running', tasks: [] }),
 };
 
+const validDraftAdoptionSpec: MethodSpecFor<typeof writingAdoptDraftInvocation> = {
+  method: 'adoptDraft',
+  call: async () => ({
+    projectId: 'project-1', candidateId: 'candidate-1', chapterId: 'chapter-1', sceneId: 'scene-1', status: 'adopted',
+    sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64),
+  }),
+};
+const invalidDraftAdoptionSpec: MethodSpecFor<typeof writingAdoptDraftInvocation> = {
+  method: 'adoptDraft',
+  // @ts-expect-error I135 adoption result must include C5 sourceHash and projectFingerprint
+  call: () => ({ projectId: 'project-1', candidateId: 'candidate-1', status: 'adopted' }),
+};
+const invalidFinalizationResultSpec: MethodSpecFor<typeof writingPrepareFinalizationPlanInvocation> = {
+  method: 'prepareFinalizationPlan',
+  // @ts-expect-error I135 finalization result is a complete, strict FinalizationPlan
+  call: async () => ({ projectId: 'project-1', candidateId: 'candidate-1' }),
+};
+
 void rawArrayListSpec;
 void missingBranchesListSpec;
 void invalidUndefinedResultSpec;
 void invalidTextMutationResultSpec;
 void invalidProposeAtResultSpec;
 void invalidStartAtResultSpec;
+void validDraftAdoptionSpec;
+void invalidDraftAdoptionSpec;
+void invalidFinalizationResultSpec;
 
 describe('I103 MethodSpecFor result codec 类型耦合', () => {
   it('接受同步和 Promise 的 descriptor 派生结果', async () => {

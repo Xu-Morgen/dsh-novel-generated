@@ -3,6 +3,12 @@ import { z } from 'zod';
 import { strictCodec, stringCodec } from './common.js';
 import { param, remoteContribution, remoteInvocation } from './shared.js';
 import { consistencyStatusSchema, consistencyViolationsSchema } from '../../core/validate/index.js';
+import {
+  draftAdoptionResultSchema,
+  finalizationCancelResultSchema,
+  finalizationPlanSchema,
+  finalizationPrepareInputSchema,
+} from '../../core/schema/finalization.js';
 
 /**
  * I63 候选审阅与生成后裁决 Remote（design §14.9 / R13-4）。
@@ -179,7 +185,25 @@ export const writingPreviewLayersInvocation = writingInvocation('previewLayers',
   param('candidateId', stringCodec),
 ], strictCodec('novel-creation-tool#writingPreviewLayers:result', writingLayerPreviewSchema));
 
-export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation, writingPreviewLayersInvocation] as const;
+/** I135 main author path; it intentionally accepts only a candidate id. */
+export const writingAdoptDraftInvocation = writingInvocation('adoptDraft', [
+  param('candidateId', stringCodec),
+], strictCodec('novel-creation-tool#writingAdoptDraft:result', draftAdoptionResultSchema));
+export const writingPrepareFinalizationPlanInvocation = writingInvocation('prepareFinalizationPlan', [
+  param('projectId', stringCodec),
+  param('input', strictCodec('novel-creation-tool#writingFinalizationPrepareInput', finalizationPrepareInputSchema)),
+  param('settings', undefined, true),
+], strictCodec('novel-creation-tool#writingFinalizationPlan:result', finalizationPlanSchema));
+export const writingReadFinalizationPlanInvocation = writingInvocation('readFinalizationPlan', [
+  param('projectId', stringCodec),
+  param('planId', stringCodec),
+], strictCodec('novel-creation-tool#writingFinalizationPlan:read', finalizationPlanSchema));
+export const writingCancelFinalizationPlanInvocation = writingInvocation('cancelFinalizationPlan', [
+  param('projectId', stringCodec),
+  param('planId', stringCodec),
+], strictCodec('novel-creation-tool#writingFinalizationPlan:cancel', finalizationCancelResultSchema));
+
+export const writingInvocations = [writingProposeInvocation, writingPreviewInvocation, writingAdjudicateInvocation, writingProposeAtInvocation, writingPreviewLayersInvocation, writingAdoptDraftInvocation, writingPrepareFinalizationPlanInvocation, writingReadFinalizationPlanInvocation, writingCancelFinalizationPlanInvocation] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const writingRemoteContribution = remoteContribution('novel-creation-tool-writing', writingInvocations);

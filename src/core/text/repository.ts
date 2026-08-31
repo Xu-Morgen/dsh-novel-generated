@@ -466,6 +466,35 @@ export class TextRepository {
   }
 
   /**
+   * I135 C5-only draft adoption with the same project CAS as other mutations.
+   * It preserves the existing chosen-branch/version semantics and never
+   * reaches a parser, structured writer, B5 owner, or C6 progress owner.
+   */
+  async replaceSceneContent(chapterId: string, sceneId: string, content: string, expectedFingerprint: string): Promise<{ scene: Scene; fingerprint: string }> {
+    return this.queue.enqueue(async () => {
+      const chapters = await this.listChaptersUnlocked();
+      this.assertUniqueProjectSceneIds(chapters);
+      this.assertProjectFingerprint(chapters, expectedFingerprint);
+      const chapter = chapters.find((item) => item.id === chapterId);
+      if (chapter === undefined) throw new Error(`Unknown chapter: ${chapterId}`);
+      const position = chapter.scenes.findIndex((item) => item.id === sceneId);
+      if (position < 0) throw new Error(`Unknown scene: ${sceneId}`);
+      const scene = chapter.scenes[position];
+      const branches = scene.branches.length === 0
+        ? []
+        : scene.branches.map((branch) => (branch.chosen ? { ...branch, content } : branch));
+      const changed = sceneSchema.parse({ ...scene, content, branches });
+      const scenes = chapter.scenes.slice();
+      scenes[position] = changed;
+      const next = chapterSchema.parse({ ...chapter, scenes });
+      const normalized = chapters.map((item) => item.id === chapterId ? next : item);
+      await this.queue.commitProject(normalized);
+      await this.notifyTextChanged({ chapterIds: [chapterId], sceneIds: [sceneId] });
+      return { scene: structuredClone(changed), fingerprint: textProjectFingerprint(normalized) };
+    });
+  }
+
+  /**
    * I70 分支切换（R14-5）：把 `branchId` 置为唯一 chosen，并把 `scene.content` 恢复
    * 为该分支的正文。切换是可逆的（再次 choose 旧分支即可还原），且只写 C5 —— 绝不
    * 隐式修改 B2/C1/C2/C3/C4（结构化同步仍必须显式 reparse/Gate）。已 chosen 分支

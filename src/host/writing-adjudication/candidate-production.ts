@@ -17,6 +17,7 @@ import type { NextSceneContextProvider, NovelAgentContext } from '../writing-con
 import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import type { WritingAdjudicationOutcome, WritingProposeAtInput, WritingProposeInput, WritingProposeIntent } from '../writing-adjudication-service.js';
 import type { StructuralPreviewPlan } from './structural-preview-plan.js';
+import type { DraftAdoptionResult } from '../../core/schema/finalization.js';
 
 /** Lifecycle 已写完后冻结的 C5 落地计划；仅在同一 Host 进程内支持补偿重试。 */
 export type PendingC5Landing =
@@ -54,6 +55,8 @@ export interface CandidateEntry {
   violations?: readonly ConsistencyViolationView[];
   /** I110 会话态五层 plan；accept 只能重放它，不能重新调用 parser。 */
   structuralPreviewPlan?: StructuralPreviewPlan;
+  /** I135 C5-only adoption marker; finalization consumes this session seam. */
+  draftAdoption?: DraftAdoptionResult;
   /** accept 落地结果缓存（重复 accept 幂等返回）。 */
   outcome?: WritingAdjudicationOutcome;
   /**

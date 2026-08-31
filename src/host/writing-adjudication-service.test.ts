@@ -351,6 +351,63 @@ const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
 describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
+  it('I135 adoptDraft 只落地 C5 chosen 正文；结构层、细纲、绑定与 C6 保持不变且重复调用幂等', async () => {
+    const { service, root, seen, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+
+    const beforeOutline = await services.outline.read('demo');
+    const beforeProgress = await services.outline.readProgress('demo');
+    const beforeBinding = await services.sceneOutlineBinding.read('demo');
+    const beforeState = services.state.current('demo');
+    const beforeRelationships = await services.relationship.read('demo');
+    const beforeKnowledge = await services.knowledge.read('demo');
+    const beforeCanon = services.canon.query('demo');
+    const beforeWorldview = await services.worldview.list('demo');
+    const before = snapshotDir(join(root, 'demo'));
+
+    const { candidate } = await service.propose('demo', { intent: 'continue' });
+    const adoption = await service.adoptDraft!(candidate.id);
+    expect(adoption).toMatchObject({ projectId: 'demo', candidateId: candidate.id, status: 'adopted' });
+    expect(adoption.sourceHash).toMatch(/^[a-f0-9]{64}$/);
+    expect((await services.text.readChapter('demo', adoption.chapterId)).scenes).toHaveLength(1);
+    expect((await services.text.readChapter('demo', adoption.chapterId)).scenes[0].content).toBe(candidate.text);
+    expect(snapshotDir(join(root, 'demo'))).not.toBe(before);
+
+    expect(await services.outline.read('demo')).toEqual(beforeOutline);
+    expect(await services.outline.readProgress('demo')).toEqual(beforeProgress);
+    const afterBinding = await services.sceneOutlineBinding.read('demo');
+    expect({ manual: afterBinding.manual, fingerprint: afterBinding.fingerprint }).toEqual({ manual: beforeBinding.manual, fingerprint: beforeBinding.fingerprint });
+    expect(services.state.current('demo')).toEqual(beforeState);
+    expect(await services.relationship.read('demo')).toEqual(beforeRelationships);
+    expect(await services.knowledge.read('demo')).toEqual(beforeKnowledge);
+    expect(services.canon.query('demo')).toEqual(beforeCanon);
+    expect(await services.worldview.list('demo')).toEqual(beforeWorldview);
+    expect(seen.some((prompt) => prompt.includes('解析器'))).toBe(false);
+
+    expect(await service.adoptDraft!(candidate.id)).toEqual(adoption);
+    expect(service.adoptedDraft!(candidate.id)).toEqual(adoption);
+    expect((await services.text.readChapter('demo', adoption.chapterId)).scenes).toHaveLength(1);
+    await expect(service.adjudicate(candidate.id, 'accept')).rejects.toThrow(/adopted draft.*finalization/);
+  });
+
+  it('I135 rewrite adoptDraft 在 sourceHash 过期时 fail closed 且零写', async () => {
+    const { service, root, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo', false);
+    await services.text.createChapter('demo', { id: 'chapter-1', index: 1, title: '正文', pov: 'mira', status: 'draft' });
+    await services.text.appendScene('demo', 'chapter-1', { id: 'scene-1', content: '原场景正文。', summary: '相遇', beats: ['beat-1'], canonEvents: [], notes: '' });
+    await service.open('demo');
+
+    const { candidate } = await service.propose('demo', { intent: 'rewrite', chapterId: 'chapter-1', sceneId: 'scene-1', prompt: '改写。' });
+    const repository = new TextRepository(join(root, 'demo'));
+    await repository.open();
+    await repository.replaceRange('chapter-1', 'scene-1', { start: 0, end: '原场景正文。'.length }, '作者已修改正文。');
+    await expect(service.adoptDraft!(candidate.id)).rejects.toThrow(/sourceHash is stale/);
+    expect((await services.text.readChapter('demo', 'chapter-1')).scenes[0].content).toBe('作者已修改正文。');
+  });
+
   it('continue 候选零写；preview 显示新场景 diff 与 pass 校验；accept 进入标准生命周期并受控写回；重复 accept 幂等', async () => {
     const { service, root, seen, services } = await setup();
     roots.push(root);

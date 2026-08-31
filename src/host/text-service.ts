@@ -7,6 +7,7 @@ import type {
   ChapterCreateMutation,
   ChapterUpdateMutation,
   ProjectReorderMutation,
+  SceneContentMutation,
   SceneCreateMutation,
   SceneUpdateMutation,
 } from '../core/schema/text-mutation.js';
@@ -28,6 +29,7 @@ export interface NovelTextMutationService {
   updateChapterMutation(projectId: string, input: ChapterUpdateMutation): Promise<{ chapter: Chapter; fingerprint: string }>;
   createSceneMutation(projectId: string, input: SceneCreateMutation): Promise<{ scene: Scene; fingerprint: string }>;
   updateSceneMutation(projectId: string, input: SceneUpdateMutation): Promise<{ scene: Scene; fingerprint: string }>;
+  replaceSceneContentMutation(projectId: string, input: SceneContentMutation): Promise<{ scene: Scene; fingerprint: string }>;
   reorderProject(projectId: string, input: ProjectReorderMutation): Promise<{ chapters: Chapter[]; fingerprint: string }>;
   inspectChapterDelete(projectId: string, chapterId: string): Promise<TextDeleteImpact>;
   inspectSceneDelete(projectId: string, chapterId: string, sceneId: string): Promise<TextDeleteImpact>;
@@ -75,6 +77,7 @@ export function createTextService(projectsRoot = join(homedir(), '.dsh', 'novel-
     updateChapterMutation: (projectId, input) => get(projectId).updateChapterMetadata(input.chapterId, input.patch, input.expectedFingerprint),
     createSceneMutation: (projectId, input) => get(projectId).insertScene(input.chapterId, input.index, input.scene, input.expectedFingerprint),
     updateSceneMutation: (projectId, input) => get(projectId).updateSceneMetadata(input.chapterId, input.sceneId, input.patch, input.expectedFingerprint),
+    replaceSceneContentMutation: (projectId, input) => get(projectId).replaceSceneContent(input.chapterId, input.sceneId, input.content, input.expectedFingerprint),
     reorderProject: (projectId, input) => get(projectId).reorderProject(input),
     inspectChapterDelete: (projectId, chapterId) => get(projectId).inspectChapterDelete(chapterId),
     inspectSceneDelete: (projectId, chapterId, sceneId) => get(projectId).inspectSceneDelete(chapterId, sceneId),

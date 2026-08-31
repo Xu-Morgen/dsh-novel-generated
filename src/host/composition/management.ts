@@ -18,6 +18,7 @@ import { createReferenceCorrectionService } from '../reference-correction-servic
 import { createLongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
 import { createOutlineDetailGenerationService } from '../outline-detail-generation-service.js';
 import { createOutlineDetailGenerationRemote } from '../outline-detail-generation-adapter.js';
+import { createFinalizationPlanBuilder } from '../finalization-plan-builder.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -220,13 +221,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
   // resolve either legacy methods or I105 proposeAt. Both keys delegate to the
   // same owner; no second candidate/adjudication state is created.
   ctx.provide('novelWritingAdjudication', writingAdjudicationService);
-  ctx.provide('novelWriting', defineRemote('novelWriting', 'novelWriting', writingAdjudicationService, [
-    { method: 'propose', call: (projectId: string, input: WritingProposeInput, settings?: unknown) => writingAdjudicationService.propose(projectId, input, settings) },
-    { method: 'preview', call: (candidateId: string) => writingAdjudicationService.preview(candidateId) },
-    { method: 'adjudicate', call: (candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown) => writingAdjudicationService.adjudicate(candidateId, decision, settings) },
-    { method: 'proposeAt', call: (projectId: string, input: WritingProposeAtInput, settings?: unknown) => writingAdjudicationService.proposeAt(projectId, input, settings) },
-    { method: 'previewLayers', call: (candidateId: string) => writingAdjudicationService.previewLayers(candidateId) },
-  ], writingInvocations));
   // I64 一致性审校中心（design §14.9 / R13-5）：统一投影规则/正史/知情/关系/风格
   // 五类问题及正文定位；复用 I21/I22/I24 探测器与 I20 判定（不新增第二裁决器）；
   // 软警告必须显式 continue / rewrite-requested 并记录到持久审计账本，硬冲突
@@ -403,6 +397,32 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'finalize', call: (projectId: string, input: Parameters<typeof outlineReconciliationService.finalize>[1]) => outlineReconciliationService.finalize(projectId, input) },
     { method: 'continue', call: (projectId: string, input: Parameters<typeof outlineReconciliationService.continue>[1]) => outlineReconciliationService.continue(projectId, input) },
   ], outlineReconciliationInvocations));
+  const finalizationPlanBuilder = createFinalizationPlanBuilder({
+    writing: {
+      adoptedDraft: (candidateId) => writingAdjudicationService.adoptedDraft!(candidateId),
+      prepareFinalizationStructuralPreview: (candidateId, text, sourceHash, generationBaseline, settings, signal) => writingAdjudicationService.prepareFinalizationStructuralPreview!(candidateId, text, sourceHash, generationBaseline, settings, signal),
+    },
+    text: textService,
+    outline: outlineService,
+    binding: sceneOutlineBindingService,
+    baseline: outlineGenerationBaselineService,
+    impact: textChangeImpactService,
+    reconciliation: outlineReconciliationPlannerService,
+    onDispose: onFiberDispose,
+  });
+  // I135 keeps legacy candidate.adjudicate intact while making draft adoption
+  // and the zero-write finalization summary additive methods on one namespace.
+  ctx.provide('novelWriting', defineRemote('novelWriting', 'novelWriting', writingAdjudicationService, [
+    { method: 'propose', call: (projectId: string, input: WritingProposeInput, settings?: unknown) => writingAdjudicationService.propose(projectId, input, settings) },
+    { method: 'preview', call: (candidateId: string) => writingAdjudicationService.preview(candidateId) },
+    { method: 'adjudicate', call: (candidateId: string, decision: 'accept' | 'reject' | 'rewrite', settings?: unknown) => writingAdjudicationService.adjudicate(candidateId, decision, settings) },
+    { method: 'proposeAt', call: (projectId: string, input: WritingProposeAtInput, settings?: unknown) => writingAdjudicationService.proposeAt(projectId, input, settings) },
+    { method: 'previewLayers', call: (candidateId: string) => writingAdjudicationService.previewLayers(candidateId) },
+    { method: 'adoptDraft', call: (candidateId: string) => writingAdjudicationService.adoptDraft!(candidateId) },
+    { method: 'prepareFinalizationPlan', call: async (projectId: string, input: Parameters<typeof finalizationPlanBuilder.prepare>[1], settings?: unknown) => finalizationPlanBuilder.prepare(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'readFinalizationPlan', call: (projectId: string, planId: string) => finalizationPlanBuilder.read(projectId, planId) },
+    { method: 'cancelFinalizationPlan', call: (projectId: string, planId: string) => finalizationPlanBuilder.cancel(projectId, planId) },
+  ], writingInvocations));
   return {
     timelineService,
     controlledTextEditService,
@@ -418,5 +438,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     longDraftWorkflowCoordinator,
     outlineDetailGenerationService,
     reviewRepairService,
+    finalizationPlanBuilder,
   };
 }
