@@ -1,0 +1,29 @@
+{
+  "iteration": "I109",
+  "requirement": "R18-2a",
+  "owner": "Host writing-adjudication StructuralPreviewPlan session runtime",
+  "layers": [
+    "c2",
+    "c1",
+    "c3",
+    "c4",
+    "b2"
+  ],
+  "guarantees": [
+    "deterministic-hash-only-diff",
+    "strict-layer-snapshots",
+    "duplicate-and-size-bounds",
+    "all-owner-freshness-check",
+    "deep-frozen-session-plan",
+    "canonical-replay-order",
+    "stale-zero-write-landing-saga"
+  ],
+  "explicitNonGoals": [
+    "plan-persistence",
+    "candidate-or-reparse-Remote",
+    "Client-contract",
+    "prompt-or-parser-schema-change",
+    "C5-prose-projection"
+  ],
+  "focusedSuites": "StructuralPreviewPlan, five parser held-out suites, and five-layer writeback passed"
+}

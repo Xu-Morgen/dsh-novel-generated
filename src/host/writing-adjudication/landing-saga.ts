@@ -21,6 +21,25 @@ import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-s
 import type { NovelTextMutationService } from '../text-service.js';
 import type { CandidateEntry, PendingC5Landing } from './candidate-production.js';
 import type { WritingAdjudicationOutcome } from '../writing-adjudication-service.js';
+import {
+  consumeStructuralPreviewPlan,
+  type StructuralPreviewChange,
+  type StructuralPreviewFreshnessInput,
+  type StructuralPreviewPlan,
+  type StructuralPreviewWriters,
+} from './structural-preview-plan.js';
+
+/**
+ * I109 的真实 landing-saga 消费夹具：只消费 prepare 阶段冻结的 parser
+ * outputs，并在首个 writer 前复核所有 owner 指纹（设计 §14.14）。
+ */
+export async function replayStructuralPreviewPlan(
+  plan: StructuralPreviewPlan,
+  current: StructuralPreviewFreshnessInput,
+  writers: StructuralPreviewWriters,
+): Promise<readonly StructuralPreviewChange[]> {
+  return consumeStructuralPreviewPlan(plan, current, writers);
+}
 
 /**
  * I63「落地 saga」段（架构审查 §4.1 拆分 —— propose / preview / accept-saga /
