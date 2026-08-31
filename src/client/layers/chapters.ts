@@ -9,6 +9,8 @@ import { candidatePanel, freshCandidatePanel, type CandidatePanelState } from '.
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
 import { freshSceneEditor, sceneEditorPanel, type SceneEditorState } from './scene-editor.js';
 import { freshWritingWorkflow, type WritingWorkflowState } from '../writing-workflow.js';
+import { freshPolishSession, type PolishSessionState } from '../polish-session.js';
+import type { PolishMode } from '../../core/candidate/index.js';
 
 /**
  * I60/I61 C5 章节/场景导航 + 正文编辑面板组合根（design §5.12 / §14.9 / R13-1 /
@@ -103,6 +105,8 @@ export interface ChaptersLayerState {
   readonly navigationRevision: number;
   /** I121 当前“候选→保存→下一场景”交互态；不持久化领域真相。 */
   readonly workflow: WritingWorkflowState;
+  /** I122 当前章节润色游标；只存在于当前 Client 会话，不是 Host 批次账本。 */
+  readonly polish: PolishSessionState;
   /** 已选章节的读取结果（元数据 + 场景摘要）。 */
   readonly chapter: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly read?: ChapterReadShape; readonly message?: string };
   /** 已选场景的读取结果（唯一携带正文）。 */
@@ -170,6 +174,10 @@ export interface ChaptersEditOps {
   reconciliationReject(): void;
   reconciliationFinalize(): void;
   reconciliationContinue(): void;
+  startPolish(mode?: PolishMode): void;
+  nextPolishScene(): void;
+  stopPolish(): void;
+  restartPolish(mode?: PolishMode): void;
 }
 
 export function freshChapters(): ChaptersLayerState {
@@ -178,6 +186,7 @@ export function freshChapters(): ChaptersLayerState {
     mode: 'writing',
     navigationRevision: 0,
     workflow: freshWritingWorkflow(),
+    polish: freshPolishSession(),
     chapter: { status: 'idle' },
     scene: { status: 'idle' },
     editor: freshSceneEditor(),
@@ -214,6 +223,35 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
   },
     h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, labels[state.status]),
     state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.message),
+  );
+}
+
+function polishSessionPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+  const session = state.polish;
+  // 首次启动前会话尚未复制 scene 游标；按钮仍须由当前 Host 章节读投影决定是否可用。
+  const total = session.sceneIds.length || state.chapter.read?.scenes.length || 0;
+  const current = session.currentSceneId;
+  const canStart = state.chapter.status === 'ready' && state.chapter.read !== undefined && total > 0
+    && session.status !== 'running';
+  const canNext = session.status === 'running' && current === undefined && session.completedCount < total;
+  const label = session.status === 'running'
+    ? current === undefined ? `已完成 ${session.completedCount}/${total} 个场景` : `正在处理 ${current}（${session.completedCount}/${total}）`
+    : session.status === 'completed' ? `本章润色完成（${session.completedCount}/${total}）`
+      : session.status === 'stopped' ? `已停止（完成 ${session.completedCount}/${total}）`
+        : session.status === 'error' ? session.error ?? '章节润色失败'
+          : '按场景逐个生成润色候选';
+  return h('div', { className: 'nv-chapters__polish', 'data-novel-polish-session': '', 'data-novel-polish-state': session.status },
+    h('div', { className: 'nv-chapters__polish-heading' },
+      h('span', { className: 'nv-chapters__item-meta', 'data-novel-polish-progress': '' }, label),
+      session.mode === undefined ? null : h('span', { className: 'nv-chapters__item-meta', 'data-novel-polish-mode': session.mode }, `模式：${session.mode}`),
+    ),
+    h('div', { className: 'nv-editor__actions' },
+      canStart ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-start': '', onClick: () => ops.startPolish() }, '开始章节润色') : null,
+      canNext ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-next': '', onClick: () => ops.nextPolishScene() }, '启动下一场景') : null,
+      session.status === 'running' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-polish-stop': '', onClick: () => ops.stopPolish() }, '停止') : null,
+      session.status !== 'running' && (session.status === 'stopped' || session.status === 'error' || session.status === 'completed')
+        ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-polish-restart': '', onClick: () => ops.restartPolish() }, '重新开始') : null,
+    ),
   );
 }
 
@@ -465,6 +503,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '' },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
       writingWorkflowPanel(h, state.workflow),
+      polishSessionPanel(h, state, ops),
       chapterModeTabs(h, state, ops),
       modePanel(h, projectId, writing, branches, state, ops, body),
     ),

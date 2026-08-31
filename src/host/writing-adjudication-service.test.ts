@@ -664,6 +664,28 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     expect(services.state.current('demo').storyTime).toBe('dawn');
   });
 
+  it('I122 polishMode 复用 rewrite 候选，按每个 scene 绑定独立 sourceHash，并拒绝非 rewrite 意图', async () => {
+    const { service, root, seen, services } = await setup();
+    roots.push(root);
+    await seedProject(root, services, 'demo', false);
+    await services.text.createChapter('demo', { id: 'chapter-1', index: 1, title: '正文', pov: 'mira', status: 'draft' });
+    await services.text.appendScene('demo', 'chapter-1', { id: 'scene-1', content: '第一场景原文。', summary: '', beats: [], canonEvents: [], notes: '' });
+    await services.text.appendScene('demo', 'chapter-1', { id: 'scene-2', content: '第二场景原文。', summary: '', beats: [], canonEvents: [], notes: '' });
+    await service.open('demo');
+
+    const first = await service.propose('demo', {
+      intent: 'rewrite', chapterId: 'chapter-1', sceneId: 'scene-1', prompt: '请保持事实不变地润色。', polishMode: 'language',
+    });
+    const second = await service.propose('demo', {
+      intent: 'rewrite', chapterId: 'chapter-1', sceneId: 'scene-2', prompt: '请保持事实不变地润色。', polishMode: 'language',
+    });
+    expect(first.candidate.intent).toBe('rewrite');
+    expect(first.candidate.target.sourceHash).not.toBe(second.candidate.target.sourceHash);
+    expect(seen[0]).toContain('[polishMode:language]');
+    expect(seen[1]).toContain('[polishMode:language]');
+    await expect(service.propose('demo', { intent: 'continue', polishMode: 'language' })).rejects.toThrow(/requires rewrite intent/);
+  });
+
   it('reject 零写且幂等；rejected 之后 accept 失败', async () => {
     const { service, root, services } = await setup();
     roots.push(root);

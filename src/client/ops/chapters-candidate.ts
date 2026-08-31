@@ -4,6 +4,12 @@ import type { OpsPorts, OpsRuntime } from './context.js';
 type CandidatePort = Pick<OpsPorts, 'workspace' | 'writing'>;
 import type { ChaptersInternal } from './chapters-internal.js';
 import { sha256Hex } from '../sha256.js';
+import type { PolishMode } from '../../core/candidate/index.js';
+import { completePolishScene, failPolishSession, orderPolishScenes, selectNextPolishScene, startPolishSession, stopPolishSession, type PolishSessionState } from '../polish-session.js';
+
+// 渲染会重建 ops 工厂，但同一 Fiber 的 store actions 身份稳定；令牌以弱引用
+// 绑定 actions，才能让停止/切场景跨渲染失效晚到的 Remote 结果，同时不持有 Fiber。
+const polishRunTokens = new WeakMap<object, number>();
 
 /**
  * I95 候选审阅 ops 片（计划 §18 I95：ops/chapters 随 layers 拆分——候选段，
@@ -18,7 +24,15 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
   const candidatePatch = (patch: Partial<CandidatePanelState>): void => act.chaptersCandidate(patch);
   const candidatePatchForRevision = (patch: Partial<CandidatePanelState>, navigationRevision: number): void => act.chaptersCandidateForRevision(patch, navigationRevision);
   const workflowPatchForRevision = (patch: Parameters<typeof act.chaptersWorkflowForRevision>[0], navigationRevision: number): void => act.chaptersWorkflowForRevision(patch, navigationRevision);
+  const polishPatch = (state: PolishSessionState): void => act.chaptersPolish(state);
+  const polishPatchForRevision = (state: PolishSessionState, navigationRevision: number): void => act.chaptersPolishForRevision(state, navigationRevision);
   let targetSequence = 0;
+  const currentPolishRunToken = (): number => polishRunTokens.get(act as object) ?? 0;
+  const bumpPolishRunToken = (): number => {
+    const next = currentPolishRunToken() + 1;
+    polishRunTokens.set(act as object, next);
+    return next;
+  };
   const freshSceneId = (): string => `scene-${Date.now()}-${++targetSequence}`;
   // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
   const reloadChapters = (): void => {
@@ -33,21 +47,21 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
   };
   // 候选生成后先取得兼容的正文审阅，再取得 I110 五层结构化预览；两者
   // 都完成后才进入 ready，避免作者在 plan 尚未冻结时触发 accept。
-  const previewAfterPropose = (candidateId: string, navigationRevision: number, onReady: () => void): void => {
+  const previewAfterPropose = (candidateId: string, navigationRevision: number, onReady: () => void, guard: () => boolean = () => true): void => {
     const target = writing;
     if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
     void unwrap(target.preview(candidateId)).then((review) => {
-      if (!isActive()) return;
+      if (!isActive() || !guard()) return;
       void unwrap(target.previewLayers(candidateId)).then((layerPreview) => {
-        if (!isActive()) return;
+        if (!isActive() || !guard()) return;
         candidatePatchForRevision({ ui: { kind: 'ready', review, layerPreview } }, navigationRevision);
         const generationBaseline = layerPreview.generationBaseline.kind === 'baseline'
           ? layerPreview.generationBaseline.generationBaselineId
           : undefined;
         workflowPatchForRevision({ status: 'ready', sceneId: review.target.sceneId, sourceHash: review.target.sourceHash, baselineId: generationBaseline, traceSectionCount: review.trace?.sections.length, message: '候选已就绪，请审阅正文与变更。' }, navigationRevision);
         onReady();
-      }, (cause: Error) => { if (isActive()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
-    }, (cause: Error) => { if (isActive()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
+      }, (cause: Error) => { if (isActive() && guard()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
+    }, (cause: Error) => { if (isActive() && guard()) { candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); } });
   };
   const proposeWriting = (intent: 'continue' | 'scene-card'): void => {
     const target = writing;
@@ -84,6 +98,103 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       previewAfterPropose(result.candidate.id, navigationRevision, () => undefined);
     }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message } }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
   };
+  /** I122：章节润色只启动一个当前 scene 的 rewrite candidate；不建批次请求。 */
+  const proposePolishScene = (session: PolishSessionState, navigationRevision: number): void => {
+    const target = writing;
+    const chapterId = session.chapterId;
+    const sceneId = session.currentSceneId;
+    const mode = session.mode;
+    if (!target || projectId === undefined || chapterId === undefined || sceneId === undefined || mode === undefined) {
+      polishPatchForRevision(failPolishSession(session, '润色目标或服务不可用'), navigationRevision);
+      return;
+    }
+    const runToken = currentPolishRunToken();
+    const operationKey = `writing:polish:${chapterId}:${sceneId}`;
+    if (!beginOp(operationKey)) return;
+    const release = (): void => endOp(operationKey);
+    const guard = (): boolean => currentPolishRunToken() === runToken;
+    candidatePatchForRevision({ ui: { kind: 'proposing', intent: 'rewrite' } }, navigationRevision);
+    workflowPatchForRevision({ status: 'loading', projectId, chapterId, sceneId, message: '正在生成当前场景润色候选…' }, navigationRevision);
+    void unwrap(target.propose(projectId, {
+      intent: 'rewrite', chapterId, sceneId,
+      prompt: '请在不改变故事事实、人物关系、叙事视角与事件顺序的前提下润色当前场景正文。',
+      polishMode: mode,
+    }, undefined)).then((result) => {
+      release();
+      if (!isActive() || !guard()) return;
+      previewAfterPropose(result.candidate.id, navigationRevision, () => undefined, guard);
+    }, (cause: Error) => {
+      release();
+      if (!isActive() || !guard()) return;
+      const message = (cause as Error).message;
+      candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision);
+      polishPatchForRevision(failPolishSession(session, message), navigationRevision);
+      workflowPatchForRevision({ status: 'error', message }, navigationRevision);
+    });
+  };
+
+  const focusPolishScene = (chapterId: string, sceneId: string): number => {
+    const current = snapshot.chapters;
+    const revision = current.navigationRevision + (current.selectedSceneId === sceneId && current.selectedChapterId === chapterId ? 0 : 1);
+    if (revision !== current.navigationRevision) internal.loadScene(sceneId, chapterId);
+    return revision;
+  };
+
+  const startPolish = (mode: PolishMode = 'language'): void => {
+    const target = writing;
+    const chapterId = snapshot.chapters.selectedChapterId;
+    const read = snapshot.chapters.chapter.read;
+    if (!target || projectId === undefined) {
+      polishPatch(failPolishSession(snapshot.chapters.polish, '候选审阅服务不可用'));
+      return;
+    }
+    if (chapterId === undefined || read === undefined) {
+      polishPatch(failPolishSession(snapshot.chapters.polish, '请先选择已读取的章节'));
+      return;
+    }
+    if (snapshot.chapters.polish.status === 'running') return;
+    const scenes = orderPolishScenes(read.scenes);
+    let session: PolishSessionState;
+    try {
+      const firstSceneId = scenes[0]?.id;
+      if (firstSceneId === undefined) throw new Error('当前章节没有可润色的场景');
+      const navigationRevision = focusPolishScene(chapterId, firstSceneId);
+      session = startPolishSession({ projectId, chapterId, scenes, mode, navigationRevision });
+    } catch (cause) {
+      polishPatch(failPolishSession(snapshot.chapters.polish, (cause as Error).message));
+      return;
+    }
+    bumpPolishRunToken();
+    polishPatchForRevision(session, session.navigationRevision);
+    proposePolishScene(session, session.navigationRevision);
+  };
+
+  const nextPolishScene = (): void => {
+    const session = snapshot.chapters.polish;
+    if (session.status !== 'running' || session.currentSceneId !== undefined || session.chapterId === undefined) return;
+    const nextSceneId = session.sceneIds[session.completedCount];
+    if (nextSceneId === undefined) return;
+    const navigationRevision = focusPolishScene(session.chapterId, nextSceneId);
+    const next = selectNextPolishScene(session, navigationRevision);
+    bumpPolishRunToken();
+    polishPatchForRevision(next, navigationRevision);
+    proposePolishScene(next, navigationRevision);
+  };
+
+  const stopPolish = (): void => {
+    const session = snapshot.chapters.polish;
+    if (session.status !== 'running') return;
+    bumpPolishRunToken();
+    polishPatch(stopPolishSession(session));
+    candidatePatch({ ui: { kind: 'idle' } });
+    workflowPatchForRevision({ status: 'cancelled', message: '章节润色已停止，未启动后续场景。' }, snapshot.chapters.navigationRevision);
+  };
+
+  const restartPolish = (mode?: PolishMode): void => {
+    if (snapshot.chapters.polish.status === 'running') return;
+    startPolish(mode ?? snapshot.chapters.polish.mode ?? 'language');
+  };
+
   const adjudicateCandidate = (decision: 'accept' | 'reject' | 'rewrite'): void => {
     const target = writing;
     const ui = snapshot.chapters.candidate.ui;
@@ -100,32 +211,57 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       const outcome = result;
       if (outcome.status === 'written') {
         candidatePatchForRevision({ ui: { kind: 'done', message: `已接受并落盘：${outcome.scene.chapterId}/${outcome.scene.sceneId}（已同步 ${outcome.layers.length} 层）` } }, navigationRevision);
+        const polish = snapshot.chapters.polish;
+        if (polish.status === 'running' && polish.currentSceneId === outcome.scene.sceneId && polish.chapterId === outcome.scene.chapterId) {
+          polishPatchForRevision(completePolishScene(polish, outcome.scene.sceneId), navigationRevision);
+        }
         void sha256Hex(outcome.scene.content).then((sourceHash) => {
           if (isActive()) workflowPatchForRevision({ status: 'saved', projectId, chapterId: outcome.scene.chapterId, sceneId: outcome.scene.sceneId, sourceHash, message: '正文已保存，可继续下一场景。' }, navigationRevision);
         });
-        reloadChapters();
+        // 章节润色会话需要在本次接受后继续持有 scene 游标；重新 selectChapter
+        // 会按导航语义清空 Client 会话，因此只让普通单候选流程刷新投影。
+        if (snapshot.chapters.polish.status !== 'running') reloadChapters();
       } else if (outcome.status === 'rejected') {
         candidatePatchForRevision({ ui: { kind: 'done', message: '已拒绝候选，未写入任何内容' } }, navigationRevision);
+        const polish = snapshot.chapters.polish;
+        if (polish.status === 'running' && polish.currentSceneId === ui.review.target.sceneId) polishPatchForRevision(failPolishSession(polish, '当前场景润色候选已拒绝'), navigationRevision);
         workflowPatchForRevision({ status: 'rejected', message: '候选已拒绝，未写入正文。' }, navigationRevision);
       } else if (outcome.status === 'rewritten') {
         // 后继候选：立即审阅新候选（旧候选已被 Host 置为 superseded，不可静默接受）。
-        previewAfterPropose(outcome.candidate.id, navigationRevision, () => undefined);
+        const runToken = currentPolishRunToken();
+        previewAfterPropose(outcome.candidate.id, navigationRevision, () => undefined, snapshot.chapters.polish.status === 'running' ? () => currentPolishRunToken() === runToken : undefined);
       } else if (outcome.status === 'generation-rejected' || outcome.status === 'prewrite-rejected') {
         candidatePatchForRevision({ ui: { kind: 'error', message: '校验未通过：存在硬冲突，未写入任何内容。请重写候选。' } }, navigationRevision);
+        const polish = snapshot.chapters.polish;
+        if (polish.status === 'running') polishPatchForRevision(failPolishSession(polish, '当前场景润色候选未通过校验'), navigationRevision);
         workflowPatchForRevision({ status: 'error', message: '校验未通过，未写入正文。' }, navigationRevision);
       } else if (outcome.status === 'pending-compensation') {
         candidatePatchForRevision({ ui: { kind: 'error', message: `写回中断（${outcome.failedStage}），未完成。请重试或重写。` } }, navigationRevision);
+        const polish = snapshot.chapters.polish;
+        if (polish.status === 'running') polishPatchForRevision(failPolishSession(polish, '当前场景润色落地未完成'), navigationRevision);
         workflowPatchForRevision({ status: 'error', message: '写作落地未完成，请重试或重写。' }, navigationRevision);
       }
-    }, (cause: Error) => { release(); if (!isActive()) return; candidatePatchForRevision({ ui: { kind: 'error', message: (cause as Error).message }, }, navigationRevision); workflowPatchForRevision({ status: 'error', message: (cause as Error).message }, navigationRevision); });
+    }, (cause: Error) => {
+      release();
+      if (!isActive()) return;
+      const message = (cause as Error).message;
+      candidatePatchForRevision({ ui: { kind: 'error', message } }, navigationRevision);
+      const polish = snapshot.chapters.polish;
+      if (polish.status === 'running' && polish.currentSceneId === ui.review.target.sceneId) polishPatchForRevision(failPolishSession(polish, message), navigationRevision);
+      workflowPatchForRevision({ status: 'error', message }, navigationRevision);
+    });
   };
 
-  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adjudicateCandidate' | 'dismissCandidate'> = {
+  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adjudicateCandidate' | 'dismissCandidate' | 'startPolish' | 'nextPolishScene' | 'stopPolish' | 'restartPolish'> = {
     proposeWriting,
     rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
     proposeRewrite,
     adjudicateCandidate,
     dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); act.chaptersWorkflow({ status: 'idle', message: undefined, sourceHash: undefined, traceSectionCount: undefined }); },
+    startPolish,
+    nextPolishScene,
+    stopPolish,
+    restartPolish,
   };
   return { ops };
 }

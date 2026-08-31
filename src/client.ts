@@ -339,6 +339,9 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           Overlay as unknown as () => unknown,
         );
         return () => {
+          // I122：先清理当前 store 的瞬态会话，再关闭生命周期守卫；否则
+          // guarded actions 会把卸载清理本身短路掉。
+          capturedActions?.chaptersPolishReset();
           active = false;
           // I90：分析轮询 timer 归 onboarding controller（clearPoll = 旧 clearAnalysisPoll）；
           // namespace 清空由 service bag 生命周期负责（一次性清空，等价迁移前

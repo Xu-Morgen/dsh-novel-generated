@@ -1,0 +1,22 @@
+{
+  "iteration": "I122",
+  "requirement": "R18-4a",
+  "guarantees": [
+    "scene-index-deterministic-order-with-id-tie-break",
+    "one-existing-rewrite-candidate-per-current-scene",
+    "independent-source-hash-and-existing-preview-adjudication-consumer",
+    "accepted-scene-keeps-transient-session-and-exposes-next-action",
+    "stop-invalidates-late-results-without-starting-next-scene",
+    "empty-chapter-and-cross-navigation-do-not-create-polish-batch",
+    "fiber-dispose-clears-client-only-session-state",
+    "strict-polish-mode-remote-field-and-real-binder-negative-check"
+  ],
+  "focusedSuites": "I122 Client session/consumer, Host candidate, and real binder tests passed",
+  "explicitNonGoals": [
+    "mode-specific-prompt-presets",
+    "full-book-batch",
+    "auto-accept",
+    "persistent-batch-journal",
+    "background-resume"
+  ]
+}

@@ -156,11 +156,11 @@ describe('contracts/ 形状本体契约锁', () => {
 });
 
 describe('I103 contracts/stage18 Remote descriptor baseline', () => {
-  it('I105 的前 115 descriptor / 24 result JSON bodies 与 8636685 结构逐字一致', () => {
+  it('I122 新增 polishMode 后，前 115 descriptor / 24 result JSON bodies 与当前基线逐字一致', () => {
     const oldDescriptors = Object.fromEntries(remoteLock.descriptorIds.slice(0, 115).map((id) => [id, remoteLock.descriptors[id]]));
     const oldResults = Object.fromEntries(remoteLock.resultSchemaIds.slice(0, 24).map((id) => [id, remoteLock.resultSchemas[id]]));
     expect(createHash('sha256').update(JSON.stringify(oldDescriptors)).digest('hex'))
-      .toBe('15d4da60e3b140b5c1ff70a3fb2043c0c31f7d19c898718b83d2847da437a14b');
+      .toBe('12e5dcd4fe8b0e6623f8c680c51160d2279fbf01ed8450bb51c7f127a6734cbc');
     expect(createHash('sha256').update(JSON.stringify(oldResults)).digest('hex'))
       .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
   });

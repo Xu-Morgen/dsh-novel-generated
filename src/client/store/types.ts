@@ -13,6 +13,7 @@ import type { StateEditOps, StateEditor, StateLayerState, StateSnapshotShape } f
 import type { CanonEditOps, CanonEditor, CanonEventShape, CanonLayerState } from '../layers/canon.js';
 import type { BranchPanelState, CandidatePanelState, ChaptersEditOps, ChaptersLayerState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape, ChapterManagementState, ChaptersMode } from '../layers/chapters.js';
 import type { WritingWorkflowState } from '../writing-workflow.js';
+import type { PolishSessionState } from '../polish-session.js';
 import type { ReviewEditOps, ReviewLayerState } from '../layers/review.js';
 import type { QueueEditOps, QueueLayerState } from '../layers/queue.js';
 import type { KnowledgeEditOps, KnowledgeLayerState } from '../layers/knowledge.js';
@@ -141,6 +142,10 @@ export type WorkbenchActions = {
   /** I121：共享写作循环状态只接受当前导航世代的异步结果。 */
   chaptersWorkflow(patch: Partial<WritingWorkflowState>): void;
   chaptersWorkflowForRevision(patch: Partial<WritingWorkflowState>, navigationRevision: number): void;
+  /** I122：章节润色会话只属于当前 Client Fiber，异步结果按导航世代接收。 */
+  chaptersPolish(state: PolishSessionState): void;
+  chaptersPolishForRevision(state: PolishSessionState, navigationRevision: number): void;
+  chaptersPolishReset(): void;
   /** I70 版本/分支面板（R14-5）：版本列表/存档草稿/对比视图状态合并。 */
   chaptersBranches(patch: Partial<BranchPanelState>): void;
   /** I107：章节区唯一可见操作模式。 */

@@ -214,6 +214,9 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
     async propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal) {
       validateProjectId(projectId);
       const resolved = (settings as GenerationSettings | undefined) ?? await deps.resolveSettings();
+      if (input.intent !== 'rewrite' && input.polishMode !== undefined) {
+        throw new Error('polishMode requires rewrite intent');
+      }
       if (input.intent === 'rewrite') {
         const chapterId = input.chapterId as string;
         const sceneId = input.sceneId as string;
@@ -223,11 +226,12 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
         const chapter = await repository.readChapter(chapterId);
         const scene = chapter.scenes.find((item) => item.id === sceneId);
         if (scene === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-        const request: WritingCandidateRequest = {
+      const request: WritingCandidateRequest = {
           id: nextId('rewrite'),
           intent: 'rewrite',
           target: { projectId, chapterId, sceneId, sourceHash: hashText(scene.content) },
           prompt,
+          polishMode: input.polishMode,
           settings: resolved,
           signal,
         };

@@ -24,6 +24,14 @@ import { entityIdSchema } from '../schema/base.js';
 export const writingIntentSchema = z.enum(['generate', 'continue', 'scene-card', 'rewrite']);
 export type WritingIntent = z.infer<typeof writingIntentSchema>;
 
+/**
+ * I122 单章润色的参数化模式（design §14.14.2 D25 / R18-4）：模式属于
+ * rewrite 请求，不是新的 writing intent。I123 负责为这三个稳定值冻结 prompt
+ * preset；本迭代只锁定 Host/Client 可传递的 strict selector。
+ */
+export const polishModeSchema = z.enum(['language', 'condense', 'expand']);
+export type PolishMode = z.infer<typeof polishModeSchema>;
+
 export const candidateIdSchema = z.string().min(1).max(128);
 export const sourceHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 

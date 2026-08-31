@@ -296,6 +296,27 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     }
   });
 
+  it('I122 novelWriting.propose：rewrite + polishMode 经真实 binder 往返，非法 mode 在 adapter 前拒绝', async () => {
+    const { client, calls, dispose } = await mount(writingRemoteContribution);
+    try {
+      const writing = client.get('remote.novelWriting') as WritingNamespace;
+      await unwrap(writing.propose('p1', {
+        intent: 'rewrite', chapterId: 'c1', sceneId: 's1', prompt: '润色', polishMode: 'language',
+      }, undefined));
+      expect(calls).toEqual([{
+        endpoint: 'novelWriting/propose',
+        args: { projectId: 'p1', input: { intent: 'rewrite', chapterId: 'c1', sceneId: 's1', prompt: '润色', polishMode: 'language' } },
+      }]);
+      await expect(Reflect.apply(writing.propose, writing, ['p1', {
+        intent: 'rewrite', chapterId: 'c1', sceneId: 's1', prompt: '润色', polishMode: 'invalid',
+      }, undefined])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toHaveLength(1);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
   it('I110 novelWriting.previewLayers：真实客户端绑定器返回严格五层预览 projection', async () => {
     const { client, calls, dispose } = await mount(writingRemoteContribution);
     try {

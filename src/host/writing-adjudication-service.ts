@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { CandidateAdjudicationLedger } from '../core/candidate/adjudication.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { TextRepository } from '../core/text/index.js';
-import type { CandidateTarget, WritingCandidate, WritingIntent } from '../core/candidate/index.js';
+import type { CandidateTarget, PolishMode, WritingCandidate, WritingIntent } from '../core/candidate/index.js';
 import type { ConsistencyAdjudication } from '../core/validate/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
 import type { OutlineNavigation } from '../core/schema/outline-progress.js';
@@ -63,6 +63,8 @@ export interface WritingProposeInput {
   readonly sceneId?: string;
   /** rewrite 必填：重写指令（同 I42 调用方 prompt 语义）。 */
   readonly prompt?: string;
+  /** I122：rewrite 的参数化润色模式；不改变既有 writing intent。 */
+  readonly polishMode?: PolishMode;
 }
 
 export interface WritingProposeAtInput extends CandidateTargetSelection {

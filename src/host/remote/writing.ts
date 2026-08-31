@@ -41,6 +41,8 @@ const writingProposeInputSchema = z.object({
   chapterId: z.string().min(1).optional(),
   sceneId: z.string().min(1).optional(),
   prompt: z.string().min(1).optional(),
+  /** I122 selector; mode-specific prompt text remains an I123 concern. */
+  polishMode: z.enum(['language', 'condense', 'expand']).optional(),
 }).strict();
 export type WritingProposeInputShape = z.infer<typeof writingProposeInputSchema>;
 

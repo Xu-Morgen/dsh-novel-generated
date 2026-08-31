@@ -4,6 +4,7 @@ import {
   hashText,
   parseWritingCandidate,
   validateCandidateTarget,
+  type PolishMode,
   type CandidateTarget,
   type WritingCandidate,
   type WritingIntent,
@@ -54,6 +55,8 @@ export interface SceneCardCandidateRequest extends CandidateRequestBase {
 export interface RewriteCandidateRequest extends CandidateRequestBase {
   readonly intent: 'rewrite';
   readonly prompt: string;
+  /** I122 parameter selector; I123 supplies the mode-specific prompt preset. */
+  readonly polishMode?: PolishMode;
 }
 
 export type WritingCandidateRequest =
@@ -150,7 +153,9 @@ export function createWritingCandidateService(deps: WritingCandidateServiceDeps)
         return buildChapterWritingPrompt(request.card, request.navigation);
       case 'rewrite': {
         if (!request.prompt.trim()) throw new Error('Rewrite candidate requires a non-empty prompt');
-        return request.prompt;
+        return request.polishMode === undefined
+          ? request.prompt
+          : `[polishMode:${request.polishMode}]\n${request.prompt}`;
       }
     }
   };
