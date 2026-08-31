@@ -79,6 +79,13 @@ export interface MountOptionsI136 {
   };
 }
 
+/** I138 single-manuscript download injection for publication-flow tests. */
+export interface MountOptionsI138 {
+  importExport?: {
+    compileManuscript?: (projectId: string, input: { format: 'txt' | 'md'; readinessReceipt?: unknown }) => Promise<unknown>;
+  };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];

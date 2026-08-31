@@ -16,7 +16,7 @@ export { factory };
 
 import type { FakeNode } from "./test-harness/types.js";
 import { collect } from "./test-harness/dom-helpers.js";
-import { makeWorkspace, type MountOptions, type MountOptionsI136, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
+import { makeWorkspace, type MountOptions, type MountOptionsI136, type MountOptionsI138, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
 
 /** Fake React: `createElement` only — any JSX runtime use would fail to compile/run. */
 export const fakeReact = {
@@ -24,7 +24,7 @@ export const fakeReact = {
     ({ tag, props, children }),
 };
 
-export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}, mountOptions: MountOptions & MountOptionsI136 = {}) {
+export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOverrides = {}, mountOptions: MountOptions & MountOptionsI136 & MountOptionsI138 = {}) {
   const registrations: Record<string, Array<{ options: Record<string, unknown>; component: () => unknown }>> = {};
   const overlayCleanups: Array<() => void> = [];
   const footerCleanups: Array<() => void> = [];
@@ -234,6 +234,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
     : name === 'remote.novelImportExport' ? (importExportStub ?? {
       exportArchive: async () => { throw new Error('未注入 remote.novelImportExport.exportArchive'); },
       exportText: async () => { throw new Error('未注入 remote.novelImportExport.exportText'); },
+      compileManuscript: async () => { throw new Error('未注入 remote.novelImportExport.compileManuscript'); },
       restore: async () => { throw new Error('未注入 remote.novelImportExport.restore'); },
       importPreview: async () => { throw new Error('未注入 remote.novelImportExport.importPreview'); },
     })
@@ -363,5 +364,5 @@ export function cleanupClientTestEnv(): void {
 // I95 兼容重导出（拆分后外部符号入口不变）。
 export { collect, layerButtons } from "./test-harness/dom-helpers.js";
 export { I56_LAYERS, analyzerStub, openOnboardingReview } from "./test-harness/onboarding-fixtures.js";
-export { makeWorkspace, READY_MODEL, type MountOptions, type MountOptionsI136, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
+export { makeWorkspace, READY_MODEL, type MountOptions, type MountOptionsI136, type MountOptionsI138, type WorkspaceOverrides } from "./test-harness/remote-builders.js";
 export type { FakeNode } from "./test-harness/types.js";

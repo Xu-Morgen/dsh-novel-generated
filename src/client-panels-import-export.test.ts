@@ -47,6 +47,27 @@ describe('I69 导入导出与备份 UI (R14-4)', () => {
     expect(messageOf(render)).toContain('fixture-project.full-project');
   });
 
+  it('I138 单一全文编译：选择格式后只下载一份主稿并反馈章节/场景数', async () => {
+    let compileInput: unknown;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      { importExport: { compileManuscript: async (projectId, input) => {
+        compileInput = { projectId, input };
+        return { ok: true, value: { projectId, format: input.format, fileName: `manuscript.${input.format}`, content: '正文', contentHash: 'a'.repeat(64), chapterCount: 2, sceneCount: 3, readinessReceipt: { gateOpen: true } } };
+      } } },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openIe(render);
+    await flush();
+    (collect(render(), 'button').find((n) => n.props?.['data-novel-ie-compile-md'] === '')?.props?.onClick as () => void)();
+    await flush();
+    expect(compileInput).toEqual({ projectId: 'fixture-project', input: { format: 'md' } });
+    expect(messageOf(render)).toContain('已编译单一全文 MD');
+    expect(messageOf(render)).toContain('2 章、3 个场景');
+  });
+
   it('恢复 N-7 阻断：非空作品列出冲突层并说明，不静默合并', async () => {
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),

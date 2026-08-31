@@ -35,6 +35,7 @@ import { longDraftInvocations } from '../src/host/remote/long-draft.js';
 import { reviewRepairInvocations } from '../src/host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from '../src/host/remote/outline-generation-scope.js';
 import { outlineDetailGenerationInvocations } from '../src/host/remote/outline-detail-generation.js';
+import { compileManuscriptInvocation } from '../src/host/remote/import-export.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -162,8 +163,9 @@ for (const lock of EXISTING_LOCKS) {
     writingRejectFinalizationInvocation.id,
   ]);
   const i137DescriptorIds = new Set([bookReadinessInvocation.id, bookScanInvocation.id]);
+  const i138DescriptorIds = new Set([compileManuscriptInvocation.id]);
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -191,6 +193,7 @@ for (const lock of EXISTING_LOCKS) {
     writingRejectFinalizationInvocation,
     bookReadinessInvocation,
     bookScanInvocation,
+    compileManuscriptInvocation,
   ];
   const resultDescriptors = [
     ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
@@ -226,6 +229,7 @@ for (const lock of EXISTING_LOCKS) {
     writingRejectFinalizationInvocation,
     bookReadinessInvocation,
     bookScanInvocation,
+    compileManuscriptInvocation,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

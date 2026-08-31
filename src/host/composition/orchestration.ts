@@ -2,6 +2,7 @@ import { createKnowledgeManagerService } from '../knowledge-manager-service.js';
 import { createRuleStyleManagerService } from '../rule-style-manager-service.js';
 import { createProgressInspirationService } from '../progress-inspiration-service.js';
 import { createNovelPortabilityService } from '../import-export-service.js';
+import { createManuscriptCompiler } from '../manuscript-compiler.js';
 import { createBranchService, type NovelBranchService } from '../branch-service.js';
 import { createSearchService } from '../search-service.js';
 import { createStatisticsService, type StatisticsSceneCardFilter, type StatisticsTaskFilter, type NovelStatisticsService } from '../statistics-service.js';
@@ -13,6 +14,7 @@ import type { RuleInput, RulePatch } from '../../core/schema/rules.js';
 import type { StyleProfileInput } from '../../core/schema/style.js';
 import type { DeviationRecordInput, InspirationSelectInput } from '../progress-inspiration-service.js';
 import type { ImportPreviewInput } from '../import-export-service.js';
+import type { CompileManuscriptInput } from '../../core/schema/manuscript.js';
 import type { ArchiveMode } from '../../core/export/index.js';
 import { provideDeprecatedPortabilityAliases } from './portability-compat.js';
 import { defineRemote } from '../remote/shared.js';
@@ -72,7 +74,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     inspirationService,
     resolveGenerationSettings,
   } = baseServices;
-  const { controlledTextEditService, writingAdjudicationService, nextSceneContext, queueService } = management;
+  const { controlledTextEditService, writingAdjudicationService, nextSceneContext, queueService, bookCompletionService } = management;
   // I66 C3 知情与揭示管理面（design §14.10 / R14-1）：作者按事实与角色查看
   // holders/revealPlan/status 并受控执行揭示或 holder 变更。复用 I18 领域服务
   // （KnowledgeRepository 唯一 C3 写 owner）+ I11 ConfirmationGate（propose→accept/
@@ -143,12 +145,14 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
   // `core/export` 与 `import` 既有 owner；Client 只接收下载载荷/命令，不持有路径。
   // I100：三服务（novelImport/novelImportExport/novelExport）统一为单一公开服务
   // `novelImportExport`；旧名经兼容转发层 deprecated 转发（review §8#17）。
-  const projectPortabilityService = createNovelPortabilityService(base.projectsRoot);
+  const manuscriptCompiler = createManuscriptCompiler({ text: textService, completion: bookCompletionService });
+  const projectPortabilityService = createNovelPortabilityService(base.projectsRoot, manuscriptCompiler);
   ctx.provide('novelImportExport', defineRemote('novelImportExport', 'novelImportExport', projectPortabilityService, [
     { method: 'exportArchive', call: (projectId: string, mode: ArchiveMode) => projectPortabilityService.exportArchive(projectId, mode) },
     { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => projectPortabilityService.exportText(projectId, format) },
     { method: 'restore', call: (projectId: string, raw: string) => projectPortabilityService.restore(projectId, raw) },
     { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.importPreview(projectId, input) },
+    { method: 'compileManuscript', call: (projectId: string, input: CompileManuscriptInput) => projectPortabilityService.compileManuscript(projectId, input) },
   ], importExportInvocations));
   provideDeprecatedPortabilityAliases(ctx, projectPortabilityService);
   // I70 C5 正文版本与分支（design §14.10「正文版本与分支」/ R14-5）：Host-owned

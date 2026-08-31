@@ -15,6 +15,7 @@ import { unwrap } from './client/shared.js';
 import { branchAggregateWireAdapter, branchListWireAdapter } from './host/composition/orchestration.js';
 import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
+import { importExportRemoteContribution } from './host/remote/import-export.js';
 import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
@@ -207,6 +208,11 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelReview/records':
       return [];
+    case 'novelImportExport/compileManuscript':
+      return {
+        projectId: 'p1', format: 'txt', fileName: 'manuscript.txt', content: '目录\n\n第一章\n\n正文\n', contentHash: 'a'.repeat(64), chapterCount: 1, sceneCount: 1,
+        readinessReceipt: { gateOpen: true, computedAt: ISO, textFingerprint: 'a'.repeat(64), outlineFingerprint: 'b'.repeat(64), bindingFingerprint: 'c'.repeat(64), review: { status: 'completed', total: 0, hard: 0, warning: 0 } },
+      };
     case 'novelReviewRepair/propose':
       return {
         projectId: 'p1', issueId: 'iss-1', issueFingerprint: 'iss-1',
@@ -752,6 +758,39 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     try {
       const review = mounted.client.get('remote.novelReview') as { bookScan: (...args: unknown[]) => Promise<unknown> };
       await expect(unwrap(review.bookScan('p1', { offset: 0, limit: 64 }, undefined))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I138 novelImportExport.compileManuscript：两种格式的参数与单一主稿结果经真实 binder 往返', async () => {
+    const { client, calls, dispose } = await mount(importExportRemoteContribution, (endpoint, args) => endpoint === 'novelImportExport/compileManuscript'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, format: (args.input as { format: 'txt' | 'md' }).format, fileName: `manuscript.${(args.input as { format: 'txt' | 'md' }).format}` }
+      : fixtureFor(endpoint));
+    try {
+      const ns = client.get('remote.novelImportExport') as { compileManuscript: (...args: unknown[]) => Promise<unknown> };
+      expect((await unwrap(ns.compileManuscript('p1', { format: 'txt' })) as { fileName: string }).fileName).toBe('manuscript.txt');
+      expect((await unwrap(ns.compileManuscript('p1', { format: 'md' })) as { fileName: string }).fileName).toBe('manuscript.md');
+      expect(calls).toEqual([
+        { endpoint: 'novelImportExport/compileManuscript', args: { projectId: 'p1', input: { format: 'txt' } } },
+        { endpoint: 'novelImportExport/compileManuscript', args: { projectId: 'p1', input: { format: 'md' } } },
+      ]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I138 负向：非法编译格式与带未知字段的主稿结果在真实 binder fail closed', async () => {
+    const mounted = await mount(importExportRemoteContribution, (endpoint) => endpoint === 'novelImportExport/compileManuscript'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, extra: true }
+      : fixtureFor(endpoint));
+    try {
+      const ns = mounted.client.get('remote.novelImportExport') as { compileManuscript: (...args: unknown[]) => Promise<unknown> };
+      await expect(Reflect.apply(ns.compileManuscript, ns, ['p1', { format: 'pdf' }])).rejects.toThrow(/rejected "input"/);
+      await expect(unwrap(ns.compileManuscript('p1', { format: 'txt' }))).rejects.toThrow(/rejected "result"/);
+      expect(mounted.calls).toEqual([{ endpoint: 'novelImportExport/compileManuscript', args: { projectId: 'p1', input: { format: 'txt' } } }]);
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();

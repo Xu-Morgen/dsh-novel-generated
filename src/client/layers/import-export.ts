@@ -33,8 +33,8 @@ export type ImportExportRestoreResultShape =
   | { readonly status: 'imported'; readonly written: readonly string[]; readonly conflicts: readonly string[] }
   | { readonly status: 'blocked'; readonly reason: 'non-empty-project'; readonly layers: readonly string[] };
 
-/** I101：导入导出面板子工作流独立 busy（exportArchive/exportText/restore/preview 互不阻塞）。 */
-export type ImportExportBusy = Partial<Record<'exportArchive' | 'exportText' | 'restore' | 'preview', boolean>>;
+/** I101/I138：导入导出面板子工作流独立 busy（含单一全文编译）。 */
+export type ImportExportBusy = Partial<Record<'exportArchive' | 'exportText' | 'compileManuscript' | 'restore' | 'preview', boolean>>;
 
 export interface ImportExportLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error';
@@ -65,6 +65,7 @@ export interface ImportExportEditOps {
   pickRestoreFile(file: File): void;
   exportArchive(): void;
   exportText(): void;
+  compileManuscript(format: 'txt' | 'md'): void;
   restore(): void;
   previewImport(): void;
   dismiss(): void;
@@ -110,7 +111,7 @@ function readFileText(file: File): Promise<string> {
  */
 export function importExportPanel(h: El, projectId: string, namespace: ImportExportNamespace | undefined, state: ImportExportLayerState, ops: ImportExportEditOps): unknown {
   const available = namespace !== undefined && projectId !== undefined;
-  const busy = state.busy.exportArchive === true || state.busy.exportText === true || state.busy.restore === true || state.busy.preview === true || state.status === 'loading';
+  const busy = state.busy.exportArchive === true || state.busy.exportText === true || state.busy.compileManuscript === true || state.busy.restore === true || state.busy.preview === true || state.status === 'loading';
   const restoreBlocked = state.restoreResult?.status === 'blocked';
   const restoreImported = state.restoreResult?.status === 'imported';
 
@@ -138,6 +139,8 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-export-archive': '', disabled: !available || busy, onClick: () => ops.exportArchive() }, state.busy.exportArchive === true ? '导出中…' : '导出项目包（下载 .portable.json）'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-export-text': '', disabled: !available || busy, onClick: () => ops.exportText() }, state.busy.exportText === true ? '导出中…' : '导出纯文本'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-compile-txt': '', disabled: !available || busy, onClick: () => ops.compileManuscript('txt') }, state.busy.compileManuscript === true ? '编译中…' : '编译单一全文 TXT'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-compile-md': '', disabled: !available || busy, onClick: () => ops.compileManuscript('md') }, state.busy.compileManuscript === true ? '编译中…' : '编译单一全文 Markdown'),
       ),
       state.exportMode === 'shareable-template'
         ? h('p', { className: 'nv-settings__hint', 'data-novel-ie-shareable-note': '' }, '可分享模板不含正文，其余设定与结构照常包含，适合分享创作设定。')

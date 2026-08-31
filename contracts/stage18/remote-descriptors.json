@@ -182,7 +182,8 @@
     "novel-creation-tool/novelWriting/acceptFinalization",
     "novel-creation-tool/novelWriting/rejectFinalization",
     "novel-creation-tool/novelReview/bookReadiness",
-    "novel-creation-tool/novelReview/bookScan"
+    "novel-creation-tool/novelReview/bookScan",
+    "novel-creation-tool/novelImportExport/compileManuscript"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -42517,6 +42518,265 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelImportExport/compileManuscript": {
+      "id": "novel-creation-tool/novelImportExport/compileManuscript",
+      "service": "novelImportExport",
+      "namespace": "novelImportExport",
+      "method": "compileManuscript",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#projectId",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#compileManuscriptInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "txt",
+                    "md"
+                  ]
+                },
+                "readinessReceipt": {
+                  "readOnly": true,
+                  "type": "object",
+                  "properties": {
+                    "gateOpen": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "computedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    },
+                    "textFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "outlineFingerprint": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[a-f0-9]{64}$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bindingFingerprint": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "review": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "const": "completed"
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hard": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "warning": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "total",
+                        "hard",
+                        "warning"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "gateOpen",
+                    "computedAt",
+                    "textFingerprint",
+                    "outlineFingerprint",
+                    "bindingFingerprint",
+                    "review"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "format"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#compileManuscriptOutcome",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "txt",
+                "md"
+              ]
+            },
+            "fileName": {
+              "type": "string",
+              "pattern": "^manuscript\\.(txt|md)$"
+            },
+            "content": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contentHash": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "chapterCount": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sceneCount": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "readinessReceipt": {
+              "readOnly": true,
+              "type": "object",
+              "properties": {
+                "gateOpen": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "computedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                },
+                "textFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "outlineFingerprint": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "bindingFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "review": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "completed"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "hard": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "warning": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "total",
+                    "hard",
+                    "warning"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "gateOpen",
+                "computedAt",
+                "textFingerprint",
+                "outlineFingerprint",
+                "bindingFingerprint",
+                "review"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "format",
+            "fileName",
+            "content",
+            "contentHash",
+            "chapterCount",
+            "sceneCount",
+            "readinessReceipt"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -42605,7 +42865,8 @@
     "novel-creation-tool/novelWriting/acceptFinalization",
     "novel-creation-tool/novelWriting/rejectFinalization",
     "novel-creation-tool/novelReview/bookReadiness",
-    "novel-creation-tool/novelReview/bookScan"
+    "novel-creation-tool/novelReview/bookScan",
+    "novel-creation-tool/novelImportExport/compileManuscript"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -61003,6 +61264,133 @@
         "review",
         "issues",
         "fingerprints"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportExport/compileManuscript": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "txt",
+            "md"
+          ]
+        },
+        "fileName": {
+          "type": "string",
+          "pattern": "^manuscript\\.(txt|md)$"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "chapterCount": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sceneCount": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "readinessReceipt": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "gateOpen": {
+              "type": "boolean",
+              "const": true
+            },
+            "computedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            },
+            "textFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "outlineFingerprint": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bindingFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "review": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "const": "completed"
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "hard": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "warning": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "status",
+                "total",
+                "hard",
+                "warning"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "gateOpen",
+            "computedAt",
+            "textFingerprint",
+            "outlineFingerprint",
+            "bindingFingerprint",
+            "review"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "format",
+        "fileName",
+        "content",
+        "contentHash",
+        "chapterCount",
+        "sceneCount",
+        "readinessReceipt"
       ],
       "additionalProperties": false
     }

@@ -70,6 +70,21 @@ export function createImportExportOps(runtime: OpsRuntime, port: ImportExportPor
             iePatch({ busy: { ...snapshot.importExport.busy, exportText: false }, message: `已导出 ${Object.keys(result.files).length} 个纯文本文件（${result.format}），逐个下载。` });
           }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, exportArchive: false }, error: toUserMessage(cause) }); });
         },
+        compileManuscript(format: 'txt' | 'md'): void {
+          const target = importExportNamespace;
+          if (!target || projectId === undefined || snapshot.importExport.busy.compileManuscript === true) return;
+          const operation = `importExport:compile-manuscript:${format}`;
+          if (!beginOp(operation)) return;
+          const release = (): void => endOp(operation);
+          iePatch({ busy: { ...snapshot.importExport.busy, compileManuscript: true }, message: undefined, error: undefined });
+          void unwrap(target.compileManuscript(projectId, { format })).then((outcome) => {
+            release();
+            if (!isActive()) return;
+            const result = outcome as { fileName: string; format: 'txt' | 'md'; content: string; chapterCount: number; sceneCount: number };
+            downloadText(result.fileName, result.content, result.format === 'md' ? 'text/markdown' : 'text/plain');
+            iePatch({ busy: { ...snapshot.importExport.busy, compileManuscript: false }, message: `已编译单一全文 ${result.format.toUpperCase()}：${result.chapterCount} 章、${result.sceneCount} 个场景，开始下载 ${result.fileName}。` });
+          }, (cause: Error) => { release(); if (!isActive()) return; iePatch({ busy: { ...snapshot.importExport.busy, compileManuscript: false }, error: toUserMessage(cause) }); });
+        },
         restore(): void {
           const target = importExportNamespace;
           const state = snapshot.importExport;

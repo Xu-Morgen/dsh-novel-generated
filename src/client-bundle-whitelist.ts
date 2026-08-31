@@ -48,6 +48,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/reference-coordination.ts',
   'src/core/schema/reference-correction.ts',
   'src/core/schema/long-draft.ts',
+  'src/core/schema/manuscript.ts',
   'src/core/schema/review-repair.ts',
   'src/core/schema/upload.ts',
   'src/core/schema/workbench-settings.ts',

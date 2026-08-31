@@ -13,6 +13,8 @@ import {
 } from '../core/export/index.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { normalizeTextInput, type ImportFormat } from '../import/index.js';
+import type { CompileManuscriptInput, CompileManuscriptResult } from '../core/schema/manuscript.js';
+import type { ManuscriptCompiler } from './manuscript-compiler.js';
 
 /** 受控下载载荷：内容为序列化档案文本；文件名仅供浏览器 Blob 下载，不含 Host 路径。 */
 export interface ImportExportArchiveOutcome {
@@ -55,6 +57,7 @@ export interface ImportPreviewInput {
 export interface NovelImportExportService {
   exportArchive(projectId: string, mode: ArchiveMode): Promise<ImportExportArchiveOutcome>;
   exportText(projectId: string, format: 'txt' | 'md'): Promise<ImportExportTextOutcome>;
+  compileManuscript(projectId: string, input: CompileManuscriptInput): Promise<CompileManuscriptResult>;
   restore(projectId: string, raw: string): Promise<ImportRestoreOutcome>;
   importPreview(projectId: string, input: ImportPreviewInput): Promise<ImportPreviewOutcome>;
 }
@@ -175,7 +178,10 @@ export function createImportExportService(
     });
   };
 
-  return Object.freeze({ exportArchive, exportText, restore, importPreview });
+  const compileManuscript = async (): Promise<CompileManuscriptResult> => {
+    throw new Error('单一全文编译器未装配');
+  };
+  return Object.freeze({ exportArchive, exportText, compileManuscript, restore, importPreview });
 }
 
 /**
@@ -202,12 +208,16 @@ export interface NovelPortabilityService extends NovelImportExportService {
 
 export function createNovelPortabilityService(
   projectsRoot: string = join(homedir(), '.dsh', 'novel-projects'),
+  manuscriptCompiler?: ManuscriptCompiler,
 ): NovelPortabilityService {
   const wire = createImportExportService(projectsRoot);
   const importer = createHostImportService();
   const exporter = createExportService();
   return Object.freeze({
     ...wire,
+    compileManuscript: manuscriptCompiler?.compile ?? (async (): Promise<CompileManuscriptResult> => {
+      throw new Error('单一全文编译器未装配');
+    }),
     read: importer.read,
     review: importer.review,
     export: exporter.export,

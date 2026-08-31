@@ -1,0 +1,24 @@
+{
+  "iteration": "I138",
+  "requirement": "R18-14b",
+  "guarantees": [
+    "one-byte-stable-txt-or-markdown-manuscript-with-chapter-toc",
+    "chosen-c5-only-rendering-in-real-chapter-and-scene-order",
+    "no-branches-settings-sidecars-links-ids-or-technical-metadata",
+    "i137-readiness-receipt-freshness-and-concurrent-text-change-fail-closed",
+    "legacy-per-chapter-export-remains-available",
+    "real-client-download-consumer-binder-and-contract-lock-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 181,
+    "resultSchemaCount": 87
+  },
+  "focusedSuites": "ManuscriptCompiler, import/export Client, real binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "docx",
+    "pdf",
+    "epub",
+    "typesetting-engine",
+    "external-publishing-upload"
+  ]
+}

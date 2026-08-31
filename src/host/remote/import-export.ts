@@ -6,6 +6,7 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
 // 派生（I37 归一化分块与 I51 DOCX 分块同构；core/schema 纯 zod，可入 Client
 // bundle 图 —— 架构审查 §6.3/§9#3）。
 import { docxTextChunkSchema } from '../../core/schema/upload.js';
+import { compileManuscriptInputSchema, compileManuscriptResultSchema } from '../../core/schema/manuscript.js';
 
 /**
  * I69 导入导出与备份 Remote（design §14.10「导入、导出与备份」/ R14-4）。
@@ -74,6 +75,10 @@ export const importPreviewOutcomeWireSchema = z.object({
   chunks: z.array(importPreviewChunkWireSchema),
 }).strict();
 
+/** I138 single-manuscript publication options/result; no file map or sidecar is exposed. */
+export const compileManuscriptInputWireSchema = compileManuscriptInputSchema;
+export const compileManuscriptOutcomeWireSchema = compileManuscriptResultSchema;
+
 // I75：`param`/`importExportInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
 // I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。
 const importExportInvocation = <const M extends string, const P extends readonly InvocationParameterDescriptor[], const R extends TypertCodec>(
@@ -100,12 +105,17 @@ export const importExportPreviewInvocation = importExportInvocation('importPrevi
   projectIdParam,
   param('input', strictCodec('novel-creation-tool#importPreviewInput', importPreviewInputWireSchema)),
 ], strictCodec('novel-creation-tool#importPreviewOutcome', importPreviewOutcomeWireSchema));
+export const compileManuscriptInvocation = importExportInvocation('compileManuscript', [
+  projectIdParam,
+  param('input', strictCodec('novel-creation-tool#compileManuscriptInput', compileManuscriptInputWireSchema)),
+], strictCodec('novel-creation-tool#compileManuscriptOutcome', compileManuscriptOutcomeWireSchema));
 
 export const importExportInvocations = [
   importExportArchiveInvocation,
   importExportTextInvocation,
   importExportRestoreInvocation,
   importExportPreviewInvocation,
+  compileManuscriptInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
