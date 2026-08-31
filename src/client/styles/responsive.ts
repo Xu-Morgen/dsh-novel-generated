@@ -59,6 +59,11 @@ export const RESPONSIVE_STYLES = `
     max-height: none;
   }
 
+  /* I107：模式 tab 保持单行可横向访问，不把操作模式挤成不可达的多行。 */
+  .nv-chapters__modes {
+    max-width: 100%;
+  }
+
   .nv-editor__list {
     flex: none;
     width: 100%;

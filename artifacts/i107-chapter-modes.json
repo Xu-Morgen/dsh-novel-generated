@@ -1,0 +1,31 @@
+{
+  "iteration": "I107",
+  "requirement": "R18-9",
+  "modes": [
+    "writing",
+    "candidate",
+    "versions",
+    "materials"
+  ],
+  "canonicalOwner": "ChaptersLayerState.mode",
+  "clientAnchors": [
+    "data-novel-chapter-modes",
+    "data-novel-chapter-mode",
+    "data-novel-chapter-mode-panel",
+    "data-novel-chapter-mode-badge"
+  ],
+  "guarantees": [
+    "single-visible-panel",
+    "hidden-panel-zero-remote-read",
+    "navigation-revision-drops-stale-candidate",
+    "draft-preserved-across-mode-switch",
+    "arrow-home-end-keyboard-navigation"
+  ],
+  "focusedSuites": "src/client-chapters.test.ts passed",
+  "explicitNonGoals": [
+    "new-WorkbenchViewId",
+    "Host-contract-change",
+    "new-panel-content",
+    "candidate-or-branch-contract-change"
+  ]
+}

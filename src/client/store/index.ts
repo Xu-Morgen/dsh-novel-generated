@@ -13,8 +13,8 @@ import type { RelationshipEditor, RelationshipShape } from '../layers/relationsh
 import { newRelationshipDraft } from '../layers/relationship.js';
 import type { StateEditor, StateSnapshotShape } from '../layers/state.js';
 import type { CanonEditor, CanonEventShape } from '../layers/canon.js';
-import type { ChaptersLayerState, ChapterManagementState } from '../layers/chapters.js';
-import { freshChapters, freshSceneEditor } from '../layers/chapters.js';
+import type { ChaptersLayerState, ChapterManagementState, ChaptersMode } from '../layers/chapters.js';
+import { freshBranchPanel, freshCandidatePanel, freshChapters, freshSceneEditor } from '../layers/chapters.js';
 import type { BranchPanelState, CandidatePanelState, ChapterListItemShape, ChapterReadShape, SceneEditorState, SceneReadShape } from '../layers/chapters.js';
 import type { ReviewLayerState } from '../layers/review.js';
 import { freshReview } from '../layers/review.js';
@@ -173,15 +173,42 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       // I60 C5 章节/场景只读导航（R13-1）：选择/读取状态全部经 store 持久化，
       // 渲染层只消费快照，跨项目切换由 resetEditors 清空。
       setChapters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.chapters = { ...d.chapters, status, list: list as ChapterListItemShape[], message }; },
-      chaptersSelectChapter: (d, chapterId: string) => { d.chapters = { ...d.chapters, selectedChapterId: chapterId, selectedSceneId: undefined, chapter: { status: 'loading' }, scene: { status: 'idle' } }; },
-      chaptersSelectScene: (d, sceneId: string) => { d.chapters = { ...d.chapters, selectedSceneId: sceneId, scene: { status: 'loading' } }; },
+      // I107：导航世代随章节/场景改变；候选与版本结果属于旧目标时必须丢弃，
+      // 管理面草稿则保留，避免模式切换或读取新场景抹掉未保存编辑（R18-9）。
+      chaptersSelectChapter: (d, chapterId: string) => {
+        d.chapters = {
+          ...d.chapters,
+          selectedChapterId: chapterId,
+          selectedSceneId: undefined,
+          navigationRevision: d.chapters.navigationRevision + 1,
+          chapter: { status: 'loading' },
+          scene: { status: 'idle' },
+          candidate: freshCandidatePanel(),
+          branches: freshBranchPanel(),
+        };
+      },
+      chaptersSelectScene: (d, sceneId: string) => {
+        d.chapters = {
+          ...d.chapters,
+          selectedSceneId: sceneId,
+          navigationRevision: d.chapters.navigationRevision + 1,
+          scene: { status: 'loading' },
+          candidate: freshCandidatePanel(),
+          branches: freshBranchPanel(),
+        };
+      },
       chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
       chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },
       // I61：编辑器状态合并（与各层 draft 同一模式）；场景装载/重载时先 Reset 再初始化。
       sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },
       sceneEditorReset: (d) => { d.chapters = { ...d.chapters, editor: freshSceneEditor() }; },
       chaptersCandidate: (d, patch: Partial<CandidatePanelState>) => { d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } }; },
+      chaptersCandidateForRevision: (d, patch: Partial<CandidatePanelState>, navigationRevision: number) => {
+        if (d.chapters.navigationRevision !== navigationRevision) return;
+        d.chapters = { ...d.chapters, candidate: { ...d.chapters.candidate, ...patch } };
+      },
       chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
+      chaptersMode: (d, mode: ChaptersMode) => { d.chapters = { ...d.chapters, mode }; },
       chaptersManagement: (d, patch: Partial<ChapterManagementState>) => { d.chapters = { ...d.chapters, management: { ...d.chapters.management, ...patch } }; },
       reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
       queuePatch: (d, patch: Partial<QueueLayerState>) => { d.queue = { ...d.queue, ...patch }; },

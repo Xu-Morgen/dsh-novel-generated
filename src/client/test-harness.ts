@@ -135,6 +135,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const searchStub = mountOptions.search;
   const statisticsStub = mountOptions.statistics;
   const timelineStub = mountOptions.timeline;
+  const branchStub = mountOptions.branch;
   const textMutationStub = mountOptions.textMutation;
   const sceneOutlineBindingStub = mountOptions.sceneOutlineBinding;
   const textDeletionStub = mountOptions.textDeletion;
@@ -236,6 +237,13 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       ensureFromOutline: async () => { throw new Error('未注入 remote.novelTimeline.ensureFromOutline'); },
       setCurrentNode: async () => { throw new Error('未注入 remote.novelTimeline.setCurrentNode'); },
       save: async () => { throw new Error('未注入 remote.novelTimeline.save'); },
+    })
+    : name === 'remote.novelBranches' ? (branchStub ?? {
+      list: async () => ({ branches: [] }),
+      read: async () => ({ id: 'fixture-branch', label: 'fixture', chosen: true, content: '' }),
+      save: async () => ({ branches: [], content: '' }),
+      choose: async () => ({ branches: [], content: '' }),
+      diff: async () => ({ from: { id: 'fixture-branch', label: 'fixture', chosen: true, content: '' }, to: { id: 'fixture-branch', label: 'fixture', chosen: true, content: '' }, lines: [] }),
     })
     : name === 'remote.novelText' ? (textMutationStub ?? {
       fingerprint: async () => ({ fingerprint: 'a'.repeat(64) }),

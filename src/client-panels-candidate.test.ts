@@ -70,6 +70,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-main')?.props?.onClick as () => void)();
     await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
+    await flush();
 
     // idle：发起入口可用，无裁决按钮。
     let panel = candidatePanel(render());
@@ -94,7 +96,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     (accept()?.props?.onClick as () => void)();
     await flush();
     expect(adjudicates).toEqual(['cand-1:accept']);
-    expect(candidatePanel(render())?.props?.['data-novel-candidate-state']).toBe('done');
+    // I107：接受后重读章节会清理旧候选 target；模式徽标随之清除并回到 idle。
+    expect(candidatePanel(render())?.props?.['data-novel-candidate-state']).toBe('idle');
   });
 
   it('reject 零写：显示完成态且不再展示候选正文', async () => {
@@ -115,6 +118,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-main')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
     await flush();
@@ -143,6 +148,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
+    await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(calls).toBe(0);
@@ -167,6 +174,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-main')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
     await flush();

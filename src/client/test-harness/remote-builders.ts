@@ -14,11 +14,17 @@ export interface MountOptionsI106 {
   textDeletion?: { impact?: (projectId: string, target: unknown) => Promise<unknown>; propose?: (projectId: string, target: unknown, expectedImpactFingerprint: string) => Promise<unknown>; apply?: (projectId: string, proposalId: string) => Promise<unknown>; reject?: (projectId: string, proposalId: string) => Promise<unknown> };
 }
 
+// I107 章节模式夹具：版本 Remote 只在进入 versions 模式时才应被调用。
+export interface MountOptionsI107 {
+  branch?: { list?: (projectId: string, chapterId: string, sceneId: string) => Promise<unknown>; read?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; save?: (projectId: string, chapterId: string, sceneId: string, label: string) => Promise<unknown>; choose?: (projectId: string, chapterId: string, sceneId: string, branchId: string) => Promise<unknown>; diff?: (projectId: string, chapterId: string, sceneId: string, branchId: string, toBranchId?: string) => Promise<unknown> };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
   sceneOutlineBinding?: MountOptionsI106['sceneOutlineBinding'];
   textDeletion?: MountOptionsI106['textDeletion'];
+  branch?: MountOptionsI107['branch'];
 }
 
 export interface WorkspaceOverrides {

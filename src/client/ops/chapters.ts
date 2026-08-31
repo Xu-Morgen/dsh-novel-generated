@@ -3,7 +3,7 @@
 // I63 候选裁决（candidate 片）+ I70 版本/分支（branch 片）。
 // 三片之间互相引用的内部函数经 ChaptersInternal 晚绑定，避免循环 import。
 
-import type { ChaptersEditOps } from '../layers/chapters.js';
+import type { ChaptersEditOps, ChaptersMode } from '../layers/chapters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 import { createEditorOps } from './chapters-editor.js';
 import { createBranchOps } from './chapters-branch.js';
@@ -24,7 +24,17 @@ export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref:
   internal.branchesLoad = branch.branchesLoad;
   internal.selectChapter = editor.selectChapter;
   const management = createChaptersManagementOps(runtime, ports);
-  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops, ...management };
+  const setMode = (mode: ChaptersMode): void => {
+    runtime.act.chaptersMode(mode);
+    // I107：模式容器是唯一的 Remote 激活点；隐藏版本/素材面板不注册重复
+    // 读取。场景导航会把对应状态重置为 idle，显式重新进入即可确定性刷新。
+    if (mode === 'versions' && (runtime.snapshot.chapters.branches.status === 'idle' || runtime.snapshot.chapters.branches.status === 'error')) {
+      branch.branchesLoad();
+    } else if (mode === 'materials' && (runtime.snapshot.chapters.management.status === 'idle' || runtime.snapshot.chapters.management.status === 'error')) {
+      management.refreshManagement();
+    }
+  };
+  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops, ...management, setMode };
   ref.current = chaptersOpsResult;
   return chaptersOpsResult;
 }

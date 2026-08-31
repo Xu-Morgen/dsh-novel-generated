@@ -29,6 +29,19 @@ export interface SceneSummaryShape { id: string; index: number; summary: string;
 export interface ChapterReadShape { id: string; index: number; title: string; pov: string; status: string; scenes: SceneSummaryShape[]; [key: string]: unknown; }
 export interface SceneReadShape { id: string; index: number; summary: string; content: string; beats: string[]; canonEvents: string[]; notes: string; [key: string]: unknown; }
 
+/**
+ * I107 章节工作区唯一可见操作模式（R18-9）。模式只属于 Client 交互态；各模式
+ * 复用既有 panel/Remote，不产生新的 Host 真相或顶层 WorkbenchViewId。
+ */
+export type ChaptersMode = 'writing' | 'candidate' | 'versions' | 'materials';
+
+const CHAPTER_MODE_ITEMS = [
+  { id: 'writing', label: '正文', hint: '阅读与编辑当前场景正文' },
+  { id: 'candidate', label: '候选', hint: '生成、审阅与裁决候选' },
+  { id: 'versions', label: '版本', hint: '管理正文版本与分支' },
+  { id: 'materials', label: '素材', hint: '管理章节、场景与细纲绑定' },
+] as const satisfies ReadonlyArray<{ id: ChaptersMode; label: string; hint: string }>;
+
 export interface ChapterManagementDraft {
   id: string;
   index: number;
@@ -66,6 +79,10 @@ export interface ChaptersLayerState {
   readonly message?: string;
   readonly selectedChapterId?: string;
   readonly selectedSceneId?: string;
+  /** I107 当前唯一可见模式；模式切换不丢失各 panel 的未保存 Client 草稿。 */
+  readonly mode: ChaptersMode;
+  /** 导航世代，用于丢弃切场景后晚到的旧候选响应。 */
+  readonly navigationRevision: number;
   /** 已选章节的读取结果（元数据 + 场景摘要）。 */
   readonly chapter: { readonly status: 'idle' | 'loading' | 'ready' | 'error'; readonly read?: ChapterReadShape; readonly message?: string };
   /** 已选场景的读取结果（唯一携带正文）。 */
@@ -104,6 +121,7 @@ export interface ChaptersEditOps {
   branchChoose(branchId: string): void;
   branchDiff(branchId: string): void;
   branchCloseDiff(): void;
+  setMode(mode: ChaptersMode): void;
   chapterDraft(patch: Partial<ChapterManagementDraft>): void;
   sceneDraft(patch: Partial<SceneManagementDraft>): void;
   createChapter(): void;
@@ -128,6 +146,8 @@ export interface ChaptersEditOps {
 export function freshChapters(): ChaptersLayerState {
   return {
     status: 'loading', list: [],
+    mode: 'writing',
+    navigationRevision: 0,
     chapter: { status: 'idle' },
     scene: { status: 'idle' },
     editor: freshSceneEditor(),
@@ -142,6 +162,75 @@ export function freshChapters(): ChaptersLayerState {
       deletion: { status: 'idle' },
     },
   };
+}
+
+function modeBadge(state: ChaptersLayerState, mode: ChaptersMode): string | undefined {
+  if (mode === 'candidate') {
+    const kind = state.candidate.ui.kind;
+    return kind === 'proposing' || kind === 'ready' || kind === 'acting' ? '待处理' : undefined;
+  }
+  if (mode === 'versions') return state.branches.list.length > 0 ? String(state.branches.list.length) : undefined;
+  if (mode === 'materials') {
+    const status = state.management.deletion.status;
+    return status === 'pending' || status === 'proposing' || status === 'applying' ? '待确认' : undefined;
+  }
+  return undefined;
+}
+
+function chapterModeTabs(h: El, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+  const focusMode = (index: number, event: { key: string; preventDefault(): void }): void => {
+    const current = CHAPTER_MODE_ITEMS.findIndex((item) => item.id === state.mode);
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % CHAPTER_MODE_ITEMS.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + CHAPTER_MODE_ITEMS.length) % CHAPTER_MODE_ITEMS.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = CHAPTER_MODE_ITEMS.length - 1;
+    else return;
+    event.preventDefault();
+    const selected = CHAPTER_MODE_ITEMS[next];
+    if (selected !== undefined) ops.setMode(selected.id);
+  };
+  return h('div', { className: 'nv-chapters__modes', role: 'tablist', 'aria-label': '章节操作模式', 'data-novel-chapter-modes': '' },
+    CHAPTER_MODE_ITEMS.map((item, index) => {
+      const selected = state.mode === item.id;
+      const badge = modeBadge(state, item.id);
+      return h('button', {
+        key: item.id,
+        type: 'button',
+        role: 'tab',
+        className: 'nv-chapters__mode' + (selected ? ' is-active' : ''),
+        'data-novel-chapter-mode': item.id,
+        'aria-selected': selected,
+        'aria-controls': 'novel-chapters-mode-panel',
+        'aria-label': item.hint,
+        tabIndex: selected ? 0 : -1,
+        onClick: () => ops.setMode(item.id),
+        onKeyDown: (event: { key: string; preventDefault(): void }) => focusMode(index, event),
+      },
+        h('span', { className: 'nv-chapters__mode-label' }, item.label),
+        badge === undefined ? null : h('span', { className: 'nv-chapters__mode-badge', 'data-novel-chapter-mode-badge': item.id, 'aria-label': badge }, badge),
+      );
+    }),
+  );
+}
+
+function modePanel(h: El, projectId: string, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps, body: unknown): unknown {
+  const item = CHAPTER_MODE_ITEMS.find((candidate) => candidate.id === state.mode) ?? CHAPTER_MODE_ITEMS[0];
+  const content = state.mode === 'writing'
+    ? body
+    : state.mode === 'candidate'
+      ? candidatePanel(h, projectId, writing, state.candidate, ops)
+      : state.mode === 'versions'
+        ? branchPanel(h, projectId, branches, state.branches, ops)
+        : managementPanel(h, state, ops);
+  return h('div', {
+    id: 'novel-chapters-mode-panel',
+    className: 'nv-chapters__mode-panel',
+    role: 'tabpanel',
+    tabIndex: 0,
+    'data-novel-chapter-mode-panel': state.mode,
+    'aria-label': item.hint,
+  }, content);
 }
 
 function managementInput(h: El, label: string, value: string, onChange: (value: string) => void, data: string): unknown {
@@ -277,13 +366,9 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
               )),
     ),
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '' },
-      h('h3', { className: 'nv-editor__title' }, '正文'),
-      body,
-      // I70：版本与分支面板（R14-5）—— 只对已选中的场景展示（与正文同窗）。
-      state.scene.status === 'ready' && state.scene.item !== undefined ? branchPanel(h, projectId, branches, state.branches, ops) : null,
-      // I63：候选审阅面板（生成后裁决）挂在正文区下方。
-      candidatePanel(h, projectId, writing, state.candidate, ops),
-      managementPanel(h, state, ops),
+      h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
+      chapterModeTabs(h, state, ops),
+      modePanel(h, projectId, writing, branches, state, ops, body),
     ),
   );
 }

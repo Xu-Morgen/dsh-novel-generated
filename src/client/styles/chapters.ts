@@ -16,6 +16,60 @@ export const CHAPTERS_STYLES = `
   min-height: 0;
 }
 
+/* I107 章节区四种互斥操作模式（design §14.14 / R18-9）：tab 容器保留在
+   正文栏内；只有当前 tabpanel 进入布局，避免隐藏面板继续制造请求或焦点。 */
+.nv-chapters__modes {
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--nv-grid) * 0.5);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--nv-line);
+}
+
+.nv-chapters__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--nv-grid) * 0.35);
+  flex: 0 0 auto;
+  padding: calc(var(--nv-grid) * 0.65) calc(var(--nv-grid) * 0.8);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--nv-ink-dim);
+  cursor: pointer;
+  font-family: var(--nv-sans);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.nv-chapters__mode:hover,
+.nv-chapters__mode:focus-visible {
+  color: var(--nv-ink);
+  background: var(--nv-paper-raised);
+}
+
+.nv-chapters__mode.is-active {
+  border-bottom-color: var(--nv-cinnabar);
+  color: var(--nv-ink);
+}
+
+.nv-chapters__mode-badge {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--nv-cinnabar);
+  color: var(--nv-paper);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.nv-chapters__mode-panel {
+  min-width: 0;
+  padding-top: calc(var(--nv-grid) * 0.75);
+}
+
 .nv-chapters__pane {
   display: flex;
   flex-direction: column;

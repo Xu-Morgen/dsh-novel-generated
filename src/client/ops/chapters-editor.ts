@@ -8,8 +8,7 @@ import type { ChaptersInternal } from './chapters-internal.js';
 /**
  * I95 正文编辑 ops 片（计划 §18 I95：ops/chapters 随 layers 拆分——正文段）：
  * 章节/场景导航 + I61 受控编辑（save/reparse/脏文本保护）。跨片依赖经
- * `ChaptersInternal` 晚绑定（loadScene 调 branchesLoad；discardDraft 调
- * selectChapter），组合根负责接线。
+ * `ChaptersInternal` 晚绑定（discardDraft 调 selectChapter），组合根负责接线。
  */
 export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal: ChaptersInternal) {
   const { act, snapshot, beginOp, endOp, isActive } = runtime;
@@ -33,8 +32,6 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
       act.sceneEditorReset();
       act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
-      // I70：装载后刷新该场景的版本列表（chosen 唯一投影）。
-      internal.branchesLoad(chapterId, sceneId);
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
   };
 

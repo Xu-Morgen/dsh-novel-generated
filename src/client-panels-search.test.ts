@@ -165,6 +165,8 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
     await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'candidate')?.props?.onClick as () => void)();
+    await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-propose-continue'] === '')?.props?.onClick as () => void)();
     await flush();
     const trace = collect(render(), 'details').find((n) => n.props?.['data-novel-candidate-trace'] !== undefined);

@@ -171,6 +171,9 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
     await flush();
+    // I107：章节管理退居 materials 互斥模式，进入后才激活其 Remote 读取。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'materials')?.props?.onClick as () => void)();
+    await flush();
     const deleteButton = collect(render(), 'button').find((node) => node.props?.['data-novel-scene-delete'] === 'scene-1');
     (deleteButton?.props?.onClick as () => void)();
     await flush();
@@ -182,6 +185,113 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     await flush();
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-deletion-state'] === 'done')).toBe(true);
     expect(listReads).toBeGreaterThan(0);
+  });
+
+  it('I107 章节区四种模式互斥：隐藏面板零读取，导航世代丢弃旧候选，草稿与键盘焦点行为保持确定', async () => {
+    let branchReads = 0;
+    let fingerprintReads = 0;
+    let bindingReads = 0;
+    let previewReads = 0;
+    let resolvePropose: ((value: unknown) => void) | undefined;
+    const m = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
+      chapterList: async () => CHAPTER_LIST,
+      chapterRead: async () => CHAPTER_1_READ,
+      sceneRead: async (_projectId, _chapterId, sceneId) => (sceneId === 'scene-1' ? SCENE_1_READ : SCENE_2_READ),
+    }, {
+      branch: {
+        list: async () => {
+          branchReads += 1;
+          return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 8, hash: 'hash-1' }] };
+        },
+      },
+      writing: {
+        proposeAt: async () => new Promise((resolve) => { resolvePropose = resolve; }),
+        preview: async () => {
+          previewReads += 1;
+          return { candidateId: 'candidate-old', intent: 'continue', text: '旧候选', target: { chapterId: 'chapter-1', sceneId: 'scene-1' }, diff: { kind: 'new-scene' }, validation: { status: 'pass', violations: [] }, trace: undefined };
+        },
+      },
+      textMutation: { fingerprint: async () => { fingerprintReads += 1; return { fingerprint: 'a'.repeat(64) }; } },
+      sceneOutlineBinding: { read: async () => { bindingReads += 1; return { manual: [], effective: [], fingerprint: 'b'.repeat(64) }; } },
+    });
+    await flush();
+    const render = () => m.registrations['shell.overlay'][0].component() as FakeNode;
+    (navButton(render(), 'chapters')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+
+    const mode = (name: string): FakeNode | undefined => collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === name);
+    const modePanel = () => collect(render(), 'div').find((node) => node.props?.['data-novel-chapter-mode-panel'] !== undefined);
+    const visiblePanelCount = () => collect(render(), 'div').filter((node) => node.props?.['data-novel-chapter-mode-panel'] !== undefined).length;
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('writing');
+    expect(visiblePanelCount()).toBe(1);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(false);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(false);
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-chapter-management'] !== undefined)).toBe(false);
+    expect(branchReads).toBe(0);
+    expect(fingerprintReads).toBe(0);
+    expect(bindingReads).toBe(0);
+
+    (mode('candidate')?.props?.onClick as () => void)();
+    await flush();
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('candidate');
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(true);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(false);
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-chapter-management'] !== undefined)).toBe(false);
+    expect(branchReads).toBe(0);
+    expect(fingerprintReads).toBe(0);
+    expect(bindingReads).toBe(0);
+
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-candidate-propose-continue'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    const sceneTwo = collect(render(), 'button').find((node) => node.props?.['data-novel-scene-item'] === 'scene-2');
+    (sceneTwo?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-candidate-panel'] !== undefined)?.props?.['data-novel-candidate-state']).toBe('idle');
+    resolvePropose?.({ ok: true, value: { candidate: { id: 'candidate-old' } } });
+    await flush();
+    expect(previewReads).toBe(1);
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-candidate-panel'] !== undefined)?.props?.['data-novel-candidate-state']).toBe('idle');
+
+    (mode('versions')?.props?.onClick as () => void)();
+    await flush();
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('versions');
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(true);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-candidate-panel'] !== undefined)).toBe(false);
+    expect(branchReads).toBe(1);
+    (mode('writing')?.props?.onClick as () => void)();
+    await flush();
+    (mode('versions')?.props?.onClick as () => void)();
+    await flush();
+    expect(branchReads).toBe(1);
+
+    (mode('materials')?.props?.onClick as () => void)();
+    await flush();
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('materials');
+    expect(collect(render(), 'div').some((node) => node.props?.['data-novel-chapter-management'] !== undefined)).toBe(true);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-branch-panel'] !== undefined)).toBe(false);
+    expect(fingerprintReads).toBe(1);
+    expect(bindingReads).toBe(1);
+
+    (mode('writing')?.props?.onClick as () => void)();
+    await flush();
+    (mode('writing')?.props?.onKeyDown as (event: { key: string; preventDefault(): void }) => void)({ key: 'ArrowRight', preventDefault() {} });
+    await flush();
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('candidate');
+    (mode('candidate')?.props?.onKeyDown as (event: { key: string; preventDefault(): void }) => void)({ key: 'Home', preventDefault() {} });
+    await flush();
+    expect(modePanel()?.props?.['data-novel-chapter-mode-panel']).toBe('writing');
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-scene-edit'] !== undefined)?.props?.onClick as () => void)();
+    await flush();
+    const textarea = collect(render(), 'textarea').find((node) => node.props?.['data-novel-scene-text'] !== undefined);
+    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '保留中的未保存稿' } });
+    await flush();
+    (mode('candidate')?.props?.onClick as () => void)();
+    await flush();
+    (mode('writing')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'textarea').find((node) => node.props?.['data-novel-scene-text'] !== undefined)?.props?.value).toBe('保留中的未保存稿');
   });
 });
 
