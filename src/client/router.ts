@@ -1,4 +1,4 @@
-import type { EntityLink } from '../core/schema/link.js';
+import type { EntityLink, TextAnchor } from '../core/schema/link.js';
 import type { SearchHitShape } from './layers/search.js';
 import type { ChaptersMode } from './layers/chapters.js';
 import type { WorkbenchState } from './store/types.js';
@@ -19,6 +19,7 @@ export interface RouteFilter {
 export interface RouteFocus {
   readonly kind: EntityLink['kind'];
   readonly id: string;
+  readonly anchor?: TextAnchor;
 }
 
 /** Rebuildable Client route; it contains no domain projection or prose. */
@@ -106,7 +107,7 @@ export function routeForLink(projectId: string, link: EntityLink): RouteResult {
         projectId, view: 'chapters', mode: 'writing',
         selection: { chapterId: link.chapterId, sceneId: link.sceneId },
         filter: { searchQuery: '', searchPov: '', searchReferenceKey: '' },
-        focus: { kind: 'text', id: `${link.chapterId}:${link.sceneId}` },
+        focus: { kind: 'text', id: `${link.chapterId}:${link.sceneId}`, ...(link.anchor === undefined ? {} : { anchor: link.anchor }) },
       },
     };
   }
@@ -156,7 +157,7 @@ export function linkForRouteFocus(route: WorkbenchRoute): EntityLink | undefined
   if (route.focus === undefined) return undefined;
   if (route.focus.kind === 'text') {
     if (route.selection.chapterId === undefined || route.selection.sceneId === undefined) return undefined;
-    return { projectId: route.projectId, kind: 'text', chapterId: route.selection.chapterId, sceneId: route.selection.sceneId };
+    return { projectId: route.projectId, kind: 'text', chapterId: route.selection.chapterId, sceneId: route.selection.sceneId, ...(route.focus.anchor === undefined ? {} : { anchor: route.focus.anchor }) };
   }
   return { projectId: route.projectId, kind: route.focus.kind, entityId: route.focus.id };
 }

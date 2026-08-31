@@ -7,6 +7,7 @@ export type {
   WorkspaceNamespace,
   WritingNamespace,
   ReviewNamespace,
+  ReviewRepairNamespace,
   QueueNamespace,
   KnowledgeNamespace,
   RuleStyleNamespace,
@@ -26,10 +27,12 @@ export type {
   LongDraftNamespace,
   RemoteResult,
 } from './remote-namespace.js';
+export type { ReviewRepairProposalShape } from '../host/remote/review-repair.js';
 import type {
   WorkspaceNamespace,
   WritingNamespace,
   ReviewNamespace,
+  ReviewRepairNamespace,
   QueueNamespace,
   KnowledgeNamespace,
   RuleStyleNamespace,

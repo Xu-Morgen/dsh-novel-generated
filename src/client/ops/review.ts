@@ -4,12 +4,13 @@
 import { unwrap } from '../shared.js';
 import type { ReviewAdjudicationOutcomeShape, ReviewAuditRecordShape, ReviewEditOps, ReviewLayerState, ReviewProjectionShape } from '../layers/review.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
-type ReviewPort = Pick<OpsPorts, 'reviewNamespace'>;
+type ReviewPort = Pick<OpsPorts, 'reviewNamespace' | 'reviewRepairNamespace'>;
 
 export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEditOps {
   const { act, snapshot, beginOp, endOp, isActive } = runtime;
   const projectId = runtime.projectId;
   const reviewNamespace = port.reviewNamespace;
+  const reviewRepairNamespace = port.reviewRepairNamespace;
       const reviewPatch = (patch: Partial<ReviewLayerState>): void => act.reviewPatch(patch);
       const toggleFilter = (kind: 'categories' | 'severities' | 'statuses', value: string): void => {
         const filter = snapshot.review.filter;
@@ -34,7 +35,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
             if (!isActive()) return;
             // I77：records wire 契约即裸数组（组合根不再包 envelope）。
             const records = (recordList as ReviewAuditRecordShape[] | undefined) ?? [];
-            reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined });
+            reviewPatch({ status: 'ready', projection: projection as ReviewProjectionShape, records, selected: [], message: undefined, repairStatus: 'idle', repairIssueId: undefined, repairCandidate: undefined, repairMessage: undefined });
           }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ status: 'error', message: (cause as Error).message }); });
         },
         toggleFilter,
@@ -64,6 +65,23 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
             });
           }, (cause: Error) => { release(); if (!isActive()) return; reviewPatch({ acting: false, message: (cause as Error).message }); });
         },
-        dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [] }); },
+        repair(issueId: string): void {
+          const target = reviewRepairNamespace;
+          if (!target || projectId === undefined) { reviewPatch({ repairStatus: 'error', repairIssueId: issueId, repairMessage: '审校修复服务不可用' }); return; }
+          const key = `review:repair:${issueId}`;
+          if (!beginOp(key)) return;
+          const release = (): void => endOp(key);
+          reviewPatch({ repairStatus: 'generating', repairIssueId: issueId, repairCandidate: undefined, repairMessage: undefined });
+          void unwrap(target.propose(projectId, { issueId }, undefined)).then((proposal) => {
+            release();
+            if (!isActive()) return;
+            reviewPatch({ repairStatus: 'ready', repairIssueId: issueId, repairCandidate: proposal, repairMessage: undefined });
+          }, (cause: Error) => {
+            release();
+            if (!isActive()) return;
+            reviewPatch({ repairStatus: 'error', repairIssueId: issueId, repairCandidate: undefined, repairMessage: cause.message });
+          });
+        },
+        dismiss() { reviewPatch({ status: 'idle', projection: undefined, message: undefined, selected: [], acting: false, records: [], repairStatus: 'idle', repairIssueId: undefined, repairCandidate: undefined, repairMessage: undefined }); },
       };
 }

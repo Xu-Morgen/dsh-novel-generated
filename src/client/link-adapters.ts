@@ -1,4 +1,4 @@
-import type { EntityLink } from '../core/schema/link.js';
+import type { EntityLink, TextAnchor } from '../core/schema/link.js';
 import type { El } from './shared.js';
 
 /** Thin panel-side seam: adapters construct links; Router owns navigation. */
@@ -10,8 +10,8 @@ export function entityContextLink(projectId: string, kind: Exclude<EntityLink['k
   return { projectId, kind, entityId };
 }
 
-export function textContextLink(projectId: string, chapterId: string, sceneId: string): EntityLink {
-  return { projectId, kind: 'text', chapterId, sceneId };
+export function textContextLink(projectId: string, chapterId: string, sceneId: string, anchor?: TextAnchor): EntityLink {
+  return { projectId, kind: 'text', chapterId, sceneId, ...(anchor === undefined ? {} : { anchor }) };
 }
 
 /** Shared accessible affordance used by source panels; no projection lookup happens here. */

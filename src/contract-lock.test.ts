@@ -22,6 +22,7 @@ import { outlineReconciliationApplicationInvocations, outlineReconciliationPlann
 import { referenceAuditInvocations } from './host/remote/reference-audit.js';
 import { referenceCorrectionInvocations } from './host/remote/reference-correction.js';
 import { longDraftInvocations } from './host/remote/long-draft.js';
+import { reviewRepairInvocations } from './host/remote/review-repair.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -76,6 +77,7 @@ const stage18Descriptors = [
   ...referenceAuditInvocations,
   ...referenceCorrectionInvocations,
   ...longDraftInvocations,
+  ...reviewRepairInvocations,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
@@ -97,6 +99,7 @@ const stage18ResultDescriptors = [
   ...referenceAuditInvocations,
   ...referenceCorrectionInvocations,
   ...longDraftInvocations,
+  ...reviewRepairInvocations,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -160,16 +163,16 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
     const oldDescriptors = Object.fromEntries(remoteLock.descriptorIds.slice(0, 115).map((id) => [id, remoteLock.descriptors[id]]));
     const oldResults = Object.fromEntries(remoteLock.resultSchemaIds.slice(0, 24).map((id) => [id, remoteLock.resultSchemas[id]]));
     expect(createHash('sha256').update(JSON.stringify(oldDescriptors)).digest('hex'))
-      .toBe('12e5dcd4fe8b0e6623f8c680c51160d2279fbf01ed8450bb51c7f127a6734cbc');
+      .toBe('30846a5d98213b32f77033374b31e21c9e7f0641ca9798f11f0b81084d000d86');
     expect(createHash('sha256').update(JSON.stringify(oldResults)).digest('hex'))
-      .toBe('b5cf806081ee0fe48c6aac912d3d020b7efc276a084acdac1d66fc28dd16611d');
+      .toBe('2d1e8f69102f7fa951ee480f4fc6833fed716add8f7c8aa306751ebe6fbc34ed');
   });
 
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(158);
-    expect(remoteLock.resultSchemaIds).toHaveLength(64);
+    expect(remoteLock.descriptorIds).toHaveLength(159);
+    expect(remoteLock.resultSchemaIds).toHaveLength(65);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -184,6 +187,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       ...referenceAuditInvocations.map((descriptor) => descriptor.id),
       ...referenceCorrectionInvocations.map((descriptor) => descriptor.id),
       ...longDraftInvocations.map((descriptor) => descriptor.id),
+      ...reviewRepairInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -197,6 +201,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       ...referenceAuditInvocations.map((descriptor) => descriptor.id),
       ...referenceCorrectionInvocations.map((descriptor) => descriptor.id),
       ...longDraftInvocations.map((descriptor) => descriptor.id),
+      ...reviewRepairInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

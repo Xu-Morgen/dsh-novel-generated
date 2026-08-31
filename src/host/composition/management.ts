@@ -6,6 +6,7 @@ import { createTextEditService as createControlledTextEditService } from '../tex
 import { createWritingCandidateService } from '../candidate-service.js';
 import { createWritingAdjudicationService, type WritingProposeAtInput, type WritingProposeInput } from '../writing-adjudication-service.js';
 import { createReviewService } from '../review-service.js';
+import { createReviewRepairWorkflow, type ReviewRepairWorkflow } from '../review-repair-workflow.js';
 import { createQueueService, type QueueStartAtInput, type QueueStartInput } from '../queue-service.js';
 import { createTextDeletionService } from '../text-deletion-service.js';
 import { createTextDeletionRemote } from '../text-deletion-adapter.js';
@@ -18,12 +19,14 @@ import { createLongDraftWorkflowCoordinator } from '../long-draft-workflow-coord
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
+import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
 import { defineRemote } from '../remote/shared.js';
 import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
 import { reviewInvocations } from '../remote/review.js';
+import { reviewRepairInvocations } from '../remote/review-repair.js';
 import { queueInvocations } from '../remote/queue.js';
 import { textChangeImpactInvocations } from '../remote/text-change-impact.js';
 import { outlineReconciliationInvocations } from '../remote/outline-reconciliation.js';
@@ -249,6 +252,20 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     // （架构审查 §8#1）。
     { method: 'records', call: (projectId: string) => reviewService.records(projectId) },
   ], reviewInvocations));
+  // I128 R18-3a：修复只读取最近一次 Host scan 并委托既有 writing owner 生成
+  // rewrite candidate；没有 resolved ledger，也没有直接写入 C5 的旁路。
+  const reviewRepairService = createReviewRepairWorkflow({
+    review: reviewService,
+    text: textService,
+    writing: writingAdjudicationService,
+  });
+  ctx.provide('novelReviewRepair', defineRemote('novelReviewRepair', 'novelReviewRepair', reviewRepairService, [
+    {
+      method: 'propose',
+      call: async (projectId: string, input: ReviewRepairInput, settings?: GenerationSettings) =>
+        reviewRepairService.propose(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))),
+    },
+  ], reviewRepairInvocations));
   // I65 可恢复自动生成队列（design §14.9 / R13-6）：Host 持有按场景卡范围执行的
   // 生成队列，支持暂停/继续/取消、重试、预算与停止策略。队列只编排生成——候选经
   // I62（零写）产生并注册进 I63（registerRecoveredCandidate，作者在裁决面板
@@ -387,5 +404,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     referenceAuditService,
     referenceCorrectionService,
     longDraftWorkflowCoordinator,
+    reviewRepairService,
   };
 }

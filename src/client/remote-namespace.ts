@@ -26,6 +26,7 @@ import type {
   progressRemoteContribution,
   queueRemoteContribution,
   reviewRemoteContribution,
+  reviewRepairRemoteContribution,
   ruleStyleRemoteContribution,
   searchRemoteContribution,
   sceneOutlineBindingRemoteContribution,
@@ -84,6 +85,7 @@ export type NamespaceOf<C extends TypertRemoteContribution> = {
 export type WorkspaceNamespace = NamespaceOf<typeof workspaceRemoteContribution>;
 export type WritingNamespace = NamespaceOf<typeof writingRemoteContribution>;
 export type ReviewNamespace = NamespaceOf<typeof reviewRemoteContribution>;
+export type ReviewRepairNamespace = NamespaceOf<typeof reviewRepairRemoteContribution>;
 export type QueueNamespace = NamespaceOf<typeof queueRemoteContribution>;
 export type KnowledgeNamespace = NamespaceOf<typeof knowledgeRemoteContribution>;
 export type RuleStyleNamespace = NamespaceOf<typeof ruleStyleRemoteContribution>;

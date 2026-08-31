@@ -2,6 +2,9 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { detectForbiddenExpressions } from '../core/validate/index.js';
+import { createTextAnchor } from '../core/schema/link.js';
+import { findTextOccurrences } from '../core/link/index.js';
+import { textContentHash } from '../core/text/index.js';
 import {
   projectSceneIssues,
   summarizeReviewIssues,
@@ -78,6 +81,8 @@ export interface NovelReviewService {
   ): Promise<ReviewAdjudicationOutcome>;
   /** 审计记录只读列表。 */
   records(projectId: string): Promise<readonly ReviewAuditRecord[]>;
+  /** Host-only latest-scan lookup; client payloads never define the repair target. */
+  current(projectId: string, issueId: string): ReviewIssue;
 }
 
 export interface ReviewAdjudicationOutcome {
@@ -146,6 +151,17 @@ export function createReviewService(deps: ReviewServiceDeps): NovelReviewService
         for (const scene of chapter.scenes) {
           const prose = scene.content.trim();
           if (prose.length === 0) continue;
+          const sourceHash = textContentHash(scene.content);
+          const anchorFor = (violation: SceneViolation) => {
+            const matches = violation.references
+              .filter((reference) => reference.length > 0)
+              .flatMap((reference) => findTextOccurrences(scene.content, reference).map((start) => ({ reference, start })));
+            // A detector may emit ids as references. Only a single exact textual
+            // reference is safe to expose as a range; ambiguity stays scene-level.
+            if (matches.length !== 1) return undefined;
+            const match = matches[0];
+            return createTextAnchor(scene.content, match.start, match.start + match.reference.length, sourceHash);
+          };
           const violations: SceneViolation[] = [];
           // 确定性风格检查（I20 forbidden-expression，无 LLM）。
           for (const violation of detectForbiddenExpressions(prose, styleForbidden)) violations.push(violation);
@@ -164,7 +180,7 @@ export function createReviewService(deps: ReviewServiceDeps): NovelReviewService
             }, resolved, controller.signal),
           ]);
           for (const violation of [...hard.violations, ...leak.violations, ...soft.violations]) violations.push(violation);
-          issues.push(...projectSceneIssues(chapter.id, scene.id, violations));
+          issues.push(...projectSceneIssues(chapter.id, scene.id, violations, { sourceHash, anchorFor }));
         }
       }
       return Object.freeze(issues);
@@ -233,6 +249,14 @@ export function createReviewService(deps: ReviewServiceDeps): NovelReviewService
     async records(projectId: string) {
       const journal = await journalOf(projectId);
       return journal.list(projectId);
+    },
+    current(projectId: string, issueId: string) {
+      validateProjectId(projectId);
+      const projection = lastScans.get(projectId);
+      if (projection === undefined) throw new Error('审校结果已失效：请先刷新审校（scan）后再修复');
+      const issue = projection.issues.find((candidate) => candidate.id === issueId);
+      if (issue === undefined) throw new Error(`未知审校问题：${issueId}（请刷新审校结果）`);
+      return issue;
     },
   });
   return service;

@@ -1,0 +1,162 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": [
+    "style-forbidden",
+    "rule-canon",
+    "canon-fact",
+    "knowledge-leak",
+    "relationship-drift",
+    "style-tone",
+    "rule-wording",
+    "knowledge-boundary",
+    "canon-detail"
+  ],
+  "heldOutCaseIds": ["heldout-style", "heldout-relationship", "heldout-knowledge"],
+  "cases": [
+    {
+      "id": "style-forbidden",
+      "category": "style",
+      "severity": "soft",
+      "kind": "forbidden-expression",
+      "message": "正文包含禁用表达。",
+      "references": ["突然之间"],
+      "prose": "突然之间，米拉抬起头。",
+      "quote": "突然之间",
+      "instruction": "去掉禁用表达，保留米拉抬头这一动作。",
+      "expected": "米拉抬起头。"
+    },
+    {
+      "id": "rule-canon",
+      "category": "rule",
+      "severity": "hard",
+      "kind": "immutable-rule",
+      "message": "正文违反不可变规则。",
+      "references": ["rule-no-magic"],
+      "prose": "米拉念出咒语，石门随即打开。",
+      "quote": "念出咒语",
+      "instruction": "修复违反规则的动作，不得引入魔法能力。",
+      "expected": "米拉转动石门上的机关，石门随即打开。"
+    },
+    {
+      "id": "canon-fact",
+      "category": "canon",
+      "severity": "hard",
+      "kind": "canon-conflict",
+      "message": "正文与正史事实冲突。",
+      "references": ["canon-lighthouse"],
+      "prose": "林恩从未见过旧灯塔。",
+      "quote": "从未见过旧灯塔",
+      "instruction": "修复与正史冲突的事实，保持句子其余信息。",
+      "expected": "林恩曾在旧灯塔外等过米拉。"
+    },
+    {
+      "id": "knowledge-leak",
+      "category": "knowledge",
+      "severity": "hard",
+      "kind": "knowledge-leak",
+      "message": "当前 POV 不应知道该秘密。",
+      "references": ["secret-map"],
+      "prose": "米拉知道地下室藏着旧地图。",
+      "quote": "知道地下室藏着旧地图",
+      "instruction": "移除 POV 不应掌握的秘密，只保留可观察线索。",
+      "expected": "米拉注意到地下室门缝下透出一线微光。"
+    },
+    {
+      "id": "relationship-drift",
+      "category": "relationship",
+      "severity": "soft",
+      "kind": "relationship-drift",
+      "message": "人物关系表现与当前关系状态偏离。",
+      "references": ["rel-mira-lynn"],
+      "prose": "关系紧张的两人亲密地拥抱。",
+      "quote": "亲密地拥抱",
+      "instruction": "调整动作以符合紧张关系，不改变两人的在场。",
+      "expected": "关系紧张的两人隔着一步的距离对峙。"
+    },
+    {
+      "id": "style-tone",
+      "category": "style",
+      "severity": "soft",
+      "kind": "style-deviation",
+      "message": "句子节奏偏离当前文风。",
+      "references": ["style-quiet"],
+      "prose": "米拉猛地、极其迅速地冲向门口！",
+      "quote": "猛地、极其迅速地",
+      "instruction": "收敛夸张副词和标点，保留冲向门口的动作。",
+      "expected": "米拉快步走向门口。"
+    },
+    {
+      "id": "rule-wording",
+      "category": "rule",
+      "severity": "hard",
+      "kind": "immutable-rule",
+      "message": "正文使用了规则禁止的称谓。",
+      "references": ["forbidden-title"],
+      "prose": "守门人称那座城为永恒之都。",
+      "quote": "永恒之都",
+      "instruction": "删除被禁止的称谓，不新增世界观事实。",
+      "expected": "守门人称那座城为北港。"
+    },
+    {
+      "id": "knowledge-boundary",
+      "category": "knowledge",
+      "severity": "hard",
+      "kind": "knowledge-leak",
+      "message": "林恩尚未得知该事件。",
+      "references": ["event-hidden"],
+      "prose": "林恩准确说出了米拉昨夜藏起钥匙的地点。",
+      "quote": "准确说出了米拉昨夜藏起钥匙的地点",
+      "instruction": "改为林恩能够观察到的反应，不泄露钥匙地点。",
+      "expected": "林恩看着米拉，没有追问她昨夜去了哪里。"
+    },
+    {
+      "id": "canon-detail",
+      "category": "canon",
+      "severity": "hard",
+      "kind": "canon-conflict",
+      "message": "正文改变了已确认的事件地点。",
+      "references": ["canon-harbor"],
+      "prose": "米拉在王宫找到了那封信。",
+      "quote": "在王宫找到了那封信",
+      "instruction": "恢复已确认的地点，不改变找到信件这一事件。",
+      "expected": "米拉在北港找到了那封信。"
+    },
+    {
+      "id": "heldout-style",
+      "category": "style",
+      "severity": "soft",
+      "kind": "forbidden-expression",
+      "message": "正文包含重复的禁用表达。",
+      "references": ["不由自主地"],
+      "prose": "她不由自主地后退了一步。",
+      "quote": "不由自主地",
+      "instruction": "删去禁用表达，保留后退动作。",
+      "expected": "她后退了一步。"
+    },
+    {
+      "id": "heldout-relationship",
+      "category": "relationship",
+      "severity": "soft",
+      "kind": "relationship-drift",
+      "message": "人物称呼与关系状态不一致。",
+      "references": ["rel-lin-guard"],
+      "prose": "林恩亲切地称守卫为老朋友。",
+      "quote": "亲切地称守卫为老朋友",
+      "instruction": "改为符合疏离关系的称呼，不增加新事实。",
+      "expected": "林恩只称守卫为先生。"
+    },
+    {
+      "id": "heldout-knowledge",
+      "category": "knowledge",
+      "severity": "hard",
+      "kind": "knowledge-leak",
+      "message": "POV 不应直接知道门后的身份。",
+      "references": ["secret-identity"],
+      "prose": "米拉知道门后站着失踪的船长。",
+      "quote": "知道门后站着失踪的船长",
+      "instruction": "改写为未知身份的听觉线索，不揭示船长身份。",
+      "expected": "米拉听见门后有人压低声音呼吸。"
+    }
+  ]
+}

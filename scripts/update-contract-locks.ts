@@ -32,6 +32,7 @@ import { outlineReconciliationApplicationInvocations, outlineReconciliationPlann
 import { referenceAuditInvocations } from '../src/host/remote/reference-audit.js';
 import { referenceCorrectionInvocations } from '../src/host/remote/reference-correction.js';
 import { longDraftInvocations } from '../src/host/remote/long-draft.js';
+import { reviewRepairInvocations } from '../src/host/remote/review-repair.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -158,6 +159,7 @@ for (const lock of EXISTING_LOCKS) {
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
     ...longDraftInvocations,
+    ...reviewRepairInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -179,6 +181,7 @@ for (const lock of EXISTING_LOCKS) {
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
     ...longDraftInvocations,
+    ...reviewRepairInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

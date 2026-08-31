@@ -1,0 +1,20 @@
+{
+  "iteration": "I128",
+  "requirement": "R18-3a",
+  "guarantees": [
+    "review-scan-projects-stable-fingerprint-source-hash-and-unique-utf16-anchor",
+    "repair-reads-latest-host-scan-and-rejects-stale-or-mismatched-evidence",
+    "repair-delegates-to-existing-writing-adjudication-owner-as-zero-write-candidate",
+    "hard-issues-can-produce-candidates-but-no-automatic-accept-or-resolved-ledger",
+    "review-router-and-client-panel-preserve-exact-anchor-and-candidate-lineage",
+    "repair-dev-and-held-out-fake-backend-samples-pass-threshold"
+  ],
+  "focusedSuites": "I128 core issue, prompt sample, Host workflow, Client router/panel, binder, and contract-lock suites passed",
+  "explicitNonGoals": [
+    "resolved-ledger",
+    "direct-c5-write",
+    "automatic-hard-issue-accept",
+    "review-threshold-change",
+    "new-rewrite-engine"
+  ]
+}

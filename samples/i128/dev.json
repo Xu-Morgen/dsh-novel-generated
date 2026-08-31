@@ -1,0 +1,14 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "style-forbidden",
+    "rule-canon",
+    "canon-fact",
+    "knowledge-leak",
+    "relationship-drift",
+    "style-tone",
+    "rule-wording",
+    "knowledge-boundary",
+    "canon-detail"
+  ]
+}

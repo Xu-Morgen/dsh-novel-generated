@@ -1,4 +1,4 @@
-import type { El, ReviewNamespace } from '../shared.js';
+import type { El, ReviewNamespace, ReviewRepairProposalShape } from '../shared.js';
 import { filterReviewIssues } from '../../core/review/issue.js';
 import { contextLinkButton, textContextLink, type ContextLinkSink } from '../link-adapters.js';
 
@@ -33,7 +33,7 @@ export interface ReviewIssueShape {
   readonly kind: string;
   readonly message: string;
   readonly references: readonly string[];
-  readonly location?: { readonly chapterId: string; readonly sceneId: string };
+  readonly location?: { readonly chapterId: string; readonly sceneId: string; readonly anchor?: { readonly start: number; readonly end: number; readonly quote: string; readonly sourceHash: string } };
   readonly status: 'open' | 'continued' | 'rewrite-requested';
 }
 export interface ReviewProjectionShape {
@@ -67,6 +67,7 @@ export interface ReviewFilterShape {
 }
 
 export type ReviewUiStatus = 'idle' | 'scanning' | 'ready' | 'error';
+export type ReviewRepairUiStatus = 'idle' | 'generating' | 'ready' | 'error';
 
 export interface ReviewLayerState {
   readonly status: ReviewUiStatus;
@@ -77,6 +78,11 @@ export interface ReviewLayerState {
   readonly acting: boolean;
   /** 审计记录（scan/adjudicate 后随投影刷新，展示显式裁决证据）。 */
   readonly records: readonly ReviewAuditRecordShape[];
+  /** I128 transient repair candidate; Host owns candidate registration and C5 remains untouched. */
+  readonly repairStatus: ReviewRepairUiStatus;
+  readonly repairIssueId?: string;
+  readonly repairCandidate?: ReviewRepairProposalShape;
+  readonly repairMessage?: string;
 }
 
 export interface ReviewEditOps {
@@ -85,11 +91,12 @@ export interface ReviewEditOps {
   clearFilters(): void;
   selectIssue(issueId: string): void;
   adjudicate(decision: 'continue' | 'rewrite-requested'): void;
+  repair(issueId: string): void;
   dismiss(): void;
 }
 
 export function freshReview(): ReviewLayerState {
-  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [] };
+  return { status: 'idle', filter: { categories: [], severities: [], statuses: [] }, selected: [], acting: false, records: [], repairStatus: 'idle' };
 }
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
@@ -123,7 +130,7 @@ function filterRow(h: El, label: string, kind: 'categories' | 'severities' | 'st
 }
 
 /** 单条问题卡：严重度徽标 + 分类 + kind + 消息 + 引用 + 正文定位 + 状态 + 勾选。 */
-function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: boolean, selectIssue: (issueId: string) => void, links?: ContextLinkSink): unknown {
+function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: boolean, selectIssue: (issueId: string) => void, repair: (issueId: string) => void, repairBusy: boolean, links?: ContextLinkSink): unknown {
   return h('li', { className: 'nv-review__issue nv-review__issue--' + issue.severity, 'data-novel-review-issue': issue.id, 'data-novel-review-issue-severity': issue.severity },
     h('label', { className: 'nv-review__issue-select' },
       h('input', { type: 'checkbox', 'data-novel-review-select': issue.id, checked: selected, onChange: () => selectIssue(issue.id) }),
@@ -139,7 +146,10 @@ function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: 
         issue.references.length === 0 ? null : ` · 引用：${issue.references.join('、')}`,
         ` · 状态：${STATUS_LABELS[issue.status] ?? issue.status}`,
       ),
-      issue.location === undefined ? null : contextLinkButton(h, '定位正文', 'review', textContextLink(projectId, issue.location.chapterId, issue.location.sceneId), links),
+      issue.location === undefined ? null : h('div', { className: 'nv-review__issue-actions' },
+        contextLinkButton(h, '定位正文', 'review', textContextLink(projectId, issue.location.chapterId, issue.location.sceneId, issue.location.anchor), links),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--link', 'data-novel-review-repair': issue.id, disabled: repairBusy, onClick: () => repair(issue.id) }, repairBusy ? '正在生成…' : '生成修复候选'),
+      ),
     ),
   );
 }
@@ -191,7 +201,18 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
       issues.length === 0
         ? h('p', { className: 'nv-review__empty', 'data-novel-review-empty': '' }, '当前过滤下没有问题。')
         : h('ul', { className: 'nv-review__issues', 'data-novel-review-issues': '' },
-          issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, links))),
+          issues.map((issue) => issueCard(h, projectId, issue, state.selected.includes(issue.id), ops.selectIssue, ops.repair, state.repairStatus === 'generating', links))),
+      state.repairStatus === 'generating'
+        ? h('p', { className: 'nv-review__repair-status', 'data-novel-review-repair-generating': '', role: 'status', 'aria-live': 'polite' }, '正在生成修复候选…')
+        : state.repairStatus === 'error'
+          ? h('p', { className: 'nv-review__repair-error', 'data-novel-review-repair-error': '', role: 'alert' }, state.repairMessage ?? '修复候选生成失败')
+          : state.repairCandidate === undefined ? null : h('section', { className: 'nv-review__repair-candidate', 'data-novel-review-repair-candidate': state.repairCandidate.candidate.id },
+            h('h4', null, '修复候选（待作者审阅）'),
+            h('p', { className: 'nv-review__issue-meta' }, `问题指纹：${state.repairCandidate.issueFingerprint} · 目标：${state.repairCandidate.target.chapterId}/${state.repairCandidate.target.sceneId}`),
+            state.repairCandidate.anchor === undefined ? null : h('p', { className: 'nv-review__issue-meta' }, `精确引文：${state.repairCandidate.anchor.quote}`),
+            h('pre', { className: 'nv-review__repair-text' }, state.repairCandidate.candidate.text),
+            h('p', { className: 'nv-review__issue-meta' }, '候选已注册到既有写作裁决 owner；未自动接受或修改正文。'),
+          ),
       h('div', { className: 'nv-editor__actions' },
         h('button', {
           type: 'button',

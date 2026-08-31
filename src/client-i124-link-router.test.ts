@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanupClientTestEnv, collect, flush, mount, READY_MODEL, type FakeNode } from './client/test-harness.js';
-import { captureRoute, freshRouter, linkFromSearchHit, popRoute, pushRoute, routeForLink } from './client/router.js';
+import { captureRoute, freshRouter, linkForRouteFocus, linkFromSearchHit, popRoute, pushRoute, routeForLink } from './client/router.js';
 import { freshWorkbenchState } from './client/store/index.js';
 
 afterEach(cleanupClientTestEnv);
@@ -34,6 +34,15 @@ describe('I124 Client router/back-stack', () => {
     expect(linkFromSearchHit('book', TEXT_HIT)).toMatchObject({ ok: true, link: { kind: 'text', chapterId: 'chapter-1', sceneId: 'scene-2' } });
     expect(linkFromSearchHit('book', { ...TEXT_HIT, nav: { kind: 'text', chapterId: 'chapter-1' } })).toMatchObject({ ok: false, error: { code: 'invalid-link' } });
     expect(routeForLink('book', { projectId: 'other', kind: 'character', entityId: 'mira' })).toMatchObject({ ok: false, error: { code: 'cross-project' } });
+  });
+
+  it('I128 preserves an exact text anchor through route/back-stack link conversion', () => {
+    const anchor = { start: 2, end: 4, quote: '突然', sourceHash: 'a'.repeat(64) };
+    const result = routeForLink('book', { projectId: 'book', kind: 'text', chapterId: 'chapter-1', sceneId: 'scene-2', anchor });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.route.focus?.anchor).toEqual(anchor);
+    expect(linkForRouteFocus(result.route)).toEqual({ projectId: 'book', kind: 'text', chapterId: 'chapter-1', sceneId: 'scene-2', anchor });
   });
 
   it('runs the real Search → Router → Chapters consumer and restores search filters on back', async () => {

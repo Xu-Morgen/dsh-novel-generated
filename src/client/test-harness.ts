@@ -127,6 +127,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const workbenchSettingsStub = mountOptions.workbenchSettings;
   const writingStub = mountOptions.writing;
   const reviewStub = mountOptions.review;
+  const reviewRepairStub = mountOptions.reviewRepair;
   const queueStub = mountOptions.queue;
   const knowledgeStub = mountOptions.knowledge;
   const ruleStyleStub = mountOptions.ruleStyle;
@@ -178,6 +179,9 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       scan: async () => { throw new Error('未注入 remote.novelReview.scan'); },
       adjudicate: async () => { throw new Error('未注入 remote.novelReview.adjudicate'); },
       records: async () => { throw new Error('未注入 remote.novelReview.records'); },
+    })
+    : name === 'remote.novelReviewRepair' ? (reviewRepairStub ?? {
+      propose: async () => { throw new Error('未注入 remote.novelReviewRepair.propose'); },
     })
     : name === 'remote.novelQueue' ? (queueStub ?? {
       status: async () => { throw new Error('未注入 remote.novelQueue.status'); },

@@ -15,6 +15,7 @@ import { unwrap } from './client/shared.js';
 import { branchListWireAdapter } from './host/composition/orchestration.js';
 import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
+import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
 import { queueRemoteContribution } from './host/remote/queue.js';
@@ -33,6 +34,7 @@ import type {
   TextChangeImpactNamespace,
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
+  ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
 import { createTextService, type NovelTextService } from './host/text-service.js';
@@ -155,6 +157,14 @@ function fixtureFor(endpoint: string): unknown {
       return { projectId: 'p1', scannedAt: ISO, issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: { rule: 0, canon: 0, knowledge: 0, relationship: 0, style: 0 } } };
     case 'novelReview/records':
       return [];
+    case 'novelReviewRepair/propose':
+      return {
+        projectId: 'p1', issueId: 'iss-1', issueFingerprint: 'iss-1',
+        target: { chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+        anchor: { start: 0, end: 2, quote: '米拉', sourceHash: 'a'.repeat(64) },
+        lineage: { kind: 'review-repair', issueId: 'iss-1', issueFingerprint: 'iss-1', sourceHash: 'a'.repeat(64) },
+        candidate: { id: 'repair-1', intent: 'rewrite', target: { projectId: 'p1', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: ISO },
+      };
     case 'novelBranches/list':
       return { branches: [{ id: 'branch-1', label: '初稿', chosen: true, charCount: 2, hash: 'hash-1' }] };
     case 'novelText/fingerprint':
@@ -597,6 +607,21 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       const result = await unwrap(ns.scan('p1', undefined)) as { projectId: string };
       expect(result.projectId).toBe('p1');
       expect(calls).toEqual([{ endpoint: 'novelReview/scan', args: { projectId: 'p1' } }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I128 novelReviewRepair.propose：真实 binder 保留完整参数并拒绝宽松输入', async () => {
+    const { client, calls, dispose } = await mount(reviewRepairRemoteContribution);
+    try {
+      const repair = client.get('remote.novelReviewRepair') as ReviewRepairNamespace;
+      const result = await unwrap(repair.propose('p1', { issueId: 'iss-1' }, undefined));
+      expect(result).toMatchObject({ issueId: 'iss-1', candidate: { intent: 'rewrite' } });
+      expect(calls).toEqual([{ endpoint: 'novelReviewRepair/propose', args: { projectId: 'p1', input: { issueId: 'iss-1' } } }]);
+      await expect(Reflect.apply(repair.propose, repair, ['p1', { issueId: 'iss-1', extra: true }, undefined])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toHaveLength(1);
     } finally {
       await dispose();
       await client.fiber.dispose();

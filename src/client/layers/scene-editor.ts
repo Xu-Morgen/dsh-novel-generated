@@ -2,6 +2,7 @@ import type { El, UnwrapValue, WorkspaceNamespace } from '../shared.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import type { ChaptersEditOps } from './chapters.js';
 import { errorBlock, proseParagraphs } from './chapters-shared.js';
+import type { TextAnchor } from '../../core/schema/link.js';
 
 /**
  * I95 场景正文编辑片（计划 §18 I95 拆分：chapters 五职中的「场景编辑」）：
@@ -37,14 +38,16 @@ export interface SceneEditorState {
   readonly reparse: ReparseUiState;
   /** 脏文本导航保护：true 时显示确认条，pendingNavigation 记录被推迟的切换。 */
   readonly leaveConfirm: boolean;
-  readonly pendingNavigation: { readonly chapterId: string; readonly sceneId?: string } | undefined;
+  readonly pendingNavigation: { readonly chapterId: string; readonly sceneId?: string; readonly anchor?: TextAnchor } | undefined;
+  /** I128 route focus; transient and cleared when the loaded text does not match. */
+  readonly focusAnchor?: TextAnchor;
 }
 
 /** 编辑器初始状态（只读模式，无草稿）。 */
 export function freshSceneEditor(): SceneEditorState {
   return {
     mode: 'read', original: '', draft: '', dirty: false, saving: false,
-    saveMessage: '', error: '', reparse: { kind: 'idle' }, leaveConfirm: false, pendingNavigation: undefined,
+    saveMessage: '', error: '', reparse: { kind: 'idle' }, leaveConfirm: false, pendingNavigation: undefined, focusAnchor: undefined,
   };
 }
 

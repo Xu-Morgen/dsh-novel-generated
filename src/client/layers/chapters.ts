@@ -124,7 +124,7 @@ export interface ChaptersLayerState {
 export interface ChaptersEditOps {
   selectChapter(chapterId: string): void;
   selectScene(sceneId: string): void;
-  openScene(chapterId: string, sceneId: string): void;
+  openScene(chapterId: string, sceneId: string, anchor?: import('../../core/schema/link.js').TextAnchor): void;
   retryChapter(): void;
   retryScene(): void;
   startEdit(): void;
@@ -500,7 +500,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
                 scene.summary === '' ? null : h('span', { className: 'nv-chapters__item-summary' }, scene.summary),
               )),
     ),
-    h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '' },
+    h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '', ...(state.editor.focusAnchor === undefined ? {} : { 'data-novel-scene-anchor-start': String(state.editor.focusAnchor.start), 'data-novel-scene-anchor-end': String(state.editor.focusAnchor.end), 'data-novel-scene-anchor-quote': state.editor.focusAnchor.quote }) },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
       writingWorkflowPanel(h, state.workflow),
       polishSessionPanel(h, state, ops),

@@ -4,6 +4,7 @@ import { computeEditRange, type ChapterReadShape, type ChaptersEditOps, type Sce
 import type { OpsPorts, OpsRuntime } from './context.js';
 type EditorPort = Pick<OpsPorts, 'workspace'>;
 import type { ChaptersInternal } from './chapters-internal.js';
+import { assertTextAnchor, type TextAnchor } from '../../core/schema/link.js';
 
 /**
  * I95 正文编辑 ops 片（计划 §18 I95：ops/chapters 随 layers 拆分——正文段）：
@@ -18,7 +19,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
   const reparseLocked = (state: SceneEditorState): boolean => state.reparse.kind === 'proposed' || state.reparse.kind === 'accepting';
   const hashText = sha256Hex;
 
-  const loadScene = (sceneId: string, chapterId: string): void => {
+  const loadScene = (sceneId: string, chapterId: string, anchor?: TextAnchor): void => {
     const target = workspace;
     if (!target || projectId === undefined) return;
     if (!beginOp(`chapters:scene:${sceneId}`)) return;
@@ -31,7 +32,11 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       act.chaptersScene('ready', scene, undefined);
       // I61：场景装载/重载后以原文初始化编辑器（baseHash 基准 = original）。
       act.sceneEditorReset();
-      act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false });
+      let focusAnchor: TextAnchor | undefined;
+      if (anchor !== undefined) {
+        try { assertTextAnchor(shape?.content ?? '', anchor); focusAnchor = anchor; } catch { focusAnchor = undefined; }
+      }
+      act.sceneEditor({ mode: 'read', original: shape?.content ?? '', draft: shape?.content ?? '', dirty: false, focusAnchor });
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, (cause as Error).message); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
   };
 
@@ -151,7 +156,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     const pending = snapshot.chapters.editor.pendingNavigation;
     editorPatch({ leaveConfirm: false, pendingNavigation: undefined, dirty: false, saveMessage: '', error: '' });
     if (pending !== undefined) {
-      if (pending.sceneId !== undefined && pending.chapterId === snapshot.chapters.selectedChapterId) loadScene(pending.sceneId, pending.chapterId);
+      if (pending.sceneId !== undefined && pending.chapterId === snapshot.chapters.selectedChapterId) loadScene(pending.sceneId, pending.chapterId, pending.anchor);
       else selectChapter(pending.chapterId);
     }
   };
@@ -180,9 +185,9 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     discardDraft,
     cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); },
     // I71 搜索结果跳转（R14-6）：打开指定章节/场景（脏文本保护复用离开确认）。
-    openScene(chapterId, sceneId) {
+    openScene(chapterId, sceneId, anchor) {
       const editor = snapshot.chapters.editor;
-      if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); return; }
+      if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId, anchor } }); return; }
       const target = workspace;
       if (!target || projectId === undefined) return;
       if (!beginOp(`chapters:jump:${chapterId}`)) return;
@@ -192,7 +197,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
         release();
         if (!isActive()) return;
         act.chaptersRead('ready', read as ChapterReadShape, undefined);
-        loadScene(sceneId, chapterId);
+        loadScene(sceneId, chapterId, anchor);
       }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, (cause as Error).message); });
     },
   };

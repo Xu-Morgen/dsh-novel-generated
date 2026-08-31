@@ -26,7 +26,7 @@ const candidateTargetWireSchema = z.object({
   sceneId: z.string().min(1).optional(),
   sourceHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 }).strict();
-const writingCandidateWireSchema = z.object({
+export const writingCandidateWireSchema = z.object({
   id: z.string().min(1).max(128),
   intent: z.enum(['generate', 'continue', 'scene-card', 'rewrite']),
   target: candidateTargetWireSchema,

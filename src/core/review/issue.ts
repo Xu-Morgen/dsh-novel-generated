@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { violationSeveritySchema, type ViolationSeverity } from '../validate/index.js';
+import { textAnchorSchema, type TextAnchor } from '../schema/link.js';
 
 /**
  * I64 一致性审校中心 —— 统一 issue 投影（design §14.9 / R13-5）。
@@ -34,8 +35,18 @@ export type ReviewIssueStatus = z.infer<typeof reviewIssueStatusSchema>;
 export const reviewIssueLocationSchema = z.object({
   chapterId: z.string().trim().min(1),
   sceneId: z.string().trim().min(1),
+  /** 精确 UTF-16 半开范围；旧 issue 仅有场景定位时保持兼容。 */
+  anchor: textAnchorSchema.optional(),
 }).strict().readonly();
 export type ReviewIssueLocation = z.infer<typeof reviewIssueLocationSchema>;
+
+export const reviewIssueProvenanceSchema = z.object({
+  detector: z.string().trim().min(1),
+  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+  /** 当前稳定 issue id 的显式别名，便于修复候选追踪而不引入第二指纹算法。 */
+  issueFingerprint: z.string().trim().min(1).max(128),
+}).strict().readonly();
+export type ReviewIssueProvenance = z.infer<typeof reviewIssueProvenanceSchema>;
 
 /**
  * 统一投影后的单条问题（五类 × 硬/软 × 定位 × 状态）。
@@ -53,6 +64,8 @@ export const reviewIssueSchema = z.object({
   references: z.array(z.string().trim().min(1)).readonly(),
   /** 正文定位：章节/场景 id（空场景/全局问题可缺省）。 */
   location: reviewIssueLocationSchema.optional(),
+  /** scan 时的正文 hash 与 detector 证据；旧投影缺省以保持 wire 向后兼容。 */
+  provenance: reviewIssueProvenanceSchema.optional(),
   status: reviewIssueStatusSchema,
 }).strict().readonly();
 
@@ -99,12 +112,29 @@ export function issueIdOf(
   return `iss-${a}${b}`;
 }
 
+/** 修复工作流使用的稳定指纹；与 issue id 同源，避免引入另一套 join key。 */
+export function reviewIssueFingerprintOf(
+  category: ReviewIssueCategory,
+  kind: string,
+  location: ReviewIssueLocation | undefined,
+  message: string,
+  references: readonly string[],
+): string {
+  return issueIdOf(category, kind, location, message, references);
+}
+
 /** 探测器原始违规的通用投影输入（kind/severity/message/references）。 */
 export interface SceneViolation {
   readonly kind: string;
   readonly severity: ViolationSeverity;
   readonly message: string;
   readonly references: readonly string[];
+}
+
+export interface SceneIssueProjectionOptions {
+  readonly sourceHash?: string;
+  /** 只允许调用方从原文中的精确证据生成 anchor，不能猜测范围。 */
+  readonly anchorFor?: (violation: SceneViolation) => TextAnchor | undefined;
 }
 
 /**
@@ -115,15 +145,18 @@ export function projectSceneIssues(
   chapterId: string,
   sceneId: string,
   violations: readonly SceneViolation[],
+  options: SceneIssueProjectionOptions = {},
 ): readonly ReviewIssue[] {
-  const location: ReviewIssueLocation = Object.freeze({ chapterId, sceneId });
   const seen = new Set<string>();
   const issues: ReviewIssue[] = [];
   for (const violation of violations) {
     const category = categoryOf(violation.kind);
-    const id = issueIdOf(category, violation.kind, location, violation.message, violation.references);
+    const id = reviewIssueFingerprintOf(category, violation.kind, { chapterId, sceneId }, violation.message, violation.references);
     if (seen.has(id)) continue;
     seen.add(id);
+    const anchor = options.anchorFor?.(violation);
+    const location: ReviewIssueLocation = Object.freeze({ chapterId, sceneId, ...(anchor === undefined ? {} : { anchor }) });
+    const provenance = options.sourceHash === undefined ? undefined : Object.freeze({ detector: violation.kind, sourceHash: options.sourceHash, issueFingerprint: id });
     issues.push(Object.freeze({
       id,
       category,
@@ -132,6 +165,7 @@ export function projectSceneIssues(
       message: violation.message,
       references: Object.freeze([...violation.references]),
       location,
+      ...(provenance === undefined ? {} : { provenance }),
       status: 'open',
     }));
   }

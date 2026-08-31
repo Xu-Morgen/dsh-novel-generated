@@ -210,4 +210,43 @@ describe('I64 一致性审校中心 UI (R13-5)', () => {
     await flush();
     expect(reviewPanel(render())?.props?.['data-novel-review-state']).toBe('ready');
   });
+
+  it('I128 审校问题入口生成候选：复用 Host repair namespace，候选可见但不提供自动接受', async () => {
+    const repaired: Array<{ projectId: string; issueId: string }> = [];
+    const repairProjection = {
+      ...PROJECTION,
+      issues: [{ ...PROJECTION.issues[0]!, location: { ...PROJECTION.issues[0]!.location!, anchor: { start: 0, end: 2, quote: '米拉', sourceHash: 'a'.repeat(64) } } }],
+      summary: { ...PROJECTION.summary, total: 1, hard: 1, soft: 0, byCategory: { ...PROJECTION.summary.byCategory, canon: 0, knowledge: 0, relationship: 0, style: 0 } },
+    };
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {},
+      {
+        review: { scan: async () => ({ ok: true, value: repairProjection }), records: async () => ({ ok: true, value: [] }) },
+        reviewRepair: {
+          propose: async (projectId, input) => {
+            repaired.push({ projectId, issueId: input.issueId });
+            return { ok: true, value: {
+              projectId, issueId: input.issueId, issueFingerprint: input.issueId,
+              target: { chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+              anchor: { start: 0, end: 2, quote: '米拉', sourceHash: 'a'.repeat(64) },
+              lineage: { kind: 'review-repair', issueId: input.issueId, issueFingerprint: input.issueId, sourceHash: 'a'.repeat(64) },
+              candidate: { id: 'repair-candidate', intent: 'rewrite', target: { projectId, chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' },
+            } };
+          },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    openReview(render);
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-refresh'] === '')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-review-repair'] === 'iss-rule')?.props?.onClick as () => void)();
+    await flush();
+    expect(repaired).toEqual([{ projectId: 'fixture-project', issueId: 'iss-rule' }]);
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-review-repair-candidate'] === 'repair-candidate')).toBe(true);
+    expect(collect(render(), 'button').some((node) => node.props?.['data-novel-writing-candidate-accept'] !== undefined)).toBe(false);
+  });
 })

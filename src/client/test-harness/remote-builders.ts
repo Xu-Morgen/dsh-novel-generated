@@ -49,6 +49,11 @@ export interface MountOptionsI118 {
   };
 }
 
+/** I128 review repair namespace injection for the review→candidate E2E fixture. */
+export interface MountOptionsI128 {
+  reviewRepair?: { propose?: (projectId: string, input: { issueId: string; instruction?: string }, settings?: unknown) => Promise<unknown> };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
@@ -59,6 +64,7 @@ export interface MountOptions {
   outlineReconciliation?: MountOptionsI114['outlineReconciliation'];
   referenceAudit?: MountOptionsI117['referenceAudit'];
   referenceCorrection?: MountOptionsI118['referenceCorrection'];
+  reviewRepair?: MountOptionsI128['reviewRepair'];
 }
 
 export interface WorkspaceOverrides {

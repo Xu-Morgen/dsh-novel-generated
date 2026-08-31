@@ -1,0 +1,18 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "style-forbidden",
+    "rule-canon",
+    "canon-fact",
+    "knowledge-leak",
+    "relationship-drift",
+    "style-tone",
+    "rule-wording",
+    "knowledge-boundary",
+    "canon-detail",
+    "heldout-style",
+    "heldout-relationship",
+    "heldout-knowledge"
+  ],
+  "note": "Gold expectations remain frozen in cases.json; this manifest fixes the dev/held-out boundary."
+}

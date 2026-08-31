@@ -39,7 +39,7 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
   const state = createStateOps(runtime, { workspace: ports.workspace });
   const canon = createCanonOps(runtime, { workspace: ports.workspace });
   const chapters = createChaptersOps(runtime, chaptersPort, chaptersRef);
-  const review = createReviewOps(runtime, { reviewNamespace: ports.reviewNamespace });
+  const review = createReviewOps(runtime, { reviewNamespace: ports.reviewNamespace, reviewRepairNamespace: ports.reviewRepairNamespace });
   const queue = createQueueOps(runtime, { workspace: ports.workspace, queueNamespace: ports.queueNamespace });
   const knowledge = createKnowledgeOps(runtime, { workspace: ports.workspace, knowledgeNamespace: ports.knowledgeNamespace });
   const ruleStyle = createRuleStyleOps(runtime, { ruleStyleNamespace: ports.ruleStyleNamespace });

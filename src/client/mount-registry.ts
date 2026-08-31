@@ -29,6 +29,7 @@ import type {
   ProgressNamespace,
   QueueNamespace,
   ReviewNamespace,
+  ReviewRepairNamespace,
   RuleStyleNamespace,
   SearchNamespace,
   SceneOutlineBindingNamespace,
@@ -56,7 +57,7 @@ import {
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from './shared.js';
-import { sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
+import { reviewRepairRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
 import { outlineReconciliationRemoteContribution } from '../remote.js';
 import { referenceAuditRemoteContribution } from '../remote.js';
 import { referenceCorrectionRemoteContribution } from '../remote.js';
@@ -81,6 +82,7 @@ export interface RemoteServiceBag {
   workbenchSettings?: WorkbenchSettingsNamespace;
   writing?: WritingNamespace;
   reviewNamespace?: ReviewNamespace;
+  reviewRepairNamespace?: ReviewRepairNamespace;
   queueNamespace?: QueueNamespace;
   knowledgeNamespace?: KnowledgeNamespace;
   ruleStyleNamespace?: RuleStyleNamespace;
@@ -132,6 +134,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'workbenchSettings', contribution: workbenchSettingsRemoteContribution, serviceKey: 'remote.novelWorkbenchSettings', label: 'workbench settings', bind: bindInto('workbenchSettings') },
     { key: 'writing', contribution: writingRemoteContribution, serviceKey: 'remote.novelWriting', label: 'writing', bind: bindInto('writing') },
     { key: 'reviewNamespace', contribution: reviewRemoteContribution, serviceKey: 'remote.novelReview', label: 'review', bind: bindInto('reviewNamespace') },
+    { key: 'reviewRepairNamespace', contribution: reviewRepairRemoteContribution, serviceKey: 'remote.novelReviewRepair', label: 'review repair', bind: bindInto('reviewRepairNamespace') },
     { key: 'queueNamespace', contribution: queueRemoteContribution, serviceKey: 'remote.novelQueue', label: 'queue', bind: bindInto('queueNamespace') },
     { key: 'knowledgeNamespace', contribution: knowledgeRemoteContribution, serviceKey: 'remote.novelKnowledgeManager', label: 'knowledge', bind: bindInto('knowledgeNamespace') },
     { key: 'ruleStyleNamespace', contribution: ruleStyleRemoteContribution, serviceKey: 'remote.novelRuleStyleManager', label: 'ruleStyle', bind: bindInto('ruleStyleNamespace') },

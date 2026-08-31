@@ -8,6 +8,8 @@ import {
   withStatus,
   type ReviewIssue,
 } from './issue.js';
+import { createTextAnchor } from '../schema/link.js';
+import { textContentHash } from '../text/codec.js';
 
 describe('I64 统一 issue 投影（五类问题 × 严重度 × 定位 × 状态）', () => {
   it('categoryOf 把 I21/I22/I24/I20 探测器 kind 映射到五类；未知 kind fail-closed', () => {
@@ -36,6 +38,22 @@ describe('I64 统一 issue 投影（五类问题 × 严重度 × 定位 × 状�
     }
     expect(issues.map((issue) => issue.category)).toEqual(['canon', 'knowledge']);
     expect(issues.map((issue) => issue.severity)).toEqual(['hard', 'hard']);
+  });
+
+  it('I128 投影唯一精确证据为 UTF-16 锚点，并保留 scan provenance', () => {
+    const prose = '米拉🙂突然抬头。';
+    const sourceHash = textContentHash(prose);
+    const anchor = createTextAnchor(prose, 4, 6, sourceHash);
+    const issues = projectSceneIssues('chapter-1', 'scene-1', [{
+      kind: 'forbidden-expression', severity: 'soft', message: '含禁用表达', references: ['突然'],
+    }], { sourceHash, anchorFor: () => anchor });
+    expect(issues[0]).toMatchObject({
+      location: { chapterId: 'chapter-1', sceneId: 'scene-1', anchor },
+      provenance: { detector: 'forbidden-expression', sourceHash, issueFingerprint: issues[0]?.id },
+    });
+    expect(projectSceneIssues('chapter-1', 'scene-1', [{
+      kind: 'forbidden-expression', severity: 'soft', message: '含禁用表达', references: ['突然'],
+    }], { sourceHash, anchorFor: () => undefined })[0]?.location).toEqual({ chapterId: 'chapter-1', sceneId: 'scene-1' });
   });
 
   it('issueIdOf 确定性：相同内容恒等，不同场景/消息/引用不同', () => {

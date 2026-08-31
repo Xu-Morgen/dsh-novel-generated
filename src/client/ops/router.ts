@@ -20,7 +20,7 @@ function restoreRoute(act: WorkbenchActions, chapters: ChaptersEditOps | undefin
   const chapterId = route.selection.chapterId;
   const sceneId = route.selection.sceneId;
   if (chapters === undefined || chapterId === undefined) return;
-  if (sceneId !== undefined && selectionDiffers(state, route.selection)) chapters.openScene(chapterId, sceneId);
+  if (sceneId !== undefined && (selectionDiffers(state, route.selection) || route.focus?.anchor !== undefined)) chapters.openScene(chapterId, sceneId, route.focus?.anchor);
   else if (state.chapters.selectedChapterId !== chapterId) chapters.selectChapter(chapterId);
 }
 
@@ -34,7 +34,7 @@ export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: Ch
     const result = routeForLink(projectId, link);
     if (!result.ok) { routeError(result.error); return; }
     if (routeNeedsDirtyGuard(snapshot, result.route)) {
-      chaptersRef.current?.openScene(result.route.selection.chapterId!, result.route.selection.sceneId!);
+      chaptersRef.current?.openScene(result.route.selection.chapterId!, result.route.selection.sceneId!, result.route.focus?.anchor);
       return;
     }
     if (!targetFocus.focus(link)) { routeError({ code: 'unknown-target', message: '目标实体不存在或已不在当前作品中' }); return; }
@@ -55,7 +55,7 @@ export function createRouterOps(runtime: OpsRuntime, chaptersRef: { current?: Ch
       const popped = popRoute(snapshot.router);
       if (popped.route === undefined) return;
       if (routeNeedsDirtyGuard(snapshot, popped.route)) {
-        chaptersRef.current?.openScene(popped.route.selection.chapterId!, popped.route.selection.sceneId!);
+        chaptersRef.current?.openScene(popped.route.selection.chapterId!, popped.route.selection.sceneId!, popped.route.focus?.anchor);
         return;
       }
       act.routerPatch(popped.state);
