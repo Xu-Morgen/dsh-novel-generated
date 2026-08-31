@@ -1,0 +1,13 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "outline-logline",
+    "outline-theme",
+    "outline-act",
+    "outline-beat",
+    "outline-foreshadowing",
+    "outline-ending",
+    "outline-multi-chunk",
+    "outline-detail-nested"
+  ]
+}

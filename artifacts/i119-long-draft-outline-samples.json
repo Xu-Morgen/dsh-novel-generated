@@ -1,0 +1,30 @@
+{
+  "iteration": "I119",
+  "requirement": "R18-6a",
+  "samples": {
+    "corpus": "samples/i119/cases.json",
+    "dev": "samples/i119/dev.json",
+    "heldOut": 4,
+    "gold": "samples/i119/gold.json",
+    "threshold": 0.8,
+    "total": 12
+  },
+  "guarantees": [
+    "empty-project-readiness-preflight-before-llm",
+    "non-empty-project-fail-closed-with-zero-llm-call",
+    "deterministic-normalize-and-ordered-chunking",
+    "strict-outline-only-candidate-with-source-provenance",
+    "i38-worldview-and-standalone-detail-beat-envelope-rejected",
+    "cancelled-and-model-failed-candidate-zero-write",
+    "begin-status-cancel-result-lifecycle",
+    "additive-real-remote-descriptor-and-result-contract-lock"
+  ],
+  "focusedSuites": "I119 parser and Host coordinator tests passed",
+  "explicitNonGoals": [
+    "outline-apply",
+    "confirmation-gate",
+    "worldview-writeback",
+    "standalone-detail-beat-candidates",
+    "chapter-loop"
+  ]
+}

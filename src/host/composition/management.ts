@@ -14,6 +14,7 @@ import { createOutlineReconciliationPlannerService } from '../outline-reconcilia
 import { createOutlineReconciliationService } from '../outline-reconciliation-service.js';
 import { createReferenceAuditService } from '../reference-audit-service.js';
 import { createReferenceCorrectionService } from '../reference-correction-service.js';
+import { createLongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -28,6 +29,7 @@ import { textChangeImpactInvocations } from '../remote/text-change-impact.js';
 import { outlineReconciliationInvocations } from '../remote/outline-reconciliation.js';
 import { referenceAuditInvocations } from '../remote/reference-audit.js';
 import { referenceCorrectionInvocations } from '../remote/reference-correction.js';
+import { longDraftInvocations } from '../remote/long-draft.js';
 import { resolveGenerationSettings as validateGenerationSettings, type GenerationSettings } from '../../llm/port/index.js';
 import type { BaseServices, CompositionBase, ManagementServices } from './types.js';
 
@@ -65,6 +67,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     consistencyDetectionService,
     knowledgeLeakDetectionService,
     relationshipStyleDetectionService,
+    projectService,
   } = baseServices;
   const analyzerService = createOnboardingAnalyzerService(llm, onFiberDispose, (error, onboardingSessionId) => {
     logger.error('Background onboarding analysis %s failed: %o', onboardingSessionId, error);
@@ -330,6 +333,25 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'reject', call: (projectId: string, proposalId: string) => referenceCorrectionService.reject(projectId, proposalId) },
     { method: 'pending', call: (projectId: string) => referenceCorrectionService.pending(projectId) },
   ], referenceCorrectionInvocations));
+  const longDraftWorkflowCoordinator = createLongDraftWorkflowCoordinator({
+    project: projectService,
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    text: textService,
+    llm,
+    onDispose: onFiberDispose,
+  });
+  ctx.provide('novelLongDraft', defineRemote('novelLongDraft', 'novelLongDraft', longDraftWorkflowCoordinator, [
+    { method: 'preflight', call: (projectId: string) => longDraftWorkflowCoordinator.preflight(projectId) },
+    { method: 'begin', call: async (projectId: string, input: Parameters<typeof longDraftWorkflowCoordinator.propose>[1], settings?: GenerationSettings) => longDraftWorkflowCoordinator.begin(projectId, input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'status', call: (workflowId: string) => longDraftWorkflowCoordinator.status(workflowId) },
+    { method: 'cancel', call: async (workflowId: string) => { await longDraftWorkflowCoordinator.cancel(workflowId); return { workflowId, status: 'cancelled' as const }; } },
+    { method: 'result', call: (workflowId: string) => longDraftWorkflowCoordinator.result(workflowId) },
+  ], longDraftInvocations));
   // I113 planner + I114 application share one public namespace and one Host
   // owner key; only the five application methods can cross into writers.
   ctx.provide('novelOutlineReconciliation', defineRemote('novelOutlineReconciliation', 'novelOutlineReconciliation', { ...outlineReconciliationPlannerService, ...outlineReconciliationService }, [
@@ -355,5 +377,6 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     outlineReconciliationService,
     referenceAuditService,
     referenceCorrectionService,
+    longDraftWorkflowCoordinator,
   };
 }

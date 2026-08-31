@@ -21,6 +21,7 @@ import { textChangeImpactInvocations } from './host/remote/text-change-impact.js
 import { outlineReconciliationApplicationInvocations, outlineReconciliationPlannerInvocations } from './host/remote/outline-reconciliation.js';
 import { referenceAuditInvocations } from './host/remote/reference-audit.js';
 import { referenceCorrectionInvocations } from './host/remote/reference-correction.js';
+import { longDraftInvocations } from './host/remote/long-draft.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -58,8 +59,9 @@ const i113DescriptorIds = new Set(outlineReconciliationPlannerInvocations.map((d
 const i114DescriptorIds = new Set(outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id));
 const i116DescriptorIds = new Set(referenceAuditInvocations.map((descriptor) => descriptor.id));
 const i118DescriptorIds = new Set(referenceCorrectionInvocations.map((descriptor) => descriptor.id));
+const i119DescriptorIds = new Set(longDraftInvocations.map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
@@ -72,6 +74,7 @@ const stage18Descriptors = [
   ...outlineReconciliationApplicationInvocations,
   ...referenceAuditInvocations,
   ...referenceCorrectionInvocations,
+  ...longDraftInvocations,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations,
@@ -92,6 +95,7 @@ const stage18ResultDescriptors = [
   ...outlineReconciliationApplicationInvocations,
   ...referenceAuditInvocations,
   ...referenceCorrectionInvocations,
+  ...longDraftInvocations,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -163,8 +167,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(149);
-    expect(remoteLock.resultSchemaIds).toHaveLength(55);
+    expect(remoteLock.descriptorIds).toHaveLength(154);
+    expect(remoteLock.resultSchemaIds).toHaveLength(60);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -178,6 +182,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       ...outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id),
       ...referenceAuditInvocations.map((descriptor) => descriptor.id),
       ...referenceCorrectionInvocations.map((descriptor) => descriptor.id),
+      ...longDraftInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -190,6 +195,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       ...outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id),
       ...referenceAuditInvocations.map((descriptor) => descriptor.id),
       ...referenceCorrectionInvocations.map((descriptor) => descriptor.id),
+      ...longDraftInvocations.map((descriptor) => descriptor.id),
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

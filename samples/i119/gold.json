@@ -1,0 +1,18 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "outline-logline",
+    "outline-theme",
+    "outline-act",
+    "outline-beat",
+    "outline-foreshadowing",
+    "outline-ending",
+    "outline-multi-chunk",
+    "outline-detail-nested",
+    "heldout-serial-structure",
+    "heldout-empty-optional",
+    "heldout-two-acts",
+    "heldout-outline-only-boundary"
+  ],
+  "note": "Gold expectations are frozen in cases.json; dev and held-out manifests make the split explicit."
+}

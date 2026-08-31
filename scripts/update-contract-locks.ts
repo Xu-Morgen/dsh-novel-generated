@@ -31,6 +31,7 @@ import { textChangeImpactInvocations } from '../src/host/remote/text-change-impa
 import { outlineReconciliationApplicationInvocations, outlineReconciliationPlannerInvocations } from '../src/host/remote/outline-reconciliation.js';
 import { referenceAuditInvocations } from '../src/host/remote/reference-audit.js';
 import { referenceCorrectionInvocations } from '../src/host/remote/reference-correction.js';
+import { longDraftInvocations } from '../src/host/remote/long-draft.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -140,8 +141,9 @@ for (const lock of EXISTING_LOCKS) {
   const i114DescriptorIds = new Set(outlineReconciliationApplicationInvocations.map((descriptor) => descriptor.id));
   const i116DescriptorIds = new Set(referenceAuditInvocations.map((descriptor) => descriptor.id));
   const i118DescriptorIds = new Set(referenceCorrectionInvocations.map((descriptor) => descriptor.id));
+  const i119DescriptorIds = new Set(longDraftInvocations.map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -154,6 +156,7 @@ for (const lock of EXISTING_LOCKS) {
     ...outlineReconciliationApplicationInvocations,
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
+    ...longDraftInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations,
@@ -174,6 +177,7 @@ for (const lock of EXISTING_LOCKS) {
     ...outlineReconciliationApplicationInvocations,
     ...referenceAuditInvocations,
     ...referenceCorrectionInvocations,
+    ...longDraftInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

@@ -1,0 +1,142 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": [
+    "outline-logline",
+    "outline-theme",
+    "outline-act",
+    "outline-beat",
+    "outline-foreshadowing",
+    "outline-ending",
+    "outline-multi-chunk",
+    "outline-detail-nested"
+  ],
+  "heldOutCaseIds": [
+    "heldout-serial-structure",
+    "heldout-empty-optional",
+    "heldout-two-acts",
+    "heldout-outline-only-boundary"
+  ],
+  "cases": [
+    {
+      "id": "outline-logline",
+      "instruction": "从长稿提炼一句核心故事线。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "保留长稿的核心冲突。"
+      }
+    },
+    {
+      "id": "outline-theme",
+      "instruction": "整理故事主题，但不要生成世界观条目。",
+      "expected": {
+        "confidence": "medium",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": ["信任"], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "主题属于 B5 大纲。"
+      }
+    },
+    {
+      "id": "outline-act",
+      "instruction": "按长稿内容整理一个开端幕。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "three-act", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [{ "id": "act-1", "index": 0, "title": "开端", "goal": "抵达北港", "beats": [] }], "foreshadowing": [], "endings": [] },
+        "rationale": "将长稿结构映射为 B5 幕。"
+      }
+    },
+    {
+      "id": "outline-beat",
+      "instruction": "保留一个主要剧情节拍。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [{ "id": "act-1", "index": 0, "title": "开端", "goal": "抵达北港", "beats": [{ "id": "beat-1", "title": "发现线索", "description": "主角发现旧地图。", "charactersInvolved": [], "conflictType": "external", "prerequisites": [], "optional": false, "detailBeats": [] }] }], "foreshadowing": [], "endings": [] },
+        "rationale": "剧情节拍留在 B5，不扩张到其他层。"
+      }
+    },
+    {
+      "id": "outline-foreshadowing",
+      "instruction": "把长稿中的伏笔整理进大纲。",
+      "expected": {
+        "confidence": "medium",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [], "foreshadowing": [{ "id": "hint-map", "hint": "旧地图缺少一角。", "payoff": "地图指向北门。", "status": "unplanted", "knownBy": [] }], "endings": [] },
+        "rationale": "伏笔是 outline 的一部分。"
+      }
+    },
+    {
+      "id": "outline-ending",
+      "instruction": "提取长稿结尾方向，只放在 B5。",
+      "expected": {
+        "confidence": "medium",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [], "foreshadowing": [], "endings": [{ "id": "ending-open", "title": "打开北门", "conditions": ["找到旧地图"], "description": "主角打开北门并承担后果。" }] },
+        "rationale": "结尾方向不写入 C4 正史。"
+      }
+    },
+    {
+      "id": "outline-multi-chunk",
+      "instruction": "综合两个文本块中的大纲信息并保持来源顺序。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "hero-journey", "logline": "测绘师追查北港秘密。", "themes": ["选择"], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "两块文本共同形成一个 B5 候选。"
+      }
+    },
+    {
+      "id": "outline-detail-nested",
+      "instruction": "保留长稿中明确的场景卡，但不要返回独立 detail-beat 候选。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [{ "id": "act-1", "index": 0, "title": "开端", "goal": "抵达北港", "beats": [{ "id": "beat-1", "title": "发现线索", "description": "主角发现旧地图。", "charactersInvolved": [], "conflictType": "external", "prerequisites": [], "optional": false, "detailBeats": [{ "id": "scene-1", "title": "北港仓库", "summary": "主角在仓库找到地图。", "pov": "char-mira", "wordTarget": 500, "points": ["发现地图"], "status": "planned" }] }] }], "foreshadowing": [], "endings": [] },
+        "rationale": "细纲卡作为 B5 beat 的嵌套字段保留。"
+      }
+    },
+    {
+      "id": "heldout-serial-structure",
+      "instruction": "长稿是连载故事，请输出 serial 结构的大纲。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "serial", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "结构类型仍是 B5 合同枚举。"
+      }
+    },
+    {
+      "id": "heldout-empty-optional",
+      "instruction": "没有明确伏笔和结局时也要输出完整空数组。",
+      "expected": {
+        "confidence": "low",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "一个尚未展开的故事。", "themes": [], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "未确定内容不跨层臆测。"
+      }
+    },
+    {
+      "id": "heldout-two-acts",
+      "instruction": "将长稿的前后两段整理成两个幕。",
+      "expected": {
+        "confidence": "medium",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "three-act", "logline": "测绘师追查北港秘密。", "themes": [], "acts": [{ "id": "act-1", "index": 0, "title": "开端", "goal": "找到线索", "beats": [] }, { "id": "act-2", "index": 1, "title": "发展", "goal": "面对代价", "beats": [] }], "foreshadowing": [], "endings": [] },
+        "rationale": "幕顺序与 sourceChunkIndices 都保持稳定。"
+      }
+    },
+    {
+      "id": "heldout-outline-only-boundary",
+      "instruction": "只生成 B5 outline；不要附带 worldview、relationship、state 或 canon。",
+      "expected": {
+        "confidence": "high",
+        "sourceChunkIndices": [0, 1],
+        "outline": { "id": "outline-main", "structure": "free", "logline": "测绘师追查北港秘密。", "themes": ["边界"], "acts": [], "foreshadowing": [], "endings": [] },
+        "rationale": "专用 outline-only 合同不吞并 I38 其他候选。"
+      }
+    }
+  ]
+}

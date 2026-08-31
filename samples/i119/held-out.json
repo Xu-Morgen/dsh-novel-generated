@@ -1,0 +1,9 @@
+{
+  "immutable": true,
+  "caseIds": [
+    "heldout-serial-structure",
+    "heldout-empty-optional",
+    "heldout-two-acts",
+    "heldout-outline-only-boundary"
+  ]
+}

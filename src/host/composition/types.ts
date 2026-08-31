@@ -34,6 +34,7 @@ import type { NovelOutlineReconciliationPlannerService } from '../outline-reconc
 import type { NovelOutlineReconciliationService } from '../outline-reconciliation-service.js';
 import type { NovelReferenceAuditService } from '../reference-audit-service.js';
 import type { NovelReferenceCorrectionService } from '../reference-correction-service.js';
+import type { LongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
 
 /**
  * I89 index.ts 组合根分段共享类型（review v2.0 §3.4 / 计划 §18 I89）。
@@ -108,4 +109,5 @@ export interface ManagementServices {
   outlineReconciliationService: NovelOutlineReconciliationService;
   referenceAuditService: NovelReferenceAuditService;
   referenceCorrectionService: NovelReferenceCorrectionService;
+  longDraftWorkflowCoordinator: LongDraftWorkflowCoordinator;
 }
