@@ -16,6 +16,8 @@ import { createOutlineReconciliationService } from '../outline-reconciliation-se
 import { createReferenceAuditService } from '../reference-audit-service.js';
 import { createReferenceCorrectionService } from '../reference-correction-service.js';
 import { createLongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
+import { createOutlineDetailGenerationService } from '../outline-detail-generation-service.js';
+import { createOutlineDetailGenerationRemote } from '../outline-detail-generation-adapter.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
@@ -62,6 +64,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     textService,
     sceneOutlineBindingService,
     outlineGenerationBaselineService,
+    outlineGenerationScopeService,
     ruleService,
     styleService,
     knowledgeService,
@@ -378,6 +381,15 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'reject', call: (projectId: string, proposalId: string) => longDraftWorkflowCoordinator.reject(projectId, proposalId) },
     { method: 'recover', call: (projectId: string) => longDraftWorkflowCoordinator.recover(projectId) },
   ], longDraftInvocations));
+  // I134：细纲生成只产生范围内候选；Host 保留原卡身份/顺序，唯一写回仍经 I11 Gate。
+  const outlineDetailGenerationService = createOutlineDetailGenerationService({
+    llm,
+    scope: outlineGenerationScopeService,
+    outline: outlineService,
+    confirmation: confirmationService,
+    onDispose: onFiberDispose,
+  });
+  ctx.provide('novelOutlineDetailGeneration', createOutlineDetailGenerationRemote(outlineDetailGenerationService, async (settings) => validateGenerationSettings(await resolveAnalyzerSettings(settings))));
   // I113 planner + I114 application share one public namespace and one Host
   // owner key; only the five application methods can cross into writers.
   ctx.provide('novelOutlineReconciliation', defineRemote('novelOutlineReconciliation', 'novelOutlineReconciliation', { ...outlineReconciliationPlannerService, ...outlineReconciliationService }, [
@@ -404,6 +416,7 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     referenceAuditService,
     referenceCorrectionService,
     longDraftWorkflowCoordinator,
+    outlineDetailGenerationService,
     reviewRepairService,
   };
 }

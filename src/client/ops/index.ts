@@ -18,6 +18,7 @@ import { createTimelineOps } from './timeline.js';
 import { createWorldviewOps } from './worldview.js';
 import { createReferenceReviewOps } from './reference-review.js';
 import { createRouterOps } from './router.js';
+import { createOutlineDetailGenerationOps } from './outline-detail-generation.js';
 import type { EntityLink } from '../../core/schema/link.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
 
@@ -48,6 +49,7 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
   const statistics = createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace });
   const timeline = createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace });
   const referenceReview = createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace, referenceCorrectionNamespace: ports.referenceCorrectionNamespace });
+  const outlineDetailGeneration = createOutlineDetailGenerationOps(runtime, { outlineDetailGeneration: ports.outlineDetailGeneration });
   const targetFocus = {
     focus(link: EntityLink): boolean {
       const current = runtime.snapshot;
@@ -73,6 +75,6 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
     characters, worldview, outline, relationship, state, canon, chapters, review, queue, knowledge, ruleStyle, progress, importExport,
     search: createSearchOps(runtime, { searchNamespace: ports.searchNamespace }, router),
     statistics, timeline, referenceReview,
-    router,
+    router, outlineDetailGeneration,
   };
 }

@@ -38,6 +38,7 @@ import type {
   TextMutationNamespace,
   TextDeletionNamespace,
   OutlineReconciliationNamespace,
+  OutlineDetailGenerationNamespace,
   ReferenceAuditNamespace,
   ReferenceCorrectionNamespace,
   WorkspaceNamespace,
@@ -62,6 +63,7 @@ import { outlineReconciliationRemoteContribution } from '../remote.js';
 import { referenceAuditRemoteContribution } from '../remote.js';
 import { referenceCorrectionRemoteContribution } from '../remote.js';
 import { longDraftRemoteContribution } from '../remote.js';
+import { outlineDetailGenerationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
@@ -99,6 +101,7 @@ export interface RemoteServiceBag {
   referenceAudit?: ReferenceAuditNamespace;
   referenceCorrection?: ReferenceCorrectionNamespace;
   longDraft?: LongDraftNamespace;
+  outlineDetailGeneration?: OutlineDetailGenerationNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -151,6 +154,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'referenceAudit', contribution: referenceAuditRemoteContribution, serviceKey: 'remote.novelReferenceAudit', label: 'reference audit', bind: bindInto('referenceAudit') },
     { key: 'referenceCorrection', contribution: referenceCorrectionRemoteContribution, serviceKey: 'remote.novelReferenceCorrection', label: 'reference correction', bind: bindInto('referenceCorrection') },
     { key: 'longDraft', contribution: longDraftRemoteContribution, serviceKey: 'remote.novelLongDraft', label: 'long draft', bind: bindInto('longDraft') },
+    { key: 'outlineDetailGeneration', contribution: outlineDetailGenerationRemoteContribution, serviceKey: 'remote.novelOutlineDetailGeneration', label: 'outline detail generation', bind: bindInto('outlineDetailGeneration') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

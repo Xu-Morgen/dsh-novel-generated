@@ -1,0 +1,20 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["fill-01", "fill-02", "fill-03", "fill-04", "regenerate-01", "regenerate-02", "regenerate-03", "regenerate-04"],
+  "heldOutCaseIds": ["fill-heldout", "regenerate-heldout", "fill-heldout-2", "regenerate-heldout-2"],
+  "cases": [
+    { "id": "fill-01", "mode": "fill", "beat": "主角进入旧灯塔并寻找入口。", "expected": { "detailBeats": [{ "title": "发现封闭入口", "summary": "主角在灯塔底层发现被木板封住的入口。", "pov": "米拉", "wordTarget": 600, "points": ["旧木板", "入口"] }], "rationale": "先确认入口位置，再为后续进入留下明确动作。" } },
+    { "id": "fill-02", "mode": "fill", "beat": "调查者核对地图上的潮汐标记。", "expected": { "detailBeats": [{ "title": "核对潮汐标记", "summary": "调查者将旧地图的标记与当晚潮位逐一比对。", "pov": "林恩", "wordTarget": 500, "points": ["旧地图", "潮位"] }], "rationale": "细化已有节拍的观察动作，不新增人物或事件。" } },
+    { "id": "fill-03", "mode": "fill", "beat": "两人决定暂时离开码头。", "expected": { "detailBeats": [{ "title": "作出离开决定", "summary": "两人在风雨加剧前决定离开码头，带走必要的地图。", "pov": "米拉", "wordTarget": 550, "points": ["风雨", "地图"] }], "rationale": "把节拍拆成可执行的决定与携带动作。" } },
+    { "id": "fill-04", "mode": "fill", "beat": "守门人要求来客说明来意。", "expected": { "detailBeats": [{ "title": "说明来意", "summary": "守门人拦住来客，要求他们说明为何在夜里来到这里。", "pov": "米拉", "wordTarget": 650, "points": ["拦下", "说明来意"] }], "rationale": "保持冲突节拍，明确场景卡的可观察行动。" } },
+    { "id": "regenerate-01", "mode": "regenerate", "beat": "主角打开信件。", "existing": "主角打开信件并读到警告。", "expected": { "detailBeats": [{ "title": "读到警告", "summary": "主角拆开信封，确认信中警告她不要靠近北门。", "pov": "米拉", "wordTarget": 500, "points": ["拆信", "北门警告"] }], "rationale": "保留原卡身份，只使动作和事实更清楚。" } },
+    { "id": "regenerate-02", "mode": "regenerate", "beat": "林恩在桥边等待。", "existing": "林恩站在桥边等待米拉。", "expected": { "detailBeats": [{ "title": "桥边等待", "summary": "林恩在桥边等候米拉，同时留意上游传来的灯光。", "pov": "林恩", "wordTarget": 450, "points": ["等候米拉", "上游灯光"] }], "rationale": "不改变等待这一稳定动作，补足可写的观察点。" } },
+    { "id": "regenerate-03", "mode": "regenerate", "beat": "船只靠岸。", "existing": "一艘船在夜里靠岸。", "expected": { "detailBeats": [{ "title": "船只靠岸", "summary": "夜里的船只收起缆绳靠岸，船员没有点亮甲板上的灯。", "pov": "米拉", "wordTarget": 700, "points": ["收缆", "不点灯"] }], "rationale": "维持船只靠岸事件，增加与当前悬念直接相关的细节。" } },
+    { "id": "regenerate-04", "mode": "regenerate", "beat": "他们在仓库找到线索。", "existing": "他们在仓库里找到一张旧照片。", "expected": { "detailBeats": [{ "title": "找到旧照片", "summary": "他们在仓库的抽屉里找到一张标有日期的旧照片。", "pov": "米拉", "wordTarget": 600, "points": ["仓库抽屉", "日期"] }], "rationale": "保留旧照片这一已有事实，不替换为新的线索类型。" } },
+    { "id": "fill-heldout", "mode": "fill", "beat": "她沿着海堤寻找被风吹走的纸张。", "expected": { "detailBeats": [{ "title": "沿海堤寻找纸张", "summary": "她沿着海堤追到一张卡在石缝里的纸张。", "pov": "米拉", "wordTarget": 500, "points": ["海堤", "石缝"] }], "rationale": "将寻找动作落到一个明确且可验证的落点。" } },
+    { "id": "regenerate-heldout", "mode": "regenerate", "beat": "守门人让开道路。", "existing": "守门人最后让开了道路。", "expected": { "detailBeats": [{ "title": "让开道路", "summary": "守门人听完解释后侧身让开道路，但仍握着门闩。", "pov": "林恩", "wordTarget": 550, "points": ["听完解释", "握住门闩"] }], "rationale": "保持让路结果，并保留紧张关系。" } },
+    { "id": "fill-heldout-2", "mode": "fill", "beat": "雨停后，码头恢复了短暂的安静。", "expected": { "detailBeats": [{ "title": "雨后的码头", "summary": "雨停后，码头只剩积水滴落的声音和远处收帆的声响。", "pov": "米拉", "wordTarget": 450, "points": ["积水", "收帆声"] }], "rationale": "只补充可观察环境，不引入新的剧情事件。" } },
+    { "id": "regenerate-heldout-2", "mode": "regenerate", "beat": "米拉收起地图。", "existing": "米拉把地图收进外套。", "expected": { "detailBeats": [{ "title": "收起地图", "summary": "米拉折好地图收进外套内袋，并确认封口仍然完好。", "pov": "米拉", "wordTarget": 400, "points": ["折好地图", "确认封口"] }], "rationale": "保留收图动作，补充与地图安全有关的观察。" } }
+  ]
+}

@@ -14,6 +14,7 @@ import {
 export type { OutlineShape, OutlineActShape, OutlineBeatShape, OutlineDetailBeatShape } from '../shapes.js';
 import type { OutlineShape, OutlineActShape, OutlineBeatShape, OutlineDetailBeatShape } from '../shapes.js';
 import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../link-adapters.js';
+import { outlineDetailGenerationPanel, type OutlineDetailGenerationView } from './outline-detail-generation.js';
 
 /** B5 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const OUTLINE_STRUCTURES: readonly OutlineStructure[] = outlineStructureSchema.options;
@@ -73,7 +74,7 @@ function detailBeatEditor(h: El, card: OutlineDetailBeatShape, setDetail: (updat
  * B5 editor. Character and prerequisite IDs use named selectors; free-form
  * text lists remain text fields because they are prose/content, not references.
  */
-export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, ops: OutlineEditOps, characterOptions: readonly EntityOption[] = [], links?: ContextLinkSink): unknown {
+export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, layerState: OutlineLayerState, editor: OutlineEditor, ops: OutlineEditOps, characterOptions: readonly EntityOption[] = [], links?: ContextLinkSink, generation?: OutlineDetailGenerationView): unknown {
   if (layerState.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'loading' }, '正在装载大纲…');
   if (layerState.status === 'error') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '大纲读取失败');
   const setAct = (id: string, update: (act: OutlineActShape) => OutlineActShape): void => ops.mutate((draft) => ({ ...draft, acts: upsert(draft.acts, update(currentAct(draft, id))) }));
@@ -115,5 +116,6 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
     ),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'outline'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'outline', role: 'alert' }, toUserMessage(editor.error)) : null,
+    generation === undefined ? null : outlineDetailGenerationPanel(h, generation),
   );
 }

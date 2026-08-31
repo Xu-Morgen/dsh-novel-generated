@@ -25,6 +25,7 @@ import { outlineReconciliationInvocations, outlineReconciliationRemoteContributi
 import { referenceAuditInvocations, referenceAuditRemoteContribution } from './host/remote/reference-audit.js';
 import { referenceCorrectionInvocations, referenceCorrectionRemoteContribution } from './host/remote/reference-correction.js';
 import { longDraftInvocations, longDraftRemoteContribution } from './host/remote/long-draft.js';
+import { outlineDetailGenerationInvocations, outlineDetailGenerationRemoteContribution } from './host/remote/outline-detail-generation.js';
 
 export * from './host/remote/common.js';
 export * from './host/remote/probe.js';
@@ -39,6 +40,7 @@ export * from './host/remote/outline-reconciliation.js';
 export * from './host/remote/reference-audit.js';
 export * from './host/remote/reference-correction.js';
 export * from './host/remote/long-draft.js';
+export * from './host/remote/outline-detail-generation.js';
 export * from './host/remote/onboarding.js';
 export * from './host/remote/onboarding-analyzer.js';
 export * from './host/remote/llm-config.js';
@@ -58,4 +60,4 @@ export * from './host/remote/timeline.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, reviewRepairInvocations, reviewRepairRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, outlineReconciliationInvocations, outlineReconciliationRemoteContribution, referenceAuditInvocations, referenceAuditRemoteContribution, referenceCorrectionInvocations, referenceCorrectionRemoteContribution, longDraftInvocations, longDraftRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, reviewRepairInvocations, reviewRepairRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, outlineReconciliationInvocations, outlineReconciliationRemoteContribution, referenceAuditInvocations, referenceAuditRemoteContribution, referenceCorrectionInvocations, referenceCorrectionRemoteContribution, longDraftInvocations, longDraftRemoteContribution, outlineDetailGenerationInvocations, outlineDetailGenerationRemoteContribution };

@@ -28,6 +28,8 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/onboarding-adjudication.ts',
   'src/core/schema/outline-progress.ts',
   'src/core/schema/outline.ts',
+  'src/core/schema/outline-generation-scope.ts',
+  'src/core/schema/outline-detail-generation.ts',
   'src/core/schema/project-lifecycle.ts',
   'src/core/schema/relationship.ts',
   'src/core/schema/scene-outline-binding.ts',

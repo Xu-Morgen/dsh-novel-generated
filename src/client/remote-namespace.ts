@@ -44,6 +44,7 @@ import type { outlineReconciliationRemoteContribution } from '../host/remote/out
 import type { referenceCorrectionRemoteContribution } from '../host/remote/reference-correction.js';
 import type { longDraftRemoteContribution } from '../remote.js';
 import type { outlineGenerationScopeRemoteContribution } from '../host/remote/outline-generation-scope.js';
+import type { outlineDetailGenerationRemoteContribution } from '../host/remote/outline-detail-generation.js';
 
 /** I86 实证的 DSH RemoteResult 信封合同（review v2.0 §3.1；client 消费经 `unwrap` 解包）。 */
 export type RemoteResult<R> =
@@ -116,3 +117,5 @@ export type ReferenceCorrectionNamespace = NamespaceOf<typeof referenceCorrectio
 export type LongDraftNamespace = NamespaceOf<typeof longDraftRemoteContribution>;
 /** I133 read-only scope/readiness projection; no Client editor or write method. */
 export type OutlineGenerationScopeNamespace = NamespaceOf<typeof outlineGenerationScopeRemoteContribution>;
+/** I134 candidate review/apply surface; all writes remain behind I11 Gate. */
+export type OutlineDetailGenerationNamespace = NamespaceOf<typeof outlineDetailGenerationRemoteContribution>;

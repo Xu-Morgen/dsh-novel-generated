@@ -350,4 +350,55 @@ export const PANELS_STYLES = `
   font-size: 13px;
   color: var(--nv-ink-faint);
 }
+
+/* I134 范围细纲候选审阅：候选卡与 B5 手工编辑保持视觉分层，确认门始终可见。 */
+.nv-outline-detail-generation {
+  margin-top: calc(var(--nv-grid) * 2);
+  border-top: 1px solid var(--nv-line);
+  padding-top: calc(var(--nv-grid) * 2);
+}
+
+.nv-outline-detail-generation__scope,
+.nv-outline-detail-generation__actions,
+.nv-outline-detail-generation__gate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--nv-grid);
+}
+
+.nv-outline-detail-generation__candidate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nv-grid);
+}
+
+.nv-outline-detail-generation__item {
+  border: 1px solid var(--nv-line);
+  border-radius: calc(var(--nv-grid) * 0.75);
+  padding: var(--nv-grid);
+  background: var(--nv-paper);
+}
+
+.nv-outline-detail-generation__item.is-skipped {
+  opacity: 0.62;
+}
+
+.nv-outline-detail-generation__item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--nv-grid);
+  margin-bottom: calc(var(--nv-grid) * 0.5);
+  font-family: var(--nv-sans);
+  color: var(--nv-ink);
+}
+
+.nv-outline-detail-generation__field {
+  min-width: 160px;
+}
+
+.nv-outline-detail-generation__gate {
+  border-top: 1px dashed var(--nv-line);
+  padding-top: var(--nv-grid);
+}
 `;

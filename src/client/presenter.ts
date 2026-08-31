@@ -258,7 +258,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
  */
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
   const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
-  const { workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
+  const { workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
   const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState, router: routerState } = states;
   const h = el(React);
   if (!ui.open) return null;
@@ -336,11 +336,12 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
           viewPanel(h, ui.activeView, selectedProjectId, {
-            workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, onboardingNamespace, longDraft,
+            workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, onboardingNamespace, longDraft,
           }, {
             layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState,
             ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState,
             statistics: statisticsState, timeline: timelineState, router: routerState,
+            outlineDetailGeneration: states.outlineDetailGeneration,
           }, ops, sourceEntry, review, settings, creationSettings),
         ),
       ),

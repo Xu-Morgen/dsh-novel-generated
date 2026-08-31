@@ -1,0 +1,29 @@
+{
+  "iteration": "I134",
+  "requirement": "R18-12b",
+  "samples": {
+    "total": 12,
+    "dev": 8,
+    "heldOut": 4,
+    "threshold": 0.8
+  },
+  "guarantees": [
+    "strict-json-detail-fields-with-host-minted-identity",
+    "default-fill-missing-and-explicit-existing-regeneration",
+    "bounded-candidate-session-with-per-card-edit-regenerate-skip",
+    "single-i11-gate-apply-preserves-outside-scope",
+    "stale-parse-failure-reject-cancel-and-restart-idempotence",
+    "real-client-binder-and-contract-lock-pass"
+  ],
+  "remoteLock": {
+    "descriptorCount": 171,
+    "resultSchemaCount": 77
+  },
+  "focusedSuites": "parser samples, Host candidate/Gate owner, author panel, real binder, and contract-lock fixtures passed",
+  "explicitNonGoals": [
+    "body-generation",
+    "automatic-baseline-creation",
+    "whole-outline-replace",
+    "background-batch-generation"
+  ]
+}

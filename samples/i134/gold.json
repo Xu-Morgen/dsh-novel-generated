@@ -1,0 +1,5 @@
+{
+  "immutable": true,
+  "caseIds": ["fill-01", "fill-02", "fill-03", "fill-04", "regenerate-01", "regenerate-02", "regenerate-03", "regenerate-04", "fill-heldout", "regenerate-heldout", "fill-heldout-2", "regenerate-heldout-2"],
+  "note": "I134 的 gold 只锁定 parser 输出字段，不允许模型产生 Host identity/status/order。"
+}

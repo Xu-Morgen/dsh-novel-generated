@@ -54,6 +54,21 @@ export interface MountOptionsI128 {
   reviewRepair?: { propose?: (projectId: string, input: { issueId: string; instruction?: string }, settings?: unknown) => Promise<unknown> };
 }
 
+/** I134 candidate review/apply namespace injection for outline-layer E2E. */
+export interface MountOptionsI134 {
+  outlineDetailGeneration?: {
+    generate?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    read?: (projectId: string, candidateId: string) => Promise<unknown>;
+    edit?: (projectId: string, input: unknown) => Promise<unknown>;
+    regenerate?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    skip?: (projectId: string, input: unknown) => Promise<unknown>;
+    propose?: (projectId: string, input: unknown) => Promise<unknown>;
+    accept?: (projectId: string, proposalId: string) => Promise<unknown>;
+    reject?: (projectId: string, proposalId: string) => Promise<unknown>;
+    cancel?: (projectId: string, candidateId: string) => Promise<unknown>;
+  };
+}
+
 /** Declaration merge keeps the historical one-line harness type compatible. */
 export interface MountOptions {
   textMutation?: MountOptionsI106['textMutation'];
@@ -65,6 +80,7 @@ export interface MountOptions {
   referenceAudit?: MountOptionsI117['referenceAudit'];
   referenceCorrection?: MountOptionsI118['referenceCorrection'];
   reviewRepair?: MountOptionsI128['reviewRepair'];
+  outlineDetailGeneration?: MountOptionsI134['outlineDetailGeneration'];
 }
 
 export interface WorkspaceOverrides {

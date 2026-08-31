@@ -34,6 +34,7 @@ import { referenceCorrectionInvocations } from '../src/host/remote/reference-cor
 import { longDraftInvocations } from '../src/host/remote/long-draft.js';
 import { reviewRepairInvocations } from '../src/host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from '../src/host/remote/outline-generation-scope.js';
+import { outlineDetailGenerationInvocations } from '../src/host/remote/outline-detail-generation.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -148,8 +149,9 @@ for (const lock of EXISTING_LOCKS) {
   const i130DescriptorIds = new Set([branchAggregateInvocation.id]);
   const i131DescriptorIds = new Set([branchChooseFreshInvocation.id]);
   const i133DescriptorIds = new Set(outlineGenerationScopeInvocations.map((descriptor) => descriptor.id));
+  const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -167,6 +169,7 @@ for (const lock of EXISTING_LOCKS) {
     branchChooseFreshInvocation,
     ...reviewRepairInvocations,
     ...outlineGenerationScopeInvocations,
+    ...outlineDetailGenerationInvocations,
   ];
   const resultDescriptors = [
     ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
@@ -192,6 +195,7 @@ for (const lock of EXISTING_LOCKS) {
     branchChooseFreshInvocation,
     ...reviewRepairInvocations,
     ...outlineGenerationScopeInvocations,
+    ...outlineDetailGenerationInvocations,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

@@ -143,6 +143,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const outlineReconciliationStub = mountOptions.outlineReconciliation;
   const referenceAuditStub = mountOptions.referenceAudit;
   const referenceCorrectionStub = mountOptions.referenceCorrection;
+  const outlineDetailGenerationStub = mountOptions.outlineDetailGeneration;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -295,6 +296,17 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       accept: async () => { throw new Error('未注入 remote.novelReferenceCorrection.accept'); },
       reject: async () => { throw new Error('未注入 remote.novelReferenceCorrection.reject'); },
       pending: async () => ({ ok: true, value: [] }),
+    })
+    : name === 'remote.novelOutlineDetailGeneration' ? (outlineDetailGenerationStub ?? {
+      generate: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.generate'); },
+      read: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.read'); },
+      edit: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.edit'); },
+      regenerate: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.regenerate'); },
+      skip: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.skip'); },
+      propose: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.propose'); },
+      accept: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.accept'); },
+      reject: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.reject'); },
+      cancel: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.cancel'); },
     })
     : undefined;
   const entry = factory((spec) => (spec === 'react' ? fakeReact : spec === '@deepseek-ai/dsh-client-runtime/client' ? { defineStore } : undefined));

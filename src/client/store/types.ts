@@ -1,4 +1,4 @@
-import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, ReviewRepairNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace, LongDraftNamespace } from '../shared.js';
+import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, ReviewRepairNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace, LongDraftNamespace, OutlineDetailGenerationNamespace } from '../shared.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingNamespace, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
@@ -25,6 +25,7 @@ import type { StatisticsEditOps, StatisticsLayerState } from '../layers/statisti
 import type { TimelineEditOps, TimelineLayerState } from '../layers/timeline.js';
 import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layers/reference-review.js';
 import type { RouterEditOps, RouterState } from '../router.js';
+import type { OutlineDetailGenerationEditOps, OutlineDetailGenerationLayerState } from '../layers/outline-detail-generation.js';
 
 /**
  * I82 创作台 Client store 契约层（架构审查 §5.1 / §9 #5 拆分：store/types.ts 承载
@@ -157,6 +158,9 @@ export type WorkbenchActions = {
   reviewPatch(patch: Partial<ReviewLayerState>): void;
   /** I117 引用更新审查：Host audit 只读投影 + 当前会话错误标记。 */
   referenceReviewPatch(patch: Partial<ReferenceReviewLayerState>): void;
+  /** I134：范围候选是 Client 审阅态；叙事层写回仍只能经 Host I11 Gate。 */
+  outlineDetailGenerationPatch(patch: Partial<OutlineDetailGenerationLayerState>): void;
+  outlineDetailGenerationReset(): void;
   /** I65 生成队列（R13-6）：队列面板状态（投影/范围勾选/配置草稿）。 */
   queuePatch(patch: Partial<QueueLayerState>): void;
   /** I66 知情与揭示管理面（R14-1）：面板状态（投影/视图/选中/提案草稿/pending）。 */
@@ -255,6 +259,7 @@ export interface WorkbenchOps {
   readonly referenceReview: ReferenceReviewEditOps;
   /** I124：统一 EntityLink 前进/返回路由；Search 等来源不得各自导航。 */
   readonly router: RouterEditOps;
+  readonly outlineDetailGeneration: OutlineDetailGenerationEditOps;
 }
 
 /** 创作台全部领域状态（store 单一快照形状；render 层只消费，不经 actions 不写）。 */
@@ -308,6 +313,8 @@ export interface WorkbenchState {
   statistics: StatisticsLayerState;
   /** 方案 A：剧情时间线面板状态（timeline 文档/选中节点/编辑脏标记，design §8 相关角色对）。 */
   timeline: TimelineLayerState;
+  /** I134：范围细纲候选审阅态，不是 B5 真相。 */
+  outlineDetailGeneration: OutlineDetailGenerationLayerState;
   selectedProjectId: string | undefined;
   /** 当前作品的展示名（来自 Host `projectOpen` 复核结果，用于作品上下文栏）。 */
   selectedProjectName: string | undefined;
@@ -356,6 +363,7 @@ export interface WorkbenchNamespaces {
   outlineReconciliation: OutlineReconciliationNamespace | undefined;
   onboardingNamespace: OnboardingNamespace | undefined;
   longDraft: LongDraftNamespace | undefined;
+  outlineDetailGeneration: OutlineDetailGenerationNamespace | undefined;
 }
 
 /** I82 视图分发形参收敛：各面板 state + 层数据打包为一个对象。 */
@@ -372,5 +380,6 @@ export interface WorkbenchViewStates {
   search: SearchLayerState;
   statistics: StatisticsLayerState;
   timeline: TimelineLayerState;
+  outlineDetailGeneration: OutlineDetailGenerationLayerState;
   router: RouterState;
 }

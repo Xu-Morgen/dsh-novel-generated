@@ -36,6 +36,7 @@ import type { NovelOutlineReconciliationService } from '../outline-reconciliatio
 import type { NovelReferenceAuditService } from '../reference-audit-service.js';
 import type { NovelReferenceCorrectionService } from '../reference-correction-service.js';
 import type { LongDraftWorkflowCoordinator } from '../long-draft-workflow-coordinator.js';
+import type { NovelOutlineDetailGenerationService } from '../outline-detail-generation-service.js';
 import type { NovelLinkIndexService } from '../link-index-service.js';
 import type { ReviewRepairWorkflow } from '../review-repair-workflow.js';
 
@@ -116,5 +117,6 @@ export interface ManagementServices {
   referenceAuditService: NovelReferenceAuditService;
   referenceCorrectionService: NovelReferenceCorrectionService;
   longDraftWorkflowCoordinator: LongDraftWorkflowCoordinator;
+  outlineDetailGenerationService: NovelOutlineDetailGenerationService;
   reviewRepairService: ReviewRepairWorkflow;
 }

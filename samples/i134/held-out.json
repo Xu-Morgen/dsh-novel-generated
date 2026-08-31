@@ -1,0 +1,4 @@
+{
+  "immutable": true,
+  "caseIds": ["fill-heldout", "regenerate-heldout", "fill-heldout-2", "regenerate-heldout-2"]
+}

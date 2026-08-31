@@ -26,6 +26,7 @@ import { textDeletionRemoteContribution } from './host/remote/text-deletion.js';
 import { textChangeImpactRemoteContribution } from './host/remote/text-change-impact.js';
 import { outlineReconciliationRemoteContribution } from './host/remote/outline-reconciliation.js';
 import { outlineGenerationScopeRemoteContribution } from './host/remote/outline-generation-scope.js';
+import { outlineDetailGenerationRemoteContribution } from './host/remote/outline-detail-generation.js';
 import { referenceAuditRemoteContribution } from './host/remote/reference-audit.js';
 import type {
   QueueNamespace,
@@ -36,6 +37,7 @@ import type {
   OutlineReconciliationNamespace,
   ReferenceAuditNamespace,
   OutlineGenerationScopeNamespace,
+  OutlineDetailGenerationNamespace,
   ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
@@ -119,6 +121,15 @@ const binderLlm = {
     yield { type: 'text-delta', text: '米拉推开旧灯塔的门。' };
     yield { type: 'finish', reason: { kind: 'stop' } };
   },
+};
+
+const outlineDetailCandidate = {
+  candidateId: 'odg-candidate', projectId: 'p1', scope: { kind: 'all' },
+  scopeFingerprint: 'a'.repeat(64), b5ContentFingerprint: 'b'.repeat(64),
+  items: [{ actId: 'act-1', beatId: 'beat-1', detailBeatId: 'detail-1', position: 0, origin: 'generated',
+    after: { id: 'detail-1', title: '细纲卡', summary: '摘要', pov: 'mira', wordTarget: 500, points: ['要点'], status: 'planned' as const },
+    choice: 'keep', rationale: '补缺。' }],
+  generatedDetailBeatCount: 1, revision: 1, status: 'ready', rationale: '只补缺失卡。', createdAt: ISO, updatedAt: ISO,
 };
 
 /** 每个 endpoint 的合法 result fixture（须通过 descriptor 的 strict result codec）。 */
@@ -265,6 +276,20 @@ function fixtureFor(endpoint: string): unknown {
         mutationBudget: { maxNewDetailBeats: 0, allowExistingReplacement: false, allowReorder: false, allowScopeExpansion: false },
         page: { offset: 0, limit: 128, nextOffset: null, totalTargetBeatCount: 0, totalTargetDetailBeatCount: 0 },
       };
+    case 'novelOutlineDetailGeneration/generate':
+    case 'novelOutlineDetailGeneration/read':
+    case 'novelOutlineDetailGeneration/edit':
+    case 'novelOutlineDetailGeneration/regenerate':
+    case 'novelOutlineDetailGeneration/skip':
+      return outlineDetailCandidate;
+    case 'novelOutlineDetailGeneration/propose':
+      return { projectId: 'p1', candidateId: 'odg-candidate', proposalId: 'odg-proposal', status: 'pending' };
+    case 'novelOutlineDetailGeneration/accept':
+      return { projectId: 'p1', candidateId: 'odg-candidate', proposalId: 'odg-proposal', status: 'accepted', appliedDetailBeatIds: ['detail-1'], skippedDetailBeatIds: [], b5ContentFingerprint: 'c'.repeat(64) };
+    case 'novelOutlineDetailGeneration/reject':
+      return { projectId: 'p1', candidateId: 'odg-candidate', proposalId: 'odg-proposal', status: 'rejected' };
+    case 'novelOutlineDetailGeneration/cancel':
+      return { projectId: 'p1', candidateId: 'odg-candidate', status: 'cancelled' };
     case 'novelStatistics/sceneCards':
       return { total: 0, cards: [] };
     case 'novelStatistics/tasks':
@@ -823,6 +848,50 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await invalidMount.dispose();
       await invalidMount.client.fiber.dispose();
+    }
+  });
+
+  it('I134 novelOutlineDetailGeneration：候选审阅与 I11 Gate 全套方法经真实 binder 往返', async () => {
+    const { client, calls, dispose } = await mount(outlineDetailGenerationRemoteContribution);
+    try {
+      const detail = client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
+      await expect(unwrap(detail.generate('p1', { scope: { kind: 'all' } }, undefined))).resolves.toMatchObject({ candidateId: 'odg-candidate' });
+      await expect(unwrap(detail.read('p1', 'odg-candidate'))).resolves.toMatchObject({ status: 'ready' });
+      await expect(unwrap(detail.edit('p1', { candidateId: 'odg-candidate', detailBeatId: 'detail-1', value: outlineDetailCandidate.items[0].after }))).resolves.toMatchObject({ revision: 1 });
+      await expect(unwrap(detail.regenerate('p1', { candidateId: 'odg-candidate', detailBeatId: 'detail-1' }, undefined))).resolves.toMatchObject({ candidateId: 'odg-candidate' });
+      await expect(unwrap(detail.skip('p1', { candidateId: 'odg-candidate', detailBeatId: 'detail-1' }))).resolves.toMatchObject({ candidateId: 'odg-candidate' });
+      await expect(unwrap(detail.propose('p1', { candidateId: 'odg-candidate' }))).resolves.toMatchObject({ status: 'pending' });
+      await expect(unwrap(detail.accept('p1', 'odg-proposal'))).resolves.toMatchObject({ status: 'accepted' });
+      await expect(unwrap(detail.reject('p1', 'odg-proposal'))).resolves.toMatchObject({ status: 'rejected' });
+      await expect(unwrap(detail.cancel('p1', 'odg-candidate'))).resolves.toMatchObject({ status: 'cancelled' });
+      expect(calls.map((call) => call.endpoint)).toEqual([
+        'novelOutlineDetailGeneration/generate', 'novelOutlineDetailGeneration/read', 'novelOutlineDetailGeneration/edit',
+        'novelOutlineDetailGeneration/regenerate', 'novelOutlineDetailGeneration/skip', 'novelOutlineDetailGeneration/propose',
+        'novelOutlineDetailGeneration/accept', 'novelOutlineDetailGeneration/reject', 'novelOutlineDetailGeneration/cancel',
+      ]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I134 负向：候选输入额外字段与非法结果在真实 binder fail closed', async () => {
+    const { client, calls, dispose } = await mount(outlineDetailGenerationRemoteContribution);
+    try {
+      const detail = client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
+      await expect(Reflect.apply(detail.generate, detail, ['p1', { scope: { kind: 'all' }, replaceAll: true }, undefined])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toHaveLength(0);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+    const invalid = await mount(outlineDetailGenerationRemoteContribution, (endpoint) => endpoint === 'novelOutlineDetailGeneration/generate' ? { ...outlineDetailCandidate, extra: true } : fixtureFor(endpoint));
+    try {
+      const detail = invalid.client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
+      await expect(unwrap(detail.generate('p1', { scope: { kind: 'all' } }, undefined))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await invalid.dispose();
+      await invalid.client.fiber.dispose();
     }
   });
 

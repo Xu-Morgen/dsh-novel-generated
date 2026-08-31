@@ -18,6 +18,7 @@ import { relationshipLayer as renderRelationshipLayer } from '../layers/relation
 import { stateLayer as renderStateLayer } from '../layers/state.js';
 import { canonLayer as renderCanonLayer } from '../layers/canon.js';
 import { outlineLayer as renderOutlineLayer } from '../layers/outline.js';
+import type { OutlineDetailGenerationView } from '../layers/outline-detail-generation.js';
 import { chaptersPanel } from '../layers/chapters.js';
 import { reviewPanel } from '../layers/review.js';
 import { queuePanel } from '../layers/queue.js';
@@ -164,7 +165,7 @@ function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
  * I48 B5 大纲结构化编辑器（design §5.7 / R10-5）：所有读写只经 Host
  * `outlineRead`/`outlineSave`/`outlineBeatCards`，Client 不拥有领域校验。
  */
-function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, ops: WorkbenchOps): unknown {
+function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, ops: WorkbenchOps, detailGeneration?: OutlineDetailGenerationView): unknown {
   const layer = LAYERS.find((item) => item.id === activeLayer) ?? LAYERS[0];
   if (layer.id === 'characters') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
@@ -176,7 +177,7 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
   }
   if (layer.id === 'outline') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id })), ops.router));
+      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id })), ops.router, detailGeneration));
   }
   if (layer.id === 'relationship') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
@@ -200,7 +201,11 @@ function renderLayerPanel(props: PanelViewProps): unknown {
   const { h, view, projectId, ns, states, ops } = props;
   const { workspace } = ns;
   const { layers } = states;
-  return h('div', { 'data-novel-view-panel': view }, contentArea(h, projectId, workspace, view as LayerId, layers, ops));
+  return h('div', { 'data-novel-view-panel': view }, contentArea(h, projectId, workspace, view as LayerId, layers, ops, {
+    namespace: ns.outlineDetailGeneration,
+    state: states.outlineDetailGeneration,
+    ops: ops.outlineDetailGeneration,
+  }));
 }
 
 /**
