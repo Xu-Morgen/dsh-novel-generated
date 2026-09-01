@@ -1,0 +1,31 @@
+{
+  "iteration": "I141",
+  "requirement": "R19-1a",
+  "guarantees": [
+    "source-role-and-treatment-are-independent-axes",
+    "stage19-only-expand-outline-and-adapt-pov",
+    "limited-pov-requires-resolved-character-or-stable-candidate",
+    "omniscient-may-omit-a-focal-character",
+    "canonical-serialization-and-fingerprint-are-byte-stable",
+    "existing-stage18-remote-lock-is-unchanged"
+  ],
+  "negativeMatrix": [
+    "unknown-fields",
+    "illegal-treatment",
+    "missing-limited-focal",
+    "unresolved-candidate",
+    "treatment-intent-mismatch"
+  ],
+  "focusedSuite": "src/core/schema/import-interpretation.test.ts",
+  "remoteLock": {
+    "descriptorCount": 181,
+    "resultSchemaCount": 87
+  },
+  "explicitNonGoals": [
+    "llm",
+    "remote",
+    "session-persistence",
+    "ui-rendering",
+    "project-writes"
+  ]
+}

@@ -346,6 +346,9 @@
     "verify:product-flow": "pnpm run verify:i140",
     "smoke:stage-18": "node scripts/smoke-stage-18.mjs",
     "verify:stage-18": "pnpm run verify:i140 && pnpm run smoke:stage-18",
+    "smoke:i141": "node scripts/smoke-i141.mjs",
+    "verify:i141": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i141",
+    "verify:stage-19": "pnpm run verify:i141",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {
