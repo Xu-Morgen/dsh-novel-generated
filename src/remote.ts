@@ -8,6 +8,7 @@ import { importInterpretationInvocations, importInterpretationRemoteContribution
 import { importInterpretationAnalysisInvocations, importInterpretationAnalysisRemoteContribution } from './host/remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations, narrativeAdaptationRemoteContribution } from './host/remote/narrative-adaptation.js';
 import { narrativeRevealInvocations, narrativeRevealRemoteContribution } from './host/remote/narrative-reveal.js';
+import { narrativeImportPlanInvocations, narrativeImportPlanRemoteContribution } from './host/remote/narrative-import-plan.js';
 import { llmConfigInvocations, llmConfigRemoteContribution } from './host/remote/llm-config.js';
 import { workbenchSettingsInvocations, workbenchSettingsRemoteContribution } from './host/remote/workbench-settings.js';
 import { writingInvocations, writingRemoteContribution } from './host/remote/writing.js';
@@ -51,6 +52,7 @@ export * from './host/remote/import-interpretation.js';
 export * from './host/remote/import-interpretation-analysis.js';
 export * from './host/remote/narrative-adaptation.js';
 export * from './host/remote/narrative-reveal.js';
+export * from './host/remote/narrative-import-plan.js';
 export * from './host/remote/llm-config.js';
 export * from './host/remote/workbench-settings.js';
 export * from './host/remote/writing.js';
@@ -68,4 +70,4 @@ export * from './host/remote/timeline.js';
 export type { WorkspaceEditorService } from './host/workspace-service.js';
 export { createWorkspaceEditorService } from './host/workspace-service.js';
 
-export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution, narrativeAdaptationInvocations, narrativeAdaptationRemoteContribution, narrativeRevealInvocations, narrativeRevealRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, reviewRepairInvocations, reviewRepairRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, outlineReconciliationInvocations, outlineReconciliationRemoteContribution, referenceAuditInvocations, referenceAuditRemoteContribution, referenceCorrectionInvocations, referenceCorrectionRemoteContribution, longDraftInvocations, longDraftRemoteContribution, outlineDetailGenerationInvocations, outlineDetailGenerationRemoteContribution };
+export { probeContribution, probeRemoteContribution, workspaceContribution, workspaceRemoteContribution, projectLifecycleRemoteContribution, uploadRemoteContribution, onboardingRemoteContribution, onboardingAnalyzerRemoteContribution, importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution, narrativeAdaptationInvocations, narrativeAdaptationRemoteContribution, narrativeRevealInvocations, narrativeRevealRemoteContribution, narrativeImportPlanInvocations, narrativeImportPlanRemoteContribution, llmConfigRemoteContribution, workbenchSettingsRemoteContribution, writingRemoteContribution, reviewRemoteContribution, reviewRepairInvocations, reviewRepairRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, textMutationRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, outlineReconciliationInvocations, outlineReconciliationRemoteContribution, referenceAuditInvocations, referenceAuditRemoteContribution, referenceCorrectionInvocations, referenceCorrectionRemoteContribution, longDraftInvocations, longDraftRemoteContribution, outlineDetailGenerationInvocations, outlineDetailGenerationRemoteContribution };

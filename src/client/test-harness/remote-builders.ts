@@ -106,6 +106,8 @@ export interface MountOptions {
   narrativeAdaptation?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
   /** I146 candidate-only C3 reveal planner namespace injection. */
   narrativeReveal?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
+  /** I148 one-preview/one-confirmation narrative import plan injection. */
+  narrativeImportPlan?: { propose?: (input: unknown) => Promise<unknown>; read?: (input: unknown) => Promise<unknown>; accept?: (input: unknown) => Promise<unknown>; reject?: (input: unknown) => Promise<unknown>; recover?: (input: unknown) => Promise<unknown> };
 }
 
 export interface WorkspaceOverrides {

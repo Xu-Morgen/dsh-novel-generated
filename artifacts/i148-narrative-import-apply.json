@@ -1,0 +1,43 @@
+{
+  "iteration": "I148",
+  "requirement": "R19-5a",
+  "guarantees": [
+    "one-preview-one-i11-confirmation",
+    "i52-six-layer-owners-reused-with-stage19-b5-c3-c4-package",
+    "new-empty-project-preflight",
+    "pending-and-reject-have-zero-layer-writes",
+    "stale-non-empty-project-fails-closed",
+    "durable-committed-stages-checkpoint",
+    "partial-failure-reports-errors-and-recovers-by-same-plan",
+    "repeat-accept-is-idempotent",
+    "c5-writer-is-not-a-plan-participant"
+  ],
+  "negativeMatrix": [
+    "pending-before-confirmation",
+    "rejected",
+    "non-empty-project",
+    "stale-plan",
+    "state-failure",
+    "partial-failure-recovery",
+    "cross-session",
+    "source-hash-mismatch",
+    "disposed"
+  ],
+  "focusedSuites": [
+    "src/host/narrative-import-plan-coordinator.test.ts",
+    "src/narrative-import-plan-contract.test.ts",
+    "src/host/onboarding-adjudication-service.test.ts"
+  ],
+  "remoteLock": {
+    "descriptorCount": 5,
+    "resultSchemaCount": 5
+  },
+  "explicitNonGoals": [
+    "c5-write",
+    "non-empty-merge",
+    "cross-owner-global-rollback",
+    "background-apply",
+    "stage20-shared-uow",
+    "second-workflow-route"
+  ]
+}

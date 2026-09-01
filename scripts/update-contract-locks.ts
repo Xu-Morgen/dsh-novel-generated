@@ -40,6 +40,7 @@ import { importInterpretationInvocations } from '../src/host/remote/import-inter
 import { importInterpretationAnalysisInvocations } from '../src/host/remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations } from '../src/host/remote/narrative-adaptation.js';
 import { narrativeRevealInvocations } from '../src/host/remote/narrative-reveal.js';
+import { narrativeImportPlanInvocations } from '../src/host/remote/narrative-import-plan.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -279,6 +280,22 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage19/narrative-reveal-remote.json');
+}
+
+/** I148 one-preview/one-confirmation NarrativeImportPlan Remote lock (R19-5a). */
+{
+  const descriptors = remoteDescriptorLockBodies(narrativeImportPlanInvocations);
+  const resultSchemas = remoteResultShapeBodies(narrativeImportPlanInvocations);
+  write('contracts/stage19/narrative-import-plan-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage19NarrativeImportPlan',
+    contractNote: 'I148 一次预览/一次 I11 确认的可恢复 NarrativeImportPlan；不写 C5，不承诺跨 owner 全回滚。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage19/narrative-import-plan-remote.json');
 }
 
 /** I142 additive import-interpretation session Remote lock (R19-1b). */

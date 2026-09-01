@@ -25,6 +25,7 @@ import { createImportInterpretationSessionService } from '../import-interpretati
 import { createImportInterpretationAnalysisService } from '../import-interpretation-analysis-service.js';
 import { createNarrativeAdaptationService } from '../narrative-adaptation-service.js';
 import { createNarrativeRevealPlanner } from '../narrative-reveal-planner-service.js';
+import { createNarrativeImportPlanCoordinator } from '../narrative-import-plan-coordinator.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type {
   ImportInterpretationSessionConfirmInput,
@@ -38,6 +39,7 @@ import type {
 } from '../../core/schema/import-interpretation-analysis.js';
 import type { NarrativeAdaptationIdentity, NarrativeAdaptationInput } from '../../core/schema/narrative-adaptation.js';
 import type { NarrativeRevealIdentity, NarrativeRevealInput } from '../../core/schema/narrative-reveal.js';
+import type { NarrativeImportPlanIdentity, NarrativeImportPlanInput } from '../../core/schema/narrative-import-plan.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
@@ -48,6 +50,7 @@ import { importInterpretationInvocations } from '../remote/import-interpretation
 import { importInterpretationAnalysisInvocations } from '../remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations } from '../remote/narrative-adaptation.js';
 import { narrativeRevealInvocations } from '../remote/narrative-reveal.js';
+import { narrativeImportPlanInvocations } from '../remote/narrative-import-plan.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
@@ -161,6 +164,26 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'cancel', call: (input: NarrativeRevealIdentity) => narrativeRevealPlanner.cancel(input) },
     { method: 'result', call: (input: NarrativeRevealIdentity) => narrativeRevealPlanner.result(input) },
   ], narrativeRevealInvocations));
+  // I148：一次预览/一次 I11 确认统一组合 I52 地基与 Stage 19 B5/C3/C4
+  // 候选；Coordinator 复用既有六层 owner，checkpoint 记录 committedStages，
+  // 不提供 C5 写入口，也不承诺跨 owner 全回滚。
+  const narrativeImportPlan = createNarrativeImportPlanCoordinator(projectsRoot, {
+    characters: characterService,
+    worldview: worldviewService,
+    outline: outlineService,
+    relationship: relationshipService,
+    state: stateService,
+    canon: canonService,
+    knowledge: knowledgeService,
+    confirmation: confirmationService,
+  }, onFiberDispose);
+  ctx.provide('novelNarrativeImportPlan', defineRemote('novelNarrativeImportPlan', 'novelNarrativeImportPlan', narrativeImportPlan, [
+    { method: 'propose', call: (input: NarrativeImportPlanInput) => narrativeImportPlan.propose(input) },
+    { method: 'read', call: (input: NarrativeImportPlanIdentity) => narrativeImportPlan.read(input) },
+    { method: 'accept', call: (input: NarrativeImportPlanIdentity) => narrativeImportPlan.accept(input) },
+    { method: 'reject', call: (input: NarrativeImportPlanIdentity) => narrativeImportPlan.reject(input) },
+    { method: 'recover', call: (input: NarrativeImportPlanIdentity) => narrativeImportPlan.recover(input) },
+  ], narrativeImportPlanInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
   // adapts `getResult`/`regenerate` so the adjudication facade stays independent
   // of the analyzer's job lifecycle internals.

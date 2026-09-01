@@ -148,6 +148,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const importInterpretationAnalysisStub = mountOptions.importInterpretationAnalysis;
   const narrativeAdaptationStub = mountOptions.narrativeAdaptation;
   const narrativeRevealStub = mountOptions.narrativeReveal;
+  const narrativeImportPlanStub = mountOptions.narrativeImportPlan;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -193,6 +194,13 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
       cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
       result: async (input: unknown) => ({ ...(input as Record<string, unknown>), candidate: {} }),
+    })
+    : name === 'remote.novelNarrativeImportPlan' ? (narrativeImportPlanStub ?? {
+      propose: async (input: unknown) => ({ ...(input as Record<string, unknown>), planId: 'narrative-import-plan-1', confirmationId: 'narrative-import-confirmation-1', status: 'pending', committedStages: [], errors: [] }),
+      read: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'pending', package: {}, narrativeIntent: {}, committedStages: [], errors: [] }),
+      accept: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'applied', committedStages: ['characters', 'worldview', 'outline', 'state', 'canon', 'relationship', 'knowledge'], errors: [] }),
+      reject: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'rejected', committedStages: [], errors: [] }),
+      recover: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'applied', committedStages: [], errors: [] }),
     })
     : name === 'remote.novelWriting' ? {
       propose: writingStub?.propose ?? (async () => { throw new Error('未注入 remote.novelWriting.propose'); }),

@@ -41,6 +41,7 @@ import type {
 import type { importInterpretationAnalysisRemoteContribution } from '../host/remote/import-interpretation-analysis.js';
 import type { narrativeAdaptationRemoteContribution } from '../host/remote/narrative-adaptation.js';
 import type { narrativeRevealRemoteContribution } from '../host/remote/narrative-reveal.js';
+import type { narrativeImportPlanRemoteContribution } from '../host/remote/narrative-import-plan.js';
 import type { referenceAuditRemoteContribution } from '../host/remote/reference-audit.js';
 import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
@@ -105,6 +106,8 @@ export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInt
 export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
 /** I146 candidate-only C3 reveal planner; application remains a later Gate owner. */
 export type NarrativeRevealNamespace = NamespaceOf<typeof narrativeRevealRemoteContribution>;
+/** I148 one-preview/one-confirmation plan; C5 remains outside this surface. */
+export type NarrativeImportPlanNamespace = NamespaceOf<typeof narrativeImportPlanRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;
