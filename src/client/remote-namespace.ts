@@ -38,6 +38,7 @@ import type {
   workspaceRemoteContribution,
   writingRemoteContribution,
 } from '../remote.js';
+import type { importInterpretationAnalysisRemoteContribution } from '../host/remote/import-interpretation-analysis.js';
 import type { referenceAuditRemoteContribution } from '../host/remote/reference-audit.js';
 import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
@@ -96,6 +97,8 @@ export type ProgressNamespace = NamespaceOf<typeof progressRemoteContribution>;
 export type ImportExportNamespace = NamespaceOf<typeof importExportRemoteContribution>;
 /** I142 recoverable source-intent checkpoint; no narrative-layer write method. */
 export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretationRemoteContribution>;
+/** I143 zero-write source classifier; only operational evidence crosses this seam. */
+export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInterpretationAnalysisRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;

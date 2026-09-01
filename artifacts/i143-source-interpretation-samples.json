@@ -1,0 +1,47 @@
+{
+  "iteration": "I143",
+  "requirement": "R19-2a",
+  "guarantees": [
+    "five-way-paragraph-source-classification",
+    "host-owned-stable-paragraph-ids-and-ranges",
+    "overall-source-role-suggestion-with-evidence",
+    "dev-and-held-out-fake-backend-regression-at-eighty-percent",
+    "unknown-duplicate-missing-paragraph-and-malformed-json-fail-closed",
+    "cancel-model-failure-and-dispose-have-zero-writes",
+    "no-treatment-pov-offset-or-write-command-from-model"
+  ],
+  "negativeMatrix": [
+    "unknown-paragraph",
+    "duplicate-paragraph",
+    "missing-paragraph",
+    "duplicate-evidence",
+    "invalid-json",
+    "model-failure",
+    "cancelled",
+    "over-limit"
+  ],
+  "sampleCounts": {
+    "total": 10,
+    "dev": 5,
+    "heldOut": 5,
+    "threshold": 0.8
+  },
+  "focusedSuites": [
+    "src/llm/analyze/import-interpretation.test.ts",
+    "src/host/import-interpretation-analysis-service.test.ts",
+    "src/import-interpretation-analysis-contract.test.ts",
+    "src/remote-binder.test.ts"
+  ],
+  "remoteLock": {
+    "descriptorCount": 4,
+    "resultSchemaCount": 4
+  },
+  "explicitNonGoals": [
+    "treatment-selection",
+    "pov-selection",
+    "model-owned-offsets",
+    "layer-generation",
+    "ui-review",
+    "intent-confirmation"
+  ]
+}

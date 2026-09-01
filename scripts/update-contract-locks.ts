@@ -37,6 +37,7 @@ import { outlineGenerationScopeInvocations } from '../src/host/remote/outline-ge
 import { outlineDetailGenerationInvocations } from '../src/host/remote/outline-detail-generation.js';
 import { compileManuscriptInvocation } from '../src/host/remote/import-export.js';
 import { importInterpretationInvocations } from '../src/host/remote/import-interpretation.js';
+import { importInterpretationAnalysisInvocations } from '../src/host/remote/import-interpretation-analysis.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -260,4 +261,20 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage19/import-interpretation-remote.json');
+}
+
+/** I143 zero-write source classifier Remote lock (R19-2a). */
+{
+  const descriptors = remoteDescriptorLockBodies(importInterpretationAnalysisInvocations);
+  const resultSchemas = remoteResultShapeBodies(importInterpretationAnalysisInvocations);
+  write('contracts/stage19/import-interpretation-analysis-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage19ImportInterpretationAnalysis',
+    contractNote: 'I143 来源解释零写分类器 Remote：只追加 begin/status/cancel/result，不输出 treatment/POV/offset/写命令。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage19/import-interpretation-analysis-remote.json');
 }

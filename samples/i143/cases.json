@@ -1,0 +1,18 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["world-truth", "plot-plan", "prose", "author-instruction", "presentation-note"],
+  "heldOutCaseIds": ["heldout-hybrid", "heldout-memo", "heldout-scene-control", "heldout-dialogue", "heldout-future-plan"],
+  "cases": [
+    {"id":"world-truth","text":"北境的冬季持续九个月，城墙由黑曜石砌成。","expected":{"sourceRole":"background-material","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"world-truth","confidence":"high","evidence":"北境冬季与城墙材质是设定事实。"}],"rationale":"这是可供故事使用的世界设定事实。"}},
+    {"id":"plot-plan","text":"第二幕让测绘师进入北港，并在旧灯塔发现线索。","expected":{"sourceRole":"synopsis","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"plot-plan","confidence":"high","evidence":"第二幕行动与发现线索是预定剧情。"}],"rationale":"这是按幕安排剧情的计划。"}},
+    {"id":"prose","text":"米拉推开旧灯塔的门，盐雾从门缝里涌进来。","expected":{"sourceRole":"existing-prose","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"prose","confidence":"high","evidence":"段落以叙事动作和感官细节呈现事件。"}],"rationale":"这是已经写成的叙事正文。"}},
+    {"id":"author-instruction","text":"请把这条线索留到第三幕再揭示，并检查助手的动机。","expected":{"sourceRole":"idea","confidence":"medium","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"author-instruction","confidence":"high","evidence":"请与检查是直接给作者的创作任务。"}],"rationale":"它是作者待办与创作约束，不是正文。"}},
+    {"id":"presentation-note","text":"主持人：如果玩家调查钟楼，就描述墙上的新刻痕。","expected":{"sourceRole":"background-material","confidence":"medium","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"presentation-note","confidence":"high","evidence":"主持人提示和条件描述属于呈现机制。"}],"rationale":"这是场景呈现说明，不应直接成为故事事实。"}},
+    {"id":"heldout-hybrid","text":"旧王已死；第一章让旅人误以为他仍在统治。","expected":{"sourceRole":"hybrid","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"world-truth","confidence":"medium","evidence":"旧王已死是幕后事实，同时给出叙事误判计划。"}],"rationale":"同一段混合了客观真相与读者体验计划。"}},
+    {"id":"heldout-memo","text":"TODO：补一段关于灰塔信仰来源的说明。","expected":{"sourceRole":"idea","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"author-instruction","confidence":"high","evidence":"TODO 明确表示这是作者待办。"}],"rationale":"待补说明是创作任务，不是已经成立的世界事实。"}},
+    {"id":"heldout-scene-control","text":"当钟声响起时，切到港口远景，再让守卫注意到火光。","expected":{"sourceRole":"synopsis","confidence":"medium","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"presentation-note","confidence":"high","evidence":"切镜头与让角色注意是呈现/场景控制指令。"}],"rationale":"这是如何呈现一场戏的说明。"}},
+    {"id":"heldout-dialogue","text":"“别回头。”她说。远处的铁门随即合上。","expected":{"sourceRole":"existing-prose","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"prose","confidence":"high","evidence":"对话与连续动作已经形成叙事段落。"}],"rationale":"这是可直接阅读的正文片段。"}},
+    {"id":"heldout-future-plan","text":"下一章安排调查者得知真相，但不要现在解释操纵者。","expected":{"sourceRole":"synopsis","confidence":"high","evidenceParagraphIds":["paragraph-0001"],"paragraphs":[{"paragraphId":"paragraph-0001","role":"plot-plan","confidence":"high","evidence":"下一章安排与揭示时机是未来剧情计划。"}],"rationale":"这是未来剧情与揭示节奏安排。"}}
+  ]
+}

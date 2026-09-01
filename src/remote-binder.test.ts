@@ -17,6 +17,7 @@ import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { importExportRemoteContribution } from './host/remote/import-export.js';
 import { importInterpretationRemoteContribution } from './host/remote/import-interpretation.js';
+import { importInterpretationAnalysisRemoteContribution } from './host/remote/import-interpretation-analysis.js';
 import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
@@ -41,6 +42,7 @@ import type {
   OutlineGenerationScopeNamespace,
   OutlineDetailGenerationNamespace,
   ImportInterpretationNamespace,
+  ImportInterpretationAnalysisNamespace,
   ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
@@ -1322,6 +1324,56 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       }])).rejects.toThrow(/rejected "input"/);
       await expect(unwrap(interpretation.read({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).rejects.toThrow(/rejected "result"/);
       expect(mounted.calls).toEqual([{ endpoint: 'novelImportInterpretation/read', args: { input: { projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) } } }]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I143 novelImportInterpretationAnalysis：分类生命周期经真实 binder 往返并保持绑定参数', async () => {
+    const output = {
+      sourceRole: 'hybrid', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'],
+      paragraphs: [{ paragraphId: 'paragraph-0001', role: 'world-truth', confidence: 'high', evidence: '设定事实。' }], rationale: '分类。',
+    };
+    const identity = { projectId: 'p1', importSessionId: 'imp-analysis-1', sourceHash: 'a'.repeat(64) };
+    const mounted = await mount(importInterpretationAnalysisRemoteContribution, (endpoint) => {
+      if (endpoint.endsWith('/begin')) return identity;
+      if (endpoint.endsWith('/result')) return { ...identity, output };
+      return { ...identity, status: endpoint.endsWith('/cancel') ? 'cancelled' : 'running' };
+    });
+    try {
+      const analysis = mounted.client.get('remote.novelImportInterpretationAnalysis') as ImportInterpretationAnalysisNamespace;
+      const input = {
+        ...identity,
+        paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '设定。', startOffset: 0, endOffset: 3 }],
+      };
+      expect(await unwrap(analysis.begin(input, undefined))).toEqual(identity);
+      expect(await unwrap(analysis.status(identity))).toMatchObject({ status: 'running' });
+      expect(await unwrap(analysis.cancel(identity))).toMatchObject({ status: 'cancelled' });
+      expect(await unwrap(analysis.result(identity))).toMatchObject({ output });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelImportInterpretationAnalysis/begin', 'novelImportInterpretationAnalysis/status',
+        'novelImportInterpretationAnalysis/cancel', 'novelImportInterpretationAnalysis/result',
+      ]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I143 负向：分类器 coverage 漂移与非法结果经真实 binder fail closed', async () => {
+    const identity = { projectId: 'p1', importSessionId: 'imp-analysis-1', sourceHash: 'a'.repeat(64) };
+    const mounted = await mount(importInterpretationAnalysisRemoteContribution, (endpoint) => endpoint.endsWith('/result')
+      ? { ...identity, output: { sourceRole: 'hybrid', confidence: 'high', evidenceParagraphIds: [], paragraphs: [], rationale: 'bad' } }
+      : identity);
+    try {
+      const analysis = mounted.client.get('remote.novelImportInterpretationAnalysis') as ImportInterpretationAnalysisNamespace;
+      await expect(unwrap(analysis.begin({
+        ...identity,
+        paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '设定。', startOffset: 0, endOffset: 3, extra: true }],
+      } as never, undefined))).rejects.toThrow(/rejected "input"/);
+      await expect(unwrap(analysis.result(identity))).rejects.toThrow(/rejected "result"/);
+      expect(mounted.calls).toEqual([{ endpoint: 'novelImportInterpretationAnalysis/result', args: { input: identity } }]);
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();

@@ -1,0 +1,715 @@
+{
+  "schemaVersion": 1,
+  "namespace": "stage19ImportInterpretationAnalysis",
+  "contractNote": "I143 来源解释零写分类器 Remote：只追加 begin/status/cancel/result，不输出 treatment/POV/offset/写命令。",
+  "descriptorIds": [
+    "novel-creation-tool/novelImportInterpretationAnalysis/begin",
+    "novel-creation-tool/novelImportInterpretationAnalysis/status",
+    "novel-creation-tool/novelImportInterpretationAnalysis/cancel",
+    "novel-creation-tool/novelImportInterpretationAnalysis/result"
+  ],
+  "descriptors": {
+    "novel-creation-tool/novelImportInterpretationAnalysis/begin": {
+      "id": "novel-creation-tool/novelImportInterpretationAnalysis/begin",
+      "service": "novelImportInterpretationAnalysis",
+      "namespace": "novelImportInterpretationAnalysis",
+      "method": "begin",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "paragraphs": {
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "paragraphId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 20000
+                      },
+                      "startOffset": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "endOffset": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "paragraphId",
+                      "index",
+                      "text",
+                      "startOffset",
+                      "endOffset"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash",
+                "paragraphs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "settings",
+          "wire": "settings",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#json",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema"
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationAnalysisBegin:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/status": {
+      "id": "novel-creation-tool/novelImportInterpretationAnalysis/status",
+      "service": "novelImportInterpretationAnalysis",
+      "namespace": "novelImportInterpretationAnalysis",
+      "method": "status",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationAnalysisIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationAnalysisStatus",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "failed",
+                "cancelled"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/cancel": {
+      "id": "novel-creation-tool/novelImportInterpretationAnalysis/cancel",
+      "service": "novelImportInterpretationAnalysis",
+      "namespace": "novelImportInterpretationAnalysis",
+      "method": "cancel",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationAnalysisIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationAnalysisCancel:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "failed",
+                "cancelled"
+              ]
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/result": {
+      "id": "novel-creation-tool/novelImportInterpretationAnalysis/result",
+      "service": "novelImportInterpretationAnalysis",
+      "namespace": "novelImportInterpretationAnalysis",
+      "method": "result",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationAnalysisIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationAnalysis:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "sourceRole": {
+                  "type": "string",
+                  "enum": [
+                    "idea",
+                    "synopsis",
+                    "background-material",
+                    "existing-prose",
+                    "hybrid"
+                  ]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "evidenceParagraphIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "paragraphs": {
+                  "minItems": 1,
+                  "maxItems": 200,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "paragraphId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "world-truth",
+                          "plot-plan",
+                          "prose",
+                          "author-instruction",
+                          "presentation-note"
+                        ]
+                      },
+                      "confidence": {
+                        "type": "string",
+                        "enum": [
+                          "low",
+                          "medium",
+                          "high"
+                        ]
+                      },
+                      "evidence": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "paragraphId",
+                      "role",
+                      "confidence",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4000
+                }
+              },
+              "required": [
+                "sourceRole",
+                "confidence",
+                "evidenceParagraphIds",
+                "paragraphs",
+                "rationale"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "output"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "resultSchemaIds": [
+    "novel-creation-tool/novelImportInterpretationAnalysis/begin",
+    "novel-creation-tool/novelImportInterpretationAnalysis/status",
+    "novel-creation-tool/novelImportInterpretationAnalysis/cancel",
+    "novel-creation-tool/novelImportInterpretationAnalysis/result"
+  ],
+  "resultSchemas": {
+    "novel-creation-tool/novelImportInterpretationAnalysis/begin": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/status": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/cancel": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretationAnalysis/result": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "output": {
+          "type": "object",
+          "properties": {
+            "sourceRole": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "synopsis",
+                "background-material",
+                "existing-prose",
+                "hybrid"
+              ]
+            },
+            "confidence": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "evidenceParagraphIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "paragraphs": {
+              "minItems": 1,
+              "maxItems": 200,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "paragraphId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "world-truth",
+                      "plot-plan",
+                      "prose",
+                      "author-instruction",
+                      "presentation-note"
+                    ]
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "paragraphId",
+                  "role",
+                  "confidence",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
+          },
+          "required": [
+            "sourceRole",
+            "confidence",
+            "evidenceParagraphIds",
+            "paragraphs",
+            "rationale"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "output"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"immutable":true,"caseIds":["world-truth","plot-plan","prose","author-instruction","presentation-note","heldout-hybrid","heldout-memo","heldout-scene-control","heldout-dialogue","heldout-future-plan"],"note":"Gold expectations are frozen in cases.json; dev and held-out manifests are immutable split declarations."}

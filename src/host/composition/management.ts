@@ -22,6 +22,7 @@ import { createFinalizationPlanBuilder } from '../finalization-plan-builder.js';
 import { createFinalizationCoordinator } from '../finalization-coordinator.js';
 import { createBookCompletionService } from '../book-completion-service.js';
 import { createImportInterpretationSessionService } from '../import-interpretation-session-service.js';
+import { createImportInterpretationAnalysisService } from '../import-interpretation-analysis-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type {
   ImportInterpretationSessionConfirmInput,
@@ -29,6 +30,10 @@ import type {
   ImportInterpretationSessionDiscardInput,
   ImportInterpretationSessionReadInput,
 } from '../../core/schema/import-interpretation-session.js';
+import type {
+  ImportInterpretationAnalysisIdentity,
+  ImportInterpretationInput,
+} from '../../core/schema/import-interpretation-analysis.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
@@ -36,6 +41,7 @@ import type { BookReadinessPageInput } from '../../core/schema/book-readiness.js
 import { defineRemote } from '../remote/shared.js';
 import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js';
 import { importInterpretationInvocations } from '../remote/import-interpretation.js';
+import { importInterpretationAnalysisInvocations } from '../remote/import-interpretation-analysis.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
@@ -116,6 +122,17 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'confirm', call: (input: ImportInterpretationSessionConfirmInput) => importInterpretationService.confirm(input) },
     { method: 'discard', call: (input: ImportInterpretationSessionDiscardInput) => importInterpretationService.discard(input) },
   ], importInterpretationInvocations));
+  // I143：分类器只生成来源解释 evidence，所有 paragraph range 仍由 Host 输入
+  // 绑定；分类完成前不进入任何 B/C 层，也不替作者确认 treatment/POV。
+  const importInterpretationAnalysisService = createImportInterpretationAnalysisService(llm, onFiberDispose, (error, importSessionId) => {
+    logger.error('Background import interpretation analysis %s failed: %o', importSessionId, error);
+  });
+  ctx.provide('novelImportInterpretationAnalysis', defineRemote('novelImportInterpretationAnalysis', 'novelImportInterpretationAnalysis', importInterpretationAnalysisService, [
+    { method: 'begin', call: async (input: ImportInterpretationInput, settings?: unknown) => importInterpretationAnalysisService.begin(input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'status', call: (input: ImportInterpretationAnalysisIdentity) => importInterpretationAnalysisService.status(input) },
+    { method: 'cancel', call: (input: ImportInterpretationAnalysisIdentity) => importInterpretationAnalysisService.cancel(input) },
+    { method: 'result', call: (input: ImportInterpretationAnalysisIdentity) => importInterpretationAnalysisService.result(input) },
+  ], importInterpretationAnalysisInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
   // adapts `getResult`/`regenerate` so the adjudication facade stays independent
   // of the analyzer's job lifecycle internals.
