@@ -1,0 +1,37 @@
+{
+  "iteration": "I147",
+  "requirement": "R19-4b",
+  "guarantees": [
+    "only-explicit-public-at-start-prose-enters-c4",
+    "backstage-future-presentation-author-instruction-rejected",
+    "unknown-evidence-and-duplicate-events-fail-closed",
+    "c3-filtered-by-knowledge-state-before-pov-context",
+    "b5-b2-trigger-c4-context-hidden-fact-leak-detector",
+    "same-input-projection-is-deterministic",
+    "no-new-llm-no-layer-write-no-plan-coordinator"
+  ],
+  "negativeMatrix": [
+    "backstage-evidence",
+    "future-evidence",
+    "presentation-evidence",
+    "author-instruction-evidence",
+    "world-truth-masquerading-as-prose",
+    "unknown-evidence",
+    "hidden-fact-in-b5",
+    "hidden-fact-in-b2-trigger",
+    "hidden-fact-in-c4"
+  ],
+  "focusedSuites": [
+    "src/core/narrative/public-at-start.test.ts",
+    "src/host/knowledge-leak-detection-service.test.ts"
+  ],
+  "explicitNonGoals": [
+    "new-llm-call",
+    "c3-write",
+    "c4-write",
+    "c5-write",
+    "narrative-import-plan",
+    "canon-schema-change",
+    "knowledge-filter-change"
+  ]
+}
