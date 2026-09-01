@@ -12,7 +12,7 @@
 
 1. `docs/novel-creation-tool-design.md`（v3.1）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v3.1）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v3.1）—— 执行层，22 个阶段、161 个迭代（I1–I161）；**I1–I140 全部完成**；Stage 19 来源确认与幕后叙事化（I141–I149）、Stage 20 导入基础设施重构（I150–I154）和 Stage 21 已有正文保真导入（I155–I161）已按依赖顺序正式立项，当前执行 I141；每一步从对应阶段/迭代卡片出发。
+3. `docs/novel-creation-tool-development-plan.md`（v3.1）—— 执行层，22 个阶段、161 个迭代（I1–I161）；**I1–I149 全部完成**，Stage 19 来源确认与幕后叙事化已成为当前代码基线；Stage 20 导入基础设施重构（I150–I154）和 Stage 21 已有正文保真导入（I155–I161）继续按依赖顺序执行，当前执行 I150；每一步从对应阶段/迭代卡片出发。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -38,7 +38,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 新增功能的公开合同政策：既有 invocation 的方法名、参数、结果必须向后兼容；允许新增 strict additive Remote 方法/namespace，但必须同步 canonical schema、descriptor/结果 contract lock、adapter 返回类型耦合、真实 DSH binder E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。
-- I1–I140 已完成：I85 已把唯一 DSH family pin 切换为 `0.1.1-rc.2`；Stage 17 修复迭代 I86–I102 与 Stage 18 I103–I140 已全部完成，README 十二步作者主流程、统一定稿、发布门与单一全文导出均成为当前代码基线。v3.1 将新增工作严格分为三阶段：**Stage 19 I141–I149** 只处理来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与产品 E2E；**Stage 20 I150–I154** 只做导入基础设施机械重构，不改变公开合同形状或产品语义；**Stage 21 I155–I161** 才交付已有正文保真导入。不得跨阶段夹带、回填 I140 或重写 I1–I140 历史。当前执行 I141，每迭代单独 commit，验证命令为 `pnpm run verify:i141`–`verify:i161`。
+- I1–I149 已完成：I85 已把唯一 DSH family pin 切换为 `0.1.1-rc.2`；Stage 17 修复迭代 I86–I102、Stage 18 I103–I140 与 Stage 19 I141–I149 已全部完成，README 十二步作者主流程、统一定稿、发布门、单一全文导出、来源确认、幕后素材 POV 叙事化及 C3/C4 安全边界均成为当前代码基线。v3.1 的剩余工作严格分为两阶段：**Stage 20 I150–I154** 只做导入基础设施机械重构，不改变公开合同形状或产品语义；**Stage 21 I155–I161** 才交付已有正文保真导入。不得跨阶段夹带、回填 I149 或重写 I1–I149 历史。当前执行 I150，每迭代单独 commit，验证命令为 `pnpm run verify:i150`–`verify:i161`。
 
 ## 3. 完成定义（DoD）
 

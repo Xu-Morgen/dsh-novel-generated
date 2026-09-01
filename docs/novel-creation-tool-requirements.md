@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v3.1：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25 与 Stage 19–21 导入边界裁决。
 2. 本文件 v3.1：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.1：I1–I140 的完成事实及 Stage 19–21（I141–I161）执行卡片、owner、依赖、交付物与命令细节。
+3. `docs/novel-creation-tool-development-plan.md` v3.1：I1–I149 的完成事实及 Stage 20–21（I150–I161）剩余执行卡片、owner、依赖、交付物与命令细节；Stage 19（I141–I149）卡片保留为已完成执行记录。
 4. `AGENTS.md` v3.1：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I140 全部完成**；Stage 18 的 README 十二步产品流、合同地基与新增能力均已通过各自 verify，当前执行 I141。Stage 19（I141–I149）按 `design.md` §14.15 收口来源确认与幕后素材叙事化；Stage 20（I150–I154）按 §14.16 治理导入地基；Stage 21（I155–I161）按 §14.17 独立交付已有正文保真导入。旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
+- 当前迭代身份：**I1–I149 全部完成**；Stage 18 的 README 十二步产品流、合同地基与新增能力，以及 Stage 19 的来源确认、幕后素材叙事化、C3/C4 安全边界与产品 E2E 均已通过各自 verify 并成为当前代码基线，当前执行 I150。Stage 20（I150–I154）按 `design.md` §14.16 治理导入地基；Stage 21（I155–I161）按 §14.17 独立交付已有正文保真导入。旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R21 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -568,6 +568,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I140 已完成。v2.0–v2.9 已交付 Host/Client 产品闭环、作品启动、正文写作、架构治理、Stage 18 合同与 README 十二步作者主流程。当前执行 I141：Stage 19 / I141–I149 只完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E；Stage 20 / I150–I154 纯重构导入地基；Stage 21 / I155–I161 才开放已有正文 C5 保真导入。**
+**直接结论：I1–I149 已完成。v2.0–v2.9 已交付 Host/Client 产品闭环、作品启动、正文写作、架构治理、Stage 18 合同与 README 十二步作者主流程；Stage 19 / I141–I149 已交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E。当前执行 I150：Stage 20 / I150–I154 纯重构导入地基；Stage 21 / I155–I161 才开放已有正文 C5 保真导入。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

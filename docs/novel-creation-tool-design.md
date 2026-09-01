@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.1
-> 状态：v3.1 当前设计权威；**I1–I140 全部完成**，当前执行 I141；Stage 19（I141–I149）收口来源确认与幕后素材 POV 叙事化，Stage 20（I150–I154）治理导入基础设施，Stage 21（I155–I161）交付已有正文保真导入；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.1 当前设计权威；**I1–I149 全部完成**，Stage 19（I141–I149）来源确认、幕后素材 POV 叙事化与 C3/C4 安全边界已成为当前代码基线，当前执行 I150；Stage 20（I150–I154）治理导入基础设施，Stage 21（I155–I161）交付已有正文保真导入；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -26,7 +26,7 @@
 | **v3.0（2026-09-01）** | 同步 I106–I140 全部完成事实；新增 Stage 19 / R19 与 I141–I149，修复“来源中客观幕后真相被直接当作读者可见大纲”的语义缺口。导入先确认来源类型与目标处理方式，再分别执行幕后素材的 POV 叙事化、C3 秘密/揭示规划或已有正文 C5 保真导入；混合文档按段审阅。README 仍保持 12 步唯一主流程，只扩充步骤 1–2；§0.1、13 层模型和 I1–I140 历史保持不变。 |
 | **v3.1（2026-09-01）** | 按设计审查收缩 Stage 19：I141–I149 只交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E，不再夹带 C5 保真导入。新增 Stage 20 / R20（I150–I154）以纯重构建立结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / R21（I155–I161）在该地基上交付已有正文保真导入。修复原 I141 过早冻结 Remote、I146 隐含通用 UoW、I147 隐含结构化 DOCX reader 及后半段大卡过重问题；§0.1、13 层模型和 I1–I140 历史保持不变。 |
 
-> **v3.1 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.1 为当前目标和执行材料；I1–I140 已完成，当前执行 I141，当前排期完整范围为 Stage 19–21 / I141–I161。README 的 12 步主流程已由 I140 交付，Stage 19 与 Stage 21 只增强步骤 1–2，Stage 20 不改变产品行为或公开合同形状，不建立第二条导入或写作主流程。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
+> **v3.1 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.1 为当前目标和执行材料；I1–I149 已完成，Stage 19 已成为当前代码基线，当前执行 I150，剩余排期为 Stage 20–21 / I150–I161。README 的 12 步主流程已由 I140 交付，Stage 19 已增强步骤 1–2，Stage 21 将继续增强步骤 1–2；Stage 20 不改变产品行为或公开合同形状，不建立第二条导入或写作主流程。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
