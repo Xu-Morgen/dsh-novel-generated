@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v3.1
-> 状态：v3.1 当前设计权威；**I1–I149 全部完成**，Stage 19（I141–I149）来源确认、幕后素材 POV 叙事化与 C3/C4 安全边界已成为当前代码基线，当前执行 I150；Stage 20（I150–I154）治理导入基础设施，Stage 21（I155–I161）交付已有正文保真导入；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v3.2
+> 状态：v3.2 当前设计权威；**I1–I149 全部完成**，Stage 19（I141–I149）已成为当前代码基线，当前执行 I150 范围细纲生成修复门；Stage 20（I151–I155）治理导入基础设施，Stage 21（I156–I162）交付已有正文保真导入；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -25,8 +25,9 @@
 | **v2.9（2026-08-31）** | 将 README 的 12 步作者工作流提升为唯一主要产品、交付和端到端验收流程。新增 R18-12–R18-15 与 I133–I140：按幕/章/全书生成细纲、候选接受为可编辑草稿、最终正文的一次确认式统一定稿、全书完成与一致性门、带目录的单一 TXT/Markdown、作者优先流程壳和产品级 E2E。既有能力按“主流程 / 进阶工具 / 内部诊断”重新裁决暴露边界；§0.1、13 层真相和旧 Remote invocation 保持不变。 |
 | **v3.0（2026-09-01）** | 同步 I106–I140 全部完成事实；新增 Stage 19 / R19 与 I141–I149，修复“来源中客观幕后真相被直接当作读者可见大纲”的语义缺口。导入先确认来源类型与目标处理方式，再分别执行幕后素材的 POV 叙事化、C3 秘密/揭示规划或已有正文 C5 保真导入；混合文档按段审阅。README 仍保持 12 步唯一主流程，只扩充步骤 1–2；§0.1、13 层模型和 I1–I140 历史保持不变。 |
 | **v3.1（2026-09-01）** | 按设计审查收缩 Stage 19：I141–I149 只交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E，不再夹带 C5 保真导入。新增 Stage 20 / R20（I150–I154）以纯重构建立结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / R21（I155–I161）在该地基上交付已有正文保真导入。修复原 I141 过早冻结 Remote、I146 隐含通用 UoW、I147 隐含结构化 DOCX reader 及后半段大卡过重问题；§0.1、13 层模型和 I1–I140 历史保持不变。 |
+| **v3.2（2026-09-01）** | 在原 I150 前插入范围细纲生成修复 I150：当前选中节直接成为生成范围，作者可提交生成要求并对已有节显式追加新的 LLM 候选，逐卡选择是否保留；已有卡与范围外内容保持保护。大纲工作区下拉框显示中文标签但不改变 canonical 枚举。原 Stage 20 顺延为 I151–I155，原 Stage 21 顺延为 I156–I162；22 个 Stage 与宿主基线不变。 |
 
-> **v3.1 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.1 为当前目标和执行材料；I1–I149 已完成，Stage 19 已成为当前代码基线，当前执行 I150，剩余排期为 Stage 20–21 / I150–I161。README 的 12 步主流程已由 I140 交付，Stage 19 已增强步骤 1–2，Stage 21 将继续增强步骤 1–2；Stage 20 不改变产品行为或公开合同形状，不建立第二条导入或写作主流程。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
+> **v3.2 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.2 为当前目标和执行材料；I1–I149 已完成，Stage 19 已成为当前代码基线，当前执行 I150 范围细纲生成修复门，剩余排期为 I150–I162。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验；Stage 20 不改变产品行为或公开合同形状，Stage 21 将继续增强步骤 1–2。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -937,12 +938,12 @@ project/
 | **M17** | architecture review v2.0 修复（Stage 17，I86–I102） | Remote binder、组合根、UoW、TextRepository、Client 切片与 schema 单点化成为稳定代码基线 |
 | **M18** | 合同地基、作者主流程与新增功能（Stage 18，I103–I140） | 章节/场景、基线/预览/调和、引用、润色、版本、全书发布与 README 十二步产品 E2E 完整交付 |
 | **M19** | 来源确认与幕后素材 POV 叙事化（Stage 19，I141–I149） | 幕后素材不再直接冒充读者大纲；混合来源可审阅；C3/C4 与 POV 上下文在揭示前不泄密 |
-| **M20** | 导入基础设施重构（Stage 20，I150–I154） | 结构化来源、共享 import operation/checkpoint 与空作品初始化 UoW 成为单一地基，Stage 19 行为与公开合同保持不变 |
-| **M21** | 已有正文保真导入（Stage 21，I155–I161） | 规范化正文由 Host 保真进入 C5，结构候选与正文分离预览，并汇入同一十二步流程 |
+| **M20** | 导入基础设施重构（Stage 20，I151–I155） | 结构化来源、共享 import operation/checkpoint 与空作品初始化 UoW 成为单一地基，Stage 19 行为与公开合同保持不变 |
+| **M21** | 已有正文保真导入（Stage 21，I156–I162） | 规范化正文由 Host 保真进入 C5，结构候选与正文分离预览，并汇入同一十二步流程 |
 
 ---
 
-## 14. 创作环境功能设计（v1.2 provenance；v3.1 持续增补）
+## 14. 创作环境功能设计（v1.2 provenance；v3.2 持续增补）
 
 > 本章源自 v1.2「创作环境」产品升级，并由 v2.0–v2.2 继续增补用户可见能力。它们复用 §6–§9 的引擎与 §10 的存储，不引入第二套核心闭环。
 
@@ -1112,10 +1113,10 @@ project/
 - **R18-9 操作模式（I107）**：`ChaptersLayerState.mode` 是唯一 mode owner，取值 writing/candidate/versions/materials；不新增顶层 Workbench view。切场景时候选必须按 target 绑定或清理，隐藏面板不得继续请求或重复注册。
 - **R18-10 版本聚合（I130–I131）**：`TextRepository` 与 `scene.branches` 继续是真相，`NovelBranchService` 只提供有界聚合投影；Host 一次读取并按 chapter.index/scene.index 排序，Client 不做 N+1 聚合。聚合树先 diff 后显式调用新 additive `chooseFresh(..., sourceHash)`，不新增 ConfirmationGate；既有四参数 `choose` invocation 保持不变，`chooseFresh` 拒绝并发陈旧切换。旧场景分支面板保持局部消费者，不成为第二版本 owner。
 - **R18-11 正文变更影响分析与后续细纲调和（I108、I112–I114）**：`OutlineGenerationBaseline` 是绑定 project/chapter/scene/detailBeat、B5 fingerprint 与冻结场景卡的不可变生成意图快照；B5 `outline.yaml` 仍是唯一当前细纲真相，baseline 不提供第二编辑面、不自动覆盖 B5，B5 或绑定变化只会使旧 baseline stale。作者最终保存正文后，Host 以生成前正文/基线与当前正文形成有界 delta，先确定性排除纯格式噪声，再由 LLM 将其分类为 `wording-only`、`story-fact` 或 `plot-direction` 并给出原文证据；仅后两类可产生未来 detailBeat 影响候选。调和计划逐卡提供 keep、AI replacement、manual replacement 或 pending，禁止修改已完成/当前场景、稳定 ID、幕/节顺序和未授权卡；任何语义调整必须预览并经 I11 后在同一 Host 请求内以 B5 freshness 原子应用。普通保存和 wording-only 不得调整未来 B5 语义；显式“定稿并继续”只允许确定性完成当前绑定卡/C6 进度并创建下一场景的新 baseline，不自动接受下一段正文。
-- **R18-12 范围细纲生成（I133–I134）**：Host `OutlineGenerationScope` 统一表达 act/outline-beat/bound-chapter/all；创作 C5 章节前可选择 B5 中承担章节规划职责的 beat，已有 C5 时 chapter 只能经 `SceneOutlineBinding` 解析为 B5 范围，Client 不复制映射。生成默认只补齐缺失 detailBeat；显式重生成必须保留稳定 ID/顺序并逐卡预览。LLM 只返回范围内候选，作者可编辑、重生成、跳过或交由唯一 I11 proposal 应用；范围外与未授权已有卡不可写。
+- **R18-12 范围细纲生成（I133–I134，I150 修复）**：Host `OutlineGenerationScope` 统一表达 act/outline-beat/bound-chapter/all；创作 C5 章节前可选择 B5 中承担章节规划职责的 beat，已有 C5 时 chapter 只能经 `SceneOutlineBinding` 解析为 B5 范围，Client 不复制映射。既有生成默认只补齐缺失 detailBeat；显式重生成必须保留稳定 ID/顺序并逐卡预览。I150 把大纲编辑器当前已保存的 selectedBeat 直接接入范围，不再要求手填 beatId，并增加严格 `append-to-selected-beat` 意图：作者 guidance 进入有界 Host LLM prompt，即使当前节已有卡也只生成新的追加候选；原卡不进入替换集。新候选逐卡编辑并选择是否保留，经唯一 I11 proposal 只追加到该节；范围外与未授权已有卡不可写。
 - **R18-13 统一定稿（I135–I136）**：新增“接受为草稿”主路径，只把候选逐字落到 C5 供作者修改，不运行五层 parser、作者语义引用联动、B5 调和或 C6 推进；C5 已有的 Markdown 镜像、搜索索引和统计等可重建派生物仍随保存自动维护，不进入确认。既有 candidate `accept` Remote 保持兼容，但从主 UI 退为旧/进阶路径。作者最终保存后，Host 以当前 C5、I108 baseline 和各层 freshness 形成单一 `FinalizationPlan`，聚合 I109–I118 的五层变化/作者语义引用变化、I112–I114 的细纲调和及完成/前进动作。I136 由一个外层 I11 proposal 和一个 Host UoW 应用整份计划；子组件消费已授权计划，不再弹出嵌套确认。
 - **R18-14 全书完成与发布（I137–I138）**：`BookCompletionService` 以 B5/C6/binding/C5 和未决提案为真相判断是否完成，复用既有 detector 对全书有界分片并汇总跨章问题；硬阻断、缺正文、未完成卡或待定调和关闭发布门。`ManuscriptCompiler` 只消费通过门禁的 chosen C5，按 chapter.index/scene.index 编译一份带章节目录的 TXT 和一份 Markdown；不混入设定 sidecar、内部链接、旧分支或技术 ID，不新增 DOCX。
-- **R18-15 作者主流程与产品 E2E（I139–I140）**：新增稳定 `workflow` 视图作为默认入口，以“导入、大纲、细纲、生成基线、正文、定稿同步、全书检查、导出”八个作者阶段承载 README 12 步；同一业务动作只有一个主流程 owner。既有十九项能力不删除，分流到故事资料、进阶工具和设置；内部层编号、fingerprint、索引维护、Gate/UoW 和裸错误不进入普通路径。I140 使用固定 fake LLM 从导入跑到双格式合稿，并覆盖拒绝、stale、失败回滚、重启恢复、POV 过滤和发布门。
+- **R18-15 作者主流程与产品 E2E（I139–I140，I150 修复）**：新增稳定 `workflow` 视图作为默认入口，以“导入、大纲、细纲、生成基线、正文、定稿同步、全书检查、导出”八个作者阶段承载 README 12 步；同一业务动作只有一个主流程 owner。既有十九项能力不删除，分流到故事资料、进阶工具和设置；内部层编号、fingerprint、索引维护、Gate/UoW 和裸错误不进入普通路径。I150 要求步骤 3 只从当前选择派生技术 ID，脏草稿先保存；结构、冲突类型、细纲状态、生成范围等大纲工作区下拉框显示中文作者术语，提交和持久化仍使用既有 canonical 英文枚举。I140 固定 fake LLM 产品流在 I150 累积回归中保持通过。
 
 #### 14.14.3 产品方向与非目标
 
@@ -1169,7 +1170,7 @@ project/
 - README 仍保持 12 步：步骤 1 扩展为“导入并确认来源语义/目标处理/适用 POV”，步骤 2 扩展为“按确认意图生成和审阅读者体验大纲与揭示计划”。步骤 3–12 不改编号、不建立第二 workflow route。
 - I37–I38、I50–I53、I119–I120 的既有 invocation、参数和结果保持兼容。I149 后普通作者主流程必须先经过来源语义确认；`existing-prose` 在 Stage 21 前仍不写 C5。
 
-### 14.16 Stage 20 导入基础设施重构（I150–I154，v3.1）
+### 14.16 Stage 20 导入基础设施重构（I151–I155，v3.2）
 
 > 定位：Stage 20 是纯重构与地基阶段。它消除 Stage 19 为交付最小闭环而保留的 import session、checkpoint、plan 编排重复，并补齐 Stage 21 所需但当前代码不存在的结构化 DOCX 证据与跨 owner 空作品初始化 UoW。不得新增作者可见导入模式，不得改变 Stage 19 公开 Remote/wire、候选语义、样本、gold 或阈值。
 
@@ -1183,9 +1184,9 @@ project/
 
 - 提取单一 `ImportOperation` envelope、checkpoint store、project write lane、freshness/replay 规则和 plan participant 接口；NarrativeImportPlan 与未来 ManuscriptImportPlan 只提供类型化 payload/participants，不各自复制 propose/accept/reject/recover 状态机。
 - UoW 在写前冻结所有受影响 owner 的基线与完整目标快照，记录 durable operation journal；成功响应前所有 participant 必须完成。失败时恢复基线；若恢复本身中断，状态必须为 `pending-recovery`，重启先恢复到全旧或全新状态，禁止继续普通写作或谎报成功。
-- Stage 19 coordinator 在 I153 迁移到共享地基；合法成功、拒绝、stale、replay 与作者可见结果保持不变，旧临时实现 delete-first 退役且零引用。Stage 20 不改变 B/C/C5 owner，也不建立分布式事务或后台叙事补写器。
+- Stage 19 coordinator 在 I154 迁移到共享地基；合法成功、拒绝、stale、replay 与作者可见结果保持不变，旧临时实现 delete-first 退役且零引用。Stage 20 不改变 B/C/C5 owner，也不建立分布式事务或后台叙事补写器。
 
-### 14.17 Stage 21 已有正文保真导入（I155–I161，v3.1）
+### 14.17 Stage 21 已有正文保真导入（I156–I162，v3.2）
 
 > 定位：Stage 21 在 Stage 20 地基上新增 `existing-prose + preserve-prose`。它解决“已有小说只能拆纲、不能成为正式正文”的独立产品问题；不属于 Stage 19 的幕后资料泄密修复，也不允许回填到 I141–I149。
 
