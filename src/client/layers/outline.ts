@@ -20,6 +20,15 @@ import { outlineDetailGenerationPanel, type OutlineDetailGenerationView } from '
 export const OUTLINE_STRUCTURES: readonly OutlineStructure[] = outlineStructureSchema.options;
 export const CONFLICT_TYPES: readonly ConflictType[] = conflictTypeSchema.options;
 export const DETAIL_BEAT_STATUSES: readonly DetailBeatStatus[] = detailBeatStatusSchema.options;
+export const OUTLINE_STRUCTURE_LABELS: Record<OutlineStructure, string> = {
+  'three-act': '三幕式', 'hero-journey': '英雄之旅', serial: '连载式', free: '自由结构',
+};
+export const CONFLICT_TYPE_LABELS: Record<ConflictType, string> = {
+  internal: '内心冲突', external: '外部冲突', relational: '关系冲突', world: '世界规则冲突',
+};
+export const DETAIL_BEAT_STATUS_LABELS: Record<DetailBeatStatus, string> = {
+  planned: '待写', writing: '写作中', done: '已完成',
+};
 export interface OutlineLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly outline?: OutlineShape; readonly message?: string; }
 export interface OutlineEditor { draft: OutlineShape; dirty: boolean; error: string; selectedActId: string | undefined; selectedBeatId: string | undefined; selectedDetailId: string | undefined; saving: boolean; saveMessage: string; }
 export interface OutlineEditOps {
@@ -50,7 +59,7 @@ function sceneCards(h: El, projectId: string, beat: OutlineBeatShape, selectedDe
     h('button', {
       type: 'button', className: 'nv-outline__card' + (selectedDetailId === card.id ? ' is-active' : ''),
       'data-novel-detail-card': card.id, onClick: () => onSelect(card.id),
-    }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov || '—'} · ${card.wordTarget} 字 · ${card.status}`), h('span', { className: 'nv-outline__card-summary' }, card.summary)),
+    }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov || '—'} · ${card.wordTarget} 字 · ${DETAIL_BEAT_STATUS_LABELS[card.status]}`), h('span', { className: 'nv-outline__card-summary' }, card.summary)),
     contextLinkButton(h, '定位场景卡', 'scene-card', entityContextLink(projectId, 'scene-card', card.id), links),
   )));
 }
@@ -63,7 +72,7 @@ function detailBeatEditor(h: El, card: OutlineDetailBeatShape, setDetail: (updat
       characterText(h, '摘要', card.summary, (value) => setDetail((item) => ({ ...item, summary: value })), true),
       characterText(h, 'POV 视角角色', card.pov, (value) => setDetail((item) => ({ ...item, pov: value }))),
       h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '目标字数'), h('input', { type: 'number', className: 'nv-field__input', min: 1, step: 100, value: card.wordTarget, onChange: (event: { target: { value: string } }) => setDetail((item) => ({ ...item, wordTarget: Number(event.target.value) })) })),
-      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '状态'), h('select', { className: 'nv-field__input', value: card.status, onChange: (event: { target: { value: string } }) => setDetail((item) => ({ ...item, status: event.target.value as DetailBeatStatus })) }, DETAIL_BEAT_STATUSES.map((value) => h('option', { key: value, value }, value)))),
+      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '状态'), h('select', { className: 'nv-field__input', value: card.status, onChange: (event: { target: { value: string } }) => setDetail((item) => ({ ...item, status: event.target.value as DetailBeatStatus })) }, DETAIL_BEAT_STATUSES.map((value) => h('option', { key: value, value }, DETAIL_BEAT_STATUS_LABELS[value])))),
       listField(h, '要点', card.points, (value) => setDetail((item) => ({ ...item, points: value }))),
       h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-detail-remove': card.id, onClick: remove }, '删除该卡')),
     ),
@@ -88,7 +97,7 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
   const beatPanel = beat === undefined ? h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, '节'), h('p', { className: 'nv-outline__nodetail' }, '选择或新建一节以编辑节与细纲场景卡。')) : h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, `节：${beat.title || beat.id}`), h('div', { className: 'nv-form' },
     characterText(h, '节标题', beat.title, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, title: value }))),
     characterText(h, '描述', beat.description, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, description: value })), true),
-    h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '冲突类型'), h('select', { className: 'nv-field__input', value: beat.conflictType, onChange: (event: { target: { value: string } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, conflictType: event.target.value as ConflictType })) }, CONFLICT_TYPES.map((value) => h('option', { key: value, value }, value)))),
+    h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '冲突类型'), h('select', { className: 'nv-field__input', value: beat.conflictType, onChange: (event: { target: { value: string } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, conflictType: event.target.value as ConflictType })) }, CONFLICT_TYPES.map((value) => h('option', { key: value, value }, CONFLICT_TYPE_LABELS[value])))),
     entityMultiSelect(h, '参与角色', beat.charactersInvolved, characterOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, charactersInvolved: value })), 'outline-characters-involved'),
     entityMultiSelect(h, '前置节', beat.prerequisites, beatOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, prerequisites: value })), 'outline-prerequisites'),
     h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '可选节'), h('input', { type: 'checkbox', className: 'nv-field__check', checked: beat.optional, onChange: (event: { target: { checked: boolean } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, optional: event.target.checked })) })),
@@ -98,7 +107,7 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
   ));
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'ready' },
     h('div', { className: 'nv-outline__toolbar' },
-      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '结构'), h('select', { className: 'nv-field__input', value: editor.draft.structure, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, structure: event.target.value as OutlineStructure })) }, OUTLINE_STRUCTURES.map((value) => h('option', { key: value, value }, value)))),
+      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '结构'), h('select', { className: 'nv-field__input', value: editor.draft.structure, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, structure: event.target.value as OutlineStructure })) }, OUTLINE_STRUCTURES.map((value) => h('option', { key: value, value }, OUTLINE_STRUCTURE_LABELS[value])))),
       characterText(h, '一句话梗概', editor.draft.logline, (value) => ops.mutate((draft) => ({ ...draft, logline: value }))),
       listField(h, '主题', editor.draft.themes, (value) => ops.mutate((draft) => ({ ...draft, themes: value }))),
       h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-save': '', disabled: !editor.dirty || editor.saving, onClick: ops.save }, saveButtonLabel(editor.saving, '保存大纲'))),

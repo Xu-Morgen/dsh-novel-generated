@@ -11,6 +11,8 @@ export interface OutlineDetailGenerationLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'acting' | 'error';
   readonly scopeKind: 'act' | 'outline-beat' | 'bound-chapter' | 'all';
   readonly scopeId: string;
+  readonly guidance: string;
+  readonly candidateMode?: 'fill-missing' | 'append';
   readonly candidate?: OutlineDetailGenerationCandidate;
   readonly proposalId?: string;
   readonly message?: string;
@@ -19,10 +21,13 @@ export interface OutlineDetailGenerationLayerState {
 export interface OutlineDetailGenerationEditOps {
   setScopeKind(value: OutlineDetailGenerationLayerState['scopeKind']): void;
   setScopeId(value: string): void;
+  setGuidance(value: string): void;
   generate(): void;
+  append(): void;
   edit(detailBeatId: string, value: DetailBeat): void;
   regenerate(detailBeatId: string): void;
   skip(detailBeatId: string): void;
+  select(detailBeatId: string, keep: boolean): void;
   propose(): void;
   accept(): void;
   reject(): void;
@@ -33,21 +38,22 @@ export interface OutlineDetailGenerationView {
   readonly namespace: OutlineDetailGenerationNamespace | undefined;
   readonly state: OutlineDetailGenerationLayerState;
   readonly ops: OutlineDetailGenerationEditOps;
+  readonly outlineDirty?: boolean;
+  readonly selectedAct?: { readonly id: string; readonly label: string };
+  readonly selectedBeat?: { readonly id: string; readonly label: string };
+  readonly selectedChapter?: { readonly id: string; readonly label: string };
 }
 
-const SCOPE_LABELS: Record<OutlineDetailGenerationLayerState['scopeKind'], string> = {
+export const OUTLINE_GENERATION_SCOPE_LABELS: Record<OutlineDetailGenerationLayerState['scopeKind'], string> = {
   act: '当前幕',
   'outline-beat': '当前节',
   'bound-chapter': '绑定章节',
   all: '整份大纲',
 };
 
-function scopeInput(state: OutlineDetailGenerationLayerState): { kind: OutlineDetailGenerationLayerState['scopeKind']; actId?: string; beatId?: string; chapterId?: string } {
-  if (state.scopeKind === 'act') return { kind: 'act', actId: state.scopeId };
-  if (state.scopeKind === 'outline-beat') return { kind: 'outline-beat', beatId: state.scopeId };
-  if (state.scopeKind === 'bound-chapter') return { kind: 'bound-chapter', chapterId: state.scopeId };
-  return { kind: 'all' };
-}
+const CHOICE_LABELS: Record<OutlineDetailGenerationChoice, string> = {
+  keep: '保留', edit: '已编辑并保留', regenerate: '重新生成并保留', skip: '不保留',
+};
 
 function field(h: El, label: string, value: string | number, onChange: (value: string) => void, type = 'text'): unknown {
   return h('label', { className: 'nv-field nv-outline-detail-generation__field' },
@@ -56,13 +62,13 @@ function field(h: El, label: string, value: string | number, onChange: (value: s
   );
 }
 
-function candidateItem(h: El, item: OutlineDetailGenerationCandidate['items'][number], ops: OutlineDetailGenerationEditOps, acting: boolean): unknown {
+function candidateItem(h: El, item: OutlineDetailGenerationCandidate['items'][number], ops: OutlineDetailGenerationEditOps, acting: boolean, appendMode: boolean): unknown {
   const value = item.after;
   const update = (patch: Partial<DetailBeat>): void => ops.edit(item.detailBeatId, { ...value, ...patch });
   return h('article', { key: item.detailBeatId, className: `nv-outline-detail-generation__item${item.choice === 'skip' ? ' is-skipped' : ''}`, 'data-novel-outline-detail-item': item.detailBeatId },
     h('div', { className: 'nv-outline-detail-generation__item-header' },
       h('strong', null, `${item.position + 1}. ${value.title}`),
-      h('span', { className: 'nv-panel__hint' }, item.origin === 'generated' ? '补缺候选' : '已有卡片'),
+      h('span', { className: 'nv-panel__hint' }, item.origin === 'generated' ? (appendMode ? '追加候选' : '补缺候选') : '已有卡片'),
     ),
     h('div', { className: 'nv-form' },
       field(h, '标题', value.title, (next) => update({ title: next })),
@@ -76,9 +82,11 @@ function candidateItem(h: El, item: OutlineDetailGenerationCandidate['items'][nu
     ),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-regenerate': item.detailBeatId, disabled: acting || item.origin === 'generated', onClick: () => ops.regenerate(item.detailBeatId) }, '重新生成'),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-skip': item.detailBeatId, disabled: acting, onClick: () => ops.skip(item.detailBeatId) }, item.choice === 'skip' ? '恢复应用' : '跳过此卡'),
+      item.origin === 'generated'
+        ? h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-keep': item.detailBeatId, 'aria-pressed': item.choice !== 'skip', disabled: acting, onClick: () => ops.select(item.detailBeatId, item.choice === 'skip') }, item.choice === 'skip' ? '保留到当前节' : '不保留')
+        : h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-skip': item.detailBeatId, disabled: acting, onClick: () => ops.skip(item.detailBeatId) }, '跳过此卡'),
     ),
-    h('small', { className: 'nv-panel__hint' }, `选择：${item.choice as OutlineDetailGenerationChoice}`),
+    h('small', { className: 'nv-panel__hint' }, `选择：${CHOICE_LABELS[item.choice]}`),
   );
 }
 
@@ -91,25 +99,37 @@ export function outlineDetailGenerationPanel(h: El, view: OutlineDetailGeneratio
   if (namespace === undefined) {
     return h('section', { className: 'nv-panel', 'data-novel-outline-detail-generation-panel': '', 'data-novel-outline-detail-generation-state': 'error', role: 'alert' }, '细纲生成服务暂时不可用，请稍后重试。');
   }
-  const needsId = state.scopeKind !== 'all';
   const candidate = state.candidate;
   const acting = state.status === 'loading' || state.status === 'acting';
+  const selectedScope = state.scopeKind === 'act' ? view.selectedAct : state.scopeKind === 'outline-beat' ? view.selectedBeat : state.scopeKind === 'bound-chapter' ? view.selectedChapter : { id: 'all', label: '整份大纲' };
+  const fillDisabled = acting || view.outlineDirty || selectedScope === undefined;
+  const appendDisabled = acting || view.outlineDirty || view.selectedBeat === undefined || state.guidance.trim() === '';
+  const appendMode = state.candidateMode === 'append';
   return h('section', { className: 'nv-panel nv-outline-detail-generation', 'data-novel-outline-detail-generation-panel': '', 'data-novel-outline-detail-generation-state': state.status },
     h('div', { className: 'nv-panel__header' },
       h('div', null,
         h('h2', { className: 'nv-panel__title' }, '范围细纲候选'),
-        h('p', { className: 'nv-panel__hint' }, '只补齐缺失卡；已有卡必须逐卡重新生成并预览，确认前不会改写大纲。'),
+        h('p', { className: 'nv-panel__hint' }, '可补齐所选范围的缺失卡，也可按本次要求为当前已保存节追加新卡；确认前不会改写大纲。'),
       ),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-generate': '', disabled: acting || (needsId && state.scopeId.trim() === ''), onClick: ops.generate }, acting ? '处理中…' : '生成候选'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-generate': '', disabled: fillDisabled, onClick: ops.generate }, acting ? '处理中…' : '补齐范围缺失卡'),
     ),
     h('div', { className: 'nv-outline-detail-generation__scope', 'data-novel-outline-detail-scope': '' },
-      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '生成范围'), h('select', { className: 'nv-field__input', value: state.scopeKind, onChange: (event: { target: { value: string } }) => ops.setScopeKind(event.target.value as OutlineDetailGenerationLayerState['scopeKind']) }, Object.entries(SCOPE_LABELS).map(([kind, label]) => h('option', { key: kind, value: kind }, label)))),
-      needsId ? field(h, SCOPE_LABELS[state.scopeKind] + '标识', state.scopeId, ops.setScopeId) : null,
+      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '生成范围'), h('select', { className: 'nv-field__input', value: state.scopeKind, onChange: (event: { target: { value: string } }) => ops.setScopeKind(event.target.value as OutlineDetailGenerationLayerState['scopeKind']) }, Object.entries(OUTLINE_GENERATION_SCOPE_LABELS).map(([kind, label]) => h('option', { key: kind, value: kind }, label)))),
+      h('p', { className: 'nv-panel__hint', 'data-novel-outline-detail-selected-scope': selectedScope?.id ?? '' }, selectedScope === undefined ? `请先选择${OUTLINE_GENERATION_SCOPE_LABELS[state.scopeKind]}。` : `将使用：${selectedScope.label}`),
     ),
+    h('div', { className: 'nv-form nv-outline-detail-generation__append', 'data-novel-outline-detail-append': '' },
+      h('label', { className: 'nv-field' },
+        h('span', { className: 'nv-field__label' }, '本次生成要求'),
+        h('textarea', { className: 'nv-field__input', rows: 3, maxLength: 2000, value: state.guidance, placeholder: '例如：增加一张主角发现线索的调查场景，但暂不揭示幕后真相。', onChange: (event: { target: { value: string } }) => ops.setGuidance(event.target.value) }),
+      ),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-append-generate': view.selectedBeat?.id ?? '', disabled: appendDisabled, onClick: ops.append }, acting ? '处理中…' : '为当前节生成新候选'),
+      h('p', { className: 'nv-panel__hint' }, view.selectedBeat === undefined ? '请先在上方大纲中选择一节。' : `追加目标：${view.selectedBeat.label}`),
+    ),
+    view.outlineDirty ? h('p', { className: 'nv-editor__error', role: 'alert', 'data-novel-outline-detail-dirty': '' }, '大纲有未保存修改，请先保存大纲再生成。') : null,
     state.message === undefined ? null : h('p', { className: state.status === 'error' ? 'nv-editor__error' : 'nv-panel__hint', role: state.status === 'error' ? 'alert' : 'status', 'data-novel-outline-detail-generation-message': '' }, state.message),
     candidate === undefined ? h('p', { className: 'nv-outline__nodetail', 'data-novel-outline-detail-generation-empty': '' }, '选择范围并生成候选后，在这里逐卡审阅。') : h('div', { className: 'nv-outline-detail-generation__candidate', 'data-novel-outline-detail-candidate': candidate.candidateId },
       h('p', { className: 'nv-panel__hint' }, `范围内 ${candidate.items.length} 张卡，其中 ${candidate.generatedDetailBeatCount} 张为补缺候选。${candidate.rationale}`),
-      candidate.items.map((item) => candidateItem(h, item, ops, acting)),
+      candidate.items.map((item) => candidateItem(h, item, ops, acting, appendMode)),
       h('div', { className: 'nv-editor__actions nv-outline-detail-generation__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-propose': candidate.candidateId, disabled: acting, onClick: ops.propose }, '提交确认'),
         h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-cancel': candidate.candidateId, disabled: acting, onClick: ops.cancel }, '取消候选'),

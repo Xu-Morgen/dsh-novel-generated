@@ -23,7 +23,8 @@ for (let iteration = 103; iteration <= 140; iteration += 1) {
 }
 
 const lock = JSON.parse(read('contracts/stage18/remote-descriptors.json'));
-if (lock.descriptorIds.length !== 181 || lock.resultSchemaIds.length !== 87) fail('final Remote lock is not 181/87');
+if (lock.descriptorIds.length !== 183 || lock.resultSchemaIds.length !== 89) fail('final Stage 18 + I150 Remote lock is not 183/89');
+if (lock.descriptorIds.slice(-2).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions are not the Remote lock tail');
 const finalArtifact = JSON.parse(read('artifacts/i140-primary-author-workflow.json'));
 if (finalArtifact.flow?.length !== 12 || finalArtifact.flow.some((step) => step.status !== 'passed')) fail('I140 does not record all twelve passed product steps');
 if (finalArtifact.lexicon?.violations !== 0) fail('I140 final author lexicon gate is not clean');

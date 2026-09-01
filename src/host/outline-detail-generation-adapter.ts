@@ -15,5 +15,7 @@ export function createOutlineDetailGenerationRemote(service: NovelOutlineDetailG
     { method: 'accept', call: (projectId: string, proposalId: string) => service.accept(projectId, proposalId) },
     { method: 'reject', call: (projectId: string, proposalId: string) => service.reject(projectId, proposalId) },
     { method: 'cancel', call: (projectId: string, candidateId: string) => service.cancel(projectId, candidateId) },
+    { method: 'append', call: async (projectId: string, input: Parameters<NovelOutlineDetailGenerationService['append']>[1], settings?: Parameters<NovelOutlineDetailGenerationService['append']>[2]) => service.append(projectId, input, await resolveSettings(settings)) },
+    { method: 'select', call: (projectId: string, input: Parameters<NovelOutlineDetailGenerationService['select']>[1]) => service.select(projectId, input) },
   ], outlineDetailGenerationInvocations);
 }

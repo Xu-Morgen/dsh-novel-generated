@@ -72,7 +72,7 @@ export function freshCanonEditor(): CanonEditor {
 }
 
 export function freshOutlineDetailGeneration(): OutlineDetailGenerationLayerState {
-  return { status: 'idle', scopeKind: 'all', scopeId: '' };
+  return { status: 'idle', scopeKind: 'all', scopeId: '', guidance: '' };
 }
 
 /**

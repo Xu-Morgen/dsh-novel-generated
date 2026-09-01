@@ -345,10 +345,12 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
     })
     : name === 'remote.novelOutlineDetailGeneration' ? (outlineDetailGenerationStub ?? {
       generate: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.generate'); },
+      append: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.append'); },
       read: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.read'); },
       edit: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.edit'); },
       regenerate: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.regenerate'); },
       skip: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.skip'); },
+      select: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.select'); },
       propose: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.propose'); },
       accept: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.accept'); },
       reject: async () => { throw new Error('未注入 remote.novelOutlineDetailGeneration.reject'); },

@@ -58,10 +58,12 @@ export interface MountOptionsI128 {
 export interface MountOptionsI134 {
   outlineDetailGeneration?: {
     generate?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
+    append?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
     read?: (projectId: string, candidateId: string) => Promise<unknown>;
     edit?: (projectId: string, input: unknown) => Promise<unknown>;
     regenerate?: (projectId: string, input: unknown, settings?: unknown) => Promise<unknown>;
     skip?: (projectId: string, input: unknown) => Promise<unknown>;
+    select?: (projectId: string, input: unknown) => Promise<unknown>;
     propose?: (projectId: string, input: unknown) => Promise<unknown>;
     accept?: (projectId: string, proposalId: string) => Promise<unknown>;
     reject?: (projectId: string, proposalId: string) => Promise<unknown>;

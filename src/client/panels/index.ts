@@ -19,7 +19,7 @@ import { stateLayer as renderStateLayer } from '../layers/state.js';
 import { canonLayer as renderCanonLayer } from '../layers/canon.js';
 import { outlineLayer as renderOutlineLayer } from '../layers/outline.js';
 import type { OutlineDetailGenerationView } from '../layers/outline-detail-generation.js';
-import { chaptersPanel } from '../layers/chapters.js';
+import { chaptersPanel, type ChaptersLayerState } from '../layers/chapters.js';
 import { reviewPanel } from '../layers/review.js';
 import { queuePanel } from '../layers/queue.js';
 import { knowledgePanel } from '../layers/knowledge.js';
@@ -171,7 +171,7 @@ function emptyState(h: El, layer: (typeof LAYERS)[number]): unknown {
  * I48 B5 大纲结构化编辑器（design §5.7 / R10-5）：所有读写只经 Host
  * `outlineRead`/`outlineSave`/`outlineBeatCards`，Client 不拥有领域校验。
  */
-function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, ops: WorkbenchOps, detailGeneration?: OutlineDetailGenerationView): unknown {
+function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, activeLayer: LayerId, layers: LayerData, chapters: ChaptersLayerState, ops: WorkbenchOps, detailGeneration?: OutlineDetailGenerationView): unknown {
   const layer = LAYERS.find((item) => item.id === activeLayer) ?? LAYERS[0];
   if (layer.id === 'characters') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
@@ -182,8 +182,17 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
       renderWorldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, ops.worldview));
   }
   if (layer.id === 'outline') {
+    const selectedAct = layers.outlineEditor.draft.acts.find((act) => act.id === layers.outlineEditor.selectedActId);
+    const selectedBeat = selectedAct?.beats.find((beat) => beat.id === layers.outlineEditor.selectedBeatId);
+    const selectedChapter = chapters.list.find((chapter) => chapter.id === chapters.selectedChapterId);
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id })), ops.router, detailGeneration));
+      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id })), ops.router, detailGeneration === undefined ? undefined : {
+        ...detailGeneration,
+        outlineDirty: layers.outlineEditor.dirty,
+        selectedAct: selectedAct === undefined ? undefined : { id: selectedAct.id, label: selectedAct.title || '未命名幕' },
+        selectedBeat: selectedBeat === undefined ? undefined : { id: selectedBeat.id, label: selectedBeat.title || '未命名节' },
+        selectedChapter: selectedChapter === undefined ? undefined : { id: selectedChapter.id, label: selectedChapter.title || '未命名章节' },
+      }));
   }
   if (layer.id === 'relationship') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
@@ -207,7 +216,7 @@ function renderLayerPanel(props: PanelViewProps): unknown {
   const { h, view, projectId, ns, states, ops } = props;
   const { workspace } = ns;
   const { layers } = states;
-  return h('div', { 'data-novel-view-panel': view }, contentArea(h, projectId, workspace, view as LayerId, layers, ops, {
+  return h('div', { 'data-novel-view-panel': view }, contentArea(h, projectId, workspace, view as LayerId, layers, states.chapters, ops, {
     namespace: ns.outlineDetailGeneration,
     state: states.outlineDetailGeneration,
     ops: ops.outlineDetailGeneration,

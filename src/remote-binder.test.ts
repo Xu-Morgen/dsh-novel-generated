@@ -323,10 +323,12 @@ function fixtureFor(endpoint: string): unknown {
         page: { offset: 0, limit: 128, nextOffset: null, totalTargetBeatCount: 0, totalTargetDetailBeatCount: 0 },
       };
     case 'novelOutlineDetailGeneration/generate':
+    case 'novelOutlineDetailGeneration/append':
     case 'novelOutlineDetailGeneration/read':
     case 'novelOutlineDetailGeneration/edit':
     case 'novelOutlineDetailGeneration/regenerate':
     case 'novelOutlineDetailGeneration/skip':
+    case 'novelOutlineDetailGeneration/select':
       return outlineDetailCandidate;
     case 'novelOutlineDetailGeneration/propose':
       return { projectId: 'p1', candidateId: 'odg-candidate', proposalId: 'odg-proposal', status: 'pending' };
@@ -1003,10 +1005,13 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       await expect(unwrap(detail.accept('p1', 'odg-proposal'))).resolves.toMatchObject({ status: 'accepted' });
       await expect(unwrap(detail.reject('p1', 'odg-proposal'))).resolves.toMatchObject({ status: 'rejected' });
       await expect(unwrap(detail.cancel('p1', 'odg-candidate'))).resolves.toMatchObject({ status: 'cancelled' });
+      await expect(unwrap(detail.append('p1', { mode: 'append-to-selected-beat', beatId: 'beat-1', guidance: '追加一张调查卡。' }, undefined))).resolves.toMatchObject({ candidateId: 'odg-candidate' });
+      await expect(unwrap(detail.select('p1', { candidateId: 'odg-candidate', detailBeatId: 'detail-1', keep: false }))).resolves.toMatchObject({ candidateId: 'odg-candidate' });
       expect(calls.map((call) => call.endpoint)).toEqual([
         'novelOutlineDetailGeneration/generate', 'novelOutlineDetailGeneration/read', 'novelOutlineDetailGeneration/edit',
         'novelOutlineDetailGeneration/regenerate', 'novelOutlineDetailGeneration/skip', 'novelOutlineDetailGeneration/propose',
         'novelOutlineDetailGeneration/accept', 'novelOutlineDetailGeneration/reject', 'novelOutlineDetailGeneration/cancel',
+        'novelOutlineDetailGeneration/append', 'novelOutlineDetailGeneration/select',
       ]);
     } finally {
       await dispose();
@@ -1028,6 +1033,28 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     try {
       const detail = invalid.client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
       await expect(unwrap(detail.generate('p1', { scope: { kind: 'all' } }, undefined))).rejects.toThrow(/rejected "result"/);
+    } finally {
+      await invalid.dispose();
+      await invalid.client.fiber.dispose();
+    }
+  });
+
+  it('I150 append/select strict 参数与结果经真实 binder fail closed', async () => {
+    const mounted = await mount(outlineDetailGenerationRemoteContribution);
+    try {
+      const detail = mounted.client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
+      await expect(Reflect.apply(detail.append, detail, ['p1', { mode: 'append-to-selected-beat', beatId: 'beat-1', guidance: '' }, undefined])).rejects.toThrow(/rejected "input"/);
+      await expect(Reflect.apply(detail.append, detail, ['p1', { mode: 'append-all', beatId: 'beat-1', guidance: '追加。' }, undefined])).rejects.toThrow(/rejected "input"/);
+      await expect(Reflect.apply(detail.select, detail, ['p1', { candidateId: 'odg-candidate', detailBeatId: 'detail-1', keep: false, extra: true }])).rejects.toThrow(/rejected "input"/);
+      expect(mounted.calls).toHaveLength(0);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+    const invalid = await mount(outlineDetailGenerationRemoteContribution, (endpoint) => endpoint === 'novelOutlineDetailGeneration/append' ? { ...outlineDetailCandidate, extra: true } : fixtureFor(endpoint));
+    try {
+      const detail = invalid.client.get('remote.novelOutlineDetailGeneration') as OutlineDetailGenerationNamespace;
+      await expect(unwrap(detail.append('p1', { mode: 'append-to-selected-beat', beatId: 'beat-1', guidance: '追加。' }, undefined))).rejects.toThrow(/rejected "result"/);
     } finally {
       await invalid.dispose();
       await invalid.client.fiber.dispose();

@@ -62,7 +62,8 @@ for (const script of ['smoke:i149', 'verify:i149', 'verify:product-flow', 'verif
 }
 const stage18Lock = readJson('contracts/stage18/remote-descriptors.json');
 const stage19Lock = readJson('contracts/stage19/narrative-import-plan-remote.json');
-if (stage18Lock.descriptorIds.length !== 181 || stage18Lock.resultSchemaIds.length !== 87) fail('Stage 18 Remote lock changed');
+if (stage18Lock.descriptorIds.length !== 183 || stage18Lock.resultSchemaIds.length !== 89) fail('Stage 18 + I150 Remote lock is not 183/89');
+if (stage18Lock.descriptorIds.slice(-2).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions are not the Remote lock tail');
 if (stage19Lock.descriptorIds.length !== 5 || stage19Lock.resultSchemaIds.length !== 5) fail('Stage 19 NarrativeImportPlan lock changed');
 
 const lexicon = scanAuthorLexicon();

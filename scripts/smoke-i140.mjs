@@ -135,7 +135,8 @@ for (const token of ['novelWriting/adoptDraft', 'novelWriting/proposeFinalizatio
 for (const token of ['data-novel-ie-compile-txt', 'data-novel-ie-compile-md', '编译单一全文']) {
   if (!importExport.includes(token)) fail(`export consumer missing ${token}`);
 }
-if (lock.descriptorIds.length !== 181 || lock.resultSchemaIds.length !== 87) fail('I140 changed the Stage 18 Remote lock');
+if (lock.descriptorIds.length !== 183 || lock.resultSchemaIds.length !== 89) fail('Stage 18 + I150 Remote lock is not 183/89');
+if (lock.descriptorIds.slice(-2).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions are not the Remote lock tail');
 
 const clientSource = read('src/client.ts') + read('src/client/presenter.ts') + read('src/client/layers/workflow.ts');
 for (const token of ['http://', 'https://', 'api.openai', 'api.anthropic', 'Authorization:']) {

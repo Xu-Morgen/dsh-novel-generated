@@ -1,0 +1,5 @@
+{
+  "immutable": true,
+  "caseIds": ["append-01", "append-02", "append-03", "append-04", "append-05", "append-06", "append-heldout-01", "append-heldout-02", "append-heldout-03", "append-heldout-04"],
+  "note": "I150 gold 锁定 selected-beat append 的可编辑字段；模型不得产生 Host identity/status/order，也不得替换已有卡。"
+}

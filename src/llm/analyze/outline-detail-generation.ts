@@ -44,7 +44,9 @@ export async function generateOutlineDetailBeats(
 export function buildOutlineDetailGenerationPrompt(input: OutlineDetailGenerationParserInput): string {
   const modeInstruction = input.mode === 'fill-missing'
     ? '为这个 B5 节拍补齐一到若干张缺失的 planned 细纲卡；只补缺失，不改变节拍边界。'
-    : '为已有 planned 细纲卡提出一张替代候选；只改可编辑字段，不改变原卡身份。';
+    : input.mode === 'regenerate-existing'
+      ? '为已有 planned 细纲卡提出一张替代候选；只改可编辑字段，不改变原卡身份。'
+      : '根据作者本次要求，为当前已保存节追加一到若干张新的 planned 细纲卡；不得替换、复述、删除或重排已有卡。';
   return [
     '你是小说细纲候选生成器。',
     modeInstruction,
@@ -55,6 +57,9 @@ export function buildOutlineDetailGenerationPrompt(input: OutlineDetailGeneratio
     `所属节拍：${input.beatId}`,
     `节拍标题：${input.beatTitle}`,
     `节拍描述：${input.beatDescription}`,
-    input.existing === undefined ? '已有细纲：无（这是补缺）' : `已有细纲：${JSON.stringify(input.existing)}`,
+    input.guidance === undefined ? '作者本次生成要求：无' : `作者本次生成要求：${input.guidance}`,
+    input.mode === 'append-to-selected-beat'
+      ? '已有细纲：由 Host 保护，不作为替换输入；只返回新增卡。'
+      : input.existing === undefined ? '已有细纲：无（这是补缺）' : `已有细纲：${JSON.stringify(input.existing)}`,
   ].join('\n');
 }

@@ -1,0 +1,18 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "canonicalCaseIds": ["append-01", "append-02", "append-03", "append-04", "append-05", "append-06"],
+  "heldOutCaseIds": ["append-heldout-01", "append-heldout-02", "append-heldout-03", "append-heldout-04"],
+  "cases": [
+    { "id": "append-01", "beat": "主角进入旧灯塔并寻找入口。", "guidance": "增加一张发现潮湿脚印的调查场景，不要提前进入地下室。", "expected": { "detailBeats": [{ "title": "辨认潮湿脚印", "summary": "主角在灯塔门厅发现通向侧廊的潮湿脚印，先记录方向而没有进入地下室。", "pov": "米拉", "wordTarget": 550, "points": ["门厅脚印", "记录方向"] }], "rationale": "追加调查动作，并遵守不进入地下室的边界。" } },
+    { "id": "append-02", "beat": "调查者核对地图上的潮汐标记。", "guidance": "追加一张两人对标记含义产生分歧的场景。", "expected": { "detailBeats": [{ "title": "争论潮汐标记", "summary": "米拉与林恩对同一枚潮汐标记的用途产生分歧，并各自指出地图上的证据。", "pov": "林恩", "wordTarget": 650, "points": ["解释分歧", "地图证据"] }], "rationale": "把作者要求的分歧追加为独立场景，不改动原有核对动作。" } },
+    { "id": "append-03", "beat": "两人决定暂时离开码头。", "guidance": "增加临走前藏好证物的短场景，保持决定不变。", "expected": { "detailBeats": [{ "title": "藏好证物", "summary": "两人在离开码头前将怕水的证物包好，藏进只有他们知道的储物柜。", "pov": "米拉", "wordTarget": 450, "points": ["包好证物", "储物柜"] }], "rationale": "只追加离开前的收尾动作，不改变离开决定。" } },
+    { "id": "append-04", "beat": "守门人要求来客说明来意。", "guidance": "追加守门人核验通行证的阻碍，不能让他直接放行。", "expected": { "detailBeats": [{ "title": "核验通行证", "summary": "守门人接过通行证逐项核验，并因日期模糊要求来客继续等待。", "pov": "米拉", "wordTarget": 600, "points": ["核验通行证", "日期模糊"] }], "rationale": "强化既有阻碍，同时遵守不能直接放行的要求。" } },
+    { "id": "append-05", "beat": "主角打开信件。", "guidance": "追加一张她验证纸张来源的场景，不改信中内容。", "expected": { "detailBeats": [{ "title": "验证信纸来源", "summary": "主角借着窗边光线检查纸张水印，确认它来自城北的旧纸坊。", "pov": "米拉", "wordTarget": 500, "points": ["检查水印", "旧纸坊"] }], "rationale": "追加来源验证，不重写已有信件内容。" } },
+    { "id": "append-06", "beat": "林恩在桥边等待。", "guidance": "增加一张等待期间观察河面异常灯光的场景。", "expected": { "detailBeats": [{ "title": "观察河面灯光", "summary": "林恩等待时发现河面灯光逆流移动，记下它消失的位置。", "pov": "林恩", "wordTarget": 500, "points": ["逆流灯光", "记录位置"] }], "rationale": "在等待节拍内追加可观察的悬念。" } },
+    { "id": "append-heldout-01", "beat": "船只靠岸。", "guidance": "追加船员交接一只上锁木箱的场景，不揭示箱内物品。", "expected": { "detailBeats": [{ "title": "交接上锁木箱", "summary": "船员在熄灯的甲板边交接一只上锁木箱，箱内物品仍未揭示。", "pov": "米拉", "wordTarget": 650, "points": ["交接木箱", "保持未知"] }], "rationale": "追加作者指定的交接动作并保留悬念。" } },
+    { "id": "append-heldout-02", "beat": "他们在仓库找到线索。", "guidance": "增加一张核对旧照片拍摄日期的场景。", "expected": { "detailBeats": [{ "title": "核对照片日期", "summary": "他们借仓库登记册核对旧照片背面的日期，发现当天的出入记录缺了一页。", "pov": "米拉", "wordTarget": 600, "points": ["登记册", "缺失记录"] }], "rationale": "在既有线索后追加核验步骤。" } },
+    { "id": "append-heldout-03", "beat": "她沿着海堤寻找被风吹走的纸张。", "guidance": "追加一张保护找到纸张免受海水浸湿的动作场景。", "expected": { "detailBeats": [{ "title": "保护纸张", "summary": "她取回纸张后立刻用围巾包住，将它放进贴身的防水袋。", "pov": "米拉", "wordTarget": 400, "points": ["围巾包裹", "防水袋"] }], "rationale": "追加保护证据的动作，不改变寻找结果。" } },
+    { "id": "append-heldout-04", "beat": "雨停后，码头恢复了短暂的安静。", "guidance": "增加一张远处钟声打破安静的过渡场景。", "expected": { "detailBeats": [{ "title": "钟声打破安静", "summary": "短暂安静中，远处连续三下钟声传到码头，两人停步辨认方向。", "pov": "林恩", "wordTarget": 450, "points": ["三下钟声", "辨认方向"] }], "rationale": "以作者指定的钟声追加过渡，不改变雨停事实。" } }
+  ]
+}

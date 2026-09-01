@@ -1,0 +1,39 @@
+{
+  "iteration": "I150",
+  "requirements": [
+    "R18-12",
+    "R18-15"
+  ],
+  "samples": {
+    "total": 10,
+    "dev": 6,
+    "heldOut": 4,
+    "threshold": 0.8,
+    "deterministicAccuracy": 1,
+    "heldOutAccuracy": 1
+  },
+  "guarantees": [
+    "selected-saved-beat-without-technical-id-input",
+    "explicit-guided-append-calls-bounded-host-llm",
+    "existing-and-outside-scope-cards-byte-preserved",
+    "per-card-edit-and-keep-selection-through-single-i11-gate",
+    "dirty-stale-invalid-failure-and-cancel-zero-write",
+    "Chinese-labels-preserve-canonical-enum-values",
+    "strict-additive-binder-and-contract-lock"
+  ],
+  "remoteLock": {
+    "descriptorCount": 183,
+    "resultSchemaCount": 89,
+    "additiveTail": [
+      "novel-creation-tool/novelOutlineDetailGeneration/append",
+      "novel-creation-tool/novelOutlineDetailGeneration/select"
+    ]
+  },
+  "focusedSuites": "I134 compatibility, I150 samples/Host/Client, real binder, and contract lock passed",
+  "explicitNonGoals": [
+    "whole-beat-replace",
+    "automatic-dirty-outline-save",
+    "body-generation",
+    "Stage-20-import-infrastructure"
+  ]
+}

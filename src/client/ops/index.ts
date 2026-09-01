@@ -49,7 +49,7 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
   const statistics = createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace });
   const timeline = createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace });
   const referenceReview = createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace, referenceCorrectionNamespace: ports.referenceCorrectionNamespace });
-  const outlineDetailGeneration = createOutlineDetailGenerationOps(runtime, { outlineDetailGeneration: ports.outlineDetailGeneration });
+  const outlineDetailGeneration = createOutlineDetailGenerationOps(runtime, { outlineDetailGeneration: ports.outlineDetailGeneration, workspace: ports.workspace });
   const targetFocus = {
     focus(link: EntityLink): boolean {
       const current = runtime.snapshot;

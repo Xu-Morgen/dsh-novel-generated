@@ -47,7 +47,7 @@ function llmFixture() {
   };
 }
 
-async function realFixture() {
+async function realFixture(llm: ReturnType<typeof llmFixture> | { stream(request: { prompt: string }, signal?: AbortSignal): AsyncGenerator<{ type: 'text-delta'; text: string } | { type: 'finish'; reason: { kind: 'stop' } }> } = llmFixture()) {
   const root = await temporaryRoot();
   const text = createTextService(root);
   const outline = createOutlineService(root);
@@ -65,7 +65,7 @@ async function realFixture() {
     contentFingerprint: (projectId: string) => outline.contentFingerprint(projectId),
     save: async (projectId: string, value: Outline) => { saveCalls += 1; return outline.save(projectId, value); },
   };
-  const service = createOutlineDetailGenerationService({ llm: llmFixture(), scope, outline: outlinePort, confirmation });
+  const service = createOutlineDetailGenerationService({ llm, scope, outline: outlinePort, confirmation });
   return { root, text, outline, confirmation, scope, service, outlinePort, get saveCalls() { return saveCalls; } };
 }
 
@@ -135,5 +135,92 @@ describe('I134 OutlineDetailGenerationService', () => {
     const restarted = createOutlineDetailGenerationService({ llm: llmFixture(), scope: restartFixture.scope, outline: restartFixture.outlinePort, confirmation: restartFixture.confirmation });
     expect(await restarted.accept('project', restartProposal.proposalId)).toMatchObject({ status: 'accepted' });
     expect(restartFixture.saveCalls).toBe(1);
+  });
+});
+
+describe('I150 selected-beat append', () => {
+  it('已有卡的当前节仍调用一次 LLM，只追加逐卡保留的候选，原卡与范围外内容逐字不变且接受幂等', async () => {
+    const prompts: string[] = [];
+    const llm = {
+      async *stream(request: { prompt: string }) {
+        prompts.push(request.prompt);
+        yield { type: 'text-delta' as const, text: JSON.stringify({
+          detailBeats: [{ title: '追加调查', summary: '主角检查旧卡之后留下的新脚印。', pov: 'hero', wordTarget: 650, points: ['新脚印'] }],
+          rationale: '只追加作者要求的调查场景。',
+        }) };
+        yield { type: 'finish' as const, reason: { kind: 'stop' as const } };
+      },
+    };
+    const fixture = await realFixture(llm);
+    const before = await fixture.outline.read('project');
+    const outsideBefore = JSON.stringify(before.acts[0].beats[1]);
+    const originalBefore = JSON.stringify(before.acts[0].beats[0].detailBeats);
+    const candidate = await fixture.service.append('project', {
+      mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '增加一张检查新脚印的调查场景。',
+    }, settings);
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain('增加一张检查新脚印的调查场景。');
+    expect(candidate.scope).toEqual({ kind: 'outline-beat', beatId: 'beat-existing' });
+    expect(candidate.items).toHaveLength(1);
+    expect(candidate.items[0]).toMatchObject({ origin: 'generated', position: 1, choice: 'keep' });
+    expect(fixture.saveCalls).toBe(0);
+
+    const edited = await fixture.service.edit('project', {
+      candidateId: candidate.candidateId, detailBeatId: candidate.items[0].detailBeatId,
+      value: { ...candidate.items[0].after, title: '作者编辑后的追加卡' },
+    });
+    expect((await fixture.service.select('project', { candidateId: candidate.candidateId, detailBeatId: candidate.items[0].detailBeatId, keep: false })).items[0].choice).toBe('skip');
+    expect((await fixture.service.select('project', { candidateId: candidate.candidateId, detailBeatId: candidate.items[0].detailBeatId, keep: true })).items[0].after.title).toBe(edited.items[0].after.title);
+    const proposal = await fixture.service.propose('project', { candidateId: candidate.candidateId });
+    expect(fixture.saveCalls).toBe(0);
+    const restarted = createOutlineDetailGenerationService({ llm, scope: fixture.scope, outline: fixture.outlinePort, confirmation: fixture.confirmation });
+    const accepted = await restarted.accept('project', proposal.proposalId);
+    expect(accepted.appliedDetailBeatIds).toEqual([candidate.items[0].detailBeatId]);
+    const after = await fixture.outline.read('project');
+    expect(JSON.stringify(after.acts[0].beats[0].detailBeats.slice(0, 1))).toBe(originalBefore);
+    expect(after.acts[0].beats[0].detailBeats[1]).toMatchObject({ id: candidate.items[0].detailBeatId, title: '作者编辑后的追加卡' });
+    expect(JSON.stringify(after.acts[0].beats[1])).toBe(outsideBefore);
+    expect(await restarted.accept('project', proposal.proposalId)).toMatchObject({ status: 'already-accepted' });
+    expect(fixture.saveCalls).toBe(1);
+  });
+
+  it('未知/stale 节、空或超限 guidance、超预算、模型失败与取消均零写', async () => {
+    let llmCalls = 0;
+    const llm = {
+      async *stream() {
+        llmCalls += 1;
+        yield { type: 'text-delta' as const, text: JSON.stringify({ detailBeats: [{ title: '新卡', summary: '追加摘要。', pov: 'hero', wordTarget: 500, points: ['追加'] }], rationale: '追加。' }) };
+        yield { type: 'finish' as const, reason: { kind: 'stop' as const } };
+      },
+    };
+    const fixture = await realFixture(llm);
+    await expect(fixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'missing', guidance: '追加。' }, settings)).rejects.toThrow(/Unknown outline beat/);
+    await expect(fixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: ' ' }, settings)).rejects.toThrow();
+    await expect(fixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '长'.repeat(2_001) }, settings)).rejects.toThrow();
+    expect(llmCalls).toBe(0);
+
+    const full = await fixture.outline.read('project');
+    full.acts[0].beats[0].detailBeats = Array.from({ length: 8 }, (_, index) => card(`detail-full-${index}`));
+    await fixture.outline.save('project', full);
+    await expect(fixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '再追加一张。' }, settings)).rejects.toThrow(/card limit/);
+    expect(llmCalls).toBe(0);
+    expect(fixture.saveCalls).toBe(0);
+
+    const staleFixture = await realFixture(llm);
+    const candidate = await staleFixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '追加一张。' }, settings);
+    const changed = await staleFixture.outline.read('project');
+    await staleFixture.outline.save('project', { ...changed, logline: '已由作者修改。' });
+    await expect(staleFixture.service.propose('project', { candidateId: candidate.candidateId })).rejects.toThrow(/Stale outline detail generation/);
+    expect(staleFixture.saveCalls).toBe(0);
+
+    const invalid = await realFixture({ async *stream() { yield { type: 'text-delta' as const, text: '{bad' }; } });
+    await expect(invalid.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '追加一张。' }, settings)).rejects.toThrow(/valid JSON/);
+    expect(invalid.saveCalls).toBe(0);
+
+    const cancelled = await realFixture({ async *stream(_request: { prompt: string }, signal?: AbortSignal) { if (signal?.aborted) throw new Error('cancelled'); yield { type: 'text-delta' as const, text: '{}' }; } });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(cancelled.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '追加一张。' }, settings, controller.signal)).rejects.toThrow(/cancelled/);
+    expect(cancelled.saveCalls).toBe(0);
   });
 });

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { outlineContentFingerprint } from '../core/outline/index.js';
 import {
+  OUTLINE_DETAIL_GENERATION_MAX_CARDS_PER_BEAT,
   outlineDetailGenerationAcceptResultSchema,
+  outlineDetailGenerationAppendInputSchema,
   outlineDetailGenerationCandidateInputSchema,
   outlineDetailGenerationCandidateSchema,
   outlineDetailGenerationCancelResultSchema,
@@ -12,8 +14,10 @@ import {
   outlineDetailGenerationProposeResultSchema,
   outlineDetailGenerationRegenerateInputSchema,
   outlineDetailGenerationRejectResultSchema,
+  outlineDetailGenerationSelectInputSchema,
   outlineDetailGenerationSkipInputSchema,
   type OutlineDetailGenerationAcceptResult,
+  type OutlineDetailGenerationAppendInput,
   type OutlineDetailGenerationCandidate,
   type OutlineDetailGenerationGatePayload,
   type OutlineDetailGenerationItem,
@@ -40,6 +44,10 @@ function fingerprint(value: unknown): string {
 
 function generatedId(projectId: string, b5ContentFingerprint: string, beatId: string, index: number, value: unknown): string {
   return `odg-${fingerprint({ projectId, b5ContentFingerprint, beatId, index, value }).slice(0, 60)}`;
+}
+
+function appendedId(projectId: string, b5ContentFingerprint: string, beatId: string, guidance: string, index: number, value: unknown): string {
+  return `odg-a-${fingerprint({ projectId, b5ContentFingerprint, beatId, guidance, index, value }).slice(0, 58)}`;
 }
 
 function proposalId(candidateId: string, candidateFingerprint: string): string {
@@ -96,10 +104,12 @@ function candidateWithRevision(candidate: OutlineDetailGenerationCandidate, patc
 
 export interface NovelOutlineDetailGenerationService {
   generate(projectId: string, input: Parameters<typeof outlineDetailGenerationGenerateInputSchema.parse>[0], settings?: GenerationSettings, signal?: AbortSignal): Promise<OutlineDetailGenerationCandidate>;
+  append(projectId: string, input: Parameters<typeof outlineDetailGenerationAppendInputSchema.parse>[0], settings?: GenerationSettings, signal?: AbortSignal): Promise<OutlineDetailGenerationCandidate>;
   read(projectId: string, candidateId: string): Promise<OutlineDetailGenerationCandidate>;
   edit(projectId: string, input: Parameters<typeof outlineDetailGenerationEditInputSchema.parse>[0]): Promise<OutlineDetailGenerationCandidate>;
   regenerate(projectId: string, input: Parameters<typeof outlineDetailGenerationRegenerateInputSchema.parse>[0], settings?: GenerationSettings, signal?: AbortSignal): Promise<OutlineDetailGenerationCandidate>;
   skip(projectId: string, input: Parameters<typeof outlineDetailGenerationSkipInputSchema.parse>[0]): Promise<OutlineDetailGenerationCandidate>;
+  select(projectId: string, input: Parameters<typeof outlineDetailGenerationSelectInputSchema.parse>[0]): Promise<OutlineDetailGenerationCandidate>;
   propose(projectId: string, input: Parameters<typeof outlineDetailGenerationCandidateInputSchema.parse>[0]): Promise<ReturnType<typeof outlineDetailGenerationProposeResultSchema.parse>>;
   accept(projectId: string, proposalId: string): Promise<OutlineDetailGenerationAcceptResult>;
   reject(projectId: string, proposalId: string): Promise<ReturnType<typeof outlineDetailGenerationRejectResultSchema.parse>>;
@@ -107,9 +117,10 @@ export interface NovelOutlineDetailGenerationService {
 }
 
 /**
- * I134 candidate owner. LLM output is held in a bounded session and can only
- * become B5 after one I11 proposal is accepted; no whole-outline replacement
- * or background generation is exposed (design §14.14.2 / R18-12b).
+ * I134/I150 candidate owner. LLM output is held in a bounded session and can
+ * only become B5 after one I11 proposal is accepted. Guided append targets one
+ * saved beat and carries its intent through Gate restart recovery; no existing
+ * card or outside-scope content is writable (design §14.14.2 / R18-12).
  */
 export function createOutlineDetailGenerationService(deps: {
   readonly llm: unknown;
@@ -120,6 +131,7 @@ export function createOutlineDetailGenerationService(deps: {
 }): NovelOutlineDetailGenerationService {
   const backend = deps.llm as LlmBackend | undefined;
   const sessions = new Map<string, OutlineDetailGenerationCandidate>();
+  const appendIntents = new Map<string, OutlineDetailGenerationAppendInput>();
   const applied = new Map<string, OutlineDetailGenerationAcceptResult>();
   const lanes = new Map<string, Promise<unknown>>();
   const run = <T>(projectId: string, operation: () => Promise<T>): Promise<T> => {
@@ -128,7 +140,7 @@ export function createOutlineDetailGenerationService(deps: {
     lanes.set(projectId, current.catch(() => undefined));
     return current;
   };
-  const cleanup = () => { sessions.clear(); applied.clear(); lanes.clear(); };
+  const cleanup = () => { sessions.clear(); appendIntents.clear(); applied.clear(); lanes.clear(); };
   deps.onDispose?.(cleanup);
 
   const gateCandidate = (projectId: string, candidateId: string): OutlineDetailGenerationCandidate | undefined => {
@@ -142,11 +154,25 @@ export function createOutlineDetailGenerationService(deps: {
     return undefined;
   };
 
+  const gateAppendIntent = (projectId: string, candidateId: string): OutlineDetailGenerationAppendInput | undefined => {
+    for (const record of deps.confirmation.list(projectId)) {
+      if (record.kind !== PROPOSAL_KIND) continue;
+      try {
+        const payload = outlineDetailGenerationGatePayloadSchema.parse(record.payload);
+        if (payload.projectId === projectId && payload.candidateId === candidateId) return payload.appendIntent;
+      } catch { /* unrelated opaque Gate records are ignored */ }
+    }
+    return undefined;
+  };
+
   const candidateFor = (projectId: string, candidateId: string): OutlineDetailGenerationCandidate => {
     const candidate = sessions.get(candidateId) ?? gateCandidate(projectId, candidateId);
     if (candidate === undefined || candidate.projectId !== projectId) throw new Error(`Unknown outline detail candidate: ${candidateId}`);
     return candidate;
   };
+
+  const appendIntentFor = (projectId: string, candidateId: string): OutlineDetailGenerationAppendInput | undefined =>
+    appendIntents.get(candidateId) ?? gateAppendIntent(projectId, candidateId);
 
   const freshScope = async (projectId: string, candidate: OutlineDetailGenerationCandidate): Promise<{ scope: OutlineGenerationScopeResult; outline: Outline }> => {
     const scope = await deps.scope.resolve(projectId, candidate.scope);
@@ -157,7 +183,7 @@ export function createOutlineDetailGenerationService(deps: {
     return { scope, outline };
   };
 
-  const validateCandidate = (candidate: OutlineDetailGenerationCandidate, scope: OutlineGenerationScopeResult, outline: Outline): void => {
+  const validateCandidate = (candidate: OutlineDetailGenerationCandidate, scope: OutlineGenerationScopeResult, outline: Outline, appendIntent?: OutlineDetailGenerationAppendInput): void => {
     const targets = scopeTargetMap(scope);
     const expectedExisting = new Set(scope.targets.flatMap((target) => target.cards.map((card) => card.detailBeatId)));
     const seen = new Set<string>();
@@ -167,26 +193,33 @@ export function createOutlineDetailGenerationService(deps: {
       seen.add(item.detailBeatId);
       const target = targets.get(item.beatId);
       if (target === undefined || target.actId !== item.actId) throw new Error(`Outline detail candidate is outside the frozen scope: ${item.detailBeatId}`);
+      if (appendIntent !== undefined && (item.origin !== 'generated' || item.beatId !== appendIntent.beatId)) throw new Error(`Append candidate can only contain new cards for the selected beat: ${item.detailBeatId}`);
       if (item.origin === 'existing' && !expectedExisting.has(item.detailBeatId)) throw new Error(`Outline detail candidate references unknown existing card: ${item.detailBeatId}`);
-      if (item.origin === 'generated' && target.cards.length !== 0) throw new Error(`Generated detail candidate cannot replace an existing beat: ${item.beatId}`);
+      if (appendIntent === undefined && item.origin === 'generated' && target.cards.length !== 0) throw new Error(`Generated detail candidate cannot replace an existing beat: ${item.beatId}`);
       const values = itemsByBeat.get(item.beatId) ?? [];
       values.push(item);
       itemsByBeat.set(item.beatId, values);
     }
+    if (appendIntent !== undefined) {
+      if (candidate.scope.kind !== 'outline-beat' || candidate.scope.beatId !== appendIntent.beatId || scope.targets.length !== 1) throw new Error('Append candidate must target exactly the selected saved beat');
+      if (candidate.items.length === 0 || candidate.items.some((item) => item.origin !== 'generated')) throw new Error('Append candidate must contain at least one new card and no existing cards');
+      const existingCount = scope.targets[0]?.cards.length ?? 0;
+      if (candidate.generatedDetailBeatCount > OUTLINE_DETAIL_GENERATION_MAX_CARDS_PER_BEAT - existingCount) throw new Error('Append candidate exceeds selected beat card budget');
+    }
     for (const target of scope.targets) {
       const beatItems = itemsByBeat.get(target.beatId) ?? [];
-      if (target.cards.some((card) => !beatItems.some((item) => item.detailBeatId === card.detailBeatId))) throw new Error(`Candidate omitted existing card in scope: ${target.beatId}`);
-      if (target.cards.length === 0 && !beatItems.some((item) => item.origin === 'generated')) throw new Error(`Candidate omitted generated cards for beat: ${target.beatId}`);
+      if (appendIntent === undefined && target.cards.some((card) => !beatItems.some((item) => item.detailBeatId === card.detailBeatId))) throw new Error(`Candidate omitted existing card in scope: ${target.beatId}`);
+      if (appendIntent === undefined && target.cards.length === 0 && !beatItems.some((item) => item.origin === 'generated')) throw new Error(`Candidate omitted generated cards for beat: ${target.beatId}`);
     }
-    if (candidate.generatedDetailBeatCount > scope.mutationBudget.maxNewDetailBeats) throw new Error('Outline detail candidate exceeds mutation budget');
+    if (appendIntent === undefined && candidate.generatedDetailBeatCount > scope.mutationBudget.maxNewDetailBeats) throw new Error('Outline detail candidate exceeds mutation budget');
     const outlineIds = new Set(outline.acts.flatMap((act) => act.beats.flatMap((beat) => beat.detailBeats.map((card) => card.id))));
     for (const item of candidate.items) {
       if (item.origin === 'generated' && outlineIds.has(item.detailBeatId)) throw new Error(`Generated detail candidate id already exists: ${item.detailBeatId}`);
     }
   };
 
-  const applyCandidate = (candidate: OutlineDetailGenerationCandidate, scope: OutlineGenerationScopeResult, outline: Outline): Outline => {
-    validateCandidate(candidate, scope, outline);
+  const applyCandidate = (candidate: OutlineDetailGenerationCandidate, scope: OutlineGenerationScopeResult, outline: Outline, appendIntent?: OutlineDetailGenerationAppendInput): Outline => {
+    validateCandidate(candidate, scope, outline, appendIntent);
     const itemsByBeat = new Map<string, OutlineDetailGenerationItem[]>();
     for (const item of candidate.items) itemsByBeat.set(item.beatId, [...(itemsByBeat.get(item.beatId) ?? []), item]);
     const targetBeatIds = new Set(scope.targets.map((target) => target.beatId));
@@ -253,6 +286,50 @@ export function createOutlineDetailGenerationService(deps: {
       sessions.set(candidateId, candidate);
       return candidate;
     },
+    async append(projectId, rawInput, settings, signal) {
+      if (settings === undefined) throw new Error('Outline detail append settings are unavailable');
+      const input = outlineDetailGenerationAppendInputSchema.parse(rawInput);
+      const scopeInput = { kind: 'outline-beat' as const, beatId: input.beatId };
+      const scope = await deps.scope.resolve(projectId, scopeInput);
+      if (scope.readiness === 'cannot-generate') throw new Error(`Outline detail append scope is unavailable: ${scope.blockReason}`);
+      if (scope.targets.length !== 1 || scope.targets[0]?.beatId !== input.beatId) throw new Error('Outline detail append scope does not match the selected beat');
+      const target = scope.targets[0];
+      if (target.cards.length >= OUTLINE_DETAIL_GENERATION_MAX_CARDS_PER_BEAT) throw new Error('Selected beat already reached the detail card limit');
+      const outline = await deps.outline.read(projectId);
+      if (outlineContentFingerprint(outline) !== scope.b5ContentFingerprint) throw new Error('Stale outline detail generation B5');
+      const location = beatLocation(outline, input.beatId);
+      const generated = await generateOutlineDetailBeats(backend, {
+        mode: input.mode,
+        actId: target.actId,
+        beatId: target.beatId,
+        beatTitle: location.beat.title,
+        beatDescription: location.beat.description,
+        guidance: input.guidance,
+      }, settings, signal);
+      if (generated.detailBeats.length > OUTLINE_DETAIL_GENERATION_MAX_CARDS_PER_BEAT - target.cards.length) throw new Error('Generated detail beats exceed selected beat card budget');
+      const items = generated.detailBeats.map((fields, index) => outlineDetailGenerationItemSchema.parse({
+        actId: target.actId,
+        beatId: target.beatId,
+        detailBeatId: appendedId(projectId, scope.b5ContentFingerprint, target.beatId, input.guidance, index, fields),
+        position: target.cards.length + index,
+        origin: 'generated',
+        after: { ...fields, id: appendedId(projectId, scope.b5ContentFingerprint, target.beatId, input.guidance, index, fields), status: 'planned' as const },
+        choice: 'keep',
+        rationale: generated.rationale,
+      }));
+      const scopeFingerprint = fingerprint(scope);
+      const candidateId = `odg-a-${fingerprint({ projectId, scopeFingerprint, guidance: input.guidance, items }).slice(0, 58)}`;
+      const now = new Date().toISOString();
+      const candidate = outlineDetailGenerationCandidateSchema.parse({
+        candidateId, projectId, scope: scopeInput, scopeFingerprint, b5ContentFingerprint: scope.b5ContentFingerprint,
+        items, generatedDetailBeatCount: items.length, revision: 1, status: 'ready', rationale: generated.rationale,
+        createdAt: now, updatedAt: now,
+      });
+      validateCandidate(candidate, scope, outline, input);
+      sessions.set(candidateId, candidate);
+      appendIntents.set(candidateId, input);
+      return candidate;
+    },
     async read(projectId, candidateId) { return candidateFor(projectId, outlineDetailGenerationCandidateInputSchema.parse({ candidateId }).candidateId); },
     async edit(projectId, rawInput) {
       const input = outlineDetailGenerationEditInputSchema.parse(rawInput);
@@ -297,18 +374,34 @@ export function createOutlineDetailGenerationService(deps: {
         return updated;
       });
     },
+    async select(projectId, rawInput) {
+      const input = outlineDetailGenerationSelectInputSchema.parse(rawInput);
+      return run(projectId, async () => {
+        const candidate = candidateFor(projectId, input.candidateId);
+        await freshScope(projectId, candidate);
+        if (appendIntentFor(projectId, candidate.candidateId) === undefined) throw new Error(`Candidate is not a selected-beat append candidate: ${input.candidateId}`);
+        const item = candidate.items.find((value) => value.detailBeatId === input.detailBeatId);
+        if (item === undefined || item.origin !== 'generated') throw new Error(`Only a generated candidate can be selected for append: ${input.detailBeatId}`);
+        const choice = input.keep ? (item.choice === 'edit' ? 'edit' as const : 'keep' as const) : 'skip' as const;
+        const updated = candidateWithRevision(candidate, { items: candidate.items.map((value) => value.detailBeatId === input.detailBeatId ? { ...value, choice } : value) });
+        sessions.set(updated.candidateId, updated);
+        return updated;
+      });
+    },
     async propose(projectId, rawInput) {
       return run(projectId, async () => {
         const input = outlineDetailGenerationCandidateInputSchema.parse(rawInput);
         const candidate = candidateFor(projectId, input.candidateId);
         const fresh = await freshScope(projectId, candidate);
-        validateCandidate(candidate, fresh.scope, fresh.outline);
-        const expectedOutline = applyCandidate(candidate, fresh.scope, fresh.outline);
+        const appendIntent = appendIntentFor(projectId, candidate.candidateId);
+        validateCandidate(candidate, fresh.scope, fresh.outline, appendIntent);
+        const expectedOutline = applyCandidate(candidate, fresh.scope, fresh.outline, appendIntent);
         const candidateFingerprint = fingerprint(candidate);
         const id = proposalId(candidate.candidateId, candidateFingerprint);
         const payload = outlineDetailGenerationGatePayloadSchema.parse({
           projectId, candidateId: candidate.candidateId, proposalId: id, candidateFingerprint,
           b5ContentFingerprint: candidate.b5ContentFingerprint, expectedB5ContentFingerprint: outlineContentFingerprint(expectedOutline), candidate,
+          ...(appendIntent === undefined ? {} : { appendIntent }),
           decisions: candidate.items.map((item) => ({ detailBeatId: item.detailBeatId, choice: item.choice })),
         });
         try {
@@ -336,7 +429,7 @@ export function createOutlineDetailGenerationService(deps: {
         const currentBeforeFingerprint = outlineContentFingerprint(currentBefore);
         if (currentBeforeFingerprint !== expectedAfter && currentBeforeFingerprint !== payload.b5ContentFingerprint) throw new Error('Stale outline detail generation B5 before apply');
         const first = currentBeforeFingerprint === payload.b5ContentFingerprint ? await freshScope(projectId, payload.candidate) : undefined;
-        const desired = first === undefined ? undefined : applyCandidate(payload.candidate, first.scope, first.outline);
+        const desired = first === undefined ? undefined : applyCandidate(payload.candidate, first.scope, first.outline, payload.appendIntent);
         if (desired !== undefined && outlineContentFingerprint(desired) !== expectedAfter) throw new Error('Outline detail generation expected B5 fingerprint is inconsistent');
         if (record.status === 'pending') await deps.confirmation.accept(projectId, proposalIdValue);
         if (currentBeforeFingerprint === expectedAfter) {
@@ -356,7 +449,7 @@ export function createOutlineDetailGenerationService(deps: {
         if (currentFingerprint === payload.b5ContentFingerprint) {
           const currentScope = await deps.scope.resolve(projectId, payload.candidate.scope);
           if (currentScope.b5ContentFingerprint !== payload.b5ContentFingerprint || fingerprint(currentScope) !== payload.candidate.scopeFingerprint) throw new Error('Stale outline detail generation scope before apply');
-          const currentDesired = applyCandidate(payload.candidate, currentScope, current);
+          const currentDesired = applyCandidate(payload.candidate, currentScope, current, payload.appendIntent);
           appliedIds = payload.decisions.filter((decision) => decision.choice !== 'skip').map((decision) => decision.detailBeatId);
           if (outlineContentFingerprint(currentDesired) !== payload.expectedB5ContentFingerprint) throw new Error('Outline detail generation result fingerprint drifted');
           if (currentFingerprint !== payload.expectedB5ContentFingerprint) await deps.outline.save(projectId, currentDesired);
@@ -385,6 +478,7 @@ export function createOutlineDetailGenerationService(deps: {
         const input = outlineDetailGenerationCandidateInputSchema.parse({ candidateId });
         candidateFor(projectId, input.candidateId);
         sessions.delete(input.candidateId);
+        appendIntents.delete(input.candidateId);
         return outlineDetailGenerationCancelResultSchema.parse({ projectId, candidateId: input.candidateId, status: 'cancelled' });
       });
     },

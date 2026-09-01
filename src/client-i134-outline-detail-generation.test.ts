@@ -25,6 +25,7 @@ describe('I134 范围细纲候选面板', () => {
       edit: async (_projectId: string, input: unknown) => { calls.push({ method: 'edit', input }); return result({ ...candidate, revision: 2, items: [{ ...candidate.items[0], choice: 'edit' }] }); },
       regenerate: async (_projectId: string, input: unknown) => { calls.push({ method: 'regenerate', input }); return result(candidate); },
       skip: async (_projectId: string, input: unknown) => { calls.push({ method: 'skip', input }); return result({ ...candidate, revision: 2, items: [{ ...candidate.items[0], choice: 'skip' }] }); },
+      select: async (_projectId: string, input: unknown) => { calls.push({ method: 'select', input }); return result({ ...candidate, revision: 2, items: [{ ...candidate.items[0], choice: 'skip' }] }); },
       propose: async (_projectId: string, input: unknown) => { calls.push({ method: 'propose', input }); return result({ projectId: 'fixture-project', candidateId: candidate.candidateId, proposalId: 'odg-proposal', status: 'pending' }); },
       accept: async (_projectId: string, proposalId: string) => { calls.push({ method: 'accept', input: proposalId }); return result({ projectId: 'fixture-project', candidateId: candidate.candidateId, proposalId, status: 'accepted', appliedDetailBeatIds: ['detail-one'], skippedDetailBeatIds: [], b5ContentFingerprint: 'c'.repeat(64) }); },
       reject: async (_projectId: string, proposalId: string) => { calls.push({ method: 'reject', input: proposalId }); return result({ projectId: 'fixture-project', candidateId: candidate.candidateId, proposalId, status: 'rejected' }); },
@@ -48,9 +49,9 @@ describe('I134 范围细纲候选面板', () => {
     expect(calls[0]).toMatchObject({ method: 'generate', input: { scope: { kind: 'all' } } });
     expect(collect(panel(), 'article').some((node) => node.props?.['data-novel-outline-detail-item'] === 'detail-one')).toBe(true);
     expect(collect(panel(), 'button').some((node) => node.props?.['data-novel-outline-detail-regenerate'] === 'detail-one' && node.props.disabled === true)).toBe(true);
-    (collect(panel(), 'button').find((node) => node.props?.['data-novel-outline-detail-skip'] === 'detail-one')?.props?.onClick as () => void)();
+    (collect(panel(), 'button').find((node) => node.props?.['data-novel-outline-detail-keep'] === 'detail-one')?.props?.onClick as () => void)();
     await flush();
-    expect(calls.some((call) => call.method === 'skip')).toBe(true);
+    expect(calls.some((call) => call.method === 'select')).toBe(true);
     (collect(panel(), 'button').find((node) => node.props?.['data-novel-outline-detail-propose'] === candidate.candidateId)?.props?.onClick as () => void)();
     await flush();
     expect(collect(panel(), 'button').some((node) => node.props?.['data-novel-outline-detail-accept'] === 'odg-proposal')).toBe(true);

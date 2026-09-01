@@ -7,6 +7,7 @@ import { outlineGenerationScopeInputSchema } from './outline-generation-scope.js
 export const OUTLINE_DETAIL_GENERATION_MAX_CARDS_PER_BEAT = 8;
 export const OUTLINE_DETAIL_GENERATION_MAX_ITEMS = 4_096;
 export const OUTLINE_DETAIL_GENERATION_MAX_RATIONALE = 2_000;
+export const OUTLINE_DETAIL_GENERATION_MAX_GUIDANCE = 2_000;
 
 const fingerprintSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const detailBeatFieldsSchema = z.object({
@@ -20,18 +21,28 @@ export type OutlineDetailBeatFields = z.infer<typeof detailBeatFieldsSchema>;
 
 /** Only the beat facts needed by the model; Host supplies identity/status/order. */
 export const outlineDetailGenerationParserInputSchema = z.object({
-  mode: z.enum(['fill-missing', 'regenerate-existing']),
+  mode: z.enum(['fill-missing', 'regenerate-existing', 'append-to-selected-beat']),
   actId: entityIdSchema,
   beatId: entityIdSchema,
   beatTitle: z.string().trim().min(1).max(200),
   beatDescription: z.string().trim().min(1).max(1_000),
   existing: detailBeatFieldsSchema.optional(),
+  guidance: z.string().trim().min(1).max(OUTLINE_DETAIL_GENERATION_MAX_GUIDANCE).optional(),
 }).strict().superRefine((input, context) => {
   if (input.mode === 'regenerate-existing' && input.existing === undefined) {
     context.addIssue({ code: 'custom', path: ['existing'], message: 'Regeneration requires an existing detail beat' });
   }
   if (input.mode === 'fill-missing' && input.existing !== undefined) {
     context.addIssue({ code: 'custom', path: ['existing'], message: 'Fill mode cannot carry an existing detail beat' });
+  }
+  if (input.mode === 'append-to-selected-beat' && input.guidance === undefined) {
+    context.addIssue({ code: 'custom', path: ['guidance'], message: 'Append mode requires author guidance' });
+  }
+  if (input.mode !== 'append-to-selected-beat' && input.guidance !== undefined) {
+    context.addIssue({ code: 'custom', path: ['guidance'], message: 'Only append mode accepts author guidance' });
+  }
+  if (input.mode === 'append-to-selected-beat' && input.existing !== undefined) {
+    context.addIssue({ code: 'custom', path: ['existing'], message: 'Append mode cannot replace an existing detail beat' });
   }
 });
 export type OutlineDetailGenerationParserInput = z.infer<typeof outlineDetailGenerationParserInputSchema>;
@@ -102,6 +113,14 @@ export type OutlineDetailGenerationCandidate = z.infer<typeof outlineDetailGener
 export const outlineDetailGenerationGenerateInputSchema = z.object({ scope: outlineGenerationScopeInputSchema }).strict();
 export type OutlineDetailGenerationGenerateInput = z.infer<typeof outlineDetailGenerationGenerateInputSchema>;
 
+/** I150 explicit append intent; the selected saved beat is the only target. */
+export const outlineDetailGenerationAppendInputSchema = z.object({
+  mode: z.literal('append-to-selected-beat'),
+  beatId: entityIdSchema,
+  guidance: z.string().trim().min(1).max(OUTLINE_DETAIL_GENERATION_MAX_GUIDANCE),
+}).strict();
+export type OutlineDetailGenerationAppendInput = z.infer<typeof outlineDetailGenerationAppendInputSchema>;
+
 const candidateItemInput = z.object({ candidateId: entityIdSchema, detailBeatId: entityIdSchema }).strict();
 export const outlineDetailGenerationEditInputSchema = candidateItemInput.extend({ value: detailBeatSchema }).strict();
 export type OutlineDetailGenerationEditInput = z.infer<typeof outlineDetailGenerationEditInputSchema>;
@@ -109,6 +128,8 @@ export const outlineDetailGenerationRegenerateInputSchema = candidateItemInput;
 export type OutlineDetailGenerationRegenerateInput = z.infer<typeof outlineDetailGenerationRegenerateInputSchema>;
 export const outlineDetailGenerationSkipInputSchema = candidateItemInput;
 export type OutlineDetailGenerationSkipInput = z.infer<typeof outlineDetailGenerationSkipInputSchema>;
+export const outlineDetailGenerationSelectInputSchema = candidateItemInput.extend({ keep: z.boolean() }).strict();
+export type OutlineDetailGenerationSelectInput = z.infer<typeof outlineDetailGenerationSelectInputSchema>;
 
 export const outlineDetailGenerationCandidateInputSchema = z.object({ candidateId: entityIdSchema }).strict();
 export type OutlineDetailGenerationCandidateInput = z.infer<typeof outlineDetailGenerationCandidateInputSchema>;
@@ -122,6 +143,7 @@ export const outlineDetailGenerationGatePayloadSchema = z.object({
   b5ContentFingerprint: fingerprintSchema,
   expectedB5ContentFingerprint: fingerprintSchema,
   candidate: outlineDetailGenerationCandidateSchema,
+  appendIntent: outlineDetailGenerationAppendInputSchema.optional(),
   decisions: z.object({ detailBeatId: entityIdSchema, choice: outlineDetailGenerationChoiceSchema }).strict().array().max(OUTLINE_DETAIL_GENERATION_MAX_ITEMS),
 }).strict();
 export type OutlineDetailGenerationGatePayload = z.infer<typeof outlineDetailGenerationGatePayloadSchema>;

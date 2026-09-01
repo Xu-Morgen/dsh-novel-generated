@@ -24,7 +24,7 @@ import { referenceCorrectionInvocations } from './host/remote/reference-correcti
 import { longDraftInvocations } from './host/remote/long-draft.js';
 import { reviewRepairInvocations } from './host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from './host/remote/outline-generation-scope.js';
-import { outlineDetailGenerationInvocations } from './host/remote/outline-detail-generation.js';
+import { outlineDetailGenerationAppendInvocation, outlineDetailGenerationInvocations, outlineDetailGenerationSelectInvocation } from './host/remote/outline-detail-generation.js';
 import { compileManuscriptInvocation } from './host/remote/import-export.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
@@ -68,7 +68,8 @@ const i120DescriptorIds = new Set(longDraftInvocations.slice(5).map((descriptor)
 const i130DescriptorIds = new Set([branchAggregateInvocation.id]);
 const i131DescriptorIds = new Set([branchChooseFreshInvocation.id]);
 const i133DescriptorIds = new Set(outlineGenerationScopeInvocations.map((descriptor) => descriptor.id));
-const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.map((descriptor) => descriptor.id));
+const i150DescriptorIds = new Set([outlineDetailGenerationAppendInvocation.id, outlineDetailGenerationSelectInvocation.id]);
+const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id));
 const i135DescriptorIds = new Set([
   writingAdoptDraftInvocation.id,
   writingPrepareFinalizationPlanInvocation.id,
@@ -83,7 +84,7 @@ const i136DescriptorIds = new Set([
 const i137DescriptorIds = new Set([bookReadinessInvocation.id, bookScanInvocation.id]);
 const i138DescriptorIds = new Set([compileManuscriptInvocation.id]);
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
@@ -101,7 +102,7 @@ const stage18Descriptors = [
   branchChooseFreshInvocation,
   ...reviewRepairInvocations,
   ...outlineGenerationScopeInvocations,
-  ...outlineDetailGenerationInvocations,
+  ...outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)),
   writingAdoptDraftInvocation,
   writingPrepareFinalizationPlanInvocation,
   writingReadFinalizationPlanInvocation,
@@ -112,6 +113,8 @@ const stage18Descriptors = [
   bookReadinessInvocation,
   bookScanInvocation,
   compileManuscriptInvocation,
+  outlineDetailGenerationAppendInvocation,
+  outlineDetailGenerationSelectInvocation,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
@@ -137,7 +140,7 @@ const stage18ResultDescriptors = [
   branchChooseFreshInvocation,
   ...reviewRepairInvocations,
   ...outlineGenerationScopeInvocations,
-  ...outlineDetailGenerationInvocations,
+  ...outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)),
   writingAdoptDraftInvocation,
   writingPrepareFinalizationPlanInvocation,
   writingReadFinalizationPlanInvocation,
@@ -148,6 +151,8 @@ const stage18ResultDescriptors = [
   bookReadinessInvocation,
   bookScanInvocation,
   compileManuscriptInvocation,
+  outlineDetailGenerationAppendInvocation,
+  outlineDetailGenerationSelectInvocation,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -219,8 +224,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(181);
-    expect(remoteLock.resultSchemaIds).toHaveLength(87);
+    expect(remoteLock.descriptorIds).toHaveLength(183);
+    expect(remoteLock.resultSchemaIds).toHaveLength(89);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -239,7 +244,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       branchChooseFreshInvocation.id,
       ...reviewRepairInvocations.map((descriptor) => descriptor.id),
       ...outlineGenerationScopeInvocations.map((descriptor) => descriptor.id),
-      ...outlineDetailGenerationInvocations.map((descriptor) => descriptor.id),
+      ...outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id),
       writingAdoptDraftInvocation.id,
       writingPrepareFinalizationPlanInvocation.id,
       writingReadFinalizationPlanInvocation.id,
@@ -250,6 +255,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       bookReadinessInvocation.id,
       bookScanInvocation.id,
       compileManuscriptInvocation.id,
+      outlineDetailGenerationAppendInvocation.id,
+      outlineDetailGenerationSelectInvocation.id,
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -267,7 +274,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       branchChooseFreshInvocation.id,
       ...reviewRepairInvocations.map((descriptor) => descriptor.id),
       ...outlineGenerationScopeInvocations.map((descriptor) => descriptor.id),
-      ...outlineDetailGenerationInvocations.map((descriptor) => descriptor.id),
+      ...outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id),
       writingAdoptDraftInvocation.id,
       writingPrepareFinalizationPlanInvocation.id,
       writingReadFinalizationPlanInvocation.id,
@@ -278,6 +285,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       bookReadinessInvocation.id,
       bookScanInvocation.id,
       compileManuscriptInvocation.id,
+      outlineDetailGenerationAppendInvocation.id,
+      outlineDetailGenerationSelectInvocation.id,
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);
