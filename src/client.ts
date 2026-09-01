@@ -23,6 +23,7 @@ import type { WorkbenchSettingsDraftShape } from './client/workbench-settings.js
 import type { MountContext } from './client/mount.js';
 import { mountRemoteRegistry, type RemoteServiceBag } from './client/mount-registry.js';
 import { createOnboardingController, createProjectController, createSettingsController, createUploadController } from './client/controllers.js';
+import { createImportInterpretationController } from './client/import-interpretation-review.js';
 import { createWorkbenchUi, launchButton, workbenchView, type WorkbenchViewProps } from './client/presenter.js';
 
 /** 侧栏/面板宽度与步进常量已迁至 store 契约层（I82，src/client/store/types.ts）；
@@ -157,6 +158,18 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         dispatch,
         openProject: (projectId, onOpened) => project.openProject(projectId, onOpened),
       });
+      const importInterpretation = createImportInterpretationController({
+        analysis: () => serviceBag.importInterpretationAnalysis,
+        session: () => serviceBag.importInterpretation,
+        currentProjectId: () => currentProjectId,
+        isActive: () => active,
+        beginOp,
+        endOp,
+        dispatch,
+        onConfirmed: () => {
+          if (active) capturedActions?.workflowStage('outline');
+        },
+      });
       const settings = createSettingsController({
         llmConfig: () => serviceBag.llmConfig,
         workbenchSettings: () => serviceBag.workbenchSettings,
@@ -242,7 +255,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         // 命令），workbenchView 以 props 对象接收 —— Overlay 只做装配。
         const Overlay = (props: { useStore: <S>(sel: (s: WorkbenchState) => S) => S; actions: WorkbenchActions }): unknown => {
           const s = props.useStore((snapshot) => snapshot);
-          const ui = createWorkbenchUi({ snapshot: s, actions: props.actions, dispatch, project, onboarding, settings, upload, closeWorkbench });
+          const ui = createWorkbenchUi({ snapshot: s, actions: props.actions, dispatch, project, onboarding, settings, upload, importInterpretation, closeWorkbench });
           const layers: LayerData = {
             characters: s.characters,
             worldview: s.worldview,
@@ -288,6 +301,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
               referenceAuditNamespace: serviceBag.referenceAudit,
               referenceCorrectionNamespace: serviceBag.referenceCorrection,
               onboardingNamespace: serviceBag.onboarding,
+              importInterpretation: serviceBag.importInterpretation,
+              importInterpretationAnalysis: serviceBag.importInterpretationAnalysis,
               longDraft: serviceBag.longDraft,
             },
             ui,
@@ -318,6 +333,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             upload: s.upload,
             uploadResult: s.uploadResult,
             onboardingState: s.onboarding,
+            importInterpretationReview: s.importInterpretationReview,
             decideOnboarding: (layer, decision, extra) => onboarding.decideOnboarding(layer, decision, extra),
             applyOnboarding: () => onboarding.applyOnboarding(),
             patchOnboarding: (patch) => onboarding.patchOnboarding(patch),
@@ -355,6 +371,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           // 23 个 namespace 变量逐项置 undefined）；disposer 释放由 registry 卸载器
           // 统一做（等价迁移前逐 disposer 变量释放）。
           onboarding.clearPoll();
+          importInterpretation.dispose();
           queuePoll.stop();
           capturedActions = undefined;
           pending.splice(0);

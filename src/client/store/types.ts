@@ -1,4 +1,4 @@
-import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, ReviewRepairNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace, LongDraftNamespace, OutlineDetailGenerationNamespace } from '../shared.js';
+import type { LayerId, WorkspaceNamespace, WorkspaceStatus, WorkspaceViewModel, WritingNamespace, ReviewNamespace, ReviewRepairNamespace, QueueNamespace, KnowledgeNamespace, RuleStyleNamespace, ProgressNamespace, ImportExportNamespace, ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace, BranchNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace, LongDraftNamespace, OutlineDetailGenerationNamespace } from '../shared.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAdjudicationExtra, OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingNamespace, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from '../settings.js';
@@ -27,6 +27,7 @@ import type { TimelineEditOps, TimelineLayerState } from '../layers/timeline.js'
 import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layers/reference-review.js';
 import type { RouterEditOps, RouterState } from '../router.js';
 import type { OutlineDetailGenerationEditOps, OutlineDetailGenerationLayerState } from '../layers/outline-detail-generation.js';
+import type { ImportInterpretationReviewState, ImportReviewParagraph } from '../import-interpretation-review.js';
 
 /**
  * I82 创作台 Client store 契约层（架构审查 §5.1 / §9 #5 拆分：store/types.ts 承载
@@ -124,6 +125,11 @@ export type WorkbenchActions = {
   onboardingError(message: string): void;
   /** I57 分析生命周期状态（busy/progress/cancel/retry）。 */
   onboardingAnalysis(analysis: OnboardingAnalysisState | undefined): void;
+  /** I144 来源语义审阅交互态；确认前只属于 Client，不是作品层真相。 */
+  importInterpretationReview(state: ImportInterpretationReviewState | undefined): void;
+  importInterpretationReviewPatch(patch: Partial<ImportInterpretationReviewState>): void;
+  importInterpretationParagraphRole(paragraphId: string, role: ImportReviewParagraph['selectedRole']): void;
+  importInterpretationParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
   creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
   creationSettingsMutate(patch: Partial<WorkbenchSettingsDraftShape>): void;
   creationSettingsSettled(patch: Partial<WorkbenchSettingsDraftShape>): void;
@@ -338,6 +344,8 @@ export interface WorkbenchState {
   upload: UploadProgress;
   uploadResult: { sourceHash: string; fileName: string; text: string; chunks: unknown[] } | undefined;
   onboarding: OnboardingState | undefined;
+  /** I144：来源/段落审阅态，隐藏时不触发任何 Remote。 */
+  importInterpretationReview: ImportInterpretationReviewState | undefined;
   settingsView: LlmConfigViewShape | undefined;
   settingsDraft: LlmConfigDraftShape;
   creationSettingsView: WorkbenchSettingsViewShape | undefined;
@@ -369,6 +377,9 @@ export interface WorkbenchNamespaces {
   textDeletion: TextDeletionNamespace | undefined;
   outlineReconciliation: OutlineReconciliationNamespace | undefined;
   onboardingNamespace: OnboardingNamespace | undefined;
+  /** I142/I143 来源意图 checkpoint 与零写分类器。 */
+  importInterpretation: ImportInterpretationNamespace | undefined;
+  importInterpretationAnalysis: ImportInterpretationAnalysisNamespace | undefined;
   longDraft: LongDraftNamespace | undefined;
   outlineDetailGeneration: OutlineDetailGenerationNamespace | undefined;
 }

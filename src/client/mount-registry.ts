@@ -65,6 +65,8 @@ import { referenceCorrectionRemoteContribution } from '../remote.js';
 import { longDraftRemoteContribution } from '../remote.js';
 import { outlineDetailGenerationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
+import { importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution } from '../remote.js';
+import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace } from './remote-namespace.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
 
@@ -102,6 +104,8 @@ export interface RemoteServiceBag {
   referenceCorrection?: ReferenceCorrectionNamespace;
   longDraft?: LongDraftNamespace;
   outlineDetailGeneration?: OutlineDetailGenerationNamespace;
+  importInterpretation?: ImportInterpretationNamespace;
+  importInterpretationAnalysis?: ImportInterpretationAnalysisNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -155,6 +159,8 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'referenceCorrection', contribution: referenceCorrectionRemoteContribution, serviceKey: 'remote.novelReferenceCorrection', label: 'reference correction', bind: bindInto('referenceCorrection') },
     { key: 'longDraft', contribution: longDraftRemoteContribution, serviceKey: 'remote.novelLongDraft', label: 'long draft', bind: bindInto('longDraft') },
     { key: 'outlineDetailGeneration', contribution: outlineDetailGenerationRemoteContribution, serviceKey: 'remote.novelOutlineDetailGeneration', label: 'outline detail generation', bind: bindInto('outlineDetailGeneration') },
+    { key: 'importInterpretation', contribution: importInterpretationRemoteContribution, serviceKey: 'remote.novelImportInterpretation', label: 'import interpretation', bind: bindInto('importInterpretation') },
+    { key: 'importInterpretationAnalysis', contribution: importInterpretationAnalysisRemoteContribution, serviceKey: 'remote.novelImportInterpretationAnalysis', label: 'import interpretation analysis', bind: bindInto('importInterpretationAnalysis') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

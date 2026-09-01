@@ -29,6 +29,7 @@ import { advancedError, toUserMessage } from './presentation.js';
 import { llmSettingsPanel } from './settings.js';
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './panels/index.js';
 import type { OnboardingController, ProjectController, SettingsController, UploadController } from './controllers.js';
+import { paragraphsFromHostChunks, sourceInterpretationReview, type ImportInterpretationController, type ImportInterpretationParagraph, type ImportInterpretationReviewState } from './import-interpretation-review.js';
 
 /** ui 方法表（Overlay → 控制器命令的薄适配层；I90 收敛为单一接口）。 */
 export interface WorkbenchUi {
@@ -69,6 +70,14 @@ export interface WorkbenchUi {
   analyzeText(text: string): void;
   cancelAnalysis(): void;
   retryAnalysis(): void;
+  beginImportInterpretation(source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void;
+  cancelImportInterpretation(): void;
+  confirmImportInterpretation(): void;
+  setImportSourceRole(role: import('../core/schema/import-interpretation.js').ImportSourceRole | undefined): void;
+  setImportTreatment(treatment: import('../core/schema/import-interpretation.js').ImportTreatment | undefined): void;
+  setImportNarrativeIntent(intent: import('../core/schema/import-interpretation.js').NarrativeIntent | undefined): void;
+  setImportParagraphRole(paragraphId: string, role: import('../core/schema/import-interpretation-analysis.js').SourceParagraphRole): void;
+  setImportParagraphDecision(paragraphId: string, decision: import('./import-interpretation-review.js').ImportReviewParagraph['decision']): void;
 }
 
 /** createWorkbenchUi 依赖面：渲染期快照 + baked actions + 控制器（窄化传参）。 */
@@ -82,6 +91,7 @@ export interface WorkbenchUiDeps {
   onboarding: OnboardingController;
   settings: SettingsController;
   upload: UploadController;
+  importInterpretation: ImportInterpretationController;
   /** 关闭创作台并把焦点恢复到悬浮入口（I59/R12-6，slot 装配层注入）。 */
   closeWorkbench(): void;
 }
@@ -92,7 +102,7 @@ export interface WorkbenchUiDeps {
  * 控制器 —— 控制器不持有 store（I90 窄化传参纪律）。
  */
 export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
-  const { snapshot: s, actions, dispatch, project, onboarding, settings, upload, closeWorkbench } = deps;
+  const { snapshot: s, actions, dispatch, project, onboarding, settings, upload, importInterpretation, closeWorkbench } = deps;
   const ui: WorkbenchUi = {
     get open() { return s.open; },
     get collapsed() { return s.collapsed; },
@@ -163,6 +173,14 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     analyzeText(text: string) { onboarding.analyzeText(text); },
     cancelAnalysis() { onboarding.cancelAnalysis(); },
     retryAnalysis() { onboarding.retryAnalysis(); },
+    beginImportInterpretation(source) { importInterpretation.begin(source); },
+    cancelImportInterpretation() { importInterpretation.cancel(); },
+    confirmImportInterpretation() { importInterpretation.confirm(); },
+    setImportSourceRole(role) { importInterpretation.setSourceRole(role); },
+    setImportTreatment(treatment) { importInterpretation.setTreatment(treatment); },
+    setImportNarrativeIntent(intent) { importInterpretation.setNarrativeIntent(intent); },
+    setImportParagraphRole(paragraphId, role) { importInterpretation.setParagraphRole(paragraphId, role); },
+    setImportParagraphDecision(paragraphId, decision) { importInterpretation.setParagraphDecision(paragraphId, decision); },
   };
   return ui;
 }
@@ -183,6 +201,7 @@ export interface WorkbenchViewProps {
   upload?: UploadProgress;
   uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] };
   onboardingState?: OnboardingState;
+  importInterpretationReview?: ImportInterpretationReviewState;
   decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void;
   applyOnboarding?: () => void;
   patchOnboarding?: (patch: Partial<OnboardingState>) => void;
@@ -273,7 +292,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
  * `(React, props: WorkbenchViewProps)` 对象参数（review v2.0 §3.5/§5）。
  */
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
-  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
+  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, importInterpretationReview, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
   const { workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
   const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState, router: routerState } = states;
   const h = el(React);
@@ -304,10 +323,27 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
       h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
       h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
     ),
-    uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+    uploadResult ? h('div', { className: 'nv-upload__result', 'data-novel-upload-result-wrap': '' },
+      h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-import-interpretation-start': '', onClick: () => {
+        try { ui.beginImportInterpretation({ sourceHash: uploadResult.sourceHash, text: uploadResult.text, paragraphs: paragraphsFromHostChunks(uploadResult.chunks) }); }
+        catch (error) { ui.beginImportInterpretation({ sourceHash: uploadResult.sourceHash, text: uploadResult.text, paragraphs: [] }); }
+      } }, '审阅来源语义'),
+    ) : null,
     longDraftGuidePanel(h, selectedProjectId ?? 'unknown-project', longDraft),
   );
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
+  const importReview = importInterpretationReview === undefined ? null : sourceInterpretationReview(h, importInterpretationReview, {
+    begin: (source) => ui.beginImportInterpretation(source),
+    cancel: () => ui.cancelImportInterpretation(),
+    confirm: () => ui.confirmImportInterpretation(),
+    setSourceRole: (role) => ui.setImportSourceRole(role),
+    setTreatment: (treatment) => ui.setImportTreatment(treatment),
+    setNarrativeIntent: (intent) => ui.setImportNarrativeIntent(intent),
+    setParagraphRole: (paragraphId, role) => ui.setImportParagraphRole(paragraphId, role),
+    setParagraphDecision: (paragraphId, decision) => ui.setImportParagraphDecision(paragraphId, decision),
+  });
+  const combinedReview = importReview === null ? review : h('div', { className: 'nv-onboarding-review-stack', 'data-novel-import-and-onboarding-review': '' }, importReview, review);
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),
@@ -352,13 +388,13 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
           viewPanel(h, ui.activeView, selectedProjectId, selectedProjectName ?? selectedProjectId, {
-            workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, onboardingNamespace, longDraft,
+            workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, onboardingNamespace, importInterpretation: ns.importInterpretation, importInterpretationAnalysis: ns.importInterpretationAnalysis, longDraft,
           }, {
             layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState,
             ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState,
             statistics: statisticsState, timeline: timelineState, router: routerState, workflow: states.workflow,
             outlineDetailGeneration: states.outlineDetailGeneration,
-          }, ops, sourceEntry, review, settings, creationSettings, states.workflow, ui.openWorkflowStage),
+          }, ops, sourceEntry, combinedReview, settings, creationSettings, states.workflow, ui.openWorkflowStage),
         ),
       ),
     )
@@ -382,7 +418,9 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
                 h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
                 h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
               ),
-              uploadResult ? h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`) : null,
+              uploadResult ? h('div', { className: 'nv-upload__result', 'data-novel-upload-result-wrap': '' },
+                h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`),
+              ) : null,
             ),
             // 既有作品列表（点击打开；返回列表时可切换作品）。
             projects.length > 0 ? h('ul', { className: 'nv-workbench__project-list', 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', className: 'nv-workbench__project-open', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))) : null,
@@ -390,6 +428,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
             // 原文与 sourceHash 保留在 OnboardingState，取消/失败可在此重试；apply 成功后进入创作台。
             onboardingState === undefined ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },
               analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
+              importReview,
               review,
             ),
           ),

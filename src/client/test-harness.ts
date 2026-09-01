@@ -144,6 +144,8 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const referenceAuditStub = mountOptions.referenceAudit;
   const referenceCorrectionStub = mountOptions.referenceCorrection;
   const outlineDetailGenerationStub = mountOptions.outlineDetailGeneration;
+  const importInterpretationStub = mountOptions.importInterpretation;
+  const importInterpretationAnalysisStub = mountOptions.importInterpretationAnalysis;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -165,6 +167,18 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       adjudicate: async () => { throw new Error('未注入 remote.novelOnboarding'); },
       acceptedLayers: async () => [],
       finalApply: async () => ({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', appliedLayers: [], skippedLayers: [], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
+    })
+    : name === 'remote.novelImportInterpretation' ? (importInterpretationStub ?? {
+      create: async () => ({ projectId: 'fixture-project', importSessionId: 'import-sess-1', sourceHash: 'a'.repeat(64), intent: { sourceRole: 'idea', treatment: 'expand-outline' }, paragraphDecisions: [], status: 'draft', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      read: async () => undefined,
+      confirm: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'confirmed', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      discard: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'discarded', intent: { sourceRole: 'idea', treatment: 'expand-outline' }, paragraphDecisions: [], createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+    })
+    : name === 'remote.novelImportInterpretationAnalysis' ? (importInterpretationAnalysisStub ?? {
+      begin: async (input: unknown) => input,
+      status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+      cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
+      result: async (input: unknown) => ({ ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } }),
     })
     : name === 'remote.novelWriting' ? {
       propose: writingStub?.propose ?? (async () => { throw new Error('未注入 remote.novelWriting.propose'); }),

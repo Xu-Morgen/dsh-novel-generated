@@ -1,0 +1,27 @@
+{
+  "iteration": "I144",
+  "requirement": "R19-2b",
+  "guarantees": [
+    "same-onboarding-import-step-no-new-route",
+    "five-source-roles-and-two-stage19-treatments-reachable",
+    "model-suggestion-is-separate-from-explicit-author-confirmation",
+    "low-confidence-never-advances-automatically",
+    "limited-pov-requires-a-protagonist-and-paragraphs-must-be-resolved",
+    "existing-prose-exposes-stage21-fidelity-boundary-without-preserve-prose",
+    "host-owned-paragraph-ranges-only",
+    "hidden-review-is-render-free-and-dispose-clears-poll-timer"
+  ],
+  "focusedSuites": [
+    "src/client/import-interpretation-review.test.ts",
+    "src/client/remote-binder.test.ts"
+  ],
+  "explicitNonGoals": [
+    "new-route",
+    "upload-controller-duplication",
+    "long-draft-controller-duplication",
+    "b5-generation",
+    "c3-generation",
+    "c4-generation",
+    "c5-write"
+  ]
+}

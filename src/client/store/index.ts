@@ -42,6 +42,7 @@ import { freshReferenceReview } from '../layers/reference-review.js';
 import { freshRouter } from '../router.js';
 import type { RouterState } from '../router.js';
 import type { OutlineDetailGenerationLayerState } from '../layers/outline-detail-generation.js';
+import type { ImportInterpretationReviewState, ImportReviewParagraph } from '../import-interpretation-review.js';
 import { freshLlmConfigDraft } from '../settings.js';
 import { freshWorkbenchSettingsDraft } from '../workbench-settings.js';
 import type { DefineStore, StoreHandle, WorkbenchActions, WorkbenchState } from './types.js';
@@ -127,6 +128,7 @@ export function freshWorkbenchState(): WorkbenchState {
     upload: { phase: 'idle' },
     uploadResult: undefined,
     onboarding: undefined,
+    importInterpretationReview: undefined,
     settingsView: undefined,
     settingsDraft: freshLlmConfigDraft(),
     creationSettingsView: undefined,
@@ -187,7 +189,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       fail: (d, message: string) => { d.status = { status: 'error', message }; },
       setProjects: (d, list: unknown[]) => { d.projects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
       selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.activeView = DEFAULT_VIEW; d.workflow = freshWorkflow(projectId); d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
-      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.workflow = freshWorkflow(d.selectedProjectId); d.onboarding = undefined; d.leaveConfirm = false; },
+      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.workflow = freshWorkflow(d.selectedProjectId); d.onboarding = undefined; d.importInterpretationReview = undefined; d.leaveConfirm = false; },
       browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
       cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
       showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -202,6 +204,16 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       onboardingApplyResult: (d, result: OnboardingState['applyResult']) => { if (d.onboarding) d.onboarding = { ...d.onboarding, applyResult: result, error: undefined }; },
       onboardingError: (d, message: string) => { if (d.onboarding) d.onboarding = { ...d.onboarding, error: message }; },
       onboardingAnalysis: (d, analysis: OnboardingAnalysisState | undefined) => { if (d.onboarding) d.onboarding = { ...d.onboarding, analysis }; },
+      importInterpretationReview: (d, state: ImportInterpretationReviewState | undefined) => { d.importInterpretationReview = state; },
+      importInterpretationReviewPatch: (d, patch: Partial<ImportInterpretationReviewState>) => { if (d.importInterpretationReview) d.importInterpretationReview = { ...d.importInterpretationReview, ...patch }; },
+      importInterpretationParagraphRole: (d, paragraphId: string, role: ImportReviewParagraph['selectedRole']) => {
+        if (d.importInterpretationReview === undefined || role === undefined) return;
+        d.importInterpretationReview = { ...d.importInterpretationReview, confirmed: false, paragraphs: d.importInterpretationReview.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: paragraph.decision === 'pending' ? 'edited' : paragraph.decision } : paragraph) };
+      },
+      importInterpretationParagraphDecision: (d, paragraphId: string, decision: ImportReviewParagraph['decision']) => {
+        if (d.importInterpretationReview === undefined) return;
+        d.importInterpretationReview = { ...d.importInterpretationReview, confirmed: false, paragraphs: d.importInterpretationReview.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, decision } : paragraph) };
+      },
       setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
       setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
       setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },
