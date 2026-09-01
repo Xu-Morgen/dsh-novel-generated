@@ -87,4 +87,17 @@ describe('I142 import interpretation session owner', () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it('I151 identifies only the first confirmed controlled import as eligible', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i151-first-import-'));
+    try {
+      const service = createImportInterpretationSessionService(root);
+      const first = await service.create(createInput);
+      await service.confirm({ ...createInput, importSessionId: first.importSessionId });
+      await expect(service.firstConfirmed({ projectId: 'demo', importSessionId: first.importSessionId, sourceHash })).resolves.toMatchObject({ status: 'confirmed' });
+      const second = await service.create({ ...createInput, sourceHash: replacementHash });
+      await service.confirm({ ...createInput, importSessionId: second.importSessionId, sourceHash: replacementHash });
+      await expect(service.firstConfirmed({ projectId: 'demo', importSessionId: second.importSessionId, sourceHash: replacementHash })).rejects.toThrow(/only allowed for the first/);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
 });

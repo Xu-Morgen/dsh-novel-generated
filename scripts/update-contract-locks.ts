@@ -45,6 +45,7 @@ import { importInterpretationAnalysisInvocations } from '../src/host/remote/impo
 import { narrativeAdaptationInvocations } from '../src/host/remote/narrative-adaptation.js';
 import { narrativeRevealInvocations } from '../src/host/remote/narrative-reveal.js';
 import { narrativeImportPlanInvocations } from '../src/host/remote/narrative-import-plan.js';
+import { ruleStyleImportInitializationInvocations } from '../src/host/remote/rule-style-import-initialization.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -257,6 +258,22 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage18/remote-descriptors.json');
+}
+
+/** I151 first-import B1/B4 initialization Remote lock (R22-1). */
+{
+  const descriptors = remoteDescriptorLockBodies(ruleStyleImportInitializationInvocations);
+  const resultSchemas = remoteResultShapeBodies(ruleStyleImportInitializationInvocations);
+  write('contracts/stage20/rule-style-import-initialization-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage20RuleStyleImportInitialization',
+    contractNote: 'I151 首次受控导入 one-shot B1/B4 候选、I11 裁决与本地 owner 写回；无日常 regenerate 方法。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage20/rule-style-import-initialization-remote.json');
 }
 
 /** I145 candidate-only POV adaptation Remote lock (R19-3). */

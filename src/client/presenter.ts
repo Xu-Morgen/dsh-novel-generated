@@ -79,6 +79,12 @@ export interface WorkbenchUi {
   setImportNarrativeIntent(intent: import('../core/schema/import-interpretation.js').NarrativeIntent | undefined): void;
   setImportParagraphRole(paragraphId: string, role: import('../core/schema/import-interpretation-analysis.js').SourceParagraphRole): void;
   setImportParagraphDecision(paragraphId: string, decision: import('./import-interpretation-review.js').ImportReviewParagraph['decision']): void;
+  setRuleStyleImportRulesDraft(value: string): void;
+  setRuleStyleImportStyleDraft(value: string): void;
+  retryRuleStyleImportInitialization(): void;
+  proposeRuleStyleImportInitialization(): void;
+  acceptRuleStyleImportInitialization(): void;
+  rejectRuleStyleImportInitialization(): void;
 }
 
 /** createWorkbenchUi 依赖面：渲染期快照 + baked actions + 控制器（窄化传参）。 */
@@ -182,6 +188,12 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     setImportNarrativeIntent(intent) { importInterpretation.setNarrativeIntent(intent); },
     setImportParagraphRole(paragraphId, role) { importInterpretation.setParagraphRole(paragraphId, role); },
     setImportParagraphDecision(paragraphId, decision) { importInterpretation.setParagraphDecision(paragraphId, decision); },
+    setRuleStyleImportRulesDraft(value) { importInterpretation.setRuleStyleRulesDraft(value); },
+    setRuleStyleImportStyleDraft(value) { importInterpretation.setRuleStyleStyleDraft(value); },
+    retryRuleStyleImportInitialization() { importInterpretation.retryRuleStyleInitialization(); },
+    proposeRuleStyleImportInitialization() { importInterpretation.proposeRuleStyleInitialization(); },
+    acceptRuleStyleImportInitialization() { importInterpretation.acceptRuleStyleInitialization(); },
+    rejectRuleStyleImportInitialization() { importInterpretation.rejectRuleStyleInitialization(); },
   };
   return ui;
 }
@@ -343,6 +355,12 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     setNarrativeIntent: (intent) => ui.setImportNarrativeIntent(intent),
     setParagraphRole: (paragraphId, role) => ui.setImportParagraphRole(paragraphId, role),
     setParagraphDecision: (paragraphId, decision) => ui.setImportParagraphDecision(paragraphId, decision),
+    setRuleStyleRulesDraft: (value) => ui.setRuleStyleImportRulesDraft(value),
+    setRuleStyleStyleDraft: (value) => ui.setRuleStyleImportStyleDraft(value),
+    retryRuleStyleInitialization: () => ui.retryRuleStyleImportInitialization(),
+    proposeRuleStyleInitialization: () => ui.proposeRuleStyleImportInitialization(),
+    acceptRuleStyleInitialization: () => ui.acceptRuleStyleImportInitialization(),
+    rejectRuleStyleInitialization: () => ui.rejectRuleStyleImportInitialization(),
   });
   const sourceAware = importInterpretationReview === undefined ? undefined : projectSourceAwareWorkflow({ review: importInterpretationReview });
   const combinedReview = importReview === null ? review : h('div', { className: 'nv-onboarding-review-stack', 'data-novel-import-and-onboarding-review': '' }, importReview, review);

@@ -44,6 +44,38 @@ export class StyleRepository {
     });
   }
 
+  /** I151 refuses to replace anything except I3's canonical empty placeholder. */
+  async initialize(input: StyleProfileInput): Promise<StyleProfile> {
+    return this.enqueue(async () => {
+      const current = await readYaml<unknown>(this.stylePath);
+      if (current === null || typeof current !== 'object' || Array.isArray(current) || Object.keys(current as object).length !== 0) {
+        throw new Error('Style import initialization requires empty B4');
+      }
+      const profile = styleProfileSchema.parse({ ...input, version: input.version ?? 1 });
+      await this.writeDocument(profile);
+      return structuredClone(profile);
+    });
+  }
+
+  /** I151 compensation resets only the profile created by the same operation. */
+  async clearInitialization(expectedStyleId: string): Promise<void> {
+    await this.enqueue(async () => {
+      const raw = await readYaml<unknown>(this.stylePath);
+      const current = styleProfileSchema.parse(raw);
+      if (current.id !== expectedStyleId) throw new Error('Style initialization compensation identity mismatch');
+      const temporaryPath = `${this.stylePath}.rollback.tmp`;
+      await writeYaml(temporaryPath, {});
+      await rename(temporaryPath, this.stylePath);
+    });
+  }
+
+  async isInitialized(): Promise<boolean> {
+    return this.enqueue(async () => {
+      const raw = await readYaml<unknown>(this.stylePath);
+      return !(raw !== null && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw as object).length === 0);
+    });
+  }
+
   async read(): Promise<StyleProfile> {
     return this.enqueue(async () => {
       const raw = await readYaml<unknown>(this.stylePath);

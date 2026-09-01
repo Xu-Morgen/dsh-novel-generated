@@ -65,8 +65,8 @@ import { referenceCorrectionRemoteContribution } from '../remote.js';
 import { longDraftRemoteContribution } from '../remote.js';
 import { outlineDetailGenerationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
-import { importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution } from '../remote.js';
-import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace } from './remote-namespace.js';
+import { importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution, ruleStyleImportInitializationRemoteContribution } from '../remote.js';
+import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace, RuleStyleImportInitializationNamespace } from './remote-namespace.js';
 import { narrativeAdaptationRemoteContribution } from '../remote.js';
 import type { NarrativeAdaptationNamespace } from './remote-namespace.js';
 import { narrativeRevealRemoteContribution } from '../remote.js';
@@ -112,6 +112,7 @@ export interface RemoteServiceBag {
   outlineDetailGeneration?: OutlineDetailGenerationNamespace;
   importInterpretation?: ImportInterpretationNamespace;
   importInterpretationAnalysis?: ImportInterpretationAnalysisNamespace;
+  ruleStyleImportInitialization?: RuleStyleImportInitializationNamespace;
   narrativeAdaptation?: NarrativeAdaptationNamespace;
   narrativeReveal?: NarrativeRevealNamespace;
   narrativeImportPlan?: NarrativeImportPlanNamespace;
@@ -170,6 +171,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'outlineDetailGeneration', contribution: outlineDetailGenerationRemoteContribution, serviceKey: 'remote.novelOutlineDetailGeneration', label: 'outline detail generation', bind: bindInto('outlineDetailGeneration') },
     { key: 'importInterpretation', contribution: importInterpretationRemoteContribution, serviceKey: 'remote.novelImportInterpretation', label: 'import interpretation', bind: bindInto('importInterpretation') },
     { key: 'importInterpretationAnalysis', contribution: importInterpretationAnalysisRemoteContribution, serviceKey: 'remote.novelImportInterpretationAnalysis', label: 'import interpretation analysis', bind: bindInto('importInterpretationAnalysis') },
+    { key: 'ruleStyleImportInitialization', contribution: ruleStyleImportInitializationRemoteContribution, serviceKey: 'remote.novelRuleStyleImportInitialization', label: 'rule/style import initialization', bind: bindInto('ruleStyleImportInitialization') },
     { key: 'narrativeAdaptation', contribution: narrativeAdaptationRemoteContribution, serviceKey: 'remote.novelNarrativeAdaptation', label: 'narrative adaptation', bind: bindInto('narrativeAdaptation') },
     { key: 'narrativeReveal', contribution: narrativeRevealRemoteContribution, serviceKey: 'remote.novelNarrativeReveal', label: 'narrative reveal', bind: bindInto('narrativeReveal') },
     { key: 'narrativeImportPlan', contribution: narrativeImportPlanRemoteContribution, serviceKey: 'remote.novelNarrativeImportPlan', label: 'narrative import plan', bind: bindInto('narrativeImportPlan') },

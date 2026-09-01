@@ -26,6 +26,8 @@ export interface NovelRuleService {
   update(projectId: string, ruleId: string, patch: RulePatch): Promise<Rule>;
   listActive(projectId: string): Promise<ActiveRuleView[]>;
   query(projectId: string, filter?: RuleQuery): Promise<RuleReference[]>;
+  initialize(projectId: string, inputs: readonly RuleInput[]): Promise<Rule[]>;
+  clearInitialization(projectId: string, ruleIds: readonly string[]): Promise<void>;
 }
 
 /**
@@ -53,5 +55,7 @@ export function createRuleService(projectsRoot = join(homedir(), '.dsh', 'novel-
     update: (projectId, ruleId, patch) => get(projectId).update(ruleId, patch),
     listActive: (projectId) => get(projectId).listActive(),
     query: (projectId, filter) => get(projectId).query(filter),
+    initialize: (projectId, inputs) => get(projectId).initialize(inputs),
+    clearInitialization: (projectId, ruleIds) => get(projectId).clearInitialization(ruleIds),
   };
 }

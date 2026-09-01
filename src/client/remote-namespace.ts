@@ -50,6 +50,7 @@ import type { referenceCorrectionRemoteContribution } from '../host/remote/refer
 import type { longDraftRemoteContribution } from '../remote.js';
 import type { outlineGenerationScopeRemoteContribution } from '../host/remote/outline-generation-scope.js';
 import type { outlineDetailGenerationRemoteContribution } from '../host/remote/outline-detail-generation.js';
+import type { ruleStyleImportInitializationRemoteContribution } from '../host/remote/rule-style-import-initialization.js';
 
 /** I86 实证的 DSH RemoteResult 信封合同（review v2.0 §3.1；client 消费经 `unwrap` 解包）。 */
 export type RemoteResult<R> =
@@ -102,6 +103,8 @@ export type ImportExportNamespace = NamespaceOf<typeof importExportRemoteContrib
 export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretationRemoteContribution>;
 /** I143 zero-write source classifier; only operational evidence crosses this seam. */
 export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInterpretationAnalysisRemoteContribution>;
+/** I151 first-import one-shot B1/B4 candidate, Gate, and apply surface. */
+export type RuleStyleImportInitializationNamespace = NamespaceOf<typeof ruleStyleImportInitializationRemoteContribution>;
 /** I145 candidate-only POV adaptation; application remains a later Gate owner. */
 export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
 /** I146 candidate-only C3 reveal planner; application remains a later Gate owner. */

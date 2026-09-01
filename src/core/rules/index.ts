@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
 import { validateProjectId } from '../io/path.js';
@@ -48,6 +48,34 @@ export class RuleRepository {
       if (await this.exists(filePath)) throw new Error(`Rule already exists: ${rule.id}`);
       await this.writeRuleDocument(rule);
       return structuredClone(rule);
+    });
+  }
+
+  /** I151 empty-store batch initialization with compensation on any rename failure. */
+  async initialize(inputs: readonly RuleInput[]): Promise<Rule[]> {
+    return this.enqueue(async () => {
+      if ((await this.readRuleFiles()).length > 0) throw new Error('Rule import initialization requires empty B1');
+      const rules = inputs.map((input) => ruleSchema.parse({ ...input, version: input.version ?? 1 }));
+      if (new Set(rules.map((rule) => rule.id)).size !== rules.length) throw new Error('Rule import initialization contains duplicate ids');
+      const staged = rules.map((rule) => ({ rule, target: this.rulePath(rule.id), temporary: `${this.rulePath(rule.id)}.init.tmp` }));
+      const committed: string[] = [];
+      try {
+        for (const item of staged) await writeYaml(item.temporary, item.rule);
+        for (const item of staged) { await rename(item.temporary, item.target); committed.push(item.target); }
+        return structuredClone(rules);
+      } catch (error) {
+        await Promise.all([...staged.map((item) => item.temporary), ...committed].map((path) => unlink(path).catch(() => undefined)));
+        throw error;
+      }
+    });
+  }
+
+  /** I151 compensation only removes ids created by the same initialization operation. */
+  async clearInitialization(ruleIds: readonly string[]): Promise<void> {
+    await this.enqueue(async () => {
+      await Promise.all(ruleIds.map((id) => unlink(this.rulePath(id)).catch((error: NodeJS.ErrnoException) => {
+        if (error.code !== 'ENOENT') throw error;
+      })));
     });
   }
 

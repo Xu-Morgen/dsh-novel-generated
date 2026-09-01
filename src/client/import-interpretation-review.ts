@@ -4,7 +4,9 @@ import { toUserMessage } from './presentation.js';
 import type {
   ImportInterpretationNamespace,
   ImportInterpretationAnalysisNamespace,
+  RuleStyleImportInitializationNamespace,
 } from './remote-namespace.js';
+import type { RuleStyleImportProjection } from '../core/schema/rule-style-import-initialization.js';
 import type {
   ImportInterpretationParagraph,
   SourceInterpretationOutput,
@@ -43,6 +45,10 @@ export interface ImportInterpretationReviewState {
   readonly narrativeIntent?: NarrativeIntent;
   readonly paragraphs: readonly ImportReviewParagraph[];
   readonly confirmed: boolean;
+  readonly ruleStyleInitialization?: RuleStyleImportProjection;
+  readonly ruleStyleRulesDraft?: string;
+  readonly ruleStyleStyleDraft?: string;
+  readonly ruleStyleBusy?: boolean;
   readonly busy: boolean;
   readonly error?: string;
 }
@@ -64,6 +70,12 @@ export interface ImportInterpretationReviewOps {
   setNarrativeIntent(intent: NarrativeIntent | undefined): void;
   setParagraphRole(paragraphId: string, role: SourceParagraphRole): void;
   setParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  setRuleStyleRulesDraft?(value: string): void;
+  setRuleStyleStyleDraft?(value: string): void;
+  retryRuleStyleInitialization?(): void;
+  proposeRuleStyleInitialization?(): void;
+  acceptRuleStyleInitialization?(): void;
+  rejectRuleStyleInitialization?(): void;
 }
 
 const SOURCE_ROLE_LABELS: Readonly<Record<ImportSourceRole, string>> = Object.freeze({
@@ -250,6 +262,28 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
   );
 }
 
+function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewState, ops: ImportInterpretationReviewOps): unknown {
+  const initialization = state.ruleStyleInitialization;
+  if (!state.confirmed && initialization === undefined) return null;
+  if (initialization === undefined) return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '' }, h('h4', null, '规则与文风初稿'), h('p', { role: 'status' }, '正在启动首次导入初始化…'));
+  const statusLabel = initialization.status === 'applied' ? '已写入本地规则与文风文件' : initialization.status === 'proposed' ? '等待作者确认' : initialization.status === 'succeeded' ? '初稿已生成，可编辑后提交确认' : initialization.status === 'failed' ? '生成失败，可重试同一首次导入任务或转到规则与文风面板手工录入' : `状态：${initialization.status}`;
+  return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '', 'data-novel-rule-style-import-status': initialization.status },
+    h('h4', null, '规则与文风初稿'),
+    h('p', { role: 'status', 'aria-live': 'polite' }, statusLabel),
+    initialization.status === 'succeeded' ? h('div', { className: 'nv-import-review__rule-style-editors' },
+      h('label', { className: 'nv-field', 'data-novel-rule-style-import-rules': '' }, h('span', { className: 'nv-field__label' }, '规则初稿（结构化内容，可编辑）'), h('textarea', { rows: 10, className: 'nv-field__input', value: state.ruleStyleRulesDraft ?? '[]', onChange: (event: { target: { value: string } }) => ops.setRuleStyleRulesDraft?.(event.target.value) })),
+      h('label', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('span', { className: 'nv-field__label' }, '文风初稿（结构化内容，可编辑）'), h('textarea', { rows: 12, className: 'nv-field__input', value: state.ruleStyleStyleDraft ?? '{}', onChange: (event: { target: { value: string } }) => ops.setRuleStyleStyleDraft?.(event.target.value) })),
+    ) : null,
+    initialization.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert' }, toUserMessage(initialization.error, '规则与文风初始化未完成。')),
+    h('div', { className: 'nv-import-review__actions' },
+      initialization.status === 'succeeded' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-propose': '', onClick: () => ops.proposeRuleStyleInitialization?.() }, '提交规则与文风确认') : null,
+      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-accept': '', onClick: () => ops.acceptRuleStyleInitialization?.() }, '确认并写入本地文件') : null,
+      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-reject': '', onClick: () => ops.rejectRuleStyleInitialization?.() }, '拒绝初稿') : null,
+      initialization.status === 'failed' || initialization.status === 'cancelled' ? h('button', { type: 'button', className: 'nv-btn', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-retry': '', onClick: () => ops.retryRuleStyleInitialization?.() }, '重试同一初始化任务') : null,
+    ),
+  );
+}
+
 /**
  * Pure renderer for the I144 source review. Rendering never invokes a Remote;
  * every side effect is an explicit callback owned by the Client controller.
@@ -274,6 +308,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     intentFields(h, state, ops),
     evidencePanel(h, state),
     paragraphPanel(h, state, ops),
+    ruleStyleInitializationPanel(h, state, ops),
     validation === undefined ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-import-interpretation-validation': '' }, validation),
     state.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert', 'data-novel-import-interpretation-error': '' }, toUserMessage(state.error, '来源审阅未完成，请重试。')),
     h('div', { className: 'nv-import-review__actions' },
@@ -286,6 +321,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
 export interface ImportInterpretationControllerDeps {
   analysis(): ImportInterpretationAnalysisNamespace | undefined;
   session(): ImportInterpretationNamespace | undefined;
+  initialization(): RuleStyleImportInitializationNamespace | undefined;
   currentProjectId(): string | undefined;
   isActive(): boolean;
   beginOp(key: string): boolean;
@@ -303,6 +339,12 @@ export interface ImportInterpretationController {
   setNarrativeIntent(intent: NarrativeIntent | undefined): void;
   setParagraphRole(paragraphId: string, role: SourceParagraphRole): void;
   setParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  setRuleStyleRulesDraft(value: string): void;
+  setRuleStyleStyleDraft(value: string): void;
+  retryRuleStyleInitialization(): void;
+  proposeRuleStyleInitialization(): void;
+  acceptRuleStyleInitialization(): void;
+  rejectRuleStyleInitialization(): void;
   dispose(): void;
 }
 
@@ -316,9 +358,11 @@ const IMPORT_ANALYSIS_POLL_MS = 800;
 export function createImportInterpretationController(deps: ImportInterpretationControllerDeps): ImportInterpretationController {
   let current: ImportInterpretationReviewState | undefined;
   let pollTimer: ReturnType<typeof setTimeout> | undefined;
+  let ruleStylePollTimer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
   const operationKey = 'import-interpretation:review';
   const clearPoll = (): void => { if (pollTimer !== undefined) { clearTimeout(pollTimer); pollTimer = undefined; } };
+  const clearRuleStylePoll = (): void => { if (ruleStylePollTimer !== undefined) { clearTimeout(ruleStylePollTimer); ruleStylePollTimer = undefined; } };
   const active = (): boolean => !disposed && deps.isActive();
   const write = (state: ImportInterpretationReviewState | undefined): void => {
     current = state;
@@ -354,6 +398,35 @@ export function createImportInterpretationController(deps: ImportInterpretationC
       }
       if (active()) pollTimer = setTimeout(() => poll(identity), IMPORT_ANALYSIS_POLL_MS);
     }, (error: Error) => finish({ analysisStatus: 'failed', error: toUserMessage(error, '来源解释未完成，请重试。') }));
+  };
+
+  const patchRuleStyle = (projectionValue: RuleStyleImportProjection): void => {
+    const candidate = projectionValue.candidate;
+    patch({
+      ruleStyleInitialization: projectionValue,
+      ruleStyleBusy: projectionValue.status === 'queued' || projectionValue.status === 'running' || projectionValue.status === 'applying',
+      ...(candidate === undefined ? {} : {
+        ruleStyleRulesDraft: current?.ruleStyleRulesDraft ?? JSON.stringify(candidate.rules, null, 2),
+        ruleStyleStyleDraft: current?.ruleStyleStyleDraft ?? JSON.stringify(candidate.style, null, 2),
+      }),
+    });
+  };
+  const pollRuleStyle = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
+    const target = deps.initialization();
+    if (!active() || target === undefined) { clearRuleStylePoll(); return; }
+    void unwrap(target.status(identity)).then((status) => {
+      if (!active() || current?.importSessionId !== identity.importSessionId) return;
+      patchRuleStyle(status);
+      if (status.status === 'queued' || status.status === 'running' || status.status === 'applying') ruleStylePollTimer = setTimeout(() => pollRuleStyle(identity), IMPORT_ANALYSIS_POLL_MS);
+      else clearRuleStylePoll();
+    }, (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '规则与文风初始化状态不可用。') }));
+  };
+  const startRuleStyle = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
+    const target = deps.initialization();
+    if (!active() || target === undefined) { patch({ error: '规则与文风初始化服务暂时不可用。' }); return; }
+    clearRuleStylePoll();
+    patch({ ruleStyleBusy: true });
+    void unwrap(target.begin(identity, undefined)).then((started) => { if (active()) { patchRuleStyle(started); pollRuleStyle(identity); } }, (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '首次导入规则与文风初始化未启动。') }));
   };
 
   const begin = (source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void => {
@@ -409,6 +482,7 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     void unwrap(session.confirm({ ...identity, intent, paragraphDecisions: state.paragraphs.map((paragraph) => ({ paragraphId: paragraph.paragraphId, decision: paragraph.decision, summary: paragraph.text.slice(0, 200) })) })).then(() => {
       if (!active()) return;
       patch({ confirmed: true, busy: false });
+      startRuleStyle(identity);
       deps.onConfirmed();
     }, (error: Error) => patch({ busy: false, error: toUserMessage(error, '来源意图未确认，请检查后重试。') }));
   };
@@ -437,6 +511,30 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     if (current === undefined) return;
     write({ ...current, confirmed: false, paragraphs: current.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, decision } : paragraph) });
   };
-  const dispose = (): void => { disposed = true; clearPoll(); current = undefined; };
-  return Object.freeze({ begin, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, dispose });
+  const setRuleStyleRulesDraft = (value: string): void => patch({ ruleStyleRulesDraft: value });
+  const setRuleStyleStyleDraft = (value: string): void => patch({ ruleStyleStyleDraft: value });
+  const retryRuleStyleInitialization = (): void => {
+    const state = current;
+    if (state?.importSessionId !== undefined) startRuleStyle({ projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash });
+  };
+  const proposeRuleStyleInitialization = (): void => {
+    const state = current; const target = deps.initialization(); const fingerprint = state?.ruleStyleInitialization?.candidateFingerprint;
+    if (!active() || state?.importSessionId === undefined || target === undefined || fingerprint === undefined) return;
+    try {
+      const candidate = { rules: JSON.parse(state.ruleStyleRulesDraft ?? '[]') as unknown, style: JSON.parse(state.ruleStyleStyleDraft ?? '{}') as unknown };
+      patch({ ruleStyleBusy: true, error: undefined });
+      void unwrap(target.propose({ projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash, expectedFingerprint: fingerprint, candidate: candidate as never })).then((value) => patchRuleStyle(value), (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '规则与文风初稿未提交确认。') }));
+    } catch { patch({ error: '规则或文风的结构化内容格式无效，请修正后重试。' }); }
+  };
+  const decideRuleStyle = (decision: 'accept' | 'reject'): void => {
+    const state = current; const target = deps.initialization(); const fingerprint = state?.ruleStyleInitialization?.candidateFingerprint;
+    if (!active() || state?.importSessionId === undefined || target === undefined || fingerprint === undefined) return;
+    patch({ ruleStyleBusy: true, error: undefined });
+    const input = { projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash, expectedFingerprint: fingerprint };
+    void unwrap(target[decision](input)).then((value) => patchRuleStyle(value), (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '规则与文风初稿裁决失败。') }));
+  };
+  const acceptRuleStyleInitialization = (): void => decideRuleStyle('accept');
+  const rejectRuleStyleInitialization = (): void => decideRuleStyle('reject');
+  const dispose = (): void => { disposed = true; clearPoll(); clearRuleStylePoll(); current = undefined; };
+  return Object.freeze({ begin, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, setRuleStyleRulesDraft, setRuleStyleStyleDraft, retryRuleStyleInitialization, proposeRuleStyleInitialization, acceptRuleStyleInitialization, rejectRuleStyleInitialization, dispose });
 }

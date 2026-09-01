@@ -15,6 +15,7 @@ export type {
   ImportExportNamespace,
   ImportInterpretationNamespace,
   ImportInterpretationAnalysisNamespace,
+  RuleStyleImportInitializationNamespace,
   NarrativeAdaptationNamespace,
   NarrativeRevealNamespace,
   NarrativeImportPlanNamespace,

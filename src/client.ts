@@ -161,6 +161,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
       const importInterpretation = createImportInterpretationController({
         analysis: () => serviceBag.importInterpretationAnalysis,
         session: () => serviceBag.importInterpretation,
+        initialization: () => serviceBag.ruleStyleImportInitialization,
         currentProjectId: () => currentProjectId,
         isActive: () => active,
         beginOp,

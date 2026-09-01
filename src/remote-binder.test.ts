@@ -18,6 +18,7 @@ import { reviewRemoteContribution } from './host/remote/review.js';
 import { importExportRemoteContribution } from './host/remote/import-export.js';
 import { importInterpretationRemoteContribution } from './host/remote/import-interpretation.js';
 import { importInterpretationAnalysisRemoteContribution } from './host/remote/import-interpretation-analysis.js';
+import { ruleStyleImportInitializationRemoteContribution } from './host/remote/rule-style-import-initialization.js';
 import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
@@ -43,6 +44,7 @@ import type {
   OutlineDetailGenerationNamespace,
   ImportInterpretationNamespace,
   ImportInterpretationAnalysisNamespace,
+  RuleStyleImportInitializationNamespace,
   ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
@@ -1405,5 +1407,45 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       await mounted.dispose();
       await mounted.client.fiber.dispose();
     }
+  });
+
+  it('I151 novelRuleStyleImportInitialization：七个 strict additive 方法经真实 binder 往返', async () => {
+    const identity = { projectId: 'p1', importSessionId: 'imp-first-1', sourceHash: 'a'.repeat(64) };
+    const candidate: import('./core/schema/rule-style-import-initialization.js').RuleStyleImportCandidate = { rules: [{ id: 'rule-one', scope: 'global', kind: 'magic', statement: '潮汐钟每天只能倒转一次。', priority: 80, immutable: false, examples: [], active: true }], style: { id: 'style-imported', name: '导入文风', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '紧贴角色感知', chapterFormat: '按调查节点分章', dialogueConventions: '对白简洁', forbidden: [] } };
+    const fingerprint = 'b'.repeat(64);
+    const mounted = await mount(ruleStyleImportInitializationRemoteContribution, (endpoint) => ({
+      ...identity,
+      status: endpoint.endsWith('/accept') ? 'applied' : endpoint.endsWith('/reject') ? 'rejected' : endpoint.endsWith('/cancel') ? 'cancelled' : endpoint.endsWith('/propose') ? 'proposed' : 'succeeded',
+      candidate,
+      candidateFingerprint: fingerprint,
+      ...(endpoint.endsWith('/propose') || endpoint.endsWith('/accept') || endpoint.endsWith('/reject') ? { confirmationId: 'rule-style-import-imp-first-1' } : {}),
+      createdAt: ISO,
+      updatedAt: ISO,
+    }));
+    try {
+      const service = mounted.client.get('remote.novelRuleStyleImportInitialization') as RuleStyleImportInitializationNamespace;
+      expect(await unwrap(service.begin(identity, undefined))).toMatchObject({ status: 'succeeded' });
+      expect(await unwrap(service.status(identity))).toMatchObject({ candidateFingerprint: fingerprint });
+      expect(await unwrap(service.result(identity))).toMatchObject({ candidate });
+      expect(await unwrap(service.propose({ ...identity, expectedFingerprint: fingerprint, candidate }))).toMatchObject({ status: 'proposed' });
+      expect(await unwrap(service.accept({ ...identity, expectedFingerprint: fingerprint }))).toMatchObject({ status: 'applied' });
+      expect(await unwrap(service.reject({ ...identity, expectedFingerprint: fingerprint }))).toMatchObject({ status: 'rejected' });
+      expect(await unwrap(service.cancel(identity))).toMatchObject({ status: 'cancelled' });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelRuleStyleImportInitialization/begin', 'novelRuleStyleImportInitialization/status', 'novelRuleStyleImportInitialization/result',
+        'novelRuleStyleImportInitialization/propose', 'novelRuleStyleImportInitialization/accept', 'novelRuleStyleImportInitialization/reject', 'novelRuleStyleImportInitialization/cancel',
+      ]);
+    } finally { await mounted.dispose(); await mounted.client.fiber.dispose(); }
+  });
+
+  it('I151 负向：immutable/path 扩展与非法 result 在真实 binder fail closed', async () => {
+    const identity = { projectId: 'p1', importSessionId: 'imp-first-1', sourceHash: 'a'.repeat(64) };
+    const mounted = await mount(ruleStyleImportInitializationRemoteContribution, () => ({ ...identity, status: 'succeeded', createdAt: ISO, updatedAt: ISO, extra: true }));
+    try {
+      const service = mounted.client.get('remote.novelRuleStyleImportInitialization') as RuleStyleImportInitializationNamespace;
+      await expect(Reflect.apply(service.propose, service, [{ ...identity, expectedFingerprint: 'b'.repeat(64), candidate: { rules: [{ id: 'bad', scope: 'global', kind: 'magic', statement: 'bad', priority: 1, immutable: true, examples: [], active: true }], style: { path: '../../style.yaml' } } }])).rejects.toThrow(/rejected "input"/);
+      await expect(unwrap(service.status(identity))).rejects.toThrow(/rejected "result"/);
+      expect(mounted.calls).toHaveLength(1);
+    } finally { await mounted.dispose(); await mounted.client.fiber.dispose(); }
   });
 });

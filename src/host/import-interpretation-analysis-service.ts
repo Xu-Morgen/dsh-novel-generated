@@ -38,6 +38,8 @@ export interface NovelImportInterpretationAnalysisService {
   status(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): ImportInterpretationAnalysisStatusResult;
   cancel(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): Promise<ImportInterpretationAnalysisStatusResult>;
   result(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): ImportInterpretationAnalysisResult;
+  /** I151 internal Host-bound normalized source projection for the same import job. */
+  source(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): string;
   dispose(): void;
 }
 
@@ -113,6 +115,11 @@ export function createImportInterpretationAnalysisService(
       if (current.status === 'failed') throw current.error instanceof Error ? current.error : new Error('Import interpretation analysis failed');
       if (current.status === 'cancelled') throw new Error('Import interpretation analysis cancelled');
       throw new Error(`Import interpretation analysis is not complete: ${current.status}`);
+    },
+    source(rawInput) {
+      ensureActive();
+      const identity = importInterpretationAnalysisIdentitySchema.parse(rawInput);
+      return jobFor(identity).input.paragraphs.map((paragraph) => paragraph.text).join('\n\n');
     },
     dispose() {
       if (disposed) return;

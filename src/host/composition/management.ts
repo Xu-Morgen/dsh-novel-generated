@@ -26,6 +26,7 @@ import { createImportInterpretationAnalysisService } from '../import-interpretat
 import { createNarrativeAdaptationService } from '../narrative-adaptation-service.js';
 import { createNarrativeRevealPlanner } from '../narrative-reveal-planner-service.js';
 import { createNarrativeImportPlanCoordinator } from '../narrative-import-plan-coordinator.js';
+import { createRuleStyleImportInitializationService } from '../rule-style-import-initialization-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type {
   ImportInterpretationSessionConfirmInput,
@@ -40,6 +41,7 @@ import type {
 import type { NarrativeAdaptationIdentity, NarrativeAdaptationInput } from '../../core/schema/narrative-adaptation.js';
 import type { NarrativeRevealIdentity, NarrativeRevealInput } from '../../core/schema/narrative-reveal.js';
 import type { NarrativeImportPlanIdentity, NarrativeImportPlanInput } from '../../core/schema/narrative-import-plan.js';
+import type { RuleStyleImportDecisionInput, RuleStyleImportIdentity, RuleStyleImportProposeInput } from '../../core/schema/rule-style-import-initialization.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
@@ -51,6 +53,7 @@ import { importInterpretationAnalysisInvocations } from '../remote/import-interp
 import { narrativeAdaptationInvocations } from '../remote/narrative-adaptation.js';
 import { narrativeRevealInvocations } from '../remote/narrative-reveal.js';
 import { narrativeImportPlanInvocations } from '../remote/narrative-import-plan.js';
+import { ruleStyleImportInitializationInvocations } from '../remote/rule-style-import-initialization.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
@@ -142,6 +145,35 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'cancel', call: (input: ImportInterpretationAnalysisIdentity) => importInterpretationAnalysisService.cancel(input) },
     { method: 'result', call: (input: ImportInterpretationAnalysisIdentity) => importInterpretationAnalysisService.result(input) },
   ], importInterpretationAnalysisInvocations));
+  // I151：只有已确认的首个受控导入 session 能建立 one-shot checkpoint；
+  // app/open/空文件路径没有调用本服务的接线，B1/B4 写回仍归既有 owner。
+  const ruleStyleImportInitialization = createRuleStyleImportInitializationService(llm, projectsRoot, {
+    sessions: importInterpretationService,
+    analysis: importInterpretationAnalysisService,
+    confirmation: confirmationService,
+    rules: ruleService,
+    style: styleService,
+    async isProjectEmpty(projectId) {
+      const readKnowledge = async () => {
+        try { return await knowledgeService.read(projectId); }
+        catch (error) { if ((error as Error).cause && ((error as Error).cause as NodeJS.ErrnoException).code === 'ENOENT') return { entries: [], states: [] }; throw error; }
+      };
+      const [characters, worldview, relationships, outline, canon, knowledge] = await Promise.all([
+        characterService.list(projectId), worldviewService.list(projectId), relationshipService.read(projectId),
+        outlineService.readiness(projectId), Promise.resolve(canonService.query(projectId)), readKnowledge(),
+      ]);
+      return characters.length === 0 && worldview.length === 0 && relationships.length === 0 && outline === 'uninitialized' && canon.length === 0 && knowledge.entries.length === 0;
+    },
+  }, onFiberDispose, (error, importSessionId) => logger.error('Background rule/style import initialization %s failed: %o', importSessionId, error));
+  ctx.provide('novelRuleStyleImportInitialization', defineRemote('novelRuleStyleImportInitialization', 'novelRuleStyleImportInitialization', ruleStyleImportInitialization, [
+    { method: 'begin', call: async (input: RuleStyleImportIdentity, settings?: unknown) => ruleStyleImportInitialization.begin(input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'status', call: (input: RuleStyleImportIdentity) => ruleStyleImportInitialization.status(input) },
+    { method: 'result', call: (input: RuleStyleImportIdentity) => ruleStyleImportInitialization.result(input) },
+    { method: 'propose', call: (input: RuleStyleImportProposeInput) => ruleStyleImportInitialization.propose(input) },
+    { method: 'accept', call: (input: RuleStyleImportDecisionInput) => ruleStyleImportInitialization.accept(input) },
+    { method: 'reject', call: (input: RuleStyleImportDecisionInput) => ruleStyleImportInitialization.reject(input) },
+    { method: 'cancel', call: (input: RuleStyleImportIdentity) => ruleStyleImportInitialization.cancel(input) },
+  ], ruleStyleImportInitializationInvocations));
   // I145：只把作者已确认的背景/混合证据与 POV 意图交给专用 B5 候选服务；
   // 不复用 I119 拆纲 prompt，也不暴露任何 C3/C4/C5 写入方法。
   const narrativeAdaptationService = createNarrativeAdaptationService(llm, onFiberDispose, (error, adaptationId) => {

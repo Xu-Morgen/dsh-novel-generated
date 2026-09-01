@@ -116,6 +116,8 @@ export interface NovelImportInterpretationSessionService {
   read(input: ImportInterpretationSessionReadInput): Promise<ImportInterpretationSession>;
   confirm(input: ImportInterpretationSessionConfirmInput): Promise<ImportInterpretationSession>;
   discard(input: ImportInterpretationSessionDiscardInput): Promise<ImportInterpretationSession>;
+  /** I151 internal eligibility probe; never exposed as an author decision Remote. */
+  firstConfirmed(input: ImportInterpretationSessionReadInput): Promise<ImportInterpretationSession>;
   dispose(): void;
 }
 
@@ -210,6 +212,22 @@ export function createImportInterpretationSessionService(
         const discarded = importInterpretationSessionSchema.parse({ ...current, status: 'discarded', updatedAt: now() });
         await writeStore(filePath, sessions.map((item) => item.importSessionId === discarded.importSessionId ? discarded : item));
         return structuredClone(discarded);
+      });
+    },
+
+    firstConfirmed(rawInput) {
+      ensureActive();
+      const input = importInterpretationSessionReadInputSchema.parse(rawInput);
+      const filePath = sessionFile(root, input.projectId);
+      return schedule(filePath, async () => {
+        ensureActive();
+        const sessions = await readStore(filePath);
+        const current = requireSession(sessions, input.importSessionId);
+        assertIdentity(current, input);
+        if (current.status !== 'confirmed') throw new Error('Rule/style initialization requires a confirmed import session');
+        const first = sessions.find((item) => item.status === 'confirmed');
+        if (first?.importSessionId !== current.importSessionId) throw new Error('Rule/style initialization is only allowed for the first controlled import');
+        return structuredClone(current);
       });
     },
 

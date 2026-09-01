@@ -89,4 +89,21 @@ describe('I144 来源语义审阅投影', () => {
     ]);
     expect(() => paragraphsFromHostChunks([{ text: '缺范围' }])).toThrow('来源段落范围不可用');
   });
+
+  it('I151 renders separate editable B1/B4 drafts and only offers Gate actions after first-import generation', () => {
+    const candidate = {
+      rules: [{ id: 'rule-one', scope: 'global' as const, kind: 'magic' as const, statement: '潮汐钟每天只能倒转一次。', priority: 80, immutable: false as const, examples: [], active: true }],
+      style: { id: 'style-imported', name: '导入文风', person: 'third-limited' as const, tense: 'past' as const, povScope: 'single' as const, tone: '克制', proseStyle: '紧贴角色', chapterFormat: '按节点分章', dialogueConventions: '对白简洁', forbidden: [] },
+    };
+    const state = reviewedState({ confirmed: true, importSessionId: 'import-first', ruleStyleInitialization: { projectId: 'book', importSessionId: 'import-first', sourceHash: 'a'.repeat(64), status: 'succeeded', candidate, candidateFingerprint: 'b'.repeat(64), createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }, ruleStyleRulesDraft: JSON.stringify(candidate.rules), ruleStyleStyleDraft: JSON.stringify(candidate.style) });
+    const tree = sourceInterpretationReview(h, state, {
+      begin: () => undefined, cancel: () => undefined, confirm: () => undefined, setSourceRole: () => undefined, setTreatment: () => undefined,
+      setNarrativeIntent: () => undefined, setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      setRuleStyleRulesDraft: () => undefined, setRuleStyleStyleDraft: () => undefined, proposeRuleStyleInitialization: () => undefined,
+    });
+    expect(collect(tree).some((node) => node.props?.['data-novel-rule-style-import-rules'] !== undefined)).toBe(true);
+    expect(collect(tree).some((node) => node.props?.['data-novel-rule-style-import-style'] !== undefined)).toBe(true);
+    expect(collect(tree, 'button').some((node) => node.props?.['data-novel-rule-style-import-propose'] !== undefined)).toBe(true);
+    expect(JSON.stringify(tree)).not.toContain('regenerate');
+  });
 });

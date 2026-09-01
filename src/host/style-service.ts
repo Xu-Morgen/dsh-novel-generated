@@ -18,6 +18,9 @@ export interface NovelStyleService {
   read(projectId: string): Promise<StyleProfile>;
   forbiddenExpressions(projectId: string): Promise<string[]>;
   constantSegment(projectId: string): Promise<ConstantStyleSegment>;
+  initialize(projectId: string, input: StyleProfileInput): Promise<StyleProfile>;
+  clearInitialization(projectId: string, expectedStyleId: string): Promise<void>;
+  isInitialized(projectId: string): Promise<boolean>;
 }
 
 /** Host facade for I10 B4 global style-profile storage (design §5.6 / §10.1). */
@@ -42,5 +45,8 @@ export function createStyleService(
     read: (projectId) => get(projectId).read(),
     forbiddenExpressions: (projectId) => get(projectId).forbiddenExpressions(),
     constantSegment: (projectId) => get(projectId).constantSegment(),
+    initialize: (projectId, input) => get(projectId).initialize(input),
+    clearInitialization: (projectId, expectedStyleId) => get(projectId).clearInitialization(expectedStyleId),
+    isInitialized: (projectId) => get(projectId).isInitialized(),
   };
 }

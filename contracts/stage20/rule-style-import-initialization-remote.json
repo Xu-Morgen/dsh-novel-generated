@@ -1,0 +1,3732 @@
+{
+  "schemaVersion": 1,
+  "namespace": "stage20RuleStyleImportInitialization",
+  "contractNote": "I151 首次受控导入 one-shot B1/B4 候选、I11 裁决与本地 owner 写回；无日常 regenerate 方法。",
+  "descriptorIds": [
+    "novel-creation-tool/novelRuleStyleImportInitialization/begin",
+    "novel-creation-tool/novelRuleStyleImportInitialization/status",
+    "novel-creation-tool/novelRuleStyleImportInitialization/result",
+    "novel-creation-tool/novelRuleStyleImportInitialization/propose",
+    "novel-creation-tool/novelRuleStyleImportInitialization/accept",
+    "novel-creation-tool/novelRuleStyleImportInitialization/reject",
+    "novel-creation-tool/novelRuleStyleImportInitialization/cancel"
+  ],
+  "descriptors": {
+    "novel-creation-tool/novelRuleStyleImportInitialization/begin": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/begin",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "begin",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "settings",
+          "wire": "settings",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#json",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema"
+            }
+          },
+          "_optional": true,
+          "acceptsUndefined": true
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/status": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/status",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "status",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/result": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/result",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "result",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/propose": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/propose",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "propose",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportProposeInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "expectedFingerprint": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "candidate": {
+                  "type": "object",
+                  "properties": {
+                    "rules": {
+                      "maxItems": 50,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          },
+                          "scope": {
+                            "type": "string",
+                            "enum": [
+                              "global",
+                              "faction",
+                              "location",
+                              "character",
+                              "item"
+                            ]
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "physics",
+                              "magic",
+                              "technology",
+                              "genre",
+                              "taboo",
+                              "permission"
+                            ]
+                          },
+                          "statement": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "priority": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "examples": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "active": {
+                            "type": "boolean"
+                          },
+                          "immutable": {
+                            "type": "boolean",
+                            "const": false
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "scope",
+                          "kind",
+                          "statement",
+                          "priority",
+                          "examples",
+                          "active",
+                          "immutable"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "style": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "person": {
+                          "type": "string",
+                          "enum": [
+                            "first",
+                            "second",
+                            "third-limited",
+                            "third-omniscient"
+                          ]
+                        },
+                        "tense": {
+                          "type": "string",
+                          "enum": [
+                            "past",
+                            "present"
+                          ]
+                        },
+                        "povScope": {
+                          "type": "string",
+                          "enum": [
+                            "single",
+                            "multi",
+                            "omniscient"
+                          ]
+                        },
+                        "tone": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "proseStyle": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "chapterFormat": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "dialogueConventions": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "forbidden": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "person",
+                        "tense",
+                        "povScope",
+                        "tone",
+                        "proseStyle",
+                        "chapterFormat",
+                        "dialogueConventions",
+                        "forbidden"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "rules",
+                    "style"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash",
+                "expectedFingerprint",
+                "candidate"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/accept": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/accept",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "accept",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportDecisionInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "expectedFingerprint": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash",
+                "expectedFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/reject": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/reject",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "reject",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportRejectInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "expectedFingerprint": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash",
+                "expectedFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/cancel": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/cancel",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "cancel",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#ruleStyleImportIdentity",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "proposed",
+                "applying",
+                "applied",
+                "rejected",
+                "cancelled",
+                "failed",
+                "stale"
+              ]
+            },
+            "candidate": {
+              "type": "object",
+              "properties": {
+                "rules": {
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "scope": {
+                        "type": "string",
+                        "enum": [
+                          "global",
+                          "faction",
+                          "location",
+                          "character",
+                          "item"
+                        ]
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "physics",
+                          "magic",
+                          "technology",
+                          "genre",
+                          "taboo",
+                          "permission"
+                        ]
+                      },
+                      "statement": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "examples": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "immutable": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "scope",
+                      "kind",
+                      "statement",
+                      "priority",
+                      "examples",
+                      "active",
+                      "immutable"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "style": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "person": {
+                      "type": "string",
+                      "enum": [
+                        "first",
+                        "second",
+                        "third-limited",
+                        "third-omniscient"
+                      ]
+                    },
+                    "tense": {
+                      "type": "string",
+                      "enum": [
+                        "past",
+                        "present"
+                      ]
+                    },
+                    "povScope": {
+                      "type": "string",
+                      "enum": [
+                        "single",
+                        "multi",
+                        "omniscient"
+                      ]
+                    },
+                    "tone": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "proseStyle": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "chapterFormat": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "dialogueConventions": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "forbidden": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "person",
+                    "tense",
+                    "povScope",
+                    "tone",
+                    "proseStyle",
+                    "chapterFormat",
+                    "dialogueConventions",
+                    "forbidden"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "rules",
+                "style"
+              ],
+              "additionalProperties": false
+            },
+            "candidateFingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "confirmationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "error": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "resultSchemaIds": [
+    "novel-creation-tool/novelRuleStyleImportInitialization/begin",
+    "novel-creation-tool/novelRuleStyleImportInitialization/status",
+    "novel-creation-tool/novelRuleStyleImportInitialization/result",
+    "novel-creation-tool/novelRuleStyleImportInitialization/propose",
+    "novel-creation-tool/novelRuleStyleImportInitialization/accept",
+    "novel-creation-tool/novelRuleStyleImportInitialization/reject",
+    "novel-creation-tool/novelRuleStyleImportInitialization/cancel"
+  ],
+  "resultSchemas": {
+    "novel-creation-tool/novelRuleStyleImportInitialization/begin": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/status": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/result": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/propose": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/accept": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/reject": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/cancel": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "proposed",
+            "applying",
+            "applied",
+            "rejected",
+            "cancelled",
+            "failed",
+            "stale"
+          ]
+        },
+        "candidate": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "maxItems": 50,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "enum": [
+                      "global",
+                      "faction",
+                      "location",
+                      "character",
+                      "item"
+                    ]
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "physics",
+                      "magic",
+                      "technology",
+                      "genre",
+                      "taboo",
+                      "permission"
+                    ]
+                  },
+                  "statement": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "examples": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  },
+                  "immutable": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "id",
+                  "scope",
+                  "kind",
+                  "statement",
+                  "priority",
+                  "examples",
+                  "active",
+                  "immutable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "style": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "person": {
+                  "type": "string",
+                  "enum": [
+                    "first",
+                    "second",
+                    "third-limited",
+                    "third-omniscient"
+                  ]
+                },
+                "tense": {
+                  "type": "string",
+                  "enum": [
+                    "past",
+                    "present"
+                  ]
+                },
+                "povScope": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "omniscient"
+                  ]
+                },
+                "tone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "proseStyle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "chapterFormat": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dialogueConventions": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "forbidden": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "person",
+                "tense",
+                "povScope",
+                "tone",
+                "proseStyle",
+                "chapterFormat",
+                "dialogueConventions",
+                "forbidden"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "rules",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        "candidateFingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "confirmationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

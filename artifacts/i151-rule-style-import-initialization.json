@@ -1,0 +1,59 @@
+{
+  "iteration": "I151",
+  "requirement": "R22-1",
+  "guarantees": [
+    "host-confirmed-first-controlled-import-only",
+    "durable-project-source-session-one-shot-checkpoint",
+    "one-dedicated-b1-b4-llm-call",
+    "strict-editable-rules-and-single-style-envelope",
+    "i11-freshness-bound-proposal",
+    "rules-and-style-local-files-with-compensation",
+    "client-dual-edit-preview",
+    "no-open-create-or-empty-file-trigger",
+    "no-daily-regenerate-method",
+    "dev-and-held-out-b1-b4-regression-at-eighty-percent",
+    "strict-additive-remote-and-real-dsh-binder"
+  ],
+  "negativeMatrix": [
+    "later-import",
+    "cross-project",
+    "source-hash-mismatch",
+    "session-mismatch",
+    "stale-fingerprint",
+    "reject",
+    "cancel",
+    "malformed-json",
+    "immutable-rule",
+    "path-command",
+    "nonempty-b1-b4",
+    "model-failure",
+    "writer-failure"
+  ],
+  "sampleCounts": {
+    "total": 10,
+    "dev": 5,
+    "heldOut": 5,
+    "thresholds": {
+      "rules": 0.8,
+      "style": 0.8
+    }
+  },
+  "remoteLock": {
+    "descriptorCount": 7,
+    "resultSchemaCount": 7
+  },
+  "localTruth": [
+    "rules/*.yaml",
+    "style.yaml"
+  ],
+  "explicitNonGoals": [
+    "app-start-trigger",
+    "project-open-trigger",
+    "blank-project-trigger",
+    "later-import-trigger",
+    "daily-regenerate",
+    "onboarding-six-layer-change",
+    "F1",
+    "F2"
+  ]
+}

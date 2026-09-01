@@ -146,6 +146,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const outlineDetailGenerationStub = mountOptions.outlineDetailGeneration;
   const importInterpretationStub = mountOptions.importInterpretation;
   const importInterpretationAnalysisStub = mountOptions.importInterpretationAnalysis;
+  const ruleStyleImportInitializationStub = mountOptions.ruleStyleImportInitialization;
   const narrativeAdaptationStub = mountOptions.narrativeAdaptation;
   const narrativeRevealStub = mountOptions.narrativeReveal;
   const narrativeImportPlanStub = mountOptions.narrativeImportPlan;
@@ -182,6 +183,15 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
       cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
       result: async (input: unknown) => ({ ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } }),
+    })
+    : name === 'remote.novelRuleStyleImportInitialization' ? (ruleStyleImportInitializationStub ?? {
+      begin: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded', candidate: { rules: [], style: { id: 'style-imported', name: '导入文风', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '紧贴角色', chapterFormat: '按节点分章', dialogueConventions: '对白简洁', forbidden: [] } }, candidateFingerprint: 'c'.repeat(64), createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded', candidate: { rules: [], style: { id: 'style-imported', name: '导入文风', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '紧贴角色', chapterFormat: '按节点分章', dialogueConventions: '对白简洁', forbidden: [] } }, candidateFingerprint: 'c'.repeat(64), createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      result: async (input: unknown) => input,
+      propose: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'proposed', confirmationId: 'rule-style-import-fixture', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      accept: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'applied', confirmationId: 'rule-style-import-fixture', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      reject: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'rejected', confirmationId: 'rule-style-import-fixture', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+      cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
     })
     : name === 'remote.novelNarrativeAdaptation' ? (narrativeAdaptationStub ?? {
       begin: async (input: unknown) => ({ ...(input as Record<string, unknown>), adaptationId: 'narrative-adaptation-1' }),
