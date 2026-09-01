@@ -1,0 +1,37 @@
+{
+  "iteration": "I142",
+  "requirement": "R19-1b",
+  "guarantees": [
+    "project-session-source-hash-binding",
+    "restart-recovery-from-host-owned-checkpoint",
+    "changed-source-becomes-stale",
+    "cross-project-and-forged-hash-commands-fail-closed",
+    "dispose-removes-the-service-with-no-background-resource",
+    "four-additive-remote-descriptors-have-strict-result-locks",
+    "legacy-stage18-remote-lock-is-unchanged"
+  ],
+  "negativeMatrix": [
+    "unknown-fields",
+    "invalid-intent-combination",
+    "duplicate-paragraph-id",
+    "cross-project",
+    "forged-source-hash",
+    "malformed-result"
+  ],
+  "focusedSuites": [
+    "src/host/import-interpretation-session-service.test.ts",
+    "src/import-interpretation-contract.test.ts",
+    "src/remote-binder.test.ts"
+  ],
+  "checkpointFile": ".import-interpretation-sessions.yaml",
+  "remoteLock": {
+    "descriptorCount": 4,
+    "resultSchemaCount": 4
+  },
+  "explicitNonGoals": [
+    "automatic-classification",
+    "ui-rendering",
+    "narrative-import-plan",
+    "narrative-layer-writes"
+  ]
+}

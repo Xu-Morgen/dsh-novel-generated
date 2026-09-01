@@ -36,6 +36,7 @@ import { reviewRepairInvocations } from '../src/host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from '../src/host/remote/outline-generation-scope.js';
 import { outlineDetailGenerationInvocations } from '../src/host/remote/outline-detail-generation.js';
 import { compileManuscriptInvocation } from '../src/host/remote/import-export.js';
+import { importInterpretationInvocations } from '../src/host/remote/import-interpretation.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -243,4 +244,20 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage18/remote-descriptors.json');
+}
+
+/** I142 additive import-interpretation session Remote lock (R19-1b). */
+{
+  const descriptors = remoteDescriptorLockBodies(importInterpretationInvocations);
+  const resultSchemas = remoteResultShapeBodies(importInterpretationInvocations);
+  write('contracts/stage19/import-interpretation-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage19ImportInterpretation',
+    contractNote: 'I142 来源解释 operational session Remote：只追加 create/read/confirm/discard，不进入 Stage 18 baseline，也不写叙事层。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage19/import-interpretation-remote.json');
 }

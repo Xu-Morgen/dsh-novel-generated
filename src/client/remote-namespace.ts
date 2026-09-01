@@ -22,6 +22,7 @@ import type { InvocationDescriptor, TypertRemoteContribution } from '@deepseek-a
 import type {
   branchRemoteContribution,
   importExportRemoteContribution,
+  importInterpretationRemoteContribution,
   knowledgeRemoteContribution,
   progressRemoteContribution,
   queueRemoteContribution,
@@ -93,6 +94,8 @@ export type KnowledgeNamespace = NamespaceOf<typeof knowledgeRemoteContribution>
 export type RuleStyleNamespace = NamespaceOf<typeof ruleStyleRemoteContribution>;
 export type ProgressNamespace = NamespaceOf<typeof progressRemoteContribution>;
 export type ImportExportNamespace = NamespaceOf<typeof importExportRemoteContribution>;
+/** I142 recoverable source-intent checkpoint; no narrative-layer write method. */
+export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretationRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;

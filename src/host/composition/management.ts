@@ -21,13 +21,21 @@ import { createOutlineDetailGenerationRemote } from '../outline-detail-generatio
 import { createFinalizationPlanBuilder } from '../finalization-plan-builder.js';
 import { createFinalizationCoordinator } from '../finalization-coordinator.js';
 import { createBookCompletionService } from '../book-completion-service.js';
+import { createImportInterpretationSessionService } from '../import-interpretation-session-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
+import type {
+  ImportInterpretationSessionConfirmInput,
+  ImportInterpretationSessionCreateInput,
+  ImportInterpretationSessionDiscardInput,
+  ImportInterpretationSessionReadInput,
+} from '../../core/schema/import-interpretation-session.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
 import type { BookReadinessPageInput } from '../../core/schema/book-readiness.js';
 import { defineRemote } from '../remote/shared.js';
 import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js';
+import { importInterpretationInvocations } from '../remote/import-interpretation.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
@@ -99,6 +107,15 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     } },
     { method: 'result', call: (onboardingSessionId: string) => analyzerService.result(onboardingSessionId) },
   ], onboardingAnalyzerInvocations));
+  // I142：来源解释只保存 operational checkpoint；它不分类来源、不写层，也不
+  // 复用 onboarding 的 session，避免把新语义悄悄放进旧 Remote lock。
+  const importInterpretationService = createImportInterpretationSessionService(projectsRoot, onFiberDispose);
+  ctx.provide('novelImportInterpretation', defineRemote('novelImportInterpretation', 'novelImportInterpretation', importInterpretationService, [
+    { method: 'create', call: (input: ImportInterpretationSessionCreateInput) => importInterpretationService.create(input) },
+    { method: 'read', call: (input: ImportInterpretationSessionReadInput) => importInterpretationService.read(input) },
+    { method: 'confirm', call: (input: ImportInterpretationSessionConfirmInput) => importInterpretationService.confirm(input) },
+    { method: 'discard', call: (input: ImportInterpretationSessionDiscardInput) => importInterpretationService.discard(input) },
+  ], importInterpretationInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
   // adapts `getResult`/`regenerate` so the adjudication facade stays independent
   // of the analyzer's job lifecycle internals.

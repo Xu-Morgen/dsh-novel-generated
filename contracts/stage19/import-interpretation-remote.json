@@ -1,0 +1,1716 @@
+{
+  "schemaVersion": 1,
+  "namespace": "stage19ImportInterpretation",
+  "contractNote": "I142 来源解释 operational session Remote：只追加 create/read/confirm/discard，不进入 Stage 18 baseline，也不写叙事层。",
+  "descriptorIds": [
+    "novel-creation-tool/novelImportInterpretation/create",
+    "novel-creation-tool/novelImportInterpretation/read",
+    "novel-creation-tool/novelImportInterpretation/confirm",
+    "novel-creation-tool/novelImportInterpretation/discard"
+  ],
+  "descriptors": {
+    "novel-creation-tool/novelImportInterpretation/create": {
+      "id": "novel-creation-tool/novelImportInterpretation/create",
+      "service": "novelImportInterpretation",
+      "namespace": "novelImportInterpretation",
+      "method": "create",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationSessionCreateInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "intent": {
+                  "type": "object",
+                  "properties": {
+                    "sourceRole": {
+                      "type": "string",
+                      "enum": [
+                        "idea",
+                        "synopsis",
+                        "background-material",
+                        "existing-prose",
+                        "hybrid"
+                      ]
+                    },
+                    "treatment": {
+                      "type": "string",
+                      "enum": [
+                        "expand-outline",
+                        "adapt-pov"
+                      ]
+                    },
+                    "narrativeIntent": {
+                      "type": "object",
+                      "properties": {
+                        "pov": {
+                          "type": "string",
+                          "enum": [
+                            "limited",
+                            "omniscient"
+                          ]
+                        },
+                        "protagonistId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "protagonistCandidateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "initialKnown": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "revealPacing": {
+                          "type": "string",
+                          "enum": [
+                            "slow",
+                            "balanced",
+                            "fast"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pov",
+                        "initialKnown",
+                        "revealPacing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "sourceRole",
+                    "treatment"
+                  ],
+                  "additionalProperties": false
+                },
+                "paragraphDecisions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "paragraphId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "accepted",
+                          "rejected",
+                          "edited"
+                        ]
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "paragraphId",
+                      "decision",
+                      "summary"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "projectId",
+                "sourceHash",
+                "intent",
+                "paragraphDecisions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationSession:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "intent": {
+              "type": "object",
+              "properties": {
+                "sourceRole": {
+                  "type": "string",
+                  "enum": [
+                    "idea",
+                    "synopsis",
+                    "background-material",
+                    "existing-prose",
+                    "hybrid"
+                  ]
+                },
+                "treatment": {
+                  "type": "string",
+                  "enum": [
+                    "expand-outline",
+                    "adapt-pov"
+                  ]
+                },
+                "narrativeIntent": {
+                  "type": "object",
+                  "properties": {
+                    "pov": {
+                      "type": "string",
+                      "enum": [
+                        "limited",
+                        "omniscient"
+                      ]
+                    },
+                    "protagonistId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "protagonistCandidateId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "initialKnown": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "revealPacing": {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "balanced",
+                        "fast"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "pov",
+                    "initialKnown",
+                    "revealPacing"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "sourceRole",
+                "treatment"
+              ],
+              "additionalProperties": false
+            },
+            "paragraphDecisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "paragraphId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "rejected",
+                      "edited"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "paragraphId",
+                  "decision",
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "confirmed",
+                "discarded",
+                "stale"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "intent",
+            "paragraphDecisions",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretation/read": {
+      "id": "novel-creation-tool/novelImportInterpretation/read",
+      "service": "novelImportInterpretation",
+      "namespace": "novelImportInterpretation",
+      "method": "read",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationSessionReadInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationSession:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "intent": {
+              "type": "object",
+              "properties": {
+                "sourceRole": {
+                  "type": "string",
+                  "enum": [
+                    "idea",
+                    "synopsis",
+                    "background-material",
+                    "existing-prose",
+                    "hybrid"
+                  ]
+                },
+                "treatment": {
+                  "type": "string",
+                  "enum": [
+                    "expand-outline",
+                    "adapt-pov"
+                  ]
+                },
+                "narrativeIntent": {
+                  "type": "object",
+                  "properties": {
+                    "pov": {
+                      "type": "string",
+                      "enum": [
+                        "limited",
+                        "omniscient"
+                      ]
+                    },
+                    "protagonistId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "protagonistCandidateId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "initialKnown": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "revealPacing": {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "balanced",
+                        "fast"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "pov",
+                    "initialKnown",
+                    "revealPacing"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "sourceRole",
+                "treatment"
+              ],
+              "additionalProperties": false
+            },
+            "paragraphDecisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "paragraphId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "rejected",
+                      "edited"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "paragraphId",
+                  "decision",
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "confirmed",
+                "discarded",
+                "stale"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "intent",
+            "paragraphDecisions",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretation/confirm": {
+      "id": "novel-creation-tool/novelImportInterpretation/confirm",
+      "service": "novelImportInterpretation",
+      "namespace": "novelImportInterpretation",
+      "method": "confirm",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationSessionConfirmInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "intent": {
+                  "type": "object",
+                  "properties": {
+                    "sourceRole": {
+                      "type": "string",
+                      "enum": [
+                        "idea",
+                        "synopsis",
+                        "background-material",
+                        "existing-prose",
+                        "hybrid"
+                      ]
+                    },
+                    "treatment": {
+                      "type": "string",
+                      "enum": [
+                        "expand-outline",
+                        "adapt-pov"
+                      ]
+                    },
+                    "narrativeIntent": {
+                      "type": "object",
+                      "properties": {
+                        "pov": {
+                          "type": "string",
+                          "enum": [
+                            "limited",
+                            "omniscient"
+                          ]
+                        },
+                        "protagonistId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "protagonistCandidateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                        },
+                        "initialKnown": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 64,
+                            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                          }
+                        },
+                        "revealPacing": {
+                          "type": "string",
+                          "enum": [
+                            "slow",
+                            "balanced",
+                            "fast"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "pov",
+                        "initialKnown",
+                        "revealPacing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "sourceRole",
+                    "treatment"
+                  ],
+                  "additionalProperties": false
+                },
+                "paragraphDecisions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "paragraphId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "accepted",
+                          "rejected",
+                          "edited"
+                        ]
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "paragraphId",
+                      "decision",
+                      "summary"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash",
+                "intent",
+                "paragraphDecisions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationSession:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "intent": {
+              "type": "object",
+              "properties": {
+                "sourceRole": {
+                  "type": "string",
+                  "enum": [
+                    "idea",
+                    "synopsis",
+                    "background-material",
+                    "existing-prose",
+                    "hybrid"
+                  ]
+                },
+                "treatment": {
+                  "type": "string",
+                  "enum": [
+                    "expand-outline",
+                    "adapt-pov"
+                  ]
+                },
+                "narrativeIntent": {
+                  "type": "object",
+                  "properties": {
+                    "pov": {
+                      "type": "string",
+                      "enum": [
+                        "limited",
+                        "omniscient"
+                      ]
+                    },
+                    "protagonistId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "protagonistCandidateId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "initialKnown": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "revealPacing": {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "balanced",
+                        "fast"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "pov",
+                    "initialKnown",
+                    "revealPacing"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "sourceRole",
+                "treatment"
+              ],
+              "additionalProperties": false
+            },
+            "paragraphDecisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "paragraphId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "rejected",
+                      "edited"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "paragraphId",
+                  "decision",
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "confirmed",
+                "discarded",
+                "stale"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "intent",
+            "paragraphDecisions",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelImportInterpretation/discard": {
+      "id": "novel-creation-tool/novelImportInterpretation/discard",
+      "service": "novelImportInterpretation",
+      "namespace": "novelImportInterpretation",
+      "method": "discard",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importInterpretationSessionDiscardInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "importSessionId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "projectId",
+                "importSessionId",
+                "sourceHash"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#importInterpretationSession:result",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "importSessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "intent": {
+              "type": "object",
+              "properties": {
+                "sourceRole": {
+                  "type": "string",
+                  "enum": [
+                    "idea",
+                    "synopsis",
+                    "background-material",
+                    "existing-prose",
+                    "hybrid"
+                  ]
+                },
+                "treatment": {
+                  "type": "string",
+                  "enum": [
+                    "expand-outline",
+                    "adapt-pov"
+                  ]
+                },
+                "narrativeIntent": {
+                  "type": "object",
+                  "properties": {
+                    "pov": {
+                      "type": "string",
+                      "enum": [
+                        "limited",
+                        "omniscient"
+                      ]
+                    },
+                    "protagonistId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "protagonistCandidateId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "initialKnown": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      }
+                    },
+                    "revealPacing": {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "balanced",
+                        "fast"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "pov",
+                    "initialKnown",
+                    "revealPacing"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "sourceRole",
+                "treatment"
+              ],
+              "additionalProperties": false
+            },
+            "paragraphDecisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "paragraphId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "rejected",
+                      "edited"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "paragraphId",
+                  "decision",
+                  "summary"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "confirmed",
+                "discarded",
+                "stale"
+              ]
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "updatedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "projectId",
+            "importSessionId",
+            "sourceHash",
+            "intent",
+            "paragraphDecisions",
+            "status",
+            "createdAt",
+            "updatedAt"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "resultSchemaIds": [
+    "novel-creation-tool/novelImportInterpretation/create",
+    "novel-creation-tool/novelImportInterpretation/read",
+    "novel-creation-tool/novelImportInterpretation/confirm",
+    "novel-creation-tool/novelImportInterpretation/discard"
+  ],
+  "resultSchemas": {
+    "novel-creation-tool/novelImportInterpretation/create": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "intent": {
+          "type": "object",
+          "properties": {
+            "sourceRole": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "synopsis",
+                "background-material",
+                "existing-prose",
+                "hybrid"
+              ]
+            },
+            "treatment": {
+              "type": "string",
+              "enum": [
+                "expand-outline",
+                "adapt-pov"
+              ]
+            },
+            "narrativeIntent": {
+              "type": "object",
+              "properties": {
+                "pov": {
+                  "type": "string",
+                  "enum": [
+                    "limited",
+                    "omniscient"
+                  ]
+                },
+                "protagonistId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "protagonistCandidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "initialKnown": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "revealPacing": {
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "balanced",
+                    "fast"
+                  ]
+                }
+              },
+              "required": [
+                "pov",
+                "initialKnown",
+                "revealPacing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRole",
+            "treatment"
+          ],
+          "additionalProperties": false
+        },
+        "paragraphDecisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "paragraphId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "rejected",
+                  "edited"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "paragraphId",
+              "decision",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "confirmed",
+            "discarded",
+            "stale"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "intent",
+        "paragraphDecisions",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretation/read": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "intent": {
+          "type": "object",
+          "properties": {
+            "sourceRole": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "synopsis",
+                "background-material",
+                "existing-prose",
+                "hybrid"
+              ]
+            },
+            "treatment": {
+              "type": "string",
+              "enum": [
+                "expand-outline",
+                "adapt-pov"
+              ]
+            },
+            "narrativeIntent": {
+              "type": "object",
+              "properties": {
+                "pov": {
+                  "type": "string",
+                  "enum": [
+                    "limited",
+                    "omniscient"
+                  ]
+                },
+                "protagonistId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "protagonistCandidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "initialKnown": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "revealPacing": {
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "balanced",
+                    "fast"
+                  ]
+                }
+              },
+              "required": [
+                "pov",
+                "initialKnown",
+                "revealPacing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRole",
+            "treatment"
+          ],
+          "additionalProperties": false
+        },
+        "paragraphDecisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "paragraphId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "rejected",
+                  "edited"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "paragraphId",
+              "decision",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "confirmed",
+            "discarded",
+            "stale"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "intent",
+        "paragraphDecisions",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretation/confirm": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "intent": {
+          "type": "object",
+          "properties": {
+            "sourceRole": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "synopsis",
+                "background-material",
+                "existing-prose",
+                "hybrid"
+              ]
+            },
+            "treatment": {
+              "type": "string",
+              "enum": [
+                "expand-outline",
+                "adapt-pov"
+              ]
+            },
+            "narrativeIntent": {
+              "type": "object",
+              "properties": {
+                "pov": {
+                  "type": "string",
+                  "enum": [
+                    "limited",
+                    "omniscient"
+                  ]
+                },
+                "protagonistId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "protagonistCandidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "initialKnown": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "revealPacing": {
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "balanced",
+                    "fast"
+                  ]
+                }
+              },
+              "required": [
+                "pov",
+                "initialKnown",
+                "revealPacing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRole",
+            "treatment"
+          ],
+          "additionalProperties": false
+        },
+        "paragraphDecisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "paragraphId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "rejected",
+                  "edited"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "paragraphId",
+              "decision",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "confirmed",
+            "discarded",
+            "stale"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "intent",
+        "paragraphDecisions",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportInterpretation/discard": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "importSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "intent": {
+          "type": "object",
+          "properties": {
+            "sourceRole": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "synopsis",
+                "background-material",
+                "existing-prose",
+                "hybrid"
+              ]
+            },
+            "treatment": {
+              "type": "string",
+              "enum": [
+                "expand-outline",
+                "adapt-pov"
+              ]
+            },
+            "narrativeIntent": {
+              "type": "object",
+              "properties": {
+                "pov": {
+                  "type": "string",
+                  "enum": [
+                    "limited",
+                    "omniscient"
+                  ]
+                },
+                "protagonistId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "protagonistCandidateId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "initialKnown": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "revealPacing": {
+                  "type": "string",
+                  "enum": [
+                    "slow",
+                    "balanced",
+                    "fast"
+                  ]
+                }
+              },
+              "required": [
+                "pov",
+                "initialKnown",
+                "revealPacing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRole",
+            "treatment"
+          ],
+          "additionalProperties": false
+        },
+        "paragraphDecisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "paragraphId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "rejected",
+                  "edited"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "paragraphId",
+              "decision",
+              "summary"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "confirmed",
+            "discarded",
+            "stale"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        }
+      },
+      "required": [
+        "projectId",
+        "importSessionId",
+        "sourceHash",
+        "intent",
+        "paragraphDecisions",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

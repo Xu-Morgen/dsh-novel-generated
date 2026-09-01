@@ -16,6 +16,7 @@ import { branchAggregateWireAdapter, branchListWireAdapter } from './host/compos
 import { branchRemoteContribution } from './host/remote/branch.js';
 import { reviewRemoteContribution } from './host/remote/review.js';
 import { importExportRemoteContribution } from './host/remote/import-export.js';
+import { importInterpretationRemoteContribution } from './host/remote/import-interpretation.js';
 import { reviewRepairRemoteContribution } from './host/remote/review-repair.js';
 import { statisticsRemoteContribution } from './host/remote/statistics.js';
 import { writingRemoteContribution } from './host/remote/writing.js';
@@ -39,6 +40,7 @@ import type {
   ReferenceAuditNamespace,
   OutlineGenerationScopeNamespace,
   OutlineDetailGenerationNamespace,
+  ImportInterpretationNamespace,
   ReviewRepairNamespace,
   WritingNamespace,
 } from './client/remote-namespace.js';
@@ -1267,6 +1269,62 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     } finally {
       await statsMount.dispose();
       await statsMount.client.fiber.dispose();
+    }
+  });
+
+  it('I142 novelImportInterpretation：四个 checkpoint 方法经真实 binder 往返', async () => {
+    const fixture = {
+      projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64),
+      intent: { sourceRole: 'background-material' as const, treatment: 'expand-outline' as const },
+      paragraphDecisions: [{ paragraphId: 'p-001', decision: 'accepted' as const, summary: '保留证据。' }],
+      status: 'draft', createdAt: ISO, updatedAt: ISO,
+    };
+    const mounted = await mount(importInterpretationRemoteContribution, (endpoint, args) => {
+      expect(args.input).toBeDefined();
+      return fixture;
+    });
+    try {
+      const interpretation = mounted.client.get('remote.novelImportInterpretation') as ImportInterpretationNamespace;
+      const input = {
+        projectId: 'p1', sourceHash: 'a'.repeat(64), intent: fixture.intent,
+        paragraphDecisions: fixture.paragraphDecisions,
+      };
+      expect(await unwrap(interpretation.create(input))).toMatchObject({ importSessionId: 'imp-session-1' });
+      expect(await unwrap(interpretation.read({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).toMatchObject({ status: 'draft' });
+      expect(await unwrap(interpretation.confirm({
+        projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64),
+        intent: fixture.intent, paragraphDecisions: fixture.paragraphDecisions,
+      }))).toMatchObject({ projectId: 'p1' });
+      expect(await unwrap(interpretation.discard({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).toMatchObject({ projectId: 'p1' });
+      expect(mounted.calls.map((call) => call.endpoint)).toEqual([
+        'novelImportInterpretation/create', 'novelImportInterpretation/read',
+        'novelImportInterpretation/confirm', 'novelImportInterpretation/discard',
+      ]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I142 负向：checkpoint 输入未知字段与非法结果经真实 binder fail closed', async () => {
+    const mounted = await mount(importInterpretationRemoteContribution, (endpoint) => endpoint === 'novelImportInterpretation/read'
+      ? { projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64), intent: { sourceRole: 'background-material', treatment: 'expand-outline' }, paragraphDecisions: [], status: 'draft', createdAt: ISO, updatedAt: ISO, extra: true }
+      : {
+          projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64),
+          intent: { sourceRole: 'background-material', treatment: 'expand-outline' }, paragraphDecisions: [],
+          status: 'draft', createdAt: ISO, updatedAt: ISO,
+        });
+    try {
+      const interpretation = mounted.client.get('remote.novelImportInterpretation') as ImportInterpretationNamespace;
+      await expect(Reflect.apply(interpretation.create, interpretation, [{
+        projectId: 'p1', sourceHash: 'a'.repeat(64), intent: { sourceRole: 'background-material', treatment: 'expand-outline' },
+        paragraphDecisions: [], extra: true,
+      }])).rejects.toThrow(/rejected "input"/);
+      await expect(unwrap(interpretation.read({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).rejects.toThrow(/rejected "result"/);
+      expect(mounted.calls).toEqual([{ endpoint: 'novelImportInterpretation/read', args: { input: { projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) } } }]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
     }
   });
 });
