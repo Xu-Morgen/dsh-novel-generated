@@ -102,6 +102,8 @@ export interface MountOptions {
   importInterpretation?: { create?: (input: unknown) => Promise<unknown>; read?: (input: unknown) => Promise<unknown>; confirm?: (input: unknown) => Promise<unknown>; discard?: (input: unknown) => Promise<unknown> };
   /** I144 source classifier namespace injection. */
   importInterpretationAnalysis?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
+  /** I145 candidate-only POV adaptation namespace injection. */
+  narrativeAdaptation?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
 }
 
 export interface WorkspaceOverrides {

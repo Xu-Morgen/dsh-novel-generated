@@ -1,0 +1,50 @@
+{
+  "iteration": "I145",
+  "requirement": "R19-3",
+  "guarantees": [
+    "confirmed-background-or-hybrid-adapt-pov-input-only",
+    "dedicated-b5-reader-experience-prompt",
+    "first-act-investigation-and-no-hidden-answer-leak",
+    "paragraph-evidence-preserves-confirmed-order",
+    "limited-pov-candidate-identity-is-confirmed-and-bounded",
+    "dev-and-held-out-fake-backend-regression-at-eighty-percent",
+    "failure-cancel-and-dispose-have-zero-writes",
+    "additive-remote-lock-and-identity-bound-job"
+  ],
+  "negativeMatrix": [
+    "malformed-json",
+    "evidence-drift",
+    "candidate-identity-drift",
+    "hidden-answer-first-act",
+    "missing-investigation",
+    "source-hash-mismatch",
+    "cancelled",
+    "disposed"
+  ],
+  "sampleCounts": {
+    "total": 10,
+    "dev": 5,
+    "heldOut": 5,
+    "threshold": 0.8
+  },
+  "focusedSuites": [
+    "src/llm/analyze/narrative-adaptation.test.ts",
+    "src/host/narrative-adaptation-service.test.ts",
+    "src/narrative-adaptation-contract.test.ts",
+    "src/remote-binder.test.ts"
+  ],
+  "remoteLock": {
+    "descriptorCount": 4,
+    "resultSchemaCount": 4
+  },
+  "explicitNonGoals": [
+    "c3-generation",
+    "c4-generation",
+    "c5-write",
+    "b3-write",
+    "b5-write",
+    "i119-prompt-reuse",
+    "preserve-prose",
+    "narrative-import-plan"
+  ]
+}

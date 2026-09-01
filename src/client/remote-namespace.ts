@@ -39,6 +39,7 @@ import type {
   writingRemoteContribution,
 } from '../remote.js';
 import type { importInterpretationAnalysisRemoteContribution } from '../host/remote/import-interpretation-analysis.js';
+import type { narrativeAdaptationRemoteContribution } from '../host/remote/narrative-adaptation.js';
 import type { referenceAuditRemoteContribution } from '../host/remote/reference-audit.js';
 import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
@@ -99,6 +100,8 @@ export type ImportExportNamespace = NamespaceOf<typeof importExportRemoteContrib
 export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretationRemoteContribution>;
 /** I143 zero-write source classifier; only operational evidence crosses this seam. */
 export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInterpretationAnalysisRemoteContribution>;
+/** I145 candidate-only POV adaptation; application remains a later Gate owner. */
+export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;

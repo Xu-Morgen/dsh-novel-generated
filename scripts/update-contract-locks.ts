@@ -38,6 +38,7 @@ import { outlineDetailGenerationInvocations } from '../src/host/remote/outline-d
 import { compileManuscriptInvocation } from '../src/host/remote/import-export.js';
 import { importInterpretationInvocations } from '../src/host/remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from '../src/host/remote/import-interpretation-analysis.js';
+import { narrativeAdaptationInvocations } from '../src/host/remote/narrative-adaptation.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -245,6 +246,22 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage18/remote-descriptors.json');
+}
+
+/** I145 candidate-only POV adaptation Remote lock (R19-3). */
+{
+  const descriptors = remoteDescriptorLockBodies(narrativeAdaptationInvocations);
+  const resultSchemas = remoteResultShapeBodies(narrativeAdaptationInvocations);
+  write('contracts/stage19/narrative-adaptation-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage19NarrativeAdaptation',
+    contractNote: 'I145 POV 叙事化只追加 B5/protagonist candidate Remote；不写 B3/B5，不生成 C3/C4/C5。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage19/narrative-adaptation-remote.json');
 }
 
 /** I142 additive import-interpretation session Remote lock (R19-1b). */

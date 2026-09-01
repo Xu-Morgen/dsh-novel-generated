@@ -146,6 +146,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const outlineDetailGenerationStub = mountOptions.outlineDetailGeneration;
   const importInterpretationStub = mountOptions.importInterpretation;
   const importInterpretationAnalysisStub = mountOptions.importInterpretationAnalysis;
+  const narrativeAdaptationStub = mountOptions.narrativeAdaptation;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -179,6 +180,12 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
       cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
       result: async (input: unknown) => ({ ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } }),
+    })
+    : name === 'remote.novelNarrativeAdaptation' ? (narrativeAdaptationStub ?? {
+      begin: async (input: unknown) => ({ ...(input as Record<string, unknown>), adaptationId: 'narrative-adaptation-1' }),
+      status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+      cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
+      result: async (input: unknown) => ({ ...(input as Record<string, unknown>), candidate: {} }),
     })
     : name === 'remote.novelWriting' ? {
       propose: writingStub?.propose ?? (async () => { throw new Error('未注入 remote.novelWriting.propose'); }),

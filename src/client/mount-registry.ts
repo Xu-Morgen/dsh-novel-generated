@@ -67,6 +67,8 @@ import { outlineDetailGenerationRemoteContribution } from '../remote.js';
 import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
 import { importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution } from '../remote.js';
 import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace } from './remote-namespace.js';
+import { narrativeAdaptationRemoteContribution } from '../remote.js';
+import type { NarrativeAdaptationNamespace } from './remote-namespace.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
 
@@ -106,6 +108,7 @@ export interface RemoteServiceBag {
   outlineDetailGeneration?: OutlineDetailGenerationNamespace;
   importInterpretation?: ImportInterpretationNamespace;
   importInterpretationAnalysis?: ImportInterpretationAnalysisNamespace;
+  narrativeAdaptation?: NarrativeAdaptationNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -161,6 +164,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'outlineDetailGeneration', contribution: outlineDetailGenerationRemoteContribution, serviceKey: 'remote.novelOutlineDetailGeneration', label: 'outline detail generation', bind: bindInto('outlineDetailGeneration') },
     { key: 'importInterpretation', contribution: importInterpretationRemoteContribution, serviceKey: 'remote.novelImportInterpretation', label: 'import interpretation', bind: bindInto('importInterpretation') },
     { key: 'importInterpretationAnalysis', contribution: importInterpretationAnalysisRemoteContribution, serviceKey: 'remote.novelImportInterpretationAnalysis', label: 'import interpretation analysis', bind: bindInto('importInterpretationAnalysis') },
+    { key: 'narrativeAdaptation', contribution: narrativeAdaptationRemoteContribution, serviceKey: 'remote.novelNarrativeAdaptation', label: 'narrative adaptation', bind: bindInto('narrativeAdaptation') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

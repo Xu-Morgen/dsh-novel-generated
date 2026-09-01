@@ -24,6 +24,7 @@ export const CLIENT_CORE_WHITELIST: readonly string[] = [
   'src/core/schema/import-interpretation.ts',
   'src/core/schema/import-interpretation-session.ts',
   'src/core/schema/import-interpretation-analysis.ts',
+  'src/core/schema/narrative-adaptation.ts',
   'src/core/schema/knowledge.ts',
   'src/core/schema/llm-config.ts',
   'src/core/schema/onboarding.ts',
