@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v3.0
-> 状态：v3.0 当前设计权威；**I1–I140 全部完成**，当前执行 I141；Stage 19（I141–I149）已按来源解释、叙事化导入与正文保真导入依赖正式立项；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v3.1
+> 状态：v3.1 当前设计权威；**I1–I140 全部完成**，当前执行 I141；Stage 19（I141–I149）收口来源确认与幕后素材 POV 叙事化，Stage 20（I150–I154）治理导入基础设施，Stage 21（I155–I161）交付已有正文保真导入；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -24,8 +24,9 @@
 | **v2.8（2026-08-31）** | 同步 I103–I105 已完成事实；核查确认现有 C5 分支、C2 快照、B2 版本、B5 `version` 字段与会话级 parser baseline 均不构成可复用的“细纲生成版本化基线”，现有受控写回也明确不自动写 B5。新增 **R18-11 正文变更影响分析与后续细纲调和**，以 I108 建立不可变生成基线，以 I112–I114 交付变更分类、下游影响、调和候选和确认式应用；原 I108–I128 依赖顺延并重编号，Stage 18 扩展为 I103–I132 共 30 个迭代。§0.1 宿主基线与既有 13 层叙事模型不变。 |
 | **v2.9（2026-08-31）** | 将 README 的 12 步作者工作流提升为唯一主要产品、交付和端到端验收流程。新增 R18-12–R18-15 与 I133–I140：按幕/章/全书生成细纲、候选接受为可编辑草稿、最终正文的一次确认式统一定稿、全书完成与一致性门、带目录的单一 TXT/Markdown、作者优先流程壳和产品级 E2E。既有能力按“主流程 / 进阶工具 / 内部诊断”重新裁决暴露边界；§0.1、13 层真相和旧 Remote invocation 保持不变。 |
 | **v3.0（2026-09-01）** | 同步 I106–I140 全部完成事实；新增 Stage 19 / R19 与 I141–I149，修复“来源中客观幕后真相被直接当作读者可见大纲”的语义缺口。导入先确认来源类型与目标处理方式，再分别执行幕后素材的 POV 叙事化、C3 秘密/揭示规划或已有正文 C5 保真导入；混合文档按段审阅。README 仍保持 12 步唯一主流程，只扩充步骤 1–2；§0.1、13 层模型和 I1–I140 历史保持不变。 |
+| **v3.1（2026-09-01）** | 按设计审查收缩 Stage 19：I141–I149 只交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E，不再夹带 C5 保真导入。新增 Stage 20 / R20（I150–I154）以纯重构建立结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / R21（I155–I161）在该地基上交付已有正文保真导入。修复原 I141 过早冻结 Remote、I146 隐含通用 UoW、I147 隐含结构化 DOCX reader 及后半段大卡过重问题；§0.1、13 层模型和 I1–I140 历史保持不变。 |
 
-> **v3.0 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.0 为当前目标和执行材料；I1–I140 已完成，当前执行 I141，Stage 19 完整范围为 I141–I149。README 的 12 步主流程已由 I140 交付，v3.0 只增强步骤 1–2，不建立第二条导入或写作主流程。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
+> **v3.1 supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.1 为当前目标和执行材料；I1–I140 已完成，当前执行 I141，当前排期完整范围为 Stage 19–21 / I141–I161。README 的 12 步主流程已由 I140 交付，Stage 19 与 Stage 21 只增强步骤 1–2，Stage 20 不改变产品行为或公开合同形状，不建立第二条导入或写作主流程。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 分别是已完成 Stage 15 / Stage 17 的立项输入（review record，非设计权威），不修改、不替代本文件 §0.1 宿主基线。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -935,11 +936,13 @@ project/
 | **M16** | DSH family `0.1.1-rc.2` 兼容升级（Stage 16，I85） | manifest/profile/lockfile 唯一 pin 同步；真实 base+web+plugin、Client ModuleLoader/Slot、Typert Remote、Tools、`ctx.llm` 与生命周期兼容门通过 |
 | **M17** | architecture review v2.0 修复（Stage 17，I86–I102） | Remote binder、组合根、UoW、TextRepository、Client 切片与 schema 单点化成为稳定代码基线 |
 | **M18** | 合同地基、作者主流程与新增功能（Stage 18，I103–I140） | 章节/场景、基线/预览/调和、引用、润色、版本、全书发布与 README 十二步产品 E2E 完整交付 |
-| **M19** | 来源解释、POV 叙事化与正文保真导入（Stage 19，I141–I149） | 幕后素材不再直接冒充读者大纲；混合来源可审阅；已有正文保真进入 C5 并汇入同一十二步流程 |
+| **M19** | 来源确认与幕后素材 POV 叙事化（Stage 19，I141–I149） | 幕后素材不再直接冒充读者大纲；混合来源可审阅；C3/C4 与 POV 上下文在揭示前不泄密 |
+| **M20** | 导入基础设施重构（Stage 20，I150–I154） | 结构化来源、共享 import operation/checkpoint 与空作品初始化 UoW 成为单一地基，Stage 19 行为与公开合同保持不变 |
+| **M21** | 已有正文保真导入（Stage 21，I155–I161） | 规范化正文由 Host 保真进入 C5，结构候选与正文分离预览，并汇入同一十二步流程 |
 
 ---
 
-## 14. 创作环境功能设计（v1.2 provenance；v3.0 持续增补）
+## 14. 创作环境功能设计（v1.2 provenance；v3.1 持续增补）
 
 > 本章源自 v1.2「创作环境」产品升级，并由 v2.0–v2.2 继续增补用户可见能力。它们复用 §6–§9 的引擎与 §10 的存储，不引入第二套核心闭环。
 
@@ -1128,50 +1131,76 @@ project/
 
 ---
 
-### 14.15 Stage 19 来源解释、POV 叙事化与正文保真导入（I141–I149，v3.0）
+### 14.15 Stage 19 来源确认与幕后素材 POV 叙事化（I141–I149，v3.1）
 
-> 定位：I140 已交付 README 十二步作者主流程，但既有 I52 六层分析与 I119 长稿拆纲只接收规范文本，不知道“来源是什么、作者想把它变成什么”。《灰烬圣典》一类文档同时包含幕后时间线、跑团/场景控制语句、作者待办和少量可改写场景，现有模型会把客观真相顺序误当成读者应直接经历的 B5。Stage 19 只修复这项导入语义缺口，不建立第 14 层、第二导入主流程或通用素材库。
+> 定位：I140 已交付 README 十二步作者主流程，但既有 I52 六层分析与 I119 长稿拆纲只接收规范文本，不知道“来源是什么、作者想把它变成什么”。《灰烬圣典》一类文档同时包含幕后时间线、跑团/场景控制语句、作者待办和少量叙事段，现有模型会把客观真相顺序误当成读者应直接经历的 B5。Stage 19 只修复这项来源语义与 POV 泄漏缺口；不写 C5、不建立正文保真导入、不新增第 14 层、第二导入主流程或通用素材库。
 
-#### 14.15.1 D26：来源角色与目标处理是两根独立轴
+#### 14.15.1 D26：来源角色与当前处理目标是两根独立轴
 
 - **来源角色 `sourceRole`**：`idea`（创作想法）、`synopsis`（故事梗概/预定剧情）、`background-material`（世界设定/幕后真相/作者设计资料）、`existing-prose`（已有可用正文）、`hybrid`（混合文档）。系统可以给出建议与置信度，但作者必须显式确认；低置信或多角色来源不得静默选择。
-- **目标处理 `treatment`**：`expand-outline`（扩展为大纲）、`adapt-pov`（按指定 POV 重构读者体验）、`preserve-prose`（保留正文并反向整理结构）。来源角色与目标处理不得折叠为一个含糊开关；例如 `background-material + adapt-pov` 与 `existing-prose + preserve-prose` 的写入边界完全不同。
-- **叙事意图 `narrativeIntent`**：在 `adapt-pov` 时绑定 `perspective`（limited/omniscient）、主角（现有角色或待创建角色）、主角初始已知信息与 `revealPacing`（slow/balanced/fast）。若未指定可用主角，系统只能提出主角候选，不能自行落地或用硬编码 fallback。
-- 所有字段与 `projectId/sourceHash/importSessionId` 一同进入严格候选合同和 provenance；重新生成、恢复、确认与应用必须消费同一份已确认意图，Client 不得只把选项拼入一次性 prompt 后丢失。
+- **Stage 19 处理目标 `treatment`**：`expand-outline`（沿既有 I119/I52 能力扩展为大纲）与 `adapt-pov`（按指定 POV 重构读者体验）。Stage 19 识别到 `existing-prose` 时可以明确路由到 `expand-outline`，也可以提示正文保真导入尚未交付，但不得假装已把原文写入 C5。Stage 21 通过新的 strict additive V2 确认方法开放 `preserve-prose`；I142 的旧方法继续只接受并返回两个 Stage 19 取值，避免旧 Client 的穷举分支被静默扩宽。
+- **叙事意图 `narrativeIntent`**：仅在 `adapt-pov` 时存在。`limited` 必须绑定现有角色或带稳定候选 ID 的待创建主角；`omniscient` 可以不指定单一主角，但若指定 focal character 仍必须可解析。主角初始已知信息与 `revealPacing`（slow/balanced/fast）一同冻结，禁止硬编码 fallback。
+- I141 只冻结 canonical schema、合法组合与稳定 fingerprint，不提前发布没有服务语义的 Remote。I142 的 import session owner 才负责把确认意图与 `projectId/sourceHash/importSessionId` 绑定，并提供 strict additive Remote；重新生成、恢复、提案与应用必须消费同一绑定。
 
 #### 14.15.2 D27：先解释来源，再投影叙事层
 
-导入变为同一主流程内的两阶段候选过程：
+导入在同一主流程内形成两个零写阶段：
 
-1. **来源解释候选（零写）**：Host 规范化/分块后，LLM 按稳定文本范围把内容标记为 `world-truth`、`plot-plan`、`prose`、`author-instruction` 或 `presentation-note`，并给出整体 `sourceRole` 建议、置信度与证据。作者确认或修正来源角色、目标处理和混合段用途。
-2. **叙事投影候选（仍零写）**：只使用作者确认的解释生成对应 B/C 层候选或 C5 manuscript candidate。`author-instruction` 与 `presentation-note` 只能作为规划约束/证据，不得逐字成为正文、正史或读者可见 beat；任何未裁决混合段阻止应用。
+1. **来源解释候选**：Host 先建立稳定段落 ID 与规范文本范围，LLM 只对段落分类为 `world-truth`、`plot-plan`、`prose`、`author-instruction` 或 `presentation-note`，并给出整体 `sourceRole` 建议、置信度与证据；offset 始终由 Host 从段落 ID 投影，禁止模型直接决定不可信的字符边界。
+2. **叙事投影候选**：只使用作者确认的解释生成 B/C 层候选。`author-instruction` 与 `presentation-note` 只能作为规划约束/证据，不得逐字成为正文、正史或读者可见 beat；任何未裁决 hybrid 段阻止下一步。
 
-来源解释是绑定一次导入操作的 operational evidence，不是作品第 14 层，也不长期替代 B2/B3/B5/C3/C4/C5 真相。接受后的最小 checkpoint 只保存幂等恢复所需的 sourceHash、意图、段落裁决摘要和 proposal 状态；原始 DOCX 仍遵守 §14.7.2 的临时文件清理政策。
+来源解释是绑定一次导入操作的 operational evidence，不是作品第 14 层，也不长期替代 B2/B3/B5/C3/C4/C5 真相。最小 checkpoint 只保存恢复所需的 sourceHash、意图、段落裁决摘要和 operation/proposal 状态；原始 DOCX 仍遵守 §14.7.2 的临时文件清理政策。
 
 #### 14.15.3 D28：幕后素材按“客观真相—读者体验—知情揭示”分离
 
 当 `background-material|hybrid + adapt-pov` 时：
 
-- B2/B3/C1/C2 只保存故事地基与起点状态；B5 只表达所选主角能经历的行动、调查、误判、冲突和揭示顺序，不按幕后事件发生顺序直接复述答案。
-- 幕后事实进入 C3 `secret|backstory|foreshadow|plotpoint` 候选，`holders/KnowledgeState` 表达故事起点谁知道，`revealPlan` 表达计划向谁、何时揭示。主角未持有的事实不得出现在其可见 C3 投影。
-- C4 初始化候选只接收故事开始时已经公开/已建立给读者的事件，或已有正文中确实叙述成立的事件。仅存在于幕后说明、未来计划或作者指令中的真相不得提前写入 C4；等正文实际建立后仍由既有最终正文解析/确认路径追加 C4。
-- B5 当前 beat、B2 trigger 与 C4/C3 生成上下文必须共同通过 POV 泄漏负测；不得靠“模型应该自行保密”代替确定性投影边界。
-- 《灰烬圣典》作为 canonical consumer fixture：卢西恩创立焚书会、真实自杀、助手操纵三方及群体信念复活等不得在第一幕直接讲解；B5 必须先建立新主角/调查者视角，并以线索、错误判断、确认仍活着、归来、最终机制揭示的顺序组织。
+- I52 既有六层分析只提供 B3/B2/C1/C2 的故事地基候选；它原有的 B5/C4 结果不得直接进入 Stage 19 plan。B5 必须由 POV adaptation 重新生成，C4 必须经过 public-at-start guard，C3 则由专门 reveal planner 生成。
+- B5 只表达所选视角可经历的行动、调查、误判、冲突和揭示顺序，不按幕后事件发生顺序直接复述答案。
+- 幕后事实进入 C3 `secret|backstory|foreshadow|plotpoint` 候选，`holders/KnowledgeState` 表达故事起点谁知道，`revealPlan` 表达计划向谁、何时揭示；主角未持有的事实不得出现在其可见 C3 投影。
+- C4 初始化候选只接收故事开始时已经公开/已建立给读者的事件。仅存在于幕后说明、未来计划、presentation note 或作者指令中的真相不得提前写入 C4；等正文实际建立后仍由既有 finalization 追加。
+- B5 当前 beat、B2 trigger 与 C3/C4 上下文必须共同通过确定性 POV 泄漏负测，不得靠 prompt 礼貌要求模型保密。
+- 《灰烬圣典》作为 canonical consumer fixture：卢西恩创立焚书会、真实自杀、助手操纵三方及群体信念复活等不得在第一幕直接讲解；B5 必须先建立调查者体验，并按线索、错误判断、确认仍活着、归来、最终机制揭示组织。
 
-#### 14.15.4 D29：已有正文必须保真进入 C5
+#### 14.15.4 D29：Stage 19 应用与主流程边界
 
-当 `existing-prose + preserve-prose` 时：
+- `NarrativeImportPlan` 组合 I52 的 B3/B2/C1/C2 地基候选、Stage 19 的 B5/C3 与受 guard 限制的 C4；只面向新建/空作品，并在一次 I11 中汇总预览。
+- Stage 19 先复用既有逐层 apply 语义：全量引用/readiness/freshness 预检后按稳定顺序幂等落地；中途 writer 失败必须返回可见 `partial-failure`、持久记录已完成阶段并允许以同一授权 operation 恢复，禁止把部分写入谎报为成功。Stage 20 将其机械迁移到共享空作品初始化 UoW，届时不改变公开结果形状或领域语义。
+- README 仍保持 12 步：步骤 1 扩展为“导入并确认来源语义/目标处理/适用 POV”，步骤 2 扩展为“按确认意图生成和审阅读者体验大纲与揭示计划”。步骤 3–12 不改编号、不建立第二 workflow route。
+- I37–I38、I50–I53、I119–I120 的既有 invocation、参数和结果保持兼容。I149 后普通作者主流程必须先经过来源语义确认；`existing-prose` 在 Stage 21 前仍不写 C5。
 
-- Host 以 DOCX 段落/标题证据或 TXT/Markdown 标题规则形成有序 chapter/scene manuscript candidate；正文在既有 NFC/换行规范化之后逐字保留，LLM 不得改写、补写、润色或发明主角。
-- AI 可以反向生成 B3/B2/B5/C1/C2/C3/C4 候选和来源证据，但这些结构化候选与 C5 原文必须在一个 import plan 中分别预览；“大纲正确”不能掩盖正文丢段、重排或改写。
-- 仍只允许新建/空作品；非空作品继续按 N-7 在 LLM 和写入前 fail closed。接受必须复用一次 I11，并在同一 Host 请求/UoW 中按预检计划幂等写入；失败、拒绝、sourceHash/intent/freshness 变化不得留下半部正文或半套结构层。
-- C5 章节/场景 ID 由 Host 确定生成并建立稳定 source range；重复 apply 返回 replay/already-applied，不重复正文、分支、正史或知情事件。导入后按 I121 的 chapter.index→scene.index 顺序进入现有十二步流程。
+### 14.16 Stage 20 导入基础设施重构（I150–I154，v3.1）
 
-#### 14.15.5 主流程与兼容边界
+> 定位：Stage 20 是纯重构与地基阶段。它消除 Stage 19 为交付最小闭环而保留的 import session、checkpoint、plan 编排重复，并补齐 Stage 21 所需但当前代码不存在的结构化 DOCX 证据与跨 owner 空作品初始化 UoW。不得新增作者可见导入模式，不得改变 Stage 19 公开 Remote/wire、候选语义、样本、gold 或阈值。
 
-README 仍保持 12 步：步骤 1 扩展为“导入并确认来源语义/目标处理/适用 POV”，步骤 2 扩展为“按确认意图生成和审阅大纲；已有正文同时预览保真正文结构”。步骤 3–12 不改编号、不建立第二 workflow route。
+#### 14.16.1 D30：结构化来源与兼容文本投影
 
-I37–I38、I50–I53、I119–I120 的既有 invocation、参数和结果保持兼容；Stage 19 使用 strict additive contract/namespace 或新方法。旧入口可以继续按既有行为工作，但 I149 后普通作者主流程必须先经过来源语义确认，不再默认把任意 DOCX 当成同一种长稿。通用导入到非空作品、素材库、ST 迁移、富文本和 DOCX 正式导出仍不在本阶段范围。
+- canonical `StructuredImportSource` 由 Host 持有格式、规范文本、稳定 paragraph ID、heading level、source range 与 sourceHash。DOCX reader 解析段落/标题样式；TXT/Markdown 使用确定性标题规则。
+- 既有 `readDocxText()`、`readImportedText().text/chunks` 行为保持逐字段兼容，它们改为结构化来源的纯投影，禁止保留第二套 XML/text parser。
+- 不可靠标题不由模型猜测；消费者必须显式降级。Stage 20 只建立证据，不创建 chapter/scene 或写 C5。
+
+#### 14.16.2 D31：共享 import operation 与空作品初始化 UoW
+
+- 提取单一 `ImportOperation` envelope、checkpoint store、project write lane、freshness/replay 规则和 plan participant 接口；NarrativeImportPlan 与未来 ManuscriptImportPlan 只提供类型化 payload/participants，不各自复制 propose/accept/reject/recover 状态机。
+- UoW 在写前冻结所有受影响 owner 的基线与完整目标快照，记录 durable operation journal；成功响应前所有 participant 必须完成。失败时恢复基线；若恢复本身中断，状态必须为 `pending-recovery`，重启先恢复到全旧或全新状态，禁止继续普通写作或谎报成功。
+- Stage 19 coordinator 在 I153 迁移到共享地基；合法成功、拒绝、stale、replay 与作者可见结果保持不变，旧临时实现 delete-first 退役且零引用。Stage 20 不改变 B/C/C5 owner，也不建立分布式事务或后台叙事补写器。
+
+### 14.17 Stage 21 已有正文保真导入（I155–I161，v3.1）
+
+> 定位：Stage 21 在 Stage 20 地基上新增 `existing-prose + preserve-prose`。它解决“已有小说只能拆纲、不能成为正式正文”的独立产品问题；不属于 Stage 19 的幕后资料泄密修复，也不允许回填到 I141–I149。
+
+#### 14.17.1 D32：C5 只能由 Host 受控来源构造
+
+- Host 依据 `StructuredImportSource` 的 DOCX heading/paragraph 或 TXT/Markdown 标题证据形成有序 chapter/scene manuscript candidate；正文在既有 NFC/换行规范化之后逐字保留，LLM 不得返回、改写、补写、润色或重排 C5 content。
+- 标题与正文 ranges 必须有序、无重叠并完整覆盖可导入规范来源，且能按同一投影规则重建。重复标题按来源顺序生成不同稳定 ID；不可靠层级确定性降级为单章/单场景并警告。
+- 保真只针对规范化文字与顺序，不保留 DOCX 字体、图片、批注、修订、脚注或富文本样式。
+
+#### 14.17.2 D33：正文与反向结构候选分离
+
+- Host-owned C5 candidate 与 AI 反向生成的 B3/B2/B5/C1/C2/C3/C4 候选分别展示；结构分析复用既有 I52/I119 与 Stage 19 C3/C4 owner，必须携带来源证据，任何结构候选错误都无权改变 C5。
+- B5 与 chapter/scene ranges 建立稳定映射，SceneOutlineBinding 只在 plan 中引用已预检的 detailBeat；无法可靠绑定时明确 pending，不伪造细纲卡。
+- `ManuscriptImportPlan` 只允许新建/空作品，经一次 I11 和 Stage 20 UoW 幂等应用 C5、结构候选与已确认 binding；拒绝、stale、非空项目、任一 participant 失败或恢复未完成都不得暴露半部正文/半套结构为可用项目。
+- 导入后按 chapter.index→scene.index 汇入同一十二步流程。通用非空作品合并、富文本、自动润色、版本树与 DOCX 正式导出仍不在范围。
 
 ---
 

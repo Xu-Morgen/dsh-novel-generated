@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v3.0
+> 版本：v3.1
 > 日期：2026-09-01
-> 状态：当前执行权威（**I1–I140 全部完成**；Stage 18 已成为真实代码基线；**Stage 19 叙事化导入与正文保真导入 I141–I149 已按依赖顺序立项，当前执行 I141**）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v3.0（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.0（需求 ID、验收、迭代覆盖）
+> 状态：当前执行权威（**I1–I140 全部完成**；Stage 18 已成为真实代码基线；**Stage 19–21 / I141–I161 已按来源叙事化→导入地基重构→正文保真导入顺序立项，当前执行 I141**）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v3.1（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
@@ -16,13 +16,14 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I140 已完成：Stage 15、Stage 16、Stage 17 与 Stage 18 的独立提交、验证、smoke 产物与当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E。不得再将 I106–I140 标为待执行，也不得把 Stage 19 新功能回填或伪装成已完成迭代的历史范围。
-- 当前排期为 **20 个阶段、149 个迭代（I1–I149）**。唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`；运行时观测、manifest/profile/lockfile 不再存在 rc.7 漂移。
+- 当前排期为 **22 个阶段、161 个迭代（I1–I161）**。唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`；运行时观测、manifest/profile/lockfile 不再存在 rc.7 漂移。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
 - v2.8（2026-08-31）：同步 I103–I105 已完成事实；核查确认现有各类 version/snapshot/branch 与 parser baseline 均不提供 B5 细纲生成版本化基线，正文受控写回也不自动调整 B5。新增 R18-11，插入 I108 与 I112–I114 四个正式迭代；原 I108–I128 按依赖顺延，Stage 18 扩展为 **I103–I132**。版本化基线只冻结生成意图，不成为第二份 B5 真相；正文语义影响与后续细纲调整只形成候选，经 I11 后才写回。
 - v2.9（2026-08-31）：将 README 12 步作者流程确定为唯一主要交付、最终产品和产品级测试流程。审查发现缺少按幕/章/全书生成细纲、候选接受为草稿、最终正文的一次确认式统一定稿、全书完成/一致性门、带目录的单一全文导出和默认作者流程入口；新增 R18-12–R18-15 与 I133–I140。既有 I103–I132 不再重排，Stage 18 扩展为 **I103–I140**；十九项并列技术导航在 I139 分层收纳，能力保留但不再与主流程争夺默认入口。
 - v3.0（2026-09-01）：同步 I106–I140 完成事实；针对《灰烬圣典》这类幕后真相、场景设计、作者指令与少量可用叙事文字混合的来源，新增 R19 与 Stage 19 / **I141–I149**。导入先确认来源类型和目标处理方式；幕后素材必须转译成所选 POV 的读者体验与 C3 揭示计划，已有正文必须逐字保真进入 C5，混合文档按段裁决。README 仍为 12 步唯一主流程，只增强步骤 1–2。
+- v3.1（2026-09-01）：按设计审查收缩 Stage 19 / **I141–I149** 为来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与产品 E2E；新增 Stage 20 / **I150–I154** 纯重构结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / **I155–I161** 独立交付已有正文保真导入。I141 不再提前冻结无服务语义 Remote，C3/C4、结构化 DOCX、UoW、manuscript candidate 与应用均拆为独立可验收切片。
 
 ### 0.2 Goal
 
@@ -1405,111 +1406,237 @@ TDD Route:
 
 ---
 
-## 20. 阶段 19：来源解释、POV 叙事化与正文保真导入（R19，I141–I149）
+## 20. 阶段 19：来源确认与幕后素材 POV 叙事化（R19，I141–I149）
 
-**阶段门**：`pnpm run verify:stage-19`。完成时必须串行证明 I141–I149 全绿、`pnpm test`/build 全绿、Stage 19 全部 held-out 与既有 I52/I119/五层 parser held-out 全绿、真实 Remote binder/contract-lock/Client DOM/两类 import UoW/README 十二步产品 E2E 全绿。
+**阶段门**：`pnpm run verify:stage-19`。完成时必须串行证明 I141–I149、`pnpm test`/build、Stage 19 held-out、既有 I52/I119/parser held-out、真实 binder/contract-lock/Client DOM、NarrativeImportPlan 恢复矩阵与 README 十二步产品 E2E 全绿。
 
-> 定位：I140 已交付完整十二步主流程，但步骤 1–2 仍把所有规范文本视为同一种“可拆纲长稿”。Stage 19 以《灰烬圣典》的真实失败模式为输入：幕后年表、关卡/玩家提示、作者指令与少量叙事段混在同一 DOCX 时，必须先确认来源语义与作者目标，再选择 POV 叙事化或 C5 保真导入。I1–I140 的既有 invocation、领域 Schema 与完成声明保持历史真实；新能力只走 strict additive contract。
+> 定位：Stage 19 以《灰烬圣典》的真实失败模式为输入，只修复来源语义、幕后素材 POV 叙事化与 C3/C4 泄密边界。`existing-prose` 可以被识别并继续走既有拆纲，但 `preserve-prose` 与 C5 写入明确留给 Stage 21。所有 LLM 卡先冻结 dev/held-out/gold（≥80%）并以 fake backend 跑通；非空作品在 LLM/写入前 fail closed；每卡新增 `scripts/smoke-iN.mjs`、`verify:iN` 与 `artifacts/iN-*.json`。
 
-> **共同合同**：来源解释与作者意图必须绑定 projectId/importSessionId/sourceHash，任何重新生成、恢复、提案与应用都消费同一绑定；来源解释是 operational evidence，不是第 14 层。所有 LLM 卡先冻结 dev/held-out/gold（≥80%）并以 fake backend 跑通；所有写入复用 I11，非空作品在 LLM/写入前 fail closed；每卡新增 `scripts/smoke-iN.mjs`、`verify:iN` 和 `artifacts/iN-*.json`。不得修改样本/金标/阈值以适配实现，不得让 Client、LLM 或 caller 成为 C5 文本 owner。
+### I141：来源角色、当前目标处理与叙事意图纯合同（R19-1a）
 
-### I141：来源角色、目标处理与叙事意图合同（R19-1）
-
-- **依赖**：I140；**canonical owner**：`core/schema/import-interpretation` + Stage 19 additive Remote descriptors。
-- **目标**：建立 `sourceRole`、`treatment`、`narrativeIntent`、`ImportSourceBinding` 与合法组合矩阵，使“原文是什么”和“希望变成什么”成为两根独立、可持久恢复的操作轴。
-- **兼容/退役**：I52 onboarding、I119 long-draft 与 I120 apply 的既有 invocation/参数/结果逐字段不变；Stage 19 新增 namespace/method。解释/意图只进入 import session/checkpoint，不进入 13 层或可移植作品内容。禁止 Client 自行补默认 POV、sourceRole 或 treatment。
-- **交付物**：strict canonical schema；`idea|synopsis|background-material|existing-prose|hybrid`、`expand-outline|adapt-pov|preserve-prose` 与 limited/omniscient/reveal pacing 合同；合法组合纯校验器；source/intent fingerprint；additive descriptor、adapter 返回类型耦合、contract lock、真实 binder 消费者夹具。
-- **验收**：合法组合 round-trip；缺 POV/主角、非法组合、unknown 字段、跨项目、错误 sourceHash、非法返回结果全部 fail closed；同输入/意图 fingerprint byte-stable；旧 I52/I119 contract lock 无变化；Client 类型直接由 canonical schema 派生。
-- **明确不做**：不调用 LLM、不分类文本、不渲染 UI、不写任何作品层。
+- **依赖**：I140；**canonical owner**：`core/schema/import-interpretation`。
+- **目标**：建立 sourceRole、`expand-outline|adapt-pov`、narrativeIntent、ImportSourceBinding、合法组合纯校验器与稳定 fingerprint。
+- **兼容/退役**：I52/I119/I120 合同逐字段不变；`preserve-prose` 尚不进入公开 enum；limited 必须主角，omniscient 可不指定单一主角。I141 不发布 Remote、不持久化 session。
+- **交付物**：strict schema、组合矩阵、canonical serialization/fingerprint、Client 派生类型和纯消费者夹具。
+- **验收**：合法 round-trip；unknown 字段、非法组合、limited 缺主角、无稳定候选 ID 的未知主角失败；同输入 byte-stable；旧 contract lock 零变化。
+- **明确不做**：不调用 LLM、不建服务/Remote/UI/checkpoint、不写作品层。
 - **验证**：`pnpm run verify:i141`；`artifacts/i141-import-intent-contract.json`。
 
-### I142：来源解释分类器与样本门（R19-2a）
+### I142：导入意图 session owner 与 additive Remote（R19-1b）
 
-- **依赖**：I141；**canonical owner**：`llm/analyze/import-interpretation` + `ImportInterpretationService`。
-- **目标**：对 Host 规范化且有界的文本生成零写来源解释候选：整体 sourceRole 建议、置信度、证据及完整有序的 `world-truth|plot-plan|prose|author-instruction|presentation-note` 范围。
-- **兼容/退役**：不修改 I52/I119 prompt/schema；新分类器只给建议，不替代作者选择。范围使用规范文本 UTF-16 半开区间 + quote/sourceHash，不依赖 DOCX 临时路径。模型不得输出 treatment、最终 POV 或写命令。
-- **交付物**：先提交 `samples/i142` dev/held-out/gold（含《灰烬圣典》规范摘录、普通梗概、纯正文、作者设定、混合文档）；fake backend；prompt/schema/parser；范围归一与完整覆盖 guard；begin/status/cancel/result additive Remote；dispose 测试。
-- **验收**：整体与范围分类准确率分别 ≥80%；范围按 `[0,text.length)` 无遗漏、无重叠、有序覆盖，quote 精确；“玩家可见/若提前调查/帮我想想/幕后年表”不判为正文；非法 JSON、错误范围、重复/漏块、超限、取消、模型失败均零写；held-out 不低于阈值。
-- **明确不做**：不让 LLM 生成 B/C 层，不建立混合段 UI，不应用候选。
-- **验证**：`pnpm run verify:i142`；`artifacts/i142-source-interpretation-samples.json`。
+- **依赖**：I141；**canonical owner**：`ImportInterpretationSessionService` + Remote adapter。
+- **目标**：把 projectId/importSessionId/sourceHash、作者确认意图与段落裁决摘要绑定为可恢复 operational checkpoint，并提供 manual create/read/confirm/discard Remote。
+- **兼容/退役**：session 不是第 14 层或可移植作品内容；Client 不补默认值。新增方法具 canonical schema、descriptor/result lock、返回类型耦合、真实 binder 与非法结果负测。
+- **交付物**：session/checkpoint store、additive Remote、跨项目/sourceHash freshness、dispose 与 binder fixture。
+- **验收**：重开恢复；换文件使旧 session stale；跨项目、伪造 hash、非法结果 fail closed；dispose 后零资源；旧 Remote lock 不变。
+- **明确不做**：不自动分类、不渲染 UI、不建 NarrativeImportPlan。
+- **验证**：`pnpm run verify:i142`；`artifacts/i142-import-session-contract.json`。
 
-### I143：导入意图确认与混合段审阅 UI（R19-2b）
+### I143：段落来源解释分类器与样本门（R19-2a）
 
-- **依赖**：I142；**canonical owner**：Client `workflow` 导入步骤 state/presenter。
-- **目标**：在唯一主流程步骤 1 中展示系统建议，让作者确认/修改来源角色、目标处理、适用 POV/主角/初始已知/揭示节奏，并对 hybrid 的范围逐段裁决。
-- **兼容/退役**：不新增顶层 route，不复制旧 DOCX 上传或 long-draft controller；`workflow` 仍是唯一默认入口。作者可跳过自动分类并手动选择，但任何必填意图或混合段未决时不得进入投影阶段。确认的是 import session 输入，不调用 I11、不写作品层。
-- **交付物**：来源/目标两步表单；conditional POV fields；建议置信度与证据；混合段 role 选择/合并；可访问性/窄屏/取消/恢复；真实 binder DOM harness；作者术语映射。
-- **验收**：五类来源与三类目标可达；非法组合即时且 Host 再校验；低置信不自动推进；未决段阻止继续；刷新/重开恢复与 sourceHash 绑定一致，换文件清空旧裁决；隐藏面板零轮询/请求，dispose 后零 listener/timer。
-- **明确不做**：不生成大纲/C3/C5，不更改 I139 导航分层或步骤 3–12。
-- **验证**：`pnpm run verify:i143`；`artifacts/i143-import-intent-review.json`。
+- **依赖**：I142；**canonical owner**：`llm/analyze/import-interpretation` + `ImportInterpretationService`。
+- **目标**：对 Host 生成的稳定 paragraph ID 分类 world-truth/plot-plan/prose/author-instruction/presentation-note，并给出整体 sourceRole 建议、置信度与证据。
+- **兼容/退役**：模型不输出 treatment、POV、字符 offset 或写命令；Host 从 paragraph ID 投影范围。不修改 I52/I119 prompt/schema。
+- **交付物**：先提交 `samples/i143` dev/held-out/gold；fake backend；prompt/schema/parser；paragraph coverage guard；begin/status/cancel/result Remote；dispose 测试。
+- **验收**：整体与段落分类准确率分别 ≥80%；paragraph ID 完整、有序且唯一；“玩家可见/若提前调查/帮我想想/幕后年表”不判为正文；未知/重复/漏段、非法 JSON、超限、取消、模型失败零写。
+- **明确不做**：不生成 B/C 层、不建立审阅 UI、不确认作者意图。
+- **验证**：`pnpm run verify:i143`；`artifacts/i143-source-interpretation-samples.json`。
 
-### I144：幕后素材→POV 读者体验大纲候选（R19-3a）
+### I144：来源确认与混合段审阅 UI（R19-2b）
 
-- **依赖**：I143；**canonical owner**：`NarrativeAdaptationService` + 专用 B5 adaptation prompt/schema。
-- **目标**：在 `background-material|hybrid + adapt-pov` 下，把已裁决的 world-truth/plot-plan/presentation evidence 转译成主角可经历的行动、调查、误判、冲突和揭示顺序，形成 outline-only 候选；若选择“新主角”，同时形成独立 B3 protagonist candidate。
-- **兼容/退役**：不修改或复用 I119“按来源顺序拆纲”的 prompt 语义；I119 继续兼容。作者指令只作为约束，presentation note 只提供可转译的场景机制，不得原样进入 beat。未指定可用主角时只产 protagonist candidate，禁止 `mira` 等 fallback。
-- **交付物**：先提交 `samples/i144` dev/held-out/gold；fake backend；strict B5/protagonist candidate；source range evidence；regenerate 保持 import intent；《灰烬圣典》完整 DOCX consumer fixture。
-- **验收**：held-out ≥80%；《灰烬圣典》B5 第一幕建立调查者 POV，随后按线索→错误判断→坚信卢西恩未死→归来→机制揭示组织；不得按“创会→散播→假死→真死→复活”幕后年表直述；第一幕不得揭示真实自杀、助手操纵和群体信念复活；输出范围/ID/POV 合法，模型失败/取消零写。
-- **明确不做**：不生成 C3/C4，不写 B3/B5，不决定最终 revealAt。
-- **验证**：`pnpm run verify:i144`；`artifacts/i144-pov-outline-samples.json`。
+- **依赖**：I143；**canonical owner**：Client `workflow` 导入步骤 state/presenter。
+- **目标**：展示建议，让作者确认/修改 sourceRole、当前 treatment、适用 POV/主角/初始已知/揭示节奏，并逐段裁决 hybrid。
+- **兼容/退役**：不新增 route，不复制上传/long-draft controller；作者可跳过分类手动选择。Stage 21 前 existing-prose 只能选择 expand-outline 或看到保真能力尚未交付的明确提示。
+- **交付物**：来源/目标表单、conditional POV、证据、段落 role/合并、可访问性/窄屏/取消/恢复、binder DOM harness、术语映射。
+- **验收**：五类来源与两个当前目标可达；非法组合 Host/Client 双重拒绝；低置信不自动推进；未决段阻止继续；换文件清空裁决；隐藏面板零请求，dispose 零 listener/timer。
+- **明确不做**：不生成 B5/C3/C4/C5，不更改步骤 3–12。
+- **验证**：`pnpm run verify:i144`；`artifacts/i144-import-intent-review.json`。
 
-### I145：幕后秘密 C3 揭示候选与 C4 导入边界（R19-3b、R19-4a）
+### I145：幕后素材→POV 读者体验 B5 候选（R19-3）
 
-- **依赖**：I144；**canonical owner**：`NarrativeRevealPlanner` + import-only visibility projection guard。
-- **目标**：把已裁决幕后事实生成 C3 secret/backstory/foreshadow/plotpoint、holders/KnowledgeState/revealPlan 候选，并确定性限制初始化 C4 只含故事开始时公开/已建立事件或已有正文明确叙述事件。
-- **兼容/退役**：不修改 C3/C4 canonical schema、KnowledgeFilter 或 CanonLedger append-only 语义；I52 继续禁止 C3。Stage 19 通过新 plan 组合既有 owner。未公开幕后真相只进入 C3，不为了“客观正确”提前复制到 C4；正文实际建立后仍由既有 finalization 追加 C4。
-- **交付物**：先提交 `samples/i145` dev/held-out/gold；fake backend；C3 candidate/knowledge-state/reveal plan parser；C4 public-at-start projector；B5 reveal anchor 校验；POV-safe context consumer fixture；知识泄漏 detector 累积回归。
-- **验收**：held-out ≥80%；holders↔knows 双向一致且主角起点未知；revealTo 不含既有 holder，revealAt 可定位 B5 beat/detailBeat；幕后/未来/作者指令进入 C4 必须失败；主角 POV context 不含隐藏事实，预定揭示 beat 前 leak detector 为零容忍；取消/非法输出零写。
-- **明确不做**：不应用 B/C 层，不新增 canon↔knowledge 持久绑定文档，不修改普通 finalization。
-- **验证**：`pnpm run verify:i145`；`artifacts/i145-secret-reveal-plan.json`。
+- **依赖**：I144；**canonical owner**：`NarrativeAdaptationService` + 专用 B5 prompt/schema。
+- **目标**：把已裁决 evidence 转译为视角可经历的行动、调查、误判、冲突和揭示顺序；limited 新主角形成独立稳定 B3 protagonist candidate。
+- **兼容/退役**：不复用 I119 来源顺序 prompt；作者指令只作约束，presentation note 只作场景机制；禁止硬编码主角。
+- **交付物**：先提交 `samples/i145` dev/held-out/gold；fake backend；strict B5/protagonist candidate；paragraph evidence；regenerate intent lock；《灰烬圣典》DOCX fixture。
+- **验收**：held-out ≥80%；第一幕建立调查者体验，不按幕后年表直述且不泄露真实自杀、助手操纵、群体信念复活；ID/POV/evidence 合法；失败/取消零写。
+- **明确不做**：不生成 C3/C4，不写 B3/B5。
+- **验证**：`pnpm run verify:i145`；`artifacts/i145-pov-outline-samples.json`。
 
-### I146：叙事化素材统一预览与一次确认应用（R19-4b）
+### I146：幕后秘密 C3 揭示候选（R19-4a）
 
-- **依赖**：I145；**canonical owner**：`NarrativeImportPlanCoordinator` + I11 + 既有层 repositories/UoW。
-- **目标**：把 B3/B2/B5/C1/C2/C3 与受 I145 限制的 C4 组合成一份有界 `NarrativeImportPlan`，在一个预览中经一次 I11 对新建/空作品实时、幂等应用。
-- **兼容/退役**：I53 六层 adjudication/apply 继续兼容；新 plan 不调用或嵌套旧层级 Gate。所有层写入前先全量 schema、引用、readiness、source/intent freshness 预检；失败使用既有本地 UoW compensation，不建立后台补写器或第二层 owner。
-- **交付物**：plan/proposal/checkpoint schema；跨层引用计划器；prepare/propose/accept/reject/recover additive Remote；Client 汇总预览；写盘故障注入；真实 binder E2E。
-- **验收**：pending/reject/stale/非空项目/任一 writer 故障无半应用；重复 accept 返回 already-applied/replay；成功后 B5 为 POV 体验、C3 隐藏事实正确、C4 无幕后泄漏，重开逐字段一致；时间线仅按既有 B5 落地规则建立一次；原始 DOCX 临时数据清理不影响恢复 checkpoint。
-- **明确不做**：不写 C5，不支持导入合并，不提供逐层多次确认或后台应用。
-- **验证**：`pnpm run verify:i146`；`artifacts/i146-narrative-import-apply.json`。
+- **依赖**：I145；**canonical owner**：`NarrativeRevealPlanner`。
+- **目标**：生成 C3 secret/backstory/foreshadow/plotpoint、holders/KnowledgeState/revealPlan，并把 revealAt 锚定到 I145 B5。
+- **兼容/退役**：不修改 C3 schema/KnowledgeFilter；I52 继续禁止 C3；不在本卡判断或写 C4。
+- **交付物**：先提交 `samples/i146` dev/held-out/gold；fake backend；C3 parser；B5 anchor validator；holders↔knows guard；POV consumer fixture。
+- **验收**：held-out ≥80%；holders/knows 双向一致；revealTo 不含 holder；主角起点未知；未知 B3/B5 引用、非法输出、取消零写。
+- **明确不做**：不生成/应用 C4，不应用 C3，不修改 finalization。
+- **验证**：`pnpm run verify:i146`；`artifacts/i146-secret-reveal-plan.json`。
 
-### I147：已有正文确定性 manuscript candidate（R19-5）
+### I147：C4 public-at-start guard 与 POV 泄漏门（R19-4b）
 
-- **依赖**：I141、I104、I119；**canonical owner**：`ManuscriptImportPlanner`，C5 最终 owner 仍为 `TextRepository`。
-- **目标**：在 `existing-prose + preserve-prose` 下，根据 DOCX 标题/段落证据或 TXT/Markdown 标题形成有序 chapter/scene candidate；规范化后的正文逐字保留，并把 B3/B2/B5/C1/C2/C3/C4 反向分析作为分离的结构候选。
-- **兼容/退役**：LLM 永远不返回 C5 content，只能消费 Host 构造的只读 source ranges 生成结构候选；没有可靠标题时使用确定性的单章/单场景策略并在预览提示，不按文件名或模型猜测拆分。I120“不导入原稿为 C5”的旧行为保持不变，Stage 19 走 additive workflow。
-- **交付物**：manuscript source range/chapter/scene schema；DOCX/TXT/Markdown 标题规则；全文 coverage/fidelity guard；Host-only text candidate builder；结构分析 adapter；非空 readiness preflight；大文档有界测试。
-- **验收**：标题与正文 source ranges 有序、无重叠并完整覆盖规范来源，按相同投影规则可逐字重建；段落、标点、对话、空行策略确定且有 fixture；重复标题按来源顺序生成不同稳定 ID；不可靠标题层级确定性降级为单章/单场景并警告；空正文/超限/hybrid 未决严格拒绝；非空作品在 LLM 前零调用；注入伪造的 LLM C5 字段严格失败。
-- **明确不做**：不应用任何层、不润色/续写正文、不支持富文本样式或批注保留。
-- **验证**：`pnpm run verify:i147`；`artifacts/i147-manuscript-fidelity.json`。
+- **依赖**：I146；**canonical owner**：import-only visibility projector + knowledge leak detector consumer。
+- **目标**：确定性限制初始化 C4 只含故事开始时已公开/建立事件，并验证 B5/C3/C4/B2 trigger 组合后的 POV context。
+- **兼容/退役**：不修改 CanonLedger append-only、普通 finalization 或 C3/C4 canonical schema；未公开事实只留在 C3。
+- **交付物**：public-at-start evidence schema/projector；C4 negative fixture；POV context harness；泄漏 detector 累积回归。
+- **验收**：幕后/未来/presentation/作者指令进入 C4 必须失败；主角 context reveal 前零隐藏事实；公开事件可通过；同证据投影确定性一致。
+- **明确不做**：不调用新的 LLM、不写层、不建立 plan coordinator。
+- **验证**：`pnpm run verify:i147`；`artifacts/i147-c4-visibility-guard.json`。
 
-### I148：已有正文单计划保真应用与恢复（R19-6a）
+### I148：NarrativeImportPlan 统一预览与可恢复应用（R19-5a）
 
-- **依赖**：I146、I147；**canonical owner**：`ManuscriptImportPlanCoordinator` + I11 + `TextRepository`/既有层 repositories。
-- **目标**：把 Host-owned C5 manuscript candidate 与反向结构候选组成一份 `ManuscriptImportPlan`，只对新建/空作品经一次 I11 和同一 Host UoW 应用并可重试恢复。
-- **兼容/退役**：不复用 candidate accept/finalization 冒充导入；导入正文是作者提供的初始 chosen C5，不触发“AI 候选接受为草稿”或把全文当成一次新写正文解析。所有 ID/range/fingerprint 由 plan 冻结，apply 前重新验证空作品、sourceHash、intent 与全部引用。
-- **交付物**：plan/proposal/checkpoint/receipt strict schema；C5+B/C+SceneOutlineBinding prepare/commit/compensation；Markdown mirror/outbox 复用；propose/accept/reject/recover Remote；正文与结构双预览 UI；故障注入/重启夹具。
-- **验收**：未确认/拒绝/stale/非空/任一层、binding 或 C5 写盘失败无半部正文/半套结构；重复 apply 不重复章、场景、binding、分支、正史或知情；重开后 chapter.index→scene.index、chosen content 与源逐字一致，scene↔detailBeat 映射可解析；B5 反向结构不改写 C5；I121 context 只取当前正文和 POV 可知信息。
-- **明确不做**：不合并已有项目、不创建正文版本树、不自动润色、不跳过一次确认。
-- **验证**：`pnpm run verify:i148`；`artifacts/i148-manuscript-import-apply.json`。
+- **依赖**：I147；**canonical owner**：`NarrativeImportPlanCoordinator` + I11 + 既有 onboarding/layer owners。
+- **目标**：明确复用 I52 的 B3/B2/C1/C2 地基候选，替换其 B5/C4，加入 I145 B5、I146 C3 与 I147 C4，形成一次预览和一次确认。
+- **兼容/退役**：只允许新建/空作品。写前全量预检，随后复用既有逐层幂等语义；writer 中途失败返回 durable partial-failure 和 committedStages，以同 operation 恢复，不谎报原子性。Stage 20 再机械迁移共享 UoW。
+- **交付物**：plan/proposal/receipt/checkpoint schema；跨层引用计划器；propose/accept/reject/recover Remote；Client 汇总预览；逐阶段故障注入；binder E2E。
+- **验收**：pending/reject/stale/非空项目零写；故障精确记录且重开可恢复；重复 accept 不重复层数据/时间线；成功后 B5/C3/C4/POV context 正确；原 DOCX 清理不影响 checkpoint。
+- **明确不做**：不写 C5、不承诺跨 owner 全回滚、不支持非空合并或后台应用。
+- **验证**：`pnpm run verify:i148`；`artifacts/i148-narrative-import-apply.json`。
 
-### I149：来源感知主流程路由与 Stage 19 产品 E2E（R19-6b）
+### I149：来源感知主流程路由与 Stage 19 产品 E2E（R19-5b）
 
-- **依赖**：I143、I146、I148；**canonical owner**：既有 Client `workflow` 薄路由 + 产品级验收 harness。
-- **目标**：让 README 步骤 1–2 根据确认意图在叙事化素材、普通拆纲和已有正文保真导入之间选择唯一后端 workflow，并在完成后汇入 I140 已交付的步骤 3–12。
-- **兼容/退役**：不新增第二 workflow route，不删除 I52/I119 进阶兼容入口；普通作者入口不再把任意 DOCX 静默当作长稿。扩展 `verify:product-flow` 而不是建立竞争的产品验收命令；I140 原成功/负向矩阵必须继续全绿。
-- **交付物**：《灰烬圣典》背景叙事化 E2E；纯已有正文保真 E2E；hybrid 段裁决 E2E；手工来源选择、分类拒绝、stale、取消、恢复、UoW 故障、POV 泄漏负向矩阵；作者术语终检；`verify:stage-19`。
-- **验收**：README 12 步编号不变且三种来源从步骤 1–2 汇入同一大纲/细纲流程；《灰烬圣典》第一幕不泄底并有调查者 POV/C3 reveal；已有正文导入、全书检查和最终单稿正文逐字一致；hybrid 未决段零写；所有新 Remote binder/contract lock、held-out、dispose、`pnpm test`、build、I1–I140 product-flow 累积全绿。
-- **明确不做**：不新增第 13 步、不做非空合并、素材库、ST 迁移、富文本或 DOCX 正式导出。
+- **依赖**：I144、I148；**canonical owner**：既有 Client `workflow` 薄路由 + 产品验收 harness。
+- **目标**：让普通拆纲与幕后叙事化从步骤 1–2 汇入 I140 步骤 3–12；existing-prose 明确停留在拆纲/待 Stage 21，不伪装保真导入。
+- **兼容/退役**：不新增 route，不删除 I52/I119 入口；扩展 `verify:product-flow`，I140 原矩阵保持绿。
+- **交付物**：《灰烬圣典》E2E、hybrid 段裁决、手工选择、分类拒绝、stale、取消、partial-failure 恢复、POV 泄漏负向矩阵、术语终检、stage gate。
+- **验收**：README 12 步编号不变；《灰烬圣典》第一幕不泄底且有调查者 POV/C3 reveal；hybrid 未决零写；existing-prose 未选择保真路径；binder/locks/held-out/dispose/test/build/product-flow 全绿。
+- **明确不做**：不写 C5、不新增第 13 步、不做非空合并、素材库、富文本或 DOCX 导出。
 - **验证**：`pnpm run verify:i149`；`pnpm run verify:product-flow`；`pnpm run verify:stage-19`；`artifacts/i149-source-aware-product-flow.json`。
+
+## 21. 阶段 20：导入基础设施重构（R20，I150–I154）
+
+**阶段门**：`pnpm run verify:stage-20`。Stage 20 只允许机械重构与基础设施地基；Stage 19 的公开合同、产品行为、样本/gold/阈值必须保持不变。
+
+### I150：StructuredImportSource 与 DOCX 段落/标题证据（R20-1）
+
+- **依赖**：I149；**canonical owner**：`core/docx` + `core/text/structured-import-source`。
+- **目标**：建立格式、规范文本、paragraph ID、heading level、source range、sourceHash 的单一 Host 来源模型。
+- **兼容/退役**：既有 readDocxText/readImportedText text/chunks 是新模型的纯投影且 contract lock 不变；验证后删除第二解析实现。
+- **交付物**：DOCX/TXT/Markdown 结构 fixture、strict schema、兼容投影、恶意包/不可靠标题负测、消费者夹具。
+- **验收**：段落/标题证据稳定；纯文本投影逐字段等价；路径/ZIP/大小安全不退化；Client bundle 不含 parser。
+- **明确不做**：不拆 chapter/scene、不写 C5、不改变 UI。
+- **验证**：`pnpm run verify:i150`；`artifacts/i150-structured-import-source.json`。
+
+### I151：共享 ImportOperation 与 checkpoint 地基（R20-2）
+
+- **依赖**：I150；**canonical owner**：`core/schema/import-operation` + Host checkpoint store。
+- **目标**：提取 operation envelope、participant contract、freshness/replay、project write lane 和可恢复 checkpoint。
+- **兼容/退役**：只建内部/strict additive 地基，不修改 NarrativeImportPlan wire；不得出现 Narrative/Manuscript 两套状态机。
+- **交付物**：schema/store/lane、状态迁移、跨项目/hash/plan guard、Narrative consumer fixture、dispose 测试。
+- **验收**：重开一致、非法迁移 fail closed、operation replay、同项目串行/跨项目隔离、地基零领域写。
+- **明确不做**：不实现 UoW commit/restore、不迁移 Stage 19 coordinator。
+- **验证**：`pnpm run verify:i151`；`artifacts/i151-import-operation-foundation.json`。
+
+### I152：空作品初始化 UoW 与恢复门（R20-3）
+
+- **依赖**：I151；**canonical owner**：`ImportInitializationUnitOfWork`。
+- **目标**：冻结 participant 基线/目标快照，执行 prepare→commit→restore/recover；恢复未完成时阻断普通写作。
+- **兼容/退役**：本地单 Host，不做分布式事务、全局 saga 或后台 LLM 补写；participant 仍由各领域 owner 实施读写。
+- **交付物**：UoW journal、participant harness、每阶段/恢复阶段故障注入、重启恢复、readiness blocker。
+- **验收**：成功全新；失败/崩溃最终收敛全旧或全新；pending-recovery 不可误报成功/继续写作；重复 recover 幂等。
+- **明确不做**：不接产品 Remote/UI、不迁移 NarrativeImportPlan。
+- **验证**：`pnpm run verify:i152`；`artifacts/i152-import-uow-recovery.json`。
+
+### I153：NarrativeImportPlan 迁移共享 UoW（R20-4a）
+
+- **依赖**：I152；**canonical owner**：Narrative plan participants + shared coordinator adapter。
+- **目标**：把 I148 plan/operation/checkpoint 机械迁移到共享地基，成功/拒绝/stale/replay 与结果形状不变。
+- **兼容/退役**：迁移验证后 delete-first 删除旧状态机/store/lane；不得修改 prompt、候选语义、样本或 UI。
+- **交付物**：B3/B2/B5/C1/C2/C3/C4 participants、adapter、故障等价锁、旧路径零引用扫描。
+- **验收**：I141–I149 全绿；所有 participant 故障经共享恢复收敛；binder/contract lock 不变；无双 owner/fallback。
+- **明确不做**：不新增 manuscript participant、不写 C5。
+- **验证**：`pnpm run verify:i153`；`artifacts/i153-narrative-import-uow-migration.json`。
+
+### I154：Stage 20 架构收口与 Stage 21 消费门（R20-4b）
+
+- **依赖**：I153；**canonical owner**：架构 smoke/contract guards。
+- **目标**：证明结构化来源、shared operation、UoW 和 Narrative consumer 是单一可扩展地基，并冻结 Stage 21 participant 接口。
+- **兼容/退役**：只冻结内部 participant seam，不新增产品 Remote；Stage 19 contract lock、Client DOM 与错误语义保持不变。
+- **交付物**：依赖方向/重复 owner 扫描、Stage 21 fake participant fixture、全量 regression、stage smoke。
+- **验收**：旧 DOCX/text/import、I52/I119、Stage 19 产品流、contract lock、test/build 全绿；fake manuscript participant 可 prepare/commit/restore/replay 而无需复制 coordinator。
+- **明确不做**：不交付 preserve-prose、不创建真实 C5 participant 或 UI。
+- **验证**：`pnpm run verify:i154`；`pnpm run verify:stage-20`；`artifacts/i154-import-foundation-gate.json`。
+
+## 22. 阶段 21：已有正文保真导入（R21，I155–I161）
+
+**阶段门**：`pnpm run verify:stage-21`。必须证明规范化来源→C5→全书导出的文字与顺序一致，结构候选不能修改正文，任一 participant/恢复故障不暴露可用半项目。
+
+### I155：确定性 manuscript source candidate（R21-1）
+
+- **依赖**：I154；**canonical owner**：`ManuscriptImportPlanner`。
+- **目标**：从 StructuredImportSource 建立有序 chapter/scene ranges、稳定 ID 和 Host-owned C5 content candidate。
+- **兼容/退役**：通过新 V2 confirmation method/schema 新增 `preserve-prose`，I142 旧方法仍只接受/返回 expand-outline|adapt-pov；不可靠标题降级单章/单场景；LLM schema 禁止 C5 content。
+- **交付物**：V2 confirmation descriptor/adapter/contract lock/binder；candidate schema、DOCX/TXT/Markdown 规则、coverage/fidelity guard、非空 preflight、大文档测试。
+- **验收**：新旧方法隔离且旧 lock 不变；完整覆盖/无重叠/可重建；重复标题异 ID；标点/对话/空行策略确定；空/超限/hybrid 未决/非空严格拒绝；伪造 LLM C5 字段失败。
+- **明确不做**：不生成 B/C、不应用、不保留富文本样式/批注。
+- **验证**：`pnpm run verify:i155`；`artifacts/i155-manuscript-fidelity.json`。
+
+### I156：已有正文反向 B5 与场景映射候选（R21-2a）
+
+- **依赖**：I155；**canonical owner**：manuscript outline adapter + I119 analyzer consumer。
+- **目标**：按 chapter/scene range 反向生成 B5，并生成可审阅的 scene→detailBeat mapping candidate。
+- **兼容/退役**：不修改 I119 prompt/schema；无法可靠绑定保持 pending，不猜测；B5 无权改变 C5。
+- **交付物**：fake adapter、range evidence、mapping schema、I119 held-out/大文档分块回归。
+- **验收**：B5 evidence 可回指原段；mapping 引用合法稳定 ID；pending 可见；失败/取消零写，C5 candidate fingerprint 不变。
+- **明确不做**：不生成其他 B/C、不保存 binding、不应用正文。
+- **验证**：`pnpm run verify:i156`；`artifacts/i156-manuscript-outline-mapping.json`。
+
+### I157：已有正文其他 B/C 反向候选（R21-2b）
+
+- **依赖**：I156、I146、I147；**canonical owner**：I52/Stage 19 parser adapters。
+- **目标**：复用既有分析器生成 B3/B2/C1/C2/C3/C4 候选并绑定 paragraph evidence；正文中确实叙述成立的事件才可进入 C4。
+- **兼容/退役**：不修改既有 prompt/schema/gold；不可靠层可为空/待作者补充，不为填满 plan 发明事实。
+- **交付物**：adapter、证据耦合、全部既有 held-out、POV/C4 guards、伪造引用负测。
+- **验收**：结构候选 schema/引用合法；C3/C4 安全；任意结构错误不改变 C5/B5；模型不得返回 C5 字段。
+- **明确不做**：不应用层、不自动接受 mapping。
+- **验证**：`pnpm run verify:i157`；`artifacts/i157-manuscript-structure-candidates.json`。
+
+### I158：ManuscriptImportPlan 双预览与一次确认（R21-3）
+
+- **依赖**：I157；**canonical owner**：Manuscript plan builder + Client preview。
+- **目标**：分离预览 C5、B/C 与 mapping，冻结 ID/range/fingerprint，形成一次 I11 proposal。
+- **兼容/退役**：不复用 candidate accept/finalization；只允许新建/空作品；Client 不解析文件或重建 ranges。
+- **交付物**：plan/proposal strict schema、全量引用/fidelity preflight、正文/结构双预览、binder/contract lock。
+- **验收**：未确认/reject/stale/非空零写；C5 coverage 与所有引用在 propose 前通过；刷新恢复预览一致；一次 confirmation 无嵌套 Gate。
+- **明确不做**：不 commit participant、不写 C5/B/C/binding。
+- **验证**：`pnpm run verify:i158`；`artifacts/i158-manuscript-import-preview.json`。
+
+### I159：TextRepository manuscript UoW participant（R21-4）
+
+- **依赖**：I158；**canonical owner**：`TextRepository` import participant。
+- **目标**：把冻结 chapter/scene/chosen C5 作为一个 Stage 20 participant prepare/commit/restore/replay，并复用 Markdown mirror/outbox。
+- **兼容/退役**：导入正文是作者初始 chosen C5，不创建 AI candidate 分支、不触发 finalization；普通 TextRepository API 不变。
+- **交付物**：participant adapter、目标快照、故障注入、重开/mirror/outbox/replay fixture。
+- **验收**：章节/场景/正文不重复；restore 精确；重开顺序和原文一致；mirror 失败不谎报 C5 主写状态。
+- **明确不做**：不协调其他 participant、不写 binding/B/C。
+- **验证**：`pnpm run verify:i159`；`artifacts/i159-text-import-participant.json`。
+
+### I160：ManuscriptImportPlan 共享 UoW 应用与恢复 UI（R21-5a）
+
+- **依赖**：I159；**canonical owner**：shared import coordinator + manuscript participants。
+- **目标**：经一次已接受 proposal 应用 C5、B/C 与已确认 SceneOutlineBinding，并在 pending-recovery 时提供唯一恢复入口。
+- **兼容/退役**：所有 participant 复用 Stage 20 coordinator；不复制状态机/checkpoint/lane；apply 前重验空作品/sourceHash/intent/plan。
+- **交付物**：participants、accept/reject/recover adapter、恢复 UI、逐 participant/恢复故障 E2E。
+- **验收**：失败最终全旧或全新；重复 apply replay；正文/结构/binding/正史/知情不重复；恢复前普通流程阻断；I121 context 只取当前正文和 POV 可知信息。
+- **明确不做**：不合并非空项目、不建版本树、不自动润色。
+- **验证**：`pnpm run verify:i160`；`artifacts/i160-manuscript-import-apply.json`。
+
+### I161：正文保真主流程路由与 Stage 21 产品 E2E（R21-5b）
+
+- **依赖**：I160；**canonical owner**：既有 workflow 薄路由 + 产品验收 harness。
+- **目标**：开放 existing-prose+preserve-prose，从步骤 1–2 导入后汇入步骤 3–12，并证明最终单稿正文保真。
+- **兼容/退役**：不新增 route/第 13 步；I52/I119 与 Stage 19 路径继续兼容；扩展同一 verify:product-flow。
+- **交付物**：纯正文 DOCX/TXT/MD、hybrid、背景叙事化、拒绝、stale、恢复、全文导出 E2E；术语终检；stage gate。
+- **验收**：规范来源→C5→全书检查→TXT/Markdown 文字与顺序一致；三路来源汇入同一 workflow；所有 held-out/binder/locks/dispose/test/build/I1–I160 回归全绿。
+- **明确不做**：不做非空合并、富文本、批注、版本树、自动润色或 DOCX 正式导出。
+- **验证**：`pnpm run verify:i161`；`pnpm run verify:product-flow`；`pnpm run verify:stage-21`；`artifacts/i161-preserve-prose-product-flow.json`。
 
 ---
 
-## 21. 完成线
+## 23. 完成线
 
 I1–I140 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E。
 
-v3.0 当前排期：**Stage 19 来源解释、POV 叙事化与正文保真导入 I141–I149** 按依赖顺序执行，当前为 I141。任一迭代未达 DoD 不得进入下一迭代。
+v3.1 当前排期：**Stage 19 来源确认与幕后素材 POV 叙事化 I141–I149 → Stage 20 导入基础设施重构 I150–I154 → Stage 21 已有正文保真导入 I155–I161**，当前为 I141。任一迭代未达 DoD 不得进入下一迭代。
 
 I74 完成时还必须证明：
 
@@ -1569,19 +1696,32 @@ Stage 18（I103–I140）完成时还必须证明：
 
 Stage 19（I141–I149）完成时还必须证明：
 
-- 来源角色、目标处理与 POV/揭示意图是两根显式轴，建议不可替代作者确认，全部操作绑定 project/importSession/sourceHash；
-- 混合文档范围完整覆盖、可逐段裁决，作者指令与 presentation note 不会变成正文或正史；
+- 来源角色、当前目标处理与 POV/揭示意图是两根显式轴，纯合同先于 session/Remote，建议不可替代作者确认，全部操作绑定 project/importSession/sourceHash；
+- 稳定 paragraph ID 完整覆盖、可逐段裁决，offset 由 Host 投影，作者指令与 presentation note 不会变成正文或正史；
 - 幕后素材生成读者体验 B5 与 C3 秘密揭示计划，《灰烬圣典》第一幕不直接泄露真实自杀、助手操纵或群体信念复活；
 - C4 初始化不接收仅存在于幕后说明、未来计划或作者指令中的事件，主角 POV context 在 reveal 前不含隐藏事实；
-- 已有正文的 C5 由 Host source ranges 确定构造，规范化后逐字保真，LLM 无权改写、补写、重排或提供 C5 content；
-- NarrativeImportPlan 与 ManuscriptImportPlan 均只面向新建/空作品、经一次 I11、同一 Host UoW 幂等应用，失败无半层/半正文；
-- README 仍为同一 12 步 workflow，步骤 1–2 来源感知增强后汇入已交付步骤 3–12；I1–I140 product-flow、全部相关 held-out、binder、contract lock、dispose、`pnpm test`/build 和 `verify:stage-19` 全绿。
+- NarrativeImportPlan 明确复用 I52 的 B3/B2/C1/C2、替换其 B5/C4 并加入 C3；既有逐层 apply 中途失败只能显式 partial-failure 并以同 operation 恢复，不得谎报原子成功；
+- Stage 19 不开放 preserve-prose、不写 C5；README 仍为同一 12 步 workflow，幕后来源从步骤 1–2 汇入已交付步骤 3–12；I1–I140 product-flow、全部相关 held-out、binder、contract lock、dispose、`pnpm test`/build 和 `verify:stage-19` 全绿。
+
+Stage 20（I150–I154）完成时还必须证明：
+
+- StructuredImportSource 是 DOCX/TXT/Markdown 段落、标题、规范文本和 source range 的单一 Host owner，既有纯文本/chunks 投影逐字段兼容；
+- shared ImportOperation/checkpoint/write lane/UoW 只有一套，participant 故障与恢复中断最终收敛到全旧或全新，pending-recovery 阻断普通写作；
+- NarrativeImportPlan 迁移后公开合同、候选语义、样本、gold、阈值和 Client 行为不变，旧 coordinator/store/lane 零引用且无双 owner；
+- fake manuscript participant 能复用同一 prepare/commit/restore/replay 生命周期；I1–I149、test/build、binder/locks/held-out 与 `verify:stage-20` 全绿。
+
+Stage 21（I155–I161）完成时还必须证明：
+
+- `existing-prose + preserve-prose` 的 C5 只能由 Host source ranges 构造，规范化后可逐字重建，LLM 无权返回、改写、补写或重排正文；
+- B5/mapping 与其他 B/C 反向候选携带段落证据并与 C5 分离，无法可靠绑定时保持 pending，不发明细纲或事实；
+- ManuscriptImportPlan 只面向新建/空作品，经一次 I11 与 Stage 20 UoW 应用 C5+B/C+已确认 binding，失败/恢复未完成不暴露可用半项目，重复 apply 为 replay；
+- README 仍为同一 12 步 workflow，已有正文从步骤 1–2 汇入步骤 3–12；规范来源→C5→全书检查→TXT/Markdown 保真，I1–I160 与 `verify:stage-21` 全绿。
 
 语义向量检索、C2 items/factions/globalFlags、ST 迁移、已有非空作品合并导入、novel 自有主题引擎、C3 revealAt 直接引用时间线节点 id 的联动，以及 review v2.0 其余中-低/低项（validator 骨架、仓储 primitive、import 格式 descriptor 等）继续后置为 backlog；公开 Remote 服务的破坏性改名（`novelImport`/`novelImportExport`/`novelExport` 三服务合并）已由 **I100** 立项（兼容迁移，见 §18）。
 
 ---
 
-## 22. Risks 与 Retirement
+## 24. Risks 与 Retirement
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移与兼容门**：I54 已完成 Slot 落点决策；I85 已把唯一项目 DSH family pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，并重跑真实 base+web+plugin 与完整 Client/Remote/Tools/LLM 门；门内任一失败即回退 I85，不以混装或双路 fallback 过关。当前无运行时观测与项目 pin 的漂移。
@@ -1603,7 +1743,9 @@ Stage 19（I141–I149）完成时还必须证明：
 - **Stage 18 派生数据与退役**：EntityLink/index、resolved session state 和 aggregate tree 不得成为第二真相；新 router/选择器验证后删除旧 direct-jump/手填 ID 主路径，不保留双 owner fallback。主流程不得把十九项技术面板继续作为同权入口；单一 Markdown/txt 稿件和 archive 均零链接 sidecar，per-chapter 文本导出仅保留为进阶兼容入口。
 - **Stage 19 来源语义风险**：自动分类只可建议，不可替作者决定 sourceRole/treatment/POV；混合范围未决即停止。ImportInterpretation/checkpoint 是 operational evidence，不得成为第 14 层、第二素材库或覆盖 B/C/C5 owner。
 - **Stage 19 泄密风险**：幕后年表不得直接转成 B5 顺序或初始化 C4；隐藏事实只通过 C3 holders/knows/revealPlan 进入 POV-safe 上下文，必须以《灰烬圣典》和知识泄漏 detector 证明 reveal 前零泄漏，禁止依赖 prompt 礼貌要求模型保密。
-- **Stage 19 正文保真风险**：C5 content 只能由 Host 受控原文范围构造；LLM 返回任何 C5 文本均视为合同错误。规范化、标题拆分、合并预览与 apply 必须可证明无丢段、重排、改写或重复；非空项目继续 fail closed。
+- **Stage 19 应用风险**：I148 仍复用既有逐层 apply 语义，技术失败可能留下已明确记账的已完成层；必须返回 partial-failure、阻止普通流程并以同一 operation 恢复，不得在 Stage 19 文案或结果中冒充全回滚。Stage 20 完成后该实现必须 delete-first 迁移共享 UoW。
+- **Stage 20 重构风险**：结构化来源必须保持旧 text/chunks 投影；UoW 恢复不得创建第二领域 owner。I150–I154 禁止夹带 preserve-prose、修改 prompt/gold/阈值或改变 Stage 19 wire/产品语义。
+- **Stage 21 正文保真风险**：C5 content 只能由 Host 受控原文范围构造；LLM 返回任何 C5 文本均视为合同错误。规范化、标题拆分、双预览与 apply 必须证明无丢段、重排、改写或重复；非空项目继续 fail closed，富文本/批注/修订不在保真承诺内。
 - **大文件拆分风险**：I82/I83 拆 `client.ts` 时保持 DOM 契约与既有测试锚点不变，测试迁移分批提交；禁止一迭代内同时改实现与语义。
 - **范围蔓延风险**：重构迭代禁止夹带新功能或领域语义调整；超范围想法记 backlog。
 - **命名统一风险**：I84 只统一内部命名，公开 Remote 服务名不动；需改名的破坏性变更另行立项走兼容迁移。
