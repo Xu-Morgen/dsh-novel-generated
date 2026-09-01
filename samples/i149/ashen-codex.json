@@ -1,0 +1,25 @@
+{
+  "immutable": true,
+  "fixture": "灰烬圣典",
+  "sourceRole": "background-material",
+  "treatment": "adapt-pov",
+  "narrativeIntent": {
+    "pov": "limited",
+    "protagonistCandidateId": "investigator",
+    "initialKnown": [],
+    "revealPacing": "balanced"
+  },
+  "paragraphs": [
+    { "paragraphId": "paragraph-0001", "role": "world-truth", "text": "卢西恩创立焚书会，留下了被删改的港口档案。" },
+    { "paragraphId": "paragraph-0002", "role": "world-truth", "text": "真实自杀与助手操纵是幕后真相，不能在第一幕直接解释。" },
+    { "paragraphId": "paragraph-0003", "role": "world-truth", "text": "群体信念复活属于后段机制，须在揭示计划中延后。" },
+    { "paragraphId": "paragraph-0004", "role": "plot-plan", "text": "第一幕先让调查者发现缺页、跟踪线索并作出暂时误判。" },
+    { "paragraphId": "paragraph-0005", "role": "author-instruction", "text": "请保持限知视角，先写可验证的外部冲突。" },
+    { "paragraphId": "paragraph-0006", "role": "presentation-note", "text": "让读者先看到异常记录与仍在活动的线索。" }
+  ],
+  "firstActContract": {
+    "mustInclude": ["调查者体验", "线索", "暂时误判"],
+    "mustDefer": ["真实自杀", "助手操纵", "群体信念复活"],
+    "revealOrder": ["线索", "错误判断", "确认仍活着", "归来", "最终机制揭示"]
+  }
+}

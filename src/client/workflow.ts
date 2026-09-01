@@ -1,4 +1,5 @@
 import type { WorkbenchViewId } from './nav.js';
+import type { SourceAwareWorkflowProjection } from './source-aware-workflow.js';
 
 /**
  * I139 作者主流程的八个产品阶段（design §14.14.2 / R18-15）。
@@ -14,6 +15,8 @@ export interface WorkflowState {
   readonly stage: WorkflowStageId;
   readonly chapterId?: string;
   readonly sceneId?: string;
+  /** I149 render-only projection; it is never persisted as workflow domain state. */
+  readonly sourceAware?: SourceAwareWorkflowProjection;
 }
 export interface WorkflowResume {
   readonly projectId: string;
@@ -33,8 +36,8 @@ export interface WorkflowStage {
 }
 
 export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
-  { id: 'import', step: 1, label: '导入', hint: '导入思路、梗概或长稿', nextAction: '导入原文或粘贴创作素材', view: 'onboarding' },
-  { id: 'outline', step: 2, label: '大纲', hint: '整理大纲候选并由作者确认', nextAction: '查看并确认大纲候选', view: 'outline' },
+  { id: 'import', step: 1, label: '导入', hint: '导入来源并确认角色、目标与叙事意图', nextAction: '确认来源语义与适用视角', view: 'onboarding' },
+  { id: 'outline', step: 2, label: '大纲', hint: '按确认意图审阅大纲与揭示计划', nextAction: '查看并确认大纲候选', view: 'outline' },
   { id: 'detail', step: 3, label: '细纲', hint: '为选定的幕、章或全书生成细纲', nextAction: '选择范围并生成细纲候选', view: 'outline' },
   { id: 'baseline', step: 4, label: '生成基线', hint: '修改细纲并建立正文生成基线', nextAction: '确认细纲并建立生成基线', view: 'chapters' },
   { id: 'prose', step: 5, label: '正文', hint: '按细纲卡生成、接受或微调正文', nextAction: '打开当前场景并处理正文候选', view: 'chapters' },

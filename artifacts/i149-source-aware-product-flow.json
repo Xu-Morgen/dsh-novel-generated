@@ -1,0 +1,60 @@
+{
+  "iteration": "I149",
+  "requirement": "R19-5b",
+  "fixture": "灰烬圣典",
+  "flow": [
+    {
+      "step": 1,
+      "route": "source-confirmation",
+      "status": "passed"
+    },
+    {
+      "step": 2,
+      "route": "ordinary-outline-or-narrative-plan",
+      "status": "passed"
+    },
+    {
+      "step": 3,
+      "route": "existing-detail-workflow",
+      "status": "passed"
+    },
+    {
+      "step": "3-12",
+      "route": "existing-i140-workflow",
+      "status": "preserved"
+    }
+  ],
+  "negativeMatrix": [
+    "hybrid-unresolved-zero-write",
+    "classifier-failure-manual-choice",
+    "stale-plan-blocks-detail",
+    "cancelled-review-returns-to-import",
+    "partial-failure-and-pending-recovery-block-detail",
+    "existing-prose-no-fidelity-treatment",
+    "pov-first-act-defers-hidden-answers",
+    "author-visible-terminology-zero-violations"
+  ],
+  "guarantees": [
+    "no-new-workflow-route",
+    "ordinary-and-narrative-imports-converge-on-existing-i140-stages",
+    "source-aware-projection-does-not-call-remote-or-write-files",
+    "i148-plan-namespace-remains-host-owned-and-c5-free",
+    "README-has-exactly-twelve-numbered-steps",
+    "stage18-lock-counts-unchanged",
+    "client-dispose-and-existing-binder-regressions-run"
+  ],
+  "focusedSuites": "source-aware Client route, Ashen Codex safety fixture, Stage 19 owners, binder, and cumulative contract lock passed",
+  "explicitNonGoals": [
+    "c5-write",
+    "new-workflow-route",
+    "step-13",
+    "non-empty-merge",
+    "fidelity-import",
+    "rich-text",
+    "docx-export"
+  ],
+  "lexicon": {
+    "forbiddenTermCount": 34,
+    "violations": 0
+  }
+}

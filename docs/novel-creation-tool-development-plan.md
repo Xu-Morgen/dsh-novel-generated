@@ -2,7 +2,7 @@
 
 > 版本：v3.1
 > 日期：2026-09-01
-> 状态：当前执行权威（**I1–I140 全部完成**；Stage 18 已成为真实代码基线；**Stage 19–21 / I141–I161 已按来源叙事化→导入地基重构→正文保真导入顺序立项，当前执行 I141**）
+> 状态：当前执行权威（**I1–I149 全部完成**；Stage 18 与 Stage 19 已成为真实代码基线；Stage 20–21 / I150–I161 继续按导入地基重构→正文保真导入顺序立项，当前执行 I150）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v3.1（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）

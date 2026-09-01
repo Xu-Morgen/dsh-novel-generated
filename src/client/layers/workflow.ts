@@ -1,10 +1,12 @@
 import type { El } from '../shared.js';
 import { WORKFLOW_STAGES, type WorkflowStageId, type WorkflowState, workflowStageOf } from '../workflow.js';
+import type { SourceAwareWorkflowProjection } from '../source-aware-workflow.js';
 
 export interface WorkflowPanelProps {
   readonly state: WorkflowState;
   readonly projectName: string;
   readonly openStage: (stage: WorkflowStageId) => void;
+  readonly sourceAware?: SourceAwareWorkflowProjection;
 }
 
 /**
@@ -14,6 +16,7 @@ export interface WorkflowPanelProps {
  */
 export function workflowPanel(h: El, props: WorkflowPanelProps): unknown {
   const current = workflowStageOf(props.state.stage);
+  const source = props.sourceAware ?? props.state.sourceAware;
   return h('section', {
     className: 'nv-panel nv-workflow',
     'data-novel-workflow-panel': '',
@@ -25,6 +28,12 @@ export function workflowPanel(h: El, props: WorkflowPanelProps): unknown {
       h('strong', null, `当前阶段：${current.label}`),
       h('p', { className: 'nv-settings__hint' }, `下一步：${current.nextAction}`),
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workflow-next-action': '', onClick: () => props.openStage(current.id) }, `进入${current.label}`),
+    ),
+    source === undefined ? null : h('section', { className: 'nv-workflow__source', 'data-novel-workflow-source-route': source.route, 'data-novel-workflow-source-status': source.planStatus ?? 'unplanned' },
+      h('h4', { className: 'nv-workflow__source-title' }, '来源进入创作流程'),
+      h('p', { className: 'nv-settings__hint', role: 'status', 'aria-live': 'polite', 'data-novel-workflow-source-message': '' }, source.message),
+      source.unresolvedParagraphIds.length === 0 ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-workflow-source-unresolved': '' }, `尚有 ${source.unresolvedParagraphIds.length} 段来源待裁决。`),
+      h('button', { type: 'button', className: 'nv-btn', disabled: source.nextStage === 'import' && source.route === 'awaiting-source-confirmation', 'data-novel-workflow-source-next': source.nextStage, onClick: () => props.openStage(source.nextStage) }, source.nextStage === 'detail' ? '进入细纲步骤' : source.nextStage === 'outline' ? '进入大纲步骤' : '返回来源确认'),
     ),
     h('ol', { className: 'nv-workflow__stages', 'data-novel-workflow-stages': '' },
       WORKFLOW_STAGES.map((stage) => {

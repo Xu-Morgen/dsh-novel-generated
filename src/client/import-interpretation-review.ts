@@ -166,6 +166,8 @@ export function importIntentValidationMessage(state: ImportInterpretationReviewS
   if (state.projectId.trim() === '' || state.sourceHash.trim() === '') return '来源身份不可用，请重新读取文件。';
   if (state.selectedSourceRole === undefined) return '请确认来源角色。';
   if (state.treatment === undefined) return '请选择当前处理目标。';
+  if (state.selectedSourceRole === 'existing-prose' && state.treatment === 'adapt-pov') return '已有正文在当前阶段只能扩展为大纲；正文保真导入尚未开放。';
+  if ((state.selectedSourceRole === 'idea' || state.selectedSourceRole === 'synopsis') && state.treatment === 'adapt-pov') return '按视角重构目前只适用于背景素材或混合来源，请改选扩展为大纲。';
   const intent = state.narrativeIntent;
   if (state.treatment === 'adapt-pov') {
     if (intent === undefined) return '按视角重构需要补充叙事意图。';
@@ -256,6 +258,9 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
   const validation = importIntentValidationMessage(state);
   const suggested = state.analysis?.sourceRole;
   const lowConfidence = state.analysis?.confidence === 'low';
+  const treatmentOptions = state.selectedSourceRole === 'existing-prose'
+    ? ([['expand-outline', TREATMENT_LABELS['expand-outline']]] as const)
+    : IMPORT_TREATMENT_OPTIONS;
   return h('section', { className: 'nv-import-review', 'data-novel-import-interpretation-review': '', 'data-novel-import-interpretation-status': state.analysisStatus, 'data-novel-narrow-review': '' },
     h('div', { className: 'nv-import-review__header' },
       h('h3', null, '确认导入来源'),
@@ -264,8 +269,8 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     suggested === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-overall-suggestion': '' }, `整体建议：${SOURCE_ROLE_LABELS[suggested]}${lowConfidence ? '（置信度较低，请重点核对）' : ''}`),
     lowConfidence ? h('p', { className: 'nv-import-review__warning', role: 'alert', 'data-novel-import-interpretation-low-confidence': '' }, '当前来源判断置信度较低，不会自动进入下一步。') : null,
     selectField(h, '来源角色（必须确认）', state.selectedSourceRole, IMPORT_SOURCE_ROLE_OPTIONS, (value) => ops.setSourceRole(value as ImportSourceRole), { 'data-novel-import-interpretation-source-role': '' }),
-    selectField(h, '当前处理目标（必须确认）', state.treatment, IMPORT_TREATMENT_OPTIONS, (value) => ops.setTreatment(value as ImportTreatment), { 'data-novel-import-interpretation-treatment': '' }),
-    state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前阶段只支持扩展为大纲或按视角重构；正文保真导入尚未交付，将在 Stage 21 提供。') : null,
+    selectField(h, '当前处理目标（必须确认）', state.treatment, treatmentOptions, (value) => ops.setTreatment(value as ImportTreatment), { 'data-novel-import-interpretation-treatment': '' }),
+    state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前阶段只支持扩展为大纲；正文保真导入尚未交付，将在 Stage 21 提供。') : null,
     intentFields(h, state, ops),
     evidencePanel(h, state),
     paragraphPanel(h, state, ops),
@@ -408,8 +413,18 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     }, (error: Error) => patch({ busy: false, error: toUserMessage(error, '来源意图未确认，请检查后重试。') }));
   };
 
-  const setSourceRole = (role: ImportSourceRole | undefined): void => patch({ selectedSourceRole: role, confirmed: false });
+  const setSourceRole = (role: ImportSourceRole | undefined): void => {
+    if (role === 'existing-prose' && current?.treatment === 'adapt-pov') {
+      patch({ selectedSourceRole: role, treatment: undefined, narrativeIntent: undefined, confirmed: false });
+      return;
+    }
+    patch({ selectedSourceRole: role, confirmed: false });
+  };
   const setTreatment = (treatment: ImportTreatment | undefined): void => {
+    if (treatment === 'adapt-pov' && current?.selectedSourceRole === 'existing-prose') {
+      patch({ treatment: undefined, narrativeIntent: undefined, confirmed: false, error: '已有正文在当前阶段只能扩展为大纲；正文保真导入尚未开放。' });
+      return;
+    }
     if (treatment === 'expand-outline') patch({ treatment, narrativeIntent: undefined, confirmed: false });
     else patch({ treatment, narrativeIntent: current?.narrativeIntent ?? { pov: 'omniscient', initialKnown: [], revealPacing: 'balanced' }, confirmed: false });
   };

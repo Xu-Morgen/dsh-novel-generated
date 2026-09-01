@@ -30,6 +30,7 @@ import { llmSettingsPanel } from './settings.js';
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './panels/index.js';
 import type { OnboardingController, ProjectController, SettingsController, UploadController } from './controllers.js';
 import { paragraphsFromHostChunks, sourceInterpretationReview, type ImportInterpretationController, type ImportInterpretationParagraph, type ImportInterpretationReviewState } from './import-interpretation-review.js';
+import { projectSourceAwareWorkflow } from './source-aware-workflow.js';
 
 /** ui 方法表（Overlay → 控制器命令的薄适配层；I90 收敛为单一接口）。 */
 export interface WorkbenchUi {
@@ -343,6 +344,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     setParagraphRole: (paragraphId, role) => ui.setImportParagraphRole(paragraphId, role),
     setParagraphDecision: (paragraphId, decision) => ui.setImportParagraphDecision(paragraphId, decision),
   });
+  const sourceAware = importInterpretationReview === undefined ? undefined : projectSourceAwareWorkflow({ review: importInterpretationReview });
   const combinedReview = importReview === null ? review : h('div', { className: 'nv-onboarding-review-stack', 'data-novel-import-and-onboarding-review': '' }, importReview, review);
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
@@ -394,7 +396,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
             ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState,
             statistics: statisticsState, timeline: timelineState, router: routerState, workflow: states.workflow,
             outlineDetailGeneration: states.outlineDetailGeneration,
-          }, ops, sourceEntry, combinedReview, settings, creationSettings, states.workflow, ui.openWorkflowStage),
+          }, ops, sourceEntry, combinedReview, settings, creationSettings, { ...states.workflow, sourceAware }, ui.openWorkflowStage),
         ),
       ),
     )
