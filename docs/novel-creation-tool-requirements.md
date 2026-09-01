@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v2.9
-> 日期：2026-08-31
+> 版本：v3.0
+> 日期：2026-09-01
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
 
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v2.9：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24 与 D25。
-2. 本文件 v2.9：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v2.9：I1–I105 的完成事实及 Stage 18（I103–I140）执行卡片、owner、依赖、交付物与命令细节。
-4. `AGENTS.md` v2.9：执行纪律。
+1. `docs/novel-creation-tool-design.md` v3.0：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25 与 Stage 19 来源语义裁决。
+2. 本文件 v3.0：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v3.0：I1–I140 的完成事实及 Stage 19（I141–I149）执行卡片、owner、依赖、交付物与命令细节。
+4. `AGENTS.md` v3.0：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I105 全部完成**；Stage 17（I86–I102）已成为当前代码基线，Stage 18 的 I103–I105 已按各自 verify 完成，当前执行 I106。Stage 18（I103–I140）按 `design.md` §14.14 的合同地基与依赖顺序正式立项；旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R18 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I140 全部完成**；Stage 18 的 README 十二步产品流、合同地基与新增能力均已通过各自 verify，当前执行 I141。Stage 19（I141–I149）按 `design.md` §14.15 的来源解释与导入语义依赖正式立项；旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何保留需求必须能追溯到至少一个正式迭代和一个精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R19 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -32,7 +32,7 @@
 3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有 LLM 调用只能走 Host 的 `ctx.llm`；禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
 4. 硬检测器：canonical 违规样本 **100% 命中**且整体准确率 **≥90%**；正史解析器准确率 **≥85%**；其他 LLM 模块准确率 **≥80%**。
 5. 样本、held-out 子集和 gold 均为不可变验收资产；不得为过关修改样本、held-out、gold 或阈值。dev 可用于调优，held-out 只用于收尾验收。
-6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`；I112—`pnpm run verify:i112`；I113—`pnpm run verify:i113`；I118—`pnpm run verify:i118`；I119—`pnpm run verify:i119`；I123—`pnpm run verify:i123`；I128—`pnpm run verify:i128`；I134—`pnpm run verify:i134`。I109–I111 与 I135–I137 复用既有 parser/detector 时仍须运行对应既有 held-out 回归，不得以“未改 prompt”跳过集成回归。
+6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`；I112—`pnpm run verify:i112`；I113—`pnpm run verify:i113`；I118—`pnpm run verify:i118`；I119—`pnpm run verify:i119`；I123—`pnpm run verify:i123`；I128—`pnpm run verify:i128`；I134—`pnpm run verify:i134`；I142—`pnpm run verify:i142`；I144—`pnpm run verify:i144`；I145—`pnpm run verify:i145`。I109–I111、I135–I137 与 I147–I148 复用既有 parser/detector 时仍须运行对应既有 held-out 回归，不得以“未改 prompt”跳过集成回归。
 7. 所有用户确认复用 I11 ConfirmationGate。未确认不得写回；重复确认必须幂等。
 8. 每个迭代只有在对应 `verify:iN` 通过后才可完成；每个阶段只有在全部迭代验证和 `verify:stage-N` 通过后才可完成。
 
@@ -59,6 +59,7 @@
 | Stage 16 DSH family 兼容升级 | I85 | `pnpm run verify:stage-16` |
 | Stage 17 架构债务修复（review v2.0 立项） | I86–I102 | `pnpm run verify:stage-17` |
 | Stage 18 合同地基、作者主流程与新增功能（R18） | I103–I140 | `pnpm run verify:stage-18` |
+| Stage 19 来源解释、POV 叙事化与正文保真导入（R19） | I141–I149 | `pnpm run verify:stage-19` |
 
 ---
 
@@ -457,7 +458,7 @@
 
 ## R18. Stage 18 作者主流程与新增功能需求（I103–I140）
 
-> 定位：R18-1–R18-15 是稳定产品需求 ID，不等同于实现迭代。v2.9（2026-08-31）把 README 的 12 步作者工作流提升为唯一主要交付流程，并在 v2.8 的 I103–I132 之后追加 I133–I140；I103 是全部新增公开合同的前置门且已经通过，当前执行 I106。既有 invocation 向后兼容，允许经过 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；§0.1 宿主基线与 13 层叙事模型不变。
+> 定位：R18-1–R18-15 是稳定产品需求 ID，不等同于实现迭代。v2.9（2026-08-31）把 README 的 12 步作者工作流提升为唯一主要交付流程，并在 v2.8 的 I103–I132 之后追加 I133–I140；Stage 18 已由 I140 完整收口并成为 Stage 19 的代码基线。既有 invocation 向后兼容，允许经过 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；§0.1 宿主基线与 13 层叙事模型不变。
 >
 > 产品方向：**导入思路/梗概/长稿 → 审阅 AI 大纲候选 → 按幕/章/全书生成并修改细纲 → 建立近期场景生成基线 → 每卡生成正文候选 → 接受为草稿/重写/手改 → 分析最终正文 → 一次确认结构化变化与后续细纲调和 → 完成当前卡并进入下一张 → 仅消费有效正文/状态/POV 知情 → 全书一致性检查 → 带目录的单一 TXT/Markdown**。正文保持轻量纯文本；DOCX 编译仍为未来可选项。
 >
@@ -497,20 +498,43 @@
 
 ---
 
+## R19. Stage 19 来源解释、POV 叙事化与正文保真导入（I141–I149）
+
+> 定位：R19 修复已交付主流程步骤 1–2 的语义缺口。来源中的“客观真相顺序”不等于“读者应直接看到的大纲顺序”；已有正文也不等于只供拆纲的素材。Stage 19 不修改 I1–I140 历史合同，不新增叙事层，只通过 strict additive workflow 把来源解释、作者意图、B5/C3 投影和 C5 保真导入接入既有 `workflow`。
+
+| ID | 需求与已裁决行为 | 可机器验收与边界 | 计划迭代 |
+|---|---|---|---|
+| R19-1 | 导入来源角色与目标处理必须分为两根独立轴。来源角色至少包含想法、梗概/计划、背景/幕后资料、已有正文和混合文档；目标处理至少包含扩展大纲、按 POV 叙事化、保真导入正文。系统只给建议，作者确认后的 `sourceRole/treatment/narrativeIntent` 与 projectId/importSessionId/sourceHash 一起绑定。 | 非法组合、缺 POV、未知主角、低置信自动选择、跨项目或 sourceHash 变化全部拒绝；相同输入/意图产生稳定 fingerprint；旧 I52/I119 invocation 逐字段不变；新增 Remote 具 strict schema、contract lock、真实 binder 与非法结果负测。 | I141 |
+| R19-2 | Host 对受控文本生成来源解释候选，按稳定范围分类 `world-truth/plot-plan/prose/author-instruction/presentation-note`，提供整体建议、置信度和证据；混合文档由作者逐段修正并确认。解释结果是 import operational evidence，不是第 14 层或素材库。 | 先冻结 dev/held-out/gold，整体与范围分类准确率均 ≥80%；范围有序、无重叠、完整覆盖；取消/模型错误/非法 JSON/超限零写；`帮我想想`、`玩家可见`、幕后时间线不得误标为既有正文；Client 可访问地审阅并修正，未裁决段阻止下一步。 | I142–I143 |
+| R19-3 | `background-material|hybrid + adapt-pov` 必须把客观真相、读者体验与角色知情分离：B5 按所选主角的行动、调查、误判、冲突和揭示顺序生成；幕后事实形成 C3 秘密/背景/伏笔/关键点及 holders/revealPlan 候选；主角起点不知的事实不得提前进入其可见投影。 | POV 大纲与 C3 样本/held-out 各 ≥80%；第一幕直接答案泄漏、硬编码主角、按幕后年表复述、作者指令进入 beat、主角持有未揭示秘密均失败；B5/C3 均带来源证据，重新生成保持已确认意图不变。`docs/novels/灰烬圣典.docx` 是真实消费 fixture。 | I144–I145 |
+| R19-4 | 幕后资料导入形成单一 `NarrativeImportPlan`：B2/B3/B5/C1/C2/C3 与仅公开/已建立事件的 C4 分别预览，经一次 I11 在同一 Host UoW 幂等应用。仅存在于幕后说明、未来计划或作者指令的事实不得初始化为 C4；待正文真正建立后仍走既有 finalization 追加。 | pending/reject/stale/写盘故障均零写或完整补偿；重复 apply 不重复实体、知情或正史；跨层引用预检；成功后主角 POV context 不含隐藏事实且 B5 只含读者体验；旧六层 apply 继续兼容。 | I145–I146 |
+| R19-5 | `existing-prose + preserve-prose` 必须形成有序 manuscript candidate，按 DOCX 标题/段落或 TXT/Markdown 标题证据映射 chapter/scene；在既有规范化后正文逐字保留。结构化层与反向 B5 可以由 AI 生成，但不得改写、补写、润色、丢段或重排 C5。 | 标题与正文 source ranges 合计完整覆盖且无重叠，按同一投影规则可逐字重建规范来源；模型输出无权提供 C5 文本；重复标题按来源顺序生成不同稳定 ID，不可靠标题层级确定性降级为单章/单场景并警告；空正文、超限和混合未裁决 fail closed；非空作品在 LLM/写入前拒绝。 | I147 |
+| R19-6 | 已有正文与结构化候选组成单一 `ManuscriptImportPlan`，只允许新建/空作品，经一次 I11 和同一 Host UoW 幂等应用，随后进入既有十二步流程。主流程根据已确认来源自动路由到叙事化导入或正文保真导入，不出现第二 workflow route。 | C5/B3/B2/B5/C1/C2/C3/C4 与 SceneOutlineBinding 写入前全量预检；失败无半部正文/半套层，重复应用为 replay；重开后 chapter.index→scene.index、正文、B5、binding 和 POV context 一致；固定 fake LLM 覆盖背景、正文、混合、拒绝、stale、恢复与全文导出；I1–I140 `verify:product-flow` 保持绿。 | I148–I149 |
+
+### R19 十二步流程调整
+
+README 仍为唯一 12 步，不增加步骤数量：
+
+1. 步骤 1 改为“导入来源并确认来源角色、目标处理以及适用的 POV/揭示意图”；系统建议不可替代作者确认。
+2. 步骤 2 改为“按确认意图生成大纲候选并审阅”；幕后素材生成读者体验 B5+C3 揭示候选，已有正文同时预览 C5 保真结构与反向大纲。
+3. 步骤 3–12 的细纲、生成基线、逐卡正文、一次确认定稿、有效上下文、全书检查和单稿导出编号与 owner 均不变。
+
+---
+
 ## Deferred / 非目标
 
 | ID | 项目 | 约束与理由 |
 |---|---|---|
-| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的 DOCX/自由文本六层初始化走 I50–I53；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
+| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的传统六层初始化走 I50–I53，来源感知导入走 I141–I149；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
 | N-2 | 向量检索 | 语义向量检索和 B2 `vector` trigger 延后；当前使用关键词/正则/全文与 I40 精确 SQLite 索引。文件始终是 source of truth。 |
 | N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM、浏览器直读/直写作品文件或 DSH 之外的受支持主路径。I51 文件选择器只允许把受限用户输入运输到 Host 临时区，Client 不解析且不成为文件 owner。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
 | N-5 | 自动强制改写大纲 | 偏差先记录；R18-11 只允许系统分析影响并生成逐卡调和候选。接受新方向或调整未来细纲必须由用户逐卡选择并经 ConfirmationGate；wording-only、普通保存、未确认和后台扫描均不得修改未来 B5 语义，只有显式 finalize 可确定性推进当前卡完成状态。 |
 | N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
-| N-7 | 已有非空作品合并导入 | Stage 10 仅初始化新建/空作品；不静默合并或覆盖已有六层。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
+| N-7 | 已有非空作品合并导入 | Stage 10 与 Stage 19 均只初始化新建/空作品；不静默合并或覆盖已有六层/C5。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
 | N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
 | N-9 | 重构改变领域契约与产品能力 | Stage 15（I75–I84）重构只消除复制与接线债务：不改变任何领域契约、公开 Remote/wire 形状、LLM 样本/gold/阈值与产品功能；公开服务改名属破坏性变更，另行立项走兼容迁移。 |
-| N-10 | 作者笔记/批注/素材库 | P1.6 作者裁决：不在本项目考虑范围。产品只做「按大纲/细纲/关系/时间线/人物/知情自动创作 + 微调发布」，不承载资料收集。 |
+| N-10 | 作者笔记/批注/素材库 | P1.6 作者裁决：不在本项目考虑范围。R19 可把一次受控导入来源解释为幕后素材，但不会建立长期素材收藏、批注、标签或第二内容 owner。 |
 | N-11 | 独立“继续写作”仪表盘 | 不另建与创作流程竞争的首页；R18-15 的唯一流程壳必须恢复当前作品、当前步骤与选中场景，这属于主流程连续性而非第二个首页。 |
 | N-12 | 富文本/专注写作编辑器 | P0.3 作者裁决：正文编辑非重要内容，保持轻量 textarea 编辑（微调即发布），不立项。 |
 | N-13 | 正式 DOCX 交稿编译 | P1.11 作者裁决：Markdown 交付可接受，DOCX 编译不做。 |
@@ -520,6 +544,6 @@
 
 ## 结论
 
-**直接结论：I1–I105 已完成。v2.0–v2.4 交付 Host/Client 产品闭环、作品启动、正文写作、能力可达性、时间线、Stage 15 架构债务消除与 Stage 16 DSH family `0.1.1-rc.2` 兼容升级；Stage 17 / I86–I102 已完成 Remote binder、组合根、UoW、TextRepository、Client 切片与 schema 单点化修复，I103–I105 已完成 Stage 18 合同门、C5 mutation/排序和 SceneOutlineBinding。Stage 18 / I103–I140 是当前排期，当前执行 I106，并按 R18-1–R18-15 的依赖顺序交付 README 规定的 12 步作者主流程。**
+**直接结论：I1–I140 已完成。v2.0–v2.9 已交付 Host/Client 产品闭环、作品启动、正文写作、架构治理、Stage 18 合同与 README 十二步作者主流程。Stage 19 / I141–I149 是当前排期，当前执行 I141，并按 R19-1–R19-6 增强步骤 1–2：先确认来源语义和目标处理，再分别完成幕后素材 POV 叙事化/C3 揭示规划或已有正文 C5 保真导入。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
