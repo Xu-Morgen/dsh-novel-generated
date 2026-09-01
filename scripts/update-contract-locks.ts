@@ -39,6 +39,7 @@ import { compileManuscriptInvocation } from '../src/host/remote/import-export.js
 import { importInterpretationInvocations } from '../src/host/remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from '../src/host/remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations } from '../src/host/remote/narrative-adaptation.js';
+import { narrativeRevealInvocations } from '../src/host/remote/narrative-reveal.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
@@ -262,6 +263,22 @@ for (const lock of EXISTING_LOCKS) {
     resultSchemas,
   });
   console.log('created contracts/stage19/narrative-adaptation-remote.json');
+}
+
+/** I146 candidate-only C3 reveal Remote lock (R19-4a). */
+{
+  const descriptors = remoteDescriptorLockBodies(narrativeRevealInvocations);
+  const resultSchemas = remoteResultShapeBodies(narrativeRevealInvocations);
+  write('contracts/stage19/narrative-reveal-remote.json', {
+    schemaVersion: 1,
+    namespace: 'stage19NarrativeReveal',
+    contractNote: 'I146 C3 secret/reveal planner 只追加候选 Remote；不应用 C3、不生成或写入 C4/C5。',
+    descriptorIds: Object.keys(descriptors),
+    descriptors,
+    resultSchemaIds: Object.keys(resultSchemas),
+    resultSchemas,
+  });
+  console.log('created contracts/stage19/narrative-reveal-remote.json');
 }
 
 /** I142 additive import-interpretation session Remote lock (R19-1b). */

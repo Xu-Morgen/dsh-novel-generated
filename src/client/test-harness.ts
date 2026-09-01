@@ -147,6 +147,7 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
   const importInterpretationStub = mountOptions.importInterpretation;
   const importInterpretationAnalysisStub = mountOptions.importInterpretationAnalysis;
   const narrativeAdaptationStub = mountOptions.narrativeAdaptation;
+  const narrativeRevealStub = mountOptions.narrativeReveal;
   const get = (name: string) => name === 'remote.novelWorkspace' ? workspace
     : name === 'remote.novelLlmConfig' ? {
       load: llmConfig.load ?? (async () => ({ providerId: 'novel-custom', baseUrl: '', model: '', hasKey: false, maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high' })),
@@ -183,6 +184,12 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
     })
     : name === 'remote.novelNarrativeAdaptation' ? (narrativeAdaptationStub ?? {
       begin: async (input: unknown) => ({ ...(input as Record<string, unknown>), adaptationId: 'narrative-adaptation-1' }),
+      status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+      cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
+      result: async (input: unknown) => ({ ...(input as Record<string, unknown>), candidate: {} }),
+    })
+    : name === 'remote.novelNarrativeReveal' ? (narrativeRevealStub ?? {
+      begin: async (input: unknown) => ({ ...(input as Record<string, unknown>), revealId: 'narrative-reveal-1' }),
       status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
       cancel: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: 'cancelled' }),
       result: async (input: unknown) => ({ ...(input as Record<string, unknown>), candidate: {} }),

@@ -69,6 +69,8 @@ import { importInterpretationRemoteContribution, importInterpretationAnalysisRem
 import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace } from './remote-namespace.js';
 import { narrativeAdaptationRemoteContribution } from '../remote.js';
 import type { NarrativeAdaptationNamespace } from './remote-namespace.js';
+import { narrativeRevealRemoteContribution } from '../remote.js';
+import type { NarrativeRevealNamespace } from './remote-namespace.js';
 import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
 import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
 
@@ -109,6 +111,7 @@ export interface RemoteServiceBag {
   importInterpretation?: ImportInterpretationNamespace;
   importInterpretationAnalysis?: ImportInterpretationAnalysisNamespace;
   narrativeAdaptation?: NarrativeAdaptationNamespace;
+  narrativeReveal?: NarrativeRevealNamespace;
 }
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
@@ -165,6 +168,7 @@ export function mountRemoteRegistry(ctx: MountContext, bag: RemoteServiceBag, ho
     { key: 'importInterpretation', contribution: importInterpretationRemoteContribution, serviceKey: 'remote.novelImportInterpretation', label: 'import interpretation', bind: bindInto('importInterpretation') },
     { key: 'importInterpretationAnalysis', contribution: importInterpretationAnalysisRemoteContribution, serviceKey: 'remote.novelImportInterpretationAnalysis', label: 'import interpretation analysis', bind: bindInto('importInterpretationAnalysis') },
     { key: 'narrativeAdaptation', contribution: narrativeAdaptationRemoteContribution, serviceKey: 'remote.novelNarrativeAdaptation', label: 'narrative adaptation', bind: bindInto('narrativeAdaptation') },
+    { key: 'narrativeReveal', contribution: narrativeRevealRemoteContribution, serviceKey: 'remote.novelNarrativeReveal', label: 'narrative reveal', bind: bindInto('narrativeReveal') },
   ];
   for (const entry of registry) {
     mountRemote(ctx, entry);

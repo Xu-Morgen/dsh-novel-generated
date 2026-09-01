@@ -104,6 +104,8 @@ export interface MountOptions {
   importInterpretationAnalysis?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
   /** I145 candidate-only POV adaptation namespace injection. */
   narrativeAdaptation?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
+  /** I146 candidate-only C3 reveal planner namespace injection. */
+  narrativeReveal?: { begin?: (input: unknown, settings?: unknown) => Promise<unknown>; status?: (input: unknown) => Promise<unknown>; cancel?: (input: unknown) => Promise<unknown>; result?: (input: unknown) => Promise<unknown> };
 }
 
 export interface WorkspaceOverrides {

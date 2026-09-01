@@ -40,6 +40,7 @@ import type {
 } from '../remote.js';
 import type { importInterpretationAnalysisRemoteContribution } from '../host/remote/import-interpretation-analysis.js';
 import type { narrativeAdaptationRemoteContribution } from '../host/remote/narrative-adaptation.js';
+import type { narrativeRevealRemoteContribution } from '../host/remote/narrative-reveal.js';
 import type { referenceAuditRemoteContribution } from '../host/remote/reference-audit.js';
 import type { outlineGenerationBaselineRemoteContribution } from '../host/remote/outline-generation-baseline.js';
 import type { textChangeImpactRemoteContribution } from '../host/remote/text-change-impact.js';
@@ -102,6 +103,8 @@ export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretat
 export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInterpretationAnalysisRemoteContribution>;
 /** I145 candidate-only POV adaptation; application remains a later Gate owner. */
 export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
+/** I146 candidate-only C3 reveal planner; application remains a later Gate owner. */
+export type NarrativeRevealNamespace = NamespaceOf<typeof narrativeRevealRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;
 export type SearchNamespace = NamespaceOf<typeof searchRemoteContribution>;
 export type StatisticsNamespace = NamespaceOf<typeof statisticsRemoteContribution>;

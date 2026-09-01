@@ -24,6 +24,7 @@ import { createBookCompletionService } from '../book-completion-service.js';
 import { createImportInterpretationSessionService } from '../import-interpretation-session-service.js';
 import { createImportInterpretationAnalysisService } from '../import-interpretation-analysis-service.js';
 import { createNarrativeAdaptationService } from '../narrative-adaptation-service.js';
+import { createNarrativeRevealPlanner } from '../narrative-reveal-planner-service.js';
 import type { OnboardingAdjudicateInput, OnboardingAnalysisStartInput, OnboardingFinalApplyInput } from '../../core/schema/onboarding.js';
 import type {
   ImportInterpretationSessionConfirmInput,
@@ -36,6 +37,7 @@ import type {
   ImportInterpretationInput,
 } from '../../core/schema/import-interpretation-analysis.js';
 import type { NarrativeAdaptationIdentity, NarrativeAdaptationInput } from '../../core/schema/narrative-adaptation.js';
+import type { NarrativeRevealIdentity, NarrativeRevealInput } from '../../core/schema/narrative-reveal.js';
 import type { Timeline } from '../../core/timeline/schema.js';
 import type { ReviewAdjudicateInputShape } from '../remote/review.js';
 import type { ReviewRepairInput } from '../../core/schema/review-repair.js';
@@ -45,6 +47,7 @@ import { onboardingAnalyzerInvocations } from '../remote/onboarding-analyzer.js'
 import { importInterpretationInvocations } from '../remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from '../remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations } from '../remote/narrative-adaptation.js';
+import { narrativeRevealInvocations } from '../remote/narrative-reveal.js';
 import { timelineInvocations } from '../remote/timeline.js';
 import { onboardingInvocations } from '../remote/onboarding.js';
 import { writingInvocations } from '../remote/writing.js';
@@ -147,6 +150,17 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     { method: 'cancel', call: (input: NarrativeAdaptationIdentity) => narrativeAdaptationService.cancel(input) },
     { method: 'result', call: (input: NarrativeAdaptationIdentity) => narrativeAdaptationService.result(input) },
   ], narrativeAdaptationInvocations));
+  // I146：C3 只生成绑定 I145 B5 anchor 的候选；KnowledgeRepository、C3
+  // writeback 与 ConfirmationGate 由 I148 统一应用，当前 planner 不可达。
+  const narrativeRevealPlanner = createNarrativeRevealPlanner(llm, onFiberDispose, (error, revealId) => {
+    logger.error('Background narrative reveal %s failed: %o', revealId, error);
+  });
+  ctx.provide('novelNarrativeReveal', defineRemote('novelNarrativeReveal', 'novelNarrativeReveal', narrativeRevealPlanner, [
+    { method: 'begin', call: async (input: NarrativeRevealInput, settings?: unknown) => narrativeRevealPlanner.begin(input, validateGenerationSettings(await resolveAnalyzerSettings(settings))) },
+    { method: 'status', call: (input: NarrativeRevealIdentity) => narrativeRevealPlanner.status(input) },
+    { method: 'cancel', call: (input: NarrativeRevealIdentity) => narrativeRevealPlanner.cancel(input) },
+    { method: 'result', call: (input: NarrativeRevealIdentity) => narrativeRevealPlanner.result(input) },
+  ], narrativeRevealInvocations));
   // I53: adjudication builds on the analyzer's bound results. The layer source
   // adapts `getResult`/`regenerate` so the adjudication facade stays independent
   // of the analyzer's job lifecycle internals.
