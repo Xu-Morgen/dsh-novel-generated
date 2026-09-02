@@ -12,7 +12,7 @@
 
 1. `docs/novel-creation-tool-design.md`（v3.3）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v3.3）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v3.3）—— 执行层；**I1–I154 全部完成**。当前顺序执行 I155：为既有作品提供 Host-owned 归档/恢复，归档作品不进入主列表且不可打开或编辑。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
+3. `docs/novel-creation-tool-development-plan.md`（v3.3）—— 执行层；**I1–I155 全部完成**。当前顺序执行 I156：修复 Windows 下来源审阅 session 首次原子落盘受瞬时文件锁影响后无法原地重试的问题。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -38,7 +38,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 新增功能的公开合同政策：既有 invocation 的方法名、参数、结果必须向后兼容；允许新增 strict additive Remote 方法/namespace，但必须同步 canonical schema、descriptor/结果 contract lock、adapter 返回类型耦合、真实 DSH binder E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。
-- I1–I154 已完成。当前单一执行卡为 **I155**：为既有作品增加 Host-owned 归档/恢复；归档树迁入 `.archive/<projectId>`，活动位置保留拒绝旧仓储写入的墓碑，主列表只显示活动目录，归档区只允许恢复。不得借 I155 删除作品、修改项目元数据 schema、建立 Client 文件 owner 或夹带 F1/F2。每迭代单独 commit，当前验证命令为 `pnpm run verify:i155`。
+- I1–I155 已完成。当前单一执行卡为 **I156**：来源审阅 session 原子落盘对 Windows 瞬时 `EPERM/EBUSY/EACCES` 做有界退避；失败后 Client 保留 Host chunks 并提供原地重试和折叠技术详情。不得改变 session/Remote/schema、分段、LLM 或 I151 首次导入语义。每迭代单独 commit，当前验证命令为 `pnpm run verify:i156`。
 
 ## 3. 完成定义（DoD）
 

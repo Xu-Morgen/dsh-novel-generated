@@ -1,6 +1,6 @@
 import type { El } from './shared.js';
 import { unwrap } from './shared.js';
-import { toUserMessage } from './presentation.js';
+import { advancedError, rawError, toUserMessage } from './presentation.js';
 import type {
   ImportInterpretationNamespace,
   ImportInterpretationAnalysisNamespace,
@@ -51,6 +51,8 @@ export interface ImportInterpretationReviewState {
   readonly ruleStyleBusy?: boolean;
   readonly busy: boolean;
   readonly error?: string;
+  /** Raw cause is available only through the explicit advanced-details disclosure. */
+  readonly technicalError?: string;
 }
 
 export interface ImportReviewParagraph extends ImportInterpretationParagraph {
@@ -63,6 +65,7 @@ export interface ImportReviewParagraph extends ImportInterpretationParagraph {
 
 export interface ImportInterpretationReviewOps {
   begin(source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void;
+  retry?(): void;
   cancel(): void;
   confirm(): void;
   setSourceRole(role: ImportSourceRole | undefined): void;
@@ -197,6 +200,7 @@ function withAnalysis(state: ImportInterpretationReviewState, output: SourceInte
     }),
     busy: false,
     error: undefined,
+    technicalError: undefined,
   };
 }
 
@@ -386,8 +390,11 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     paragraphPanel(h, state, ops),
     ruleStyleInitializationPanel(h, state, ops),
     validation === undefined ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-import-interpretation-validation': '' }, validation),
-    state.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert', 'data-novel-import-interpretation-error': '' }, toUserMessage(state.error, '来源审阅未完成，请重试。')),
+    state.error === undefined ? null : advancedError(h, state.technicalError ?? state.error, state.error, { 'data-novel-import-interpretation-error': '' }),
     h('div', { className: 'nv-import-review__actions' },
+      state.analysisStatus === 'failed' && state.paragraphs.length > 0 && !state.confirmed
+        ? h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-import-interpretation-retry': '', onClick: () => ops.retry?.() }, '重试来源审阅')
+        : null,
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: !canConfirmImportIntent(state), 'data-novel-import-interpretation-confirm': '', onClick: () => ops.confirm() }, state.confirmed ? '已确认' : '确认来源并继续'),
       h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-import-interpretation-cancel': '', onClick: () => ops.cancel() }, '取消审阅'),
     ),
@@ -408,6 +415,7 @@ export interface ImportInterpretationControllerDeps {
 
 export interface ImportInterpretationController {
   begin(source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void;
+  retry(): void;
   cancel(): void;
   confirm(): void;
   setSourceRole(role: ImportSourceRole | undefined): void;
@@ -456,6 +464,20 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     release();
   };
 
+  const technicalFailure = (error: unknown, fallback: string): Pick<ImportInterpretationReviewState, 'analysisStatus' | 'error' | 'technicalError'> => ({
+    analysisStatus: 'failed',
+    error: toUserMessage(error, fallback),
+    technicalError: rawError(error),
+  });
+
+  const sourceParagraphs = (state: ImportInterpretationReviewState): ImportInterpretationParagraph[] => state.paragraphs.map((paragraph) => ({
+    paragraphId: paragraph.paragraphId,
+    index: paragraph.index,
+    text: paragraph.text,
+    startOffset: paragraph.startOffset,
+    endOffset: paragraph.endOffset,
+  }));
+
   const poll = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
     const target = deps.analysis();
     if (!active() || target === undefined) { clearPoll(); release(); return; }
@@ -465,15 +487,27 @@ export function createImportInterpretationController(deps: ImportInterpretationC
         void unwrap(target.result(identity)).then((result) => {
           if (!active() || current?.importSessionId !== identity.importSessionId) return;
           finish(withAnalysis(current, result.output));
-        }, (error: Error) => finish({ analysisStatus: 'failed', error: toUserMessage(error, '来源解释未完成，请重试。') }));
+        }, (error: Error) => finish(technicalFailure(error, '来源解释未完成，请重试。')));
         return;
       }
       if (status.status === 'failed' || status.status === 'cancelled') {
-        finish({ analysisStatus: status.status, error: status.status === 'failed' ? '来源解释未完成，请重试。' : undefined });
+        finish({ analysisStatus: status.status, error: status.status === 'failed' ? '来源解释未完成，请重试。' : undefined, technicalError: undefined });
         return;
       }
       if (active()) pollTimer = setTimeout(() => poll(identity), IMPORT_ANALYSIS_POLL_MS);
-    }, (error: Error) => finish({ analysisStatus: 'failed', error: toUserMessage(error, '来源解释未完成，请重试。') }));
+    }, (error: Error) => finish(technicalFailure(error, '来源解释未完成，请重试。')));
+  };
+
+  const beginAnalysis = (
+    identity: { projectId: string; importSessionId: string; sourceHash: string },
+    paragraphs: readonly ImportInterpretationParagraph[],
+  ): void => {
+    const analysis = deps.analysis();
+    if (analysis === undefined) { finish({ analysisStatus: 'failed', error: '来源审阅服务暂时不可用。', technicalError: undefined }); return; }
+    void unwrap(analysis.begin({ ...identity, paragraphs: [...paragraphs] }, undefined)).then(
+      () => poll(identity),
+      (error: Error) => finish(technicalFailure(error, '来源解释未完成，请重试。')),
+    );
   };
 
   const patchRuleStyle = (projectionValue: RuleStyleImportProjection): void => {
@@ -530,8 +564,23 @@ export function createImportInterpretationController(deps: ImportInterpretationC
       if (!active()) { release(); return; }
       const identity = { projectId, importSessionId: created.importSessionId, sourceHash: source.sourceHash };
       patch({ importSessionId: created.importSessionId, analysisStatus: 'running' });
-      void unwrap(analysis.begin({ projectId, importSessionId: created.importSessionId, sourceHash: source.sourceHash, paragraphs: [...source.paragraphs] }, undefined)).then(() => poll(identity), (error: Error) => finish({ analysisStatus: 'failed', error: toUserMessage(error, '来源解释未完成，请重试。') }));
-    }, (error: Error) => finish({ analysisStatus: 'failed', error: toUserMessage(error, '来源审阅会话未建立，请重试。') }));
+      beginAnalysis(identity, source.paragraphs);
+    }, (error: Error) => finish(technicalFailure(error, '来源审阅会话未建立，请重试。')));
+  };
+
+  const retry = (): void => {
+    const state = current;
+    if (!active() || state === undefined || state.busy || state.confirmed || state.analysisStatus !== 'failed') return;
+    if (deps.currentProjectId() !== state.projectId || state.paragraphs.length === 0) return;
+    const paragraphs = sourceParagraphs(state);
+    if (state.importSessionId === undefined) {
+      begin({ sourceHash: state.sourceHash, text: state.sourceText ?? '', paragraphs });
+      return;
+    }
+    if (!deps.beginOp(operationKey)) return;
+    clearPoll();
+    patch({ analysisStatus: 'running', busy: true, error: undefined, technicalError: undefined });
+    beginAnalysis({ projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash }, paragraphs);
   };
 
   const cancel = (): void => {
@@ -543,7 +592,7 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     const identity = state.importSessionId === undefined ? undefined : { projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash };
     if (identity !== undefined && target !== undefined) void unwrap(target.cancel(identity)).catch(() => undefined);
     if (identity !== undefined && session !== undefined) void unwrap(session.discard(identity)).catch(() => undefined);
-    if (active()) { patch({ analysisStatus: 'cancelled', busy: false, error: undefined }); release(); }
+    if (active()) { patch({ analysisStatus: 'cancelled', busy: false, error: undefined, technicalError: undefined }); release(); }
   };
 
   const confirm = (): void => {
@@ -612,5 +661,5 @@ export function createImportInterpretationController(deps: ImportInterpretationC
   const acceptRuleStyleInitialization = (): void => decideRuleStyle('accept');
   const rejectRuleStyleInitialization = (): void => decideRuleStyle('reject');
   const dispose = (): void => { disposed = true; clearPoll(); clearRuleStylePoll(); current = undefined; };
-  return Object.freeze({ begin, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, setRuleStyleRulesDraft, setRuleStyleStyleDraft, retryRuleStyleInitialization, proposeRuleStyleInitialization, acceptRuleStyleInitialization, rejectRuleStyleInitialization, dispose });
+  return Object.freeze({ begin, retry, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, setRuleStyleRulesDraft, setRuleStyleStyleDraft, retryRuleStyleInitialization, proposeRuleStyleInitialization, acceptRuleStyleInitialization, rejectRuleStyleInitialization, dispose });
 }

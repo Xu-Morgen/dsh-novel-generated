@@ -105,6 +105,110 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-rule-style-import'] === '')).toBe(true);
   });
 
+  it('I156 retries a failed session create in place with the original Host source evidence', async () => {
+    (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
+    const sourceCreates: unknown[] = [];
+    let onboardingBegins = 0;
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [],
+        projectCreate: async (input) => ({ id: (input as { projectId: string }).projectId, name: 'retry book' }),
+        projectOpen: async () => ({}),
+        uploadStart: async () => ({ uploadId: 'u-retry', chunkSize: 65536, nextIndex: 0 }),
+        uploadChunk: async () => ({ nextIndex: 1, received: 1 }),
+        uploadFinalize: async () => ({ sourceHash: 'd'.repeat(64), fileName: 'retry.docx', text: '保留来源证据', chunks: [{ index: 0, text: '保留来源证据', startOffset: 2, endOffset: 8 }] }),
+      },
+      {
+        openProjectId: null,
+        onboardingAnalyzer: {
+          begin: async () => { onboardingBegins += 1; return { onboardingSessionId: 'must-not-start' }; },
+          status: async () => 'running',
+        },
+        importInterpretation: {
+          create: async (input) => {
+            sourceCreates.push(structuredClone(input));
+            if (sourceCreates.length === 1) throw new Error('EPERM: operation not permitted, rename session.tmp');
+            return { ...(input as Record<string, unknown>), importSessionId: 'import-recovered', status: 'draft', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+          },
+          read: async (input) => input,
+          confirm: async (input) => input,
+          discard: async (input) => input,
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const upload = collect(render(), 'input').find((node) => node.props?.['data-novel-upload-input'] === '');
+    (upload?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1])], 'retry.docx')] as unknown as FileList } });
+    await flush();
+
+    const retry = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-retry'] === '');
+    expect(retry).toBeDefined();
+    expect(JSON.stringify(render())).toContain('来源审阅会话未建立，请重试。');
+    expect(JSON.stringify(render())).toContain('EPERM: operation not permitted');
+    (retry?.props?.onClick as () => void)();
+    await flush();
+
+    expect(sourceCreates).toHaveLength(2);
+    expect(sourceCreates[1]).toEqual(sourceCreates[0]);
+    expect(onboardingBegins).toBe(0);
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-import-interpretation-review'] === '')?.props?.['data-novel-import-interpretation-status']).toBe('succeeded');
+  });
+
+  it('I156 retries analysis on the established session without creating another checkpoint', async () => {
+    (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
+    let sourceCreates = 0;
+    const analysisBegins: unknown[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [],
+        projectCreate: async (input) => ({ id: (input as { projectId: string }).projectId, name: 'analysis retry' }),
+        projectOpen: async () => ({}),
+        uploadStart: async () => ({ uploadId: 'u-analysis', chunkSize: 65536, nextIndex: 0 }),
+        uploadChunk: async () => ({ nextIndex: 1, received: 1 }),
+        uploadFinalize: async () => ({ sourceHash: 'e'.repeat(64), fileName: 'analysis.docx', text: '分析来源', chunks: [{ index: 0, text: '分析来源', startOffset: 0, endOffset: 4 }] }),
+      },
+      {
+        openProjectId: null,
+        importInterpretation: {
+          create: async (input) => {
+            sourceCreates += 1;
+            return { ...(input as Record<string, unknown>), importSessionId: 'import-analysis-retry', status: 'draft', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+          },
+          read: async (input) => input,
+          confirm: async (input) => input,
+          discard: async (input) => input,
+        },
+        importInterpretationAnalysis: {
+          begin: async (input) => {
+            analysisBegins.push(structuredClone(input));
+            if (analysisBegins.length === 1) throw new Error('provider timeout');
+            return input;
+          },
+          status: async (input) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+          cancel: async (input) => input,
+          result: async (input) => ({ ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } }),
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const upload = collect(render(), 'input').find((node) => node.props?.['data-novel-upload-input'] === '');
+    (upload?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1])], 'analysis.docx')] as unknown as FileList } });
+    await flush();
+    const retry = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-retry'] === '');
+    expect(retry).toBeDefined();
+    (retry?.props?.onClick as () => void)();
+    await flush();
+
+    expect(sourceCreates).toBe(1);
+    expect(analysisBegins).toHaveLength(2);
+    expect(analysisBegins[1]).toEqual(analysisBegins[0]);
+    expect(collect(render(), 'section').find((node) => node.props?.['data-novel-import-interpretation-review'] === '')?.props?.['data-novel-import-interpretation-status']).toBe('succeeded');
+  });
+
   it('fails closed before creating a source session when Host chunks have no ranges', async () => {
     (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
     let sourceCreates = 0;

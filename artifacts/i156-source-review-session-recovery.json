@@ -1,0 +1,19 @@
+{
+  "iteration": "I156",
+  "requirement": "R27-1",
+  "guarantees": [
+    "bounded-transient-windows-rename-retry",
+    "non-transient-and-exhausted-fail-closed",
+    "source-evidence-preserved-for-in-place-retry",
+    "missing-session-retry-creates-checkpoint",
+    "existing-session-retry-reuses-checkpoint",
+    "technical-cause-in-explicit-advanced-details"
+  ],
+  "unchangedContracts": [
+    "novelImportInterpretation",
+    "novelImportInterpretationAnalysis",
+    "docx-chunks",
+    "i151-first-import-trigger",
+    "llm-prompts-and-samples"
+  ]
+}

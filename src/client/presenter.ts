@@ -74,6 +74,7 @@ export interface WorkbenchUi {
   cancelAnalysis(): void;
   retryAnalysis(): void;
   beginImportInterpretation(source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void;
+  retryImportInterpretation(): void;
   cancelImportInterpretation(): void;
   confirmImportInterpretation(): void;
   setImportSourceRole(role: import('../core/schema/import-interpretation.js').ImportSourceRole | undefined): void;
@@ -185,6 +186,7 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     cancelAnalysis() { onboarding.cancelAnalysis(); },
     retryAnalysis() { onboarding.retryAnalysis(); },
     beginImportInterpretation(source) { importInterpretation.begin(source); },
+    retryImportInterpretation() { importInterpretation.retry(); },
     cancelImportInterpretation() { importInterpretation.cancel(); },
     confirmImportInterpretation() { importInterpretation.confirm(); },
     setImportSourceRole(role) { importInterpretation.setSourceRole(role); },
@@ -353,6 +355,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
   const importReview = importInterpretationReview === undefined ? null : sourceInterpretationReview(h, importInterpretationReview, {
     begin: (source) => ui.beginImportInterpretation(source),
+    retry: () => ui.retryImportInterpretation(),
     cancel: () => ui.cancelImportInterpretation(),
     confirm: () => ui.confirmImportInterpretation(),
     setSourceRole: (role) => ui.setImportSourceRole(role),

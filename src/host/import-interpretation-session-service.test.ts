@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -17,6 +17,44 @@ const createInput = {
 };
 
 describe('I142 import interpretation session owner', () => {
+  it('I156 retries transient Windows rename locks but fails closed for permanent I/O errors', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i156-session-retry-'));
+    try {
+      let attempts = 0;
+      const delays: number[] = [];
+      const recovered = createImportInterpretationSessionService(root, undefined, {
+        renameFile: async (temporary, target) => {
+          attempts += 1;
+          if (attempts <= 3) throw Object.assign(new Error('temporary lock'), { code: attempts === 1 ? 'EPERM' : attempts === 2 ? 'EBUSY' : 'EACCES' });
+          await rename(temporary, target);
+        },
+        delay: async (milliseconds) => { delays.push(milliseconds); },
+      });
+      await expect(recovered.create(createInput)).resolves.toMatchObject({ status: 'draft' });
+      expect(attempts).toBe(4);
+      expect(delays).toEqual([20, 40, 60]);
+      await access(join(root, 'demo', IMPORT_INTERPRETATION_SESSIONS_FILE));
+
+      let permanentAttempts = 0;
+      const permanent = createImportInterpretationSessionService(join(root, 'permanent'), undefined, {
+        renameFile: async () => { permanentAttempts += 1; throw Object.assign(new Error('disk failure'), { code: 'EIO' }); },
+        delay: async () => { throw new Error('non-transient errors must not back off'); },
+      });
+      await expect(permanent.create(createInput)).rejects.toThrow('disk failure');
+      expect(permanentAttempts).toBe(1);
+
+      let exhaustedAttempts = 0;
+      const exhausted = createImportInterpretationSessionService(join(root, 'exhausted'), undefined, {
+        renameFile: async () => { exhaustedAttempts += 1; throw Object.assign(new Error('still locked'), { code: 'EPERM' }); },
+        delay: async () => undefined,
+      });
+      await expect(exhausted.create(createInput)).rejects.toThrow('still locked');
+      expect(exhaustedAttempts).toBe(6);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('persists, reopens, confirms, and exposes source freshness without writing narrative layers', async () => {
     const root = await mkdtemp(join(tmpdir(), 'novel-i142-session-'));
     try {

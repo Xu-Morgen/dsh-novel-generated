@@ -30,6 +30,15 @@ interface FileQueue {
 
 const fileQueues = new Map<string, FileQueue>();
 
+const TRANSIENT_WINDOWS_RENAME_CODES = new Set(['EPERM', 'EBUSY', 'EACCES']);
+const MAX_TRANSIENT_RENAME_RETRIES = 5;
+
+/** I156 deterministic fault seam for the Host-owned atomic session store. */
+export interface ImportInterpretationSessionPersistenceOptions {
+  readonly renameFile?: (temporary: string, target: string) => Promise<void>;
+  readonly delay?: (milliseconds: number) => Promise<void>;
+}
+
 function queueFor(filePath: string): FileQueue {
   const key = process.platform === 'win32' ? resolve(filePath).toLowerCase() : resolve(filePath);
   const existing = fileQueues.get(key);
@@ -70,13 +79,43 @@ async function readStore(filePath: string): Promise<ImportInterpretationSession[
   }
 }
 
-async function writeStore(filePath: string, sessions: readonly ImportInterpretationSession[]): Promise<void> {
+function errorCode(error: unknown): string | undefined {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : undefined;
+}
+
+async function renameWithTransientRetry(
+  temporary: string,
+  target: string,
+  options: ImportInterpretationSessionPersistenceOptions,
+): Promise<void> {
+  const renameFile = options.renameFile ?? rename;
+  const delay = options.delay ?? ((milliseconds: number) => new Promise<void>((resolveDelay) => { setTimeout(resolveDelay, milliseconds); }));
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await renameFile(temporary, target);
+      return;
+    } catch (error) {
+      if (!TRANSIENT_WINDOWS_RENAME_CODES.has(errorCode(error) ?? '') || attempt >= MAX_TRANSIENT_RENAME_RETRIES) throw error;
+      await delay(20 * (attempt + 1));
+    }
+  }
+}
+
+async function writeStore(
+  filePath: string,
+  sessions: readonly ImportInterpretationSession[],
+  options: ImportInterpretationSessionPersistenceOptions,
+): Promise<void> {
   const directory = resolve(filePath, '..');
   await mkdir(directory, { recursive: true });
   const temporary = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeYaml(temporary, importInterpretationSessionFileSchema.parse({ sessions }));
-    await rename(temporary, filePath);
+    // Windows Defender/索引器可能在临时 YAML 刚关闭时短暂持有文件句柄。
+    // 只重试明确的瞬时锁错误；权限永久错误与其他 I/O 失败继续 fail closed（设计 §14.23）。
+    await renameWithTransientRetry(temporary, filePath, options);
   } finally {
     await unlink(temporary).catch(() => undefined);
   }
@@ -124,6 +163,7 @@ export interface NovelImportInterpretationSessionService {
 export function createImportInterpretationSessionService(
   projectsRoot = join(homedir(), '.dsh', 'novel-projects'),
   onDispose?: (dispose: () => void) => void,
+  persistence: ImportInterpretationSessionPersistenceOptions = {},
 ): NovelImportInterpretationSessionService {
   let disposed = false;
   const root = resolve(projectsRoot);
@@ -152,7 +192,7 @@ export function createImportInterpretationSessionService(
           updatedAt: createdAt,
         });
         const sessions = await readStore(filePath);
-        await writeStore(filePath, [...sessions, session]);
+        await writeStore(filePath, [...sessions, session], persistence);
         return structuredClone(session);
       });
     },
@@ -169,7 +209,7 @@ export function createImportInterpretationSessionService(
         if (current.sourceHash !== input.sourceHash) {
           if (current.status === 'discarded') throw new Error('Import interpretation session source hash mismatch');
           const stale = importInterpretationSessionSchema.parse({ ...current, status: 'stale', updatedAt: now() });
-          await writeStore(filePath, sessions.map((item) => item.importSessionId === stale.importSessionId ? stale : item));
+          await writeStore(filePath, sessions.map((item) => item.importSessionId === stale.importSessionId ? stale : item), persistence);
           return structuredClone(stale);
         }
         return structuredClone(current);
@@ -194,7 +234,7 @@ export function createImportInterpretationSessionService(
           status: 'confirmed',
           updatedAt: now(),
         });
-        await writeStore(filePath, sessions.map((item) => item.importSessionId === confirmed.importSessionId ? confirmed : item));
+        await writeStore(filePath, sessions.map((item) => item.importSessionId === confirmed.importSessionId ? confirmed : item), persistence);
         return structuredClone(confirmed);
       });
     },
@@ -210,7 +250,7 @@ export function createImportInterpretationSessionService(
         assertIdentity(current, { projectId: input.projectId, sourceHash: input.sourceHash });
         if (current.status === 'discarded') return structuredClone(current);
         const discarded = importInterpretationSessionSchema.parse({ ...current, status: 'discarded', updatedAt: now() });
-        await writeStore(filePath, sessions.map((item) => item.importSessionId === discarded.importSessionId ? discarded : item));
+        await writeStore(filePath, sessions.map((item) => item.importSessionId === discarded.importSessionId ? discarded : item), persistence);
         return structuredClone(discarded);
       });
     },

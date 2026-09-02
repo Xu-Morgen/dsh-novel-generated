@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I154 全部完成**；当前顺序执行 I155，为既有作品提供 Host-owned 归档/恢复与强制只读边界；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I155 全部完成**；当前顺序执行 I156，修复来源审阅 session 的 Windows 瞬时文件锁与原地重试缺口；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -31,10 +31,11 @@
 | **v3.3 导入入口修订（2026-09-02）** | 同步 I152 已完成事实；新增 I153 修复目录层 DOCX 新作品入口仍直接启动旧六层分析、且来源审阅渲染错误依赖 `OnboardingState` 的接线回归。新作品上传后先进入既有 Stage 19 来源审阅；背景资料/已有正文与已有主角入口可达，确认后才触发 I151。I150 仍只属于范围细纲生成，不重写其历史边界。 |
 | **v3.3 来源审阅提示修订（2026-09-02）** | 同步 I153 已完成事实；新增 I154，在来源角色、段落来源类型、段落处理和“合并此分类”旁提供统一 hover/focus 帮助，解释所有枚举与真实副作用。“段落”明确为当前 Host 来源片段而非 Word 段落一一映射；不改变分段、分类、裁决或 Host 合同。 |
 | **v3.3 作品归档修订（2026-09-02）** | 同步 I154 已完成事实；新增 I155，为既有作品增加 Host-owned 归档/恢复。归档树移出活动目录，主列表不再显示；活动位置墓碑阻断归档前缓存仓储的迟到写，所有新项目访问经统一路径 seam 拒绝归档 ID。新增 strict additive lifecycle Remote 与只恢复、不打开的归档区。 |
+| **v3.3 来源审阅持久化修订（2026-09-02）** | 同步 I155 已完成事实；新增 I156，修复 Windows Defender/索引器瞬时锁住来源审阅临时文件时 session 首次落盘直接失败，且作者界面无实际重试入口的问题。Host 有界重试 transient rename；Client 保留来源证据并原地重试，技术原因只在折叠高级详情中展示。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I154 已完成，当前顺序执行 I155 作品归档与恢复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I155 不恢复 F1/F2。
+> **v3.3 current supersession / 同步状态**：I1–I155 已完成，当前顺序执行 I156 来源审阅 session 持久化修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I156 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1258,6 +1259,12 @@ project/
 - 归档后在原活动位置写入 Host 墓碑文件。它不是作品真相，只用于让归档前已经缓存旧路径的仓储实例在文件系统层 fail closed，禁止迟到写重新创建活动树；统一 `projectDirectory()` 同时因归档树存在而拒绝新打开与新项目级访问。恢复校验墓碑后移除并原样迁回完整树，不改任何 B/C 层内容。
 - 公开合同只做 strict additive 扩展：`projectArchiveList()`、`projectArchive(projectId)`、`projectRestore(projectId)`。Client 主列表的活动作品可以打开/归档；独立归档区只展示名称与恢复，不提供打开、编辑或任何领域操作。未知 ID、重复归档/恢复、冲突活动目录、非法 ID、损坏/符号链接目录均 fail closed。
 - I155 不提供永久删除、自动归档、批量归档、云同步、归档内搜索/导出，也不修改 `ProjectMeta` schema、作品内容、LLM prompt/schema/样本或后置 F1/F2。
+
+### 14.23 I156：来源审阅 session 首次落盘恢复
+
+- `ImportInterpretationSessionService` 继续是来源审阅 checkpoint 的唯一 Host owner；临时文件写完后的原子 rename 若在 Windows 命中瞬时 `EPERM/EBUSY/EACCES`，必须有界退避重试，非瞬时错误和耗尽重试仍 fail closed。不得吞错、改写 session 内容或新增第二持久化格式。
+- Client 在 session 建立或来源解释失败后保留原 Host paragraph ID/text/range 与 sourceHash，提供明确的“重试来源审阅”操作。已有 session 只重启分析；尚未建立 session 才重新建立 checkpoint。重试不得重新上传 DOCX、重建 range 或启动旧六层分析。
+- 普通错误文案保持作者可行动语言；原始技术原因只能放入显式折叠高级详情，便于定位文件锁、权限或服务错误。I156 不改变公开 Remote/schema/contract lock、I151 首次确认触发、LLM prompt/样本、分段或项目归档语义。
 
 ---
 
