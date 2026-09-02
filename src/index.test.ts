@@ -391,6 +391,7 @@ describe('novel-creation-tool Host plugin (I1)', () => {
       };
       const initialization = root.get('novelRuleStyleImportInitialization') as {
         begin(input: unknown, settings: unknown): Promise<{ status: string }>;
+        status(input: unknown): Promise<{ status: string }>;
       };
 
       await project.createProject({ projectId: 'fresh', name: 'Fresh' });
@@ -407,6 +408,11 @@ describe('novel-creation-tool Host plugin (I1)', () => {
       await sessions.confirm({ ...identity, intent, paragraphDecisions });
 
       await expect(initialization.begin(identity, settings)).resolves.toMatchObject({ status: 'queued' });
+      // `begin` intentionally returns before the first-import job finishes. Wait
+      // for its Fiber-owned write before disposing/removing the project root so
+      // the test verifies lifecycle completion instead of racing an in-flight
+      // atomic rename during cleanup.
+      await expect.poll(async () => (await initialization.status(identity)).status).toBe('succeeded');
     } finally {
       await fiber.dispose();
       await rm(projectsRoot, { recursive: true, force: true });
