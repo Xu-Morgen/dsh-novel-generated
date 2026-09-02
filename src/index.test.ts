@@ -348,4 +348,68 @@ describe('novel-creation-tool Host plugin (I1)', () => {
     await fiber.dispose();
     await rm(settingsRoot, { recursive: true, force: true });
   });
+
+  it('I151 opens C3 before checking whether a freshly opened project is empty', async () => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i151-c3-open-'));
+    const sourceHash = 'a'.repeat(64);
+    const settings = { modelRef: 'dsh/fake', credentialRef: 'dsh/test' };
+    const ruleStyleCandidate = {
+      rules: [],
+      style: {
+        id: 'style-imported', name: '导入文风', person: 'third-limited', tense: 'past', povScope: 'single',
+        tone: '克制', proseStyle: '紧贴角色感知', chapterFormat: '按调查节点分章', dialogueConventions: '对白简洁', forbidden: [],
+      },
+    };
+    const root = new Context();
+    root.provide('llm', {
+      async *stream(options: { messages: readonly [{ content: readonly [{ text: string }] }] }) {
+        const prompt = options.messages[0].content[0].text;
+        const result = prompt.includes('来源解释分类器')
+          ? {
+              sourceRole: 'synopsis', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'],
+              paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: '这是剧情计划。' }],
+              rationale: '来源描述了预定剧情。',
+            }
+          : ruleStyleCandidate;
+        yield { type: 'text-delta', text: JSON.stringify(result) };
+        yield { type: 'finish', reason: { kind: 'stop' } };
+      },
+    });
+    const fiber = await root.plugin(apply, { projectsRoot });
+    try {
+      const project = root.get('novelProject') as {
+        createProject(input: { projectId: string; name: string }): Promise<unknown>;
+        openProject(projectId: string): Promise<unknown>;
+      };
+      const sessions = root.get('novelImportInterpretation') as {
+        create(input: unknown): Promise<{ importSessionId: string }>;
+        confirm(input: unknown): Promise<unknown>;
+      };
+      const analysis = root.get('novelImportInterpretationAnalysis') as {
+        begin(input: unknown, settings: unknown): Promise<unknown>;
+        status(input: unknown): { status: string };
+      };
+      const initialization = root.get('novelRuleStyleImportInitialization') as {
+        begin(input: unknown, settings: unknown): Promise<{ status: string }>;
+      };
+
+      await project.createProject({ projectId: 'fresh', name: 'Fresh' });
+      await project.openProject('fresh');
+      const intent = { sourceRole: 'synopsis', treatment: 'expand-outline' };
+      const paragraphDecisions = [{ paragraphId: 'paragraph-0001', decision: 'accepted', summary: '保留为剧情计划。' }];
+      const session = await sessions.create({ projectId: 'fresh', sourceHash, intent, paragraphDecisions });
+      const identity = { projectId: 'fresh', importSessionId: session.importSessionId, sourceHash };
+      await analysis.begin({
+        ...identity,
+        paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '主角将前往北境。', startOffset: 0, endOffset: 8 }],
+      }, settings);
+      await expect.poll(() => analysis.status(identity).status).toBe('succeeded');
+      await sessions.confirm({ ...identity, intent, paragraphDecisions });
+
+      await expect(initialization.begin(identity, settings)).resolves.toMatchObject({ status: 'queued' });
+    } finally {
+      await fiber.dispose();
+      await rm(projectsRoot, { recursive: true, force: true });
+    }
+  });
 });

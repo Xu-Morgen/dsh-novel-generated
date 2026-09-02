@@ -155,6 +155,11 @@ export function assembleManagementSurface(base: CompositionBase, baseServices: B
     style: styleService,
     async isProjectEmpty(projectId) {
       const readKnowledge = async () => {
+        // Project lifecycle readiness opens the original six onboarding layers,
+        // but C3 is owned outside that projection. I151 explicitly inspects C3,
+        // so this consumer must open its owner before the first-import emptiness
+        // check instead of relying on an unrelated Knowledge UI having run first.
+        await knowledgeService.open(projectId);
         try { return await knowledgeService.read(projectId); }
         catch (error) { if ((error as Error).cause && ((error as Error).cause as NodeJS.ErrnoException).code === 'ENOENT') return { entries: [], states: [] }; throw error; }
       };
