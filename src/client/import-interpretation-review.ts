@@ -102,6 +102,44 @@ const PARAGRAPH_ROLE_LABELS: Readonly<Record<SourceParagraphRole, string>> = Obj
 const POV_LABELS: Readonly<Record<NarrativePov, string>> = Object.freeze({ limited: '限知视角', omniscient: '全知视角' });
 const PACING_LABELS: Readonly<Record<RevealPacing, string>> = Object.freeze({ slow: '慢速揭示', balanced: '均衡揭示', fast: '快速揭示' });
 
+interface ImportHelpDefinition {
+  readonly id: string;
+  readonly kind: string;
+  readonly label: string;
+  readonly lines: readonly string[];
+  readonly controlId?: string;
+}
+
+const SOURCE_ROLE_HELP_LINES = Object.freeze([
+  '创作想法：尚未形成完整剧情的一句话设定、核心冲突或灵感。',
+  '故事梗概 / 预定剧情：已经规划好的故事走向、剧情节点或章节安排。',
+  '背景设定 / 幕后资料：世界规则、历史、人物秘密和作者掌握但不应直接告诉读者的真相。',
+  '已有正文：已经按小说形式写成的章节、场景、描写或对白；当前只用于拆纲，不会保真写入正式正文。',
+  '混合文档：同一文件包含以上多类内容，必须继续逐个来源片段确认。',
+  '“已有主角”不是来源角色；它只在“按视角重构读者体验”的限知视角下用于绑定焦点角色。',
+]);
+
+const PARAGRAPH_ROLE_HELP_LINES = Object.freeze([
+  '世界真相 / 设定事实：在作品世界中成立的客观事实或幕后真相，不代表读者或主角已经知道。',
+  '剧情计划：作者准备在后续发生的事件、章节安排或揭示计划。',
+  '叙事正文：已经面向读者写成的场景、行动、描写或对白。',
+  '作者指令：TODO、写作要求、检查项或直接给创作过程的命令，只能作为规划约束。',
+  '呈现提示：镜头、视角、节奏、条件触发或场景控制说明，不能逐字当成世界事实或正文。',
+  '这里的“段落”实际是导入服务切分出的来源片段；当前 DOCX 入口的一张卡可能包含多个 Word 段落。',
+]);
+
+const PARAGRAPH_DECISION_HELP_LINES = Object.freeze([
+  '待处理：尚未确认，任何待处理片段都会阻止完成来源确认。',
+  '保留此分类：接受当前选中的来源类型，供后续大纲或叙事投影使用。',
+  '修改后保留：表示作者已修正系统建议，并按修正后的来源类型继续使用。',
+  '排除本段：不让该来源片段进入后续叙事投影；不会修改原始 DOCX。',
+]);
+
+const MERGE_CLASSIFICATION_HELP_LINES = Object.freeze([
+  '把当前选中或系统建议的来源类型标记为“保留此分类”，等价于把“段落处理”设为接受。',
+  '它不会拼接相邻来源片段，也不会立即写入大纲、正文、设定或正史。',
+]);
+
 /** The five source roles are a UI projection of the canonical I141 enum. */
 export const IMPORT_SOURCE_ROLE_OPTIONS = Object.freeze(Object.entries(SOURCE_ROLE_LABELS) as Array<[ImportSourceRole, string]>);
 /** Stage 19 intentionally exposes only these two treatments. */
@@ -205,10 +243,39 @@ function optionNodes(h: El, options: ReadonlyArray<readonly [string, string]>, s
     .concat(options.map(([value, label]) => h('option', { value, selected: selected === value }, label)));
 }
 
-function selectField(h: El, label: string, value: string | undefined, options: ReadonlyArray<readonly [string, string]>, onChange: (value: string) => void, props: Record<string, unknown> = {}): unknown {
+/** I154 CSS tooltip：原生 title 作降级，role=tooltip 供键盘与辅助技术读取。 */
+function helpButton(h: El, help: ImportHelpDefinition): unknown {
+  const title = `${help.label}\n${help.lines.join('\n')}`;
+  return h('span', { className: 'nv-import-help' },
+    h('button', {
+      type: 'button',
+      className: 'nv-import-help__button',
+      title,
+      'aria-label': help.label,
+      'aria-describedby': help.id,
+      'data-novel-import-help': help.kind,
+    }, '?'),
+    h('span', { id: help.id, role: 'tooltip', className: 'nv-import-help__tooltip', 'data-novel-import-tooltip': help.kind },
+      h('strong', null, help.label),
+      h('ul', null, help.lines.map((line, index) => h('li', { key: `${help.kind}-${index}` }, line))),
+    ),
+  );
+}
+
+function selectField(h: El, label: string, value: string | undefined, options: ReadonlyArray<readonly [string, string]>, onChange: (value: string) => void, props: Record<string, unknown> = {}, help?: ImportHelpDefinition): unknown {
+  const select = h('select', { className: 'nv-field__input', ...(help?.controlId === undefined ? {} : { id: help.controlId }), value: value ?? '', 'aria-label': label, onChange: (event: { target: { value: string } }) => onChange(event.target.value), ...props }, optionNodes(h, options, value));
+  if (help !== undefined) {
+    return h('div', { className: 'nv-field nv-import-review__field' },
+      h('div', { className: 'nv-import-review__label-row' },
+        h('label', { className: 'nv-field__label', htmlFor: help.controlId }, label),
+        helpButton(h, help),
+      ),
+      select,
+    );
+  }
   return h('label', { className: 'nv-field nv-import-review__field' },
     h('span', { className: 'nv-field__label' }, label),
-    h('select', { className: 'nv-field__input', value: value ?? '', 'aria-label': label, onChange: (event: { target: { value: string } }) => onChange(event.target.value), ...props }, optionNodes(h, options, value)),
+    select,
   );
 }
 
@@ -255,9 +322,16 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
       h('p', { className: 'nv-import-review__paragraph-text' }, paragraph.text),
       paragraph.suggestedRole === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-suggestion': paragraph.paragraphId }, `建议：${PARAGRAPH_ROLE_LABELS[paragraph.suggestedRole]}（${paragraph.confidence ?? '未标注'}）`),
       paragraph.evidence === undefined ? null : h('p', { className: 'nv-import-review__evidence-text' }, `依据：${paragraph.evidence}`),
-      selectField(h, '段落来源类型', paragraph.selectedRole ?? paragraph.suggestedRole, IMPORT_PARAGRAPH_ROLE_OPTIONS, (value) => ops.setParagraphRole(paragraph.paragraphId, value as SourceParagraphRole), { 'data-novel-import-interpretation-paragraph-role': paragraph.paragraphId }),
-      selectField(h, '段落处理', paragraph.decision, [['pending', '待处理'], ['accepted', '保留此分类'], ['edited', '修改后保留'], ['rejected', '排除本段']] as const, (value) => ops.setParagraphDecision(paragraph.paragraphId, value as ImportReviewParagraph['decision']), { 'data-novel-import-interpretation-paragraph-decision': paragraph.paragraphId }),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-import-interpretation-merge': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'accepted') }, '合并此分类'),
+      selectField(h, '段落来源类型', paragraph.selectedRole ?? paragraph.suggestedRole, IMPORT_PARAGRAPH_ROLE_OPTIONS, (value) => ops.setParagraphRole(paragraph.paragraphId, value as SourceParagraphRole), { 'data-novel-import-interpretation-paragraph-role': paragraph.paragraphId }, {
+        id: `nv-import-paragraph-role-help-${paragraph.paragraphId}`, kind: 'paragraph-source-type', label: '段落来源类型说明', lines: PARAGRAPH_ROLE_HELP_LINES, controlId: `nv-import-paragraph-role-${paragraph.paragraphId}`,
+      }),
+      selectField(h, '段落处理', paragraph.decision, [['pending', '待处理'], ['accepted', '保留此分类'], ['edited', '修改后保留'], ['rejected', '排除本段']] as const, (value) => ops.setParagraphDecision(paragraph.paragraphId, value as ImportReviewParagraph['decision']), { 'data-novel-import-interpretation-paragraph-decision': paragraph.paragraphId }, {
+        id: `nv-import-paragraph-decision-help-${paragraph.paragraphId}`, kind: 'paragraph-decision', label: '段落处理说明', lines: PARAGRAPH_DECISION_HELP_LINES, controlId: `nv-import-paragraph-decision-${paragraph.paragraphId}`,
+      }),
+      h('div', { className: 'nv-import-review__paragraph-action' },
+        h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-import-interpretation-merge': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'accepted') }, '合并此分类'),
+        helpButton(h, { id: `nv-import-merge-help-${paragraph.paragraphId}`, kind: 'merge-classification', label: '合并此分类说明', lines: MERGE_CLASSIFICATION_HELP_LINES }),
+      ),
     )),
   );
 }
@@ -302,7 +376,9 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     ),
     suggested === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-overall-suggestion': '' }, `整体建议：${SOURCE_ROLE_LABELS[suggested]}${lowConfidence ? '（置信度较低，请重点核对）' : ''}`),
     lowConfidence ? h('p', { className: 'nv-import-review__warning', role: 'alert', 'data-novel-import-interpretation-low-confidence': '' }, '当前来源判断置信度较低，不会自动进入下一步。') : null,
-    selectField(h, '来源角色（必须确认）', state.selectedSourceRole, IMPORT_SOURCE_ROLE_OPTIONS, (value) => ops.setSourceRole(value as ImportSourceRole), { 'data-novel-import-interpretation-source-role': '' }),
+    selectField(h, '来源角色（必须确认）', state.selectedSourceRole, IMPORT_SOURCE_ROLE_OPTIONS, (value) => ops.setSourceRole(value as ImportSourceRole), { 'data-novel-import-interpretation-source-role': '' }, {
+      id: 'nv-import-source-role-help', kind: 'source-role', label: '来源角色说明', lines: SOURCE_ROLE_HELP_LINES, controlId: 'nv-import-source-role',
+    }),
     selectField(h, '当前处理目标（必须确认）', state.treatment, treatmentOptions, (value) => ops.setTreatment(value as ImportTreatment), { 'data-novel-import-interpretation-treatment': '' }),
     state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前阶段只支持扩展为大纲；正文保真导入尚未交付，将在 Stage 21 提供。') : null,
     intentFields(h, state, ops),

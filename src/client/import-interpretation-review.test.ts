@@ -8,6 +8,7 @@ import {
   type ImportInterpretationReviewState,
 } from './import-interpretation-review.js';
 import type { SourceInterpretationOutput } from '../core/schema/import-interpretation-analysis.js';
+import { ONBOARDING_STYLES } from './styles/onboarding.js';
 
 type Node = { tag: string; props: Record<string, unknown> | null; children: unknown[] };
 const h = (tag: string, props: Record<string, unknown> | null | undefined, ...children: unknown[]): Node => ({ tag, props: props ?? null, children });
@@ -60,6 +61,37 @@ describe('I144 来源语义审阅投影', () => {
     expect(collect(tree).some((node) => node.props?.['data-novel-import-interpretation-evidence-item'] === 'paragraph-0001')).toBe(true);
     expect(collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-confirm'] !== undefined)?.props?.disabled).toBe(false);
     expect(calls).toEqual([]);
+  });
+
+  it('I154 exposes detailed hover/focus help for source roles, source fragments, decisions, and merge semantics', () => {
+    const decisions: Array<[string, string]> = [];
+    const tree = sourceInterpretationReview(h, reviewedState(), {
+      begin: () => undefined, cancel: () => undefined, confirm: () => undefined,
+      setSourceRole: () => undefined, setTreatment: () => undefined, setNarrativeIntent: () => undefined,
+      setParagraphRole: () => undefined, setParagraphDecision: (paragraphId, decision) => decisions.push([paragraphId, decision]),
+    });
+    const helps = collect(tree, 'button').filter((node) => node.props?.['data-novel-import-help'] !== undefined);
+    expect(helps.map((node) => node.props?.['data-novel-import-help'])).toEqual([
+      'source-role', 'paragraph-source-type', 'paragraph-decision', 'merge-classification',
+    ]);
+    for (const help of helps) {
+      expect(help.props?.type).toBe('button');
+      expect(help.props?.['aria-label']).toMatch(/说明/);
+      expect(help.props?.['aria-describedby']).toBeTruthy();
+      expect(String(help.props?.title)).toContain('\n');
+      expect(help.props?.onClick).toBeUndefined();
+    }
+    const tooltipJson = JSON.stringify(collect(tree).filter((node) => node.props?.role === 'tooltip'));
+    expect(tooltipJson).toContain('创作想法');
+    expect(tooltipJson).toContain('已有正文');
+    expect(tooltipJson).toContain('导入服务切分出的来源片段');
+    expect(tooltipJson).toContain('不会拼接相邻来源片段');
+    expect(ONBOARDING_STYLES).toContain('.nv-import-help:hover .nv-import-help__tooltip');
+    expect(ONBOARDING_STYLES).toContain('.nv-import-help:focus-within .nv-import-help__tooltip');
+
+    const merge = collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-merge'] === 'paragraph-0001');
+    (merge?.props?.onClick as () => void)();
+    expect(decisions).toEqual([['paragraph-0001', 'accepted']]);
   });
 
   it('blocks unresolved hybrid paragraphs and requires a limited POV protagonist', () => {

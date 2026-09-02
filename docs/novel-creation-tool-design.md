@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I152 全部完成**；当前顺序执行 I153，修复目录层 DOCX 新作品导入绕过来源审阅、导致 Stage 19 选项与 I151 不可达的 Client 接线；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I153 全部完成**；当前顺序执行 I154，补齐来源审阅关键分类与操作的可访问解释提示；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -29,10 +29,11 @@
 | **v3.3（2026-09-01）** | 将 v3.2 原 I151–I162 导入基础设施与正文保真卡片整体改为后置设计包，原编号只作 provenance，恢复时必须重新编号。当前路线切换为查漏补缺：I150 已完成范围细纲修复，I151 只在作品首次导入事件中启动一次 Host-owned“规则与文风初始化” LLM 任务，候选经 I11 后分别落地 `rules/*.yaml` 与 `style.yaml`，后续只允许用户经现有 B1/B4 控制面手工改写。应用启动/打开作品不得被视为初始化事件。§0.1 宿主基线与 I1–I150 交付事实不变。 |
 | **v3.3 宿主兼容修订（2026-09-02）** | 同步 I151 已完成事实；按连续编号新增 I152，修复 `novelLlmConfig` 直接按旧扁平布局改写 `.credentials.yaml` 的宿主合同违例。凭据状态与保存只经 `ctx.credentials.describe/set`；`novel-custom` provider、公开 Remote、A2 路由及生成行为不变。v3.2 后置卡片的旧编号只作 provenance，不占用当前编号。 |
 | **v3.3 导入入口修订（2026-09-02）** | 同步 I152 已完成事实；新增 I153 修复目录层 DOCX 新作品入口仍直接启动旧六层分析、且来源审阅渲染错误依赖 `OnboardingState` 的接线回归。新作品上传后先进入既有 Stage 19 来源审阅；背景资料/已有正文与已有主角入口可达，确认后才触发 I151。I150 仍只属于范围细纲生成，不重写其历史边界。 |
+| **v3.3 来源审阅提示修订（2026-09-02）** | 同步 I153 已完成事实；新增 I154，在来源角色、段落来源类型、段落处理和“合并此分类”旁提供统一 hover/focus 帮助，解释所有枚举与真实副作用。“段落”明确为当前 Host 来源片段而非 Word 段落一一映射；不改变分段、分类、裁决或 Host 合同。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I152 已完成，当前顺序执行 I153 目录层首次受控导入接线修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I153 不恢复 F1/F2。
+> **v3.3 current supersession / 同步状态**：I1–I153 已完成，当前顺序执行 I154 来源审阅解释提示修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I154 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1243,6 +1244,12 @@ project/
 - 目录层上传 DOCX 并创建新作品后，Client 必须以 Host 返回的 `sourceHash`、原文和 paragraph chunks 直接建立既有 `ImportInterpretationReview`；不得先启动旧 I52 六层分析。来源审阅必须独立于 `OnboardingState` 渲染，否则无六层任务时会把真实审阅状态隐藏。
 - 作者必须在这条真实产品路径中看到既有 Stage 19 来源角色，包括“背景设定 / 幕后资料”和“已有正文”；选择背景资料、按视角重构、限知视角后，既有主角 ID 与待创建主角候选入口必须可达。本迭代不新增 enum，也不把“已有主角”误建为来源类型。
 - I151 仍只由首个已确认 import session 触发：确认前零规则/文风 LLM，确认后精确一次 begin，并继续经 I11 才写入 B1/B4。I153 只修 Client 入口接线，不改变 I150 范围细纲、I151 Host/Remote/schema、上传/项目 Remote 或后置正文保真边界。
+
+### 14.21 I154：来源审阅分类与操作解释提示
+
+- 来源角色、段落来源类型、段落处理和“合并此分类”必须使用同一视觉与可访问交互：标签或操作旁显示经典帮助按钮，鼠标 hover、键盘 focus 均显示详细 tooltip，并保留原生 `title` 降级与 `role=tooltip`/`aria-describedby` 关联。
+- 来源角色提示必须解释五类材料及当前边界；段落来源类型提示必须解释 `world-truth/plot-plan/prose/author-instruction/presentation-note`；段落处理提示必须解释 pending/accepted/edited/rejected。“合并此分类”明确等价于接受当前分类，不拼接相邻文本、不触发领域写入。
+- 当前目录 DOCX 路径的审阅单元来自 Host 4000 字符 chunk，可能包含多个 Word 段落；UI 文案称其为“来源片段”，不得承诺 Word 段落一一对应。I154 不修改 DOCX reader、chunkText、paragraph ID、分类/裁决 enum、Host/Remote、LLM prompt/schema 或样本。
 
 ---
 

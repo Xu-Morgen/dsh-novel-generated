@@ -343,7 +343,7 @@
     "verify:i139": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i139",
     "smoke:i140": "node scripts/smoke-i140.mjs",
     "verify:i140": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i140",
-    "verify:product-flow": "pnpm run verify:i140 && pnpm run smoke:i149 && pnpm run smoke:i151 && pnpm run smoke:i153",
+    "verify:product-flow": "pnpm run verify:i140 && pnpm run smoke:i149 && pnpm run smoke:i151 && pnpm run smoke:i153 && pnpm run smoke:i154",
     "smoke:stage-18": "node scripts/smoke-stage-18.mjs",
     "verify:stage-18": "pnpm run verify:i140 && pnpm run smoke:stage-18",
     "smoke:i141": "node scripts/smoke-i141.mjs",
@@ -376,6 +376,9 @@
     "smoke:i153": "node scripts/smoke-i153.mjs",
     "verify:i153": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i153",
     "verify:stage-22": "pnpm run verify:i153 && pnpm run verify:product-flow",
+    "smoke:i154": "node scripts/smoke-i154.mjs",
+    "verify:i154": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i154",
+    "verify:stage-23": "pnpm run verify:i154 && pnpm run verify:product-flow",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

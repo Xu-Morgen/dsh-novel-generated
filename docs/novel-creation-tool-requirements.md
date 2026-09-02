@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v3.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺与后置 F1/F2 边界。
 2. 本文件 v3.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I152 的完成事实、当前顺序 I153 目录层首次受控导入接线修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I153 的完成事实、当前顺序 I154 来源审阅解释提示卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
 4. `AGENTS.md` v3.3：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I152 全部完成**。当前顺序执行 I153，修复目录层 DOCX 新作品导入绕过来源审阅、导致 Stage 19 选项与 I151 初始化不可达的问题。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R24 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I153 全部完成**。当前顺序执行 I154，为来源审阅关键分类与操作补齐 hover/focus 详细解释提示。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R25 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -63,6 +63,7 @@
 | Stage 20 查漏补缺（R18-12、R18-15、R22） | I150–I151 | `pnpm run verify:stage-20` |
 | Stage 21 DSH credentials seam 兼容修复（R23） | I152 | `pnpm run verify:stage-21` |
 | Stage 22 目录层首次受控导入接线修复（R24） | I153 | `pnpm run verify:stage-22` |
+| Stage 23 来源审阅解释提示（R25） | I154 | `pnpm run verify:stage-23` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -566,6 +567,12 @@ README 仍为唯一 12 步，不增加步骤数量：
 |---|---|---|---|
 | R24-1 | 目录层 DOCX 创建并打开新作品后必须先启动既有来源语义审阅，不得直接进入旧六层分析；来源审阅不得依赖 `OnboardingState` 才可见。背景资料、已有正文来源选项及背景资料→按视角重构→限知下的已有主角入口必须可达。I151 仍只在首个来源 session 确认后启动。 | Client 产品夹具从空目录完成上传、新建/打开、来源选择、已有主角、段落裁决、确认和 I151 begin；确认前旧六层 begin=0 且 I151 begin=0，确认后 I151 begin=1；无 OnboardingState 仍渲染审阅；非法 Host chunks 与陈旧项目回调 fail closed；I150/Remote/schema/enum contract lock 零变化。 | I153 |
 
+## R25. 来源审阅解释提示（I154）
+
+| ID | 需求 | 验收/证据 | 迭代 |
+|---|---|---|---|
+| R25-1 | 来源角色、段落来源类型、段落处理与“合并此分类”旁必须显示统一帮助按钮；hover 与键盘 focus 展开详细说明，原生 title 降级并以 tooltip ARIA 关联。提示必须解释全部选项、来源片段的当前 chunk 语义以及“合并”零拼接/零领域写副作用。 | Client 纯渲染夹具断言四类 help、详细文案、`type=button`、`aria-describedby`、`role=tooltip`、hover/focus CSS；点击真正“合并此分类”仍只产生 accepted 决策；全量/product-flow 绿。分段、enum、Host/Remote、prompt/schema/样本零变化。 | I154 |
+
 ---
 
 ## Deferred / 非目标
@@ -591,6 +598,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I152 已完成。当前顺序执行 I153，修复目录层 DOCX 新作品绕过来源审阅的共同入口根因，使 Stage 19 来源/主角选择与 I151 首次导入初始化在真实产品路径可达；I150、公开 Remote 与生成语义不变。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I153 已完成。当前顺序执行 I154，为来源角色、来源片段分类/处理和“合并此分类”补齐可访问的详细解释提示；分段、公开合同与生成语义不变。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
