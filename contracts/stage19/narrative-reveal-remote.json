@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "namespace": "stage19NarrativeReveal",
-  "contractNote": "I146 C3 secret/reveal planner 只追加候选 Remote；不应用 C3、不生成或写入 C4/C5。",
+  "contractNote": "I146 C3 secret/reveal planner 只追加候选 Remote；I157 additive 接受 idea sourceRole；不应用 C3、不生成或写入 C4/C5。",
   "descriptorIds": [
     "novel-creation-tool/novelNarrativeReveal/begin",
     "novel-creation-tool/novelNarrativeReveal/status",
@@ -48,6 +48,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -593,6 +594,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -1001,6 +1003,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]

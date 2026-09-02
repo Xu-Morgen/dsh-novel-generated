@@ -52,6 +52,13 @@ describe('I149 source-aware workflow route', () => {
     expect(applied.fidelityImportAvailable).toBe(false);
   });
 
+  it('I157 routes creative ideas through the same narrative adaptation plan', () => {
+    const idea = projectSourceAwareWorkflow({ review: review('idea', 'adapt-pov') });
+    expect(idea.route).toBe('narrative-adaptation');
+    expect(idea.requiresNarrativePlan).toBe(true);
+    expect(idea.canProceedToDetail).toBe(false);
+  });
+
   it('keeps ordinary synopsis and manually recovered classifier choices on the existing route', () => {
     expect(projectSourceAwareWorkflow({ review: review('synopsis', 'expand-outline') }).route).toBe('ordinary-outline');
     expect(projectSourceAwareWorkflow({ review: review('synopsis', 'expand-outline', { analysisStatus: 'failed' }) }).nextStage).toBe('detail');

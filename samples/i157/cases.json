@@ -1,0 +1,42 @@
+{
+  "immutable": true,
+  "threshold": 0.8,
+  "cases": [
+    {
+      "id": "idea-new-protagonist",
+      "sourceRole": "idea",
+      "evidence": "一座城市每天醒来都会遗忘昨天，只有钟楼记录失去的名字。",
+      "expected": {
+        "confidence": "high",
+        "evidenceParagraphIds": ["paragraph-0001"],
+        "outline": {"id":"adapted-outline","structure":"three-act","logline":"失忆档案员追查钟楼中消失的姓名","themes":["记忆"],"acts":[{"id":"act-1","index":0,"title":"第一份失踪记录","goal":"找到可验证的遗忘线索","beats":[{"id":"beat-1","title":"核对空白档案","description":"新主角调查钟楼记录并因错误记忆作出误判","charactersInvolved":["imported-protagonist"],"conflictType":"external","prerequisites":[],"optional":false,"detailBeats":[]}]}],"foreshadowing":[],"endings":[]},
+        "protagonistCandidate": {"id":"imported-protagonist","name":"未名档案员","premise":"能察觉记录与记忆之间矛盾的普通档案员"},
+        "rationale": "以新主角的调查把概念转化为可经历的故事"
+      }
+    },
+    {
+      "id": "background-new-protagonist",
+      "sourceRole": "background-material",
+      "evidence": "王城的灯塔以被抹去的誓言为燃料，守塔人对此秘而不宣。",
+      "expected": {
+        "confidence": "high",
+        "evidenceParagraphIds": ["paragraph-0001"],
+        "outline": {"id":"adapted-outline","structure":"three-act","logline":"见习修灯师追查灯塔异常熄灭","themes":["承诺"],"acts":[{"id":"act-1","index":0,"title":"熄灭的灯","goal":"确认灯塔故障的表面原因","beats":[{"id":"beat-1","title":"进入灯室","description":"新主角调查燃料缺口并把守塔人的回避误判为失职","charactersInvolved":["imported-protagonist"],"conflictType":"relational","prerequisites":[],"optional":false,"detailBeats":[]}]}],"foreshadowing":[],"endings":[]},
+        "protagonistCandidate": {"id":"imported-protagonist","name":"见习修灯师","premise":"因一次普通维修被卷入誓言燃料秘密的新人"},
+        "rationale": "插入不掌握幕后真相的新主角串联调查与揭示"
+      }
+    },
+    {
+      "id": "hybrid-new-protagonist",
+      "sourceRole": "hybrid",
+      "evidence": "海图会自行改写。TODO：不要第一章解释原因。港务员看到一条不存在的航线。",
+      "expected": {
+        "confidence": "high",
+        "evidenceParagraphIds": ["paragraph-0001"],
+        "outline": {"id":"adapted-outline","structure":"three-act","logline":"新任港务员追踪海图上不存在的航线","themes":["真相"],"acts":[{"id":"act-1","index":0,"title":"多出的航线","goal":"验证航线是否真实存在","beats":[{"id":"beat-1","title":"比对航海日志","description":"新主角调查改写痕迹并误判为走私者伪造","charactersInvolved":["imported-protagonist"],"conflictType":"world","prerequisites":[],"optional":false,"detailBeats":[]}]}],"foreshadowing":[],"endings":[]},
+        "protagonistCandidate": {"id":"imported-protagonist","name":"新任港务员","premise":"第一次值夜便发现异常航线的港务员"},
+        "rationale": "将事实、作者约束和少量正文统一投影到新主角体验"
+      }
+    }
+  ]
+}

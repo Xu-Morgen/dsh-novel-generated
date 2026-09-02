@@ -90,11 +90,12 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     };
     select('data-novel-import-interpretation-source-role', 'background-material');
     select('data-novel-import-interpretation-treatment', 'adapt-pov');
-    const pov = collect(render(), 'select').find((node) => node.props?.['aria-label'] === '适用视角');
-    (pov?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'limited' } });
-    const protagonist = collect(render(), 'input').find((node) => node.props?.['aria-label'] === '已有主角 ID');
+    const protagonist = collect(render(), 'select').find((node) => node.props?.['data-novel-import-interpretation-protagonist-source'] !== undefined);
     expect(protagonist).toBeDefined();
-    (protagonist?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'hero-existing' } });
+    expect(protagonist?.props?.value).toBe('generate');
+    expect(JSON.stringify(protagonist)).toContain('由 AI 创建并串联新主角');
+    expect(collect(render(), 'input').some((node) => String(node.props?.['aria-label']).includes('主角 ID'))).toBe(false);
+    expect(collect(render(), 'textarea').some((node) => String(node.props?.['aria-label']).includes('初始已知'))).toBe(false);
     select('data-novel-import-interpretation-paragraph-decision', 'accepted');
 
     const confirm = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-confirm'] === '');
@@ -105,7 +106,7 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-rule-style-import'] === '')).toBe(true);
   });
 
-  it('I156 retries a failed session create in place with the original Host source evidence', async () => {
+  it('I157 retries a failed session create with source evidence and every author choice intact', async () => {
     (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
     const sourceCreates: unknown[] = [];
     let onboardingBegins = 0;
@@ -147,13 +148,35 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(retry).toBeDefined();
     expect(JSON.stringify(render())).toContain('来源审阅会话未建立，请重试。');
     expect(JSON.stringify(render())).toContain('EPERM: operation not permitted');
-    (retry?.props?.onClick as () => void)();
+    const select = (attribute: string, value: string) => {
+      const node = collect(render(), 'select').find((candidate) => candidate.props?.[attribute] !== undefined);
+      (node?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
+    };
+    select('data-novel-import-interpretation-source-role', 'hybrid');
+    select('data-novel-import-interpretation-treatment', 'adapt-pov');
+    const pacing = collect(render(), 'select').find((node) => node.props?.['aria-label'] === '揭示节奏');
+    (pacing?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'fast' } });
+    select('data-novel-import-interpretation-paragraph-decision', 'accepted');
+    const retryAfterChoices = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-retry'] === '');
+    (retryAfterChoices?.props?.onClick as () => void)();
     await flush();
 
     expect(sourceCreates).toHaveLength(2);
-    expect(sourceCreates[1]).toEqual(sourceCreates[0]);
+    expect(sourceCreates[1]).toMatchObject({
+      projectId: 'retry-u-retry',
+      sourceHash: 'd'.repeat(64),
+      intent: {
+        sourceRole: 'hybrid',
+        treatment: 'adapt-pov',
+        narrativeIntent: { pov: 'limited', protagonistCandidateId: 'imported-protagonist-dddddddddddd', initialKnown: [], revealPacing: 'fast' },
+      },
+      paragraphDecisions: [{ paragraphId: 'paragraph-0001', decision: 'accepted', summary: '保留来源证据' }],
+    });
     expect(onboardingBegins).toBe(0);
     expect(collect(render(), 'section').find((node) => node.props?.['data-novel-import-interpretation-review'] === '')?.props?.['data-novel-import-interpretation-status']).toBe('succeeded');
+    expect(collect(render(), 'select').find((node) => node.props?.['data-novel-import-interpretation-source-role'] !== undefined)?.props?.value).toBe('hybrid');
+    expect(collect(render(), 'select').find((node) => node.props?.['data-novel-import-interpretation-treatment'] !== undefined)?.props?.value).toBe('adapt-pov');
+    expect(collect(render(), 'select').find((node) => node.props?.['aria-label'] === '揭示节奏')?.props?.value).toBe('fast');
   });
 
   it('I156 retries analysis on the established session without creating another checkpoint', async () => {

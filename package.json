@@ -385,6 +385,9 @@
     "smoke:i156": "node scripts/smoke-i156.mjs",
     "verify:i156": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i156",
     "verify:stage-25": "pnpm run verify:i156 && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151 && pnpm run smoke:i153 && pnpm run smoke:i154 && pnpm run smoke:i155",
+    "smoke:i157": "node scripts/smoke-i157.mjs",
+    "verify:i157": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i157",
+    "verify:stage-26": "pnpm run verify:i157 && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151 && pnpm run smoke:i154 && pnpm run smoke:i155 && pnpm run smoke:i156",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

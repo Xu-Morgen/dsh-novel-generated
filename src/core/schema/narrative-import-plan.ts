@@ -37,7 +37,7 @@ export const narrativeImportPlanInputSchema = z.object({
   projectId: entityIdSchema,
   importSessionId: entityIdSchema,
   sourceHash: sourceHashSchema,
-  sourceRole: z.enum(['background-material', 'hybrid']),
+  sourceRole: z.enum(['idea', 'background-material', 'hybrid']),
   treatment: z.literal('adapt-pov'),
   narrativeIntent: narrativeIntentSchema,
   package: narrativeImportPlanPackageSchema,
@@ -68,7 +68,7 @@ export type NarrativeImportPlanIdentity = z.infer<typeof narrativeImportPlanIden
 
 /** Durable checkpoint; committedStages is the recovery truth, never inferred from status. */
 export const narrativeImportPlanSchema = narrativeImportPlanIdentitySchema.extend({
-  sourceRole: z.enum(['background-material', 'hybrid']),
+  sourceRole: z.enum(['idea', 'background-material', 'hybrid']),
   treatment: z.literal('adapt-pov'),
   narrativeIntent: narrativeIntentSchema,
   package: narrativeImportPlanPackageSchema,

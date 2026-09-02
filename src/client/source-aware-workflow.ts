@@ -118,14 +118,14 @@ export function projectSourceAwareWorkflow(input: SourceAwareWorkflowInput): Sou
   }
 
   if (review.treatment === 'adapt-pov') {
-    if (review.selectedSourceRole !== 'background-material' && review.selectedSourceRole !== 'hybrid') {
+    if (review.selectedSourceRole !== 'idea' && review.selectedSourceRole !== 'background-material' && review.selectedSourceRole !== 'hybrid') {
       return {
         ...common,
         route: 'blocked',
         nextStage: 'outline',
         canProceedToDetail: false,
         requiresNarrativePlan: true,
-        message: '按视角重构目前只适用于背景素材或混合来源，请改选扩展为大纲。',
+        message: '按视角重构目前只适用于创作想法、背景素材或混合来源，请改选扩展为大纲。',
       };
     }
     const applied = input.planStatus === 'applied';

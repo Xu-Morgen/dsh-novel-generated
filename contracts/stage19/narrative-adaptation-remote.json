@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "namespace": "stage19NarrativeAdaptation",
-  "contractNote": "I145 POV 叙事化只追加 B5/protagonist candidate Remote；不写 B3/B5，不生成 C3/C4/C5。",
+  "contractNote": "I145 POV 叙事化只追加 B5/protagonist candidate Remote；I157 additive 扩展 idea sourceRole 与新主角串联守卫；不直接写 B3/B5，不生成 C3/C4/C5。",
   "descriptorIds": [
     "novel-creation-tool/novelNarrativeAdaptation/begin",
     "novel-creation-tool/novelNarrativeAdaptation/status",
@@ -48,6 +48,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -533,6 +534,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -1133,6 +1135,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]

@@ -2,7 +2,7 @@
 
 > 版本：v3.3
 > 日期：2026-09-02
-> 状态：当前执行权威（**I1–I155 全部完成**；当前顺序执行 I156 来源审阅 session 持久化恢复；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
+> 状态：当前执行权威（**I1–I156 全部完成**；当前顺序执行 I157 来源主角语义恢复；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v3.3（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.3（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -16,7 +16,7 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- I151 首次导入规则与文风初始化、I152 credentials seam、I153 真实导入入口、I154 来源审阅解释提示与 I155 作品归档均已完成。当前单一执行卡为 Stage 25 / I156：修复来源审阅 session 的 Windows 瞬时文件锁与原地重试缺口。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
+- I151 首次导入规则与文风初始化、I152 credentials seam、I153 真实导入入口、I154 来源审阅解释提示、I155 作品归档与 I156 来源审阅 session 持久化恢复均已完成。当前单一执行卡为 Stage 26 / I157：保留失败重试前的作者审阅状态，移除技术 ID 输入，并让 idea/background-material/hybrid 可由 LLM 提议新主角后转为视角叙事。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -31,6 +31,7 @@
 - v3.3 来源审阅提示修订（2026-09-02）：I153 已完成；新增 Stage 23 / I154，以统一 CSS tooltip 补充四处详细解释及 hover/focus/ARIA 行为。真实 DOCX 分段继续使用 Host 4000 字符 chunks，本迭代不改分段与领域合同。
 - v3.3 作品归档修订（2026-09-02）：I154 已完成；新增 Stage 24 / I155，以 Host 目录迁移、活动墓碑和三个 strict additive lifecycle Remote 交付既有作品归档/恢复。归档区只允许恢复，不新增删除或归档内编辑。
 - v3.3 来源审阅持久化修订（2026-09-02）：I155 已完成；新增 Stage 25 / I156，在既有 I142 session owner 内补 Windows transient rename 有界重试，并在 I144 Client 审阅面板补原地重试与折叠技术详情；公开 Remote/schema/LLM/分段不变。
+- v3.3 来源主角语义修订（2026-09-02）：I156 已完成；新增 Stage 26 / I157，修复首次 create 重试重置 Client state 和技术 ID 输入。`idea|background-material|hybrid + adapt-pov` 统一支持隐藏稳定候选 ID 与 LLM 新主角串联；synopsis/existing-prose、I151、分段和 F1/F2 边界不变。
 
 ### 0.2 Goal
 
@@ -1603,6 +1604,20 @@ TDD Route:
 - **验收**：EPERM/EBUSY/EACCES 前若干次失败后成功落盘；非 transient 与重试耗尽 fail closed；无 session 时重试 create，有 session 时只重启 analysis；重试输入与原 Host chunks/sourceHash 一致且不启动旧六层分析。
 - **验证**：`pnpm run verify:i156`；`pnpm run verify:stage-25`；`artifacts/i156-source-review-session-recovery.json`。
 
+## 27. Stage 26：来源主角作者语义恢复（R28，I157）
+
+**阶段门**：`pnpm run verify:stage-26`。I157 只扩展既有 Stage 19 sourceRole 的 `idea + adapt-pov` 合法组合并修复 Client 作者语义；不恢复正文保真 F2，不绕过 I11。
+
+### I157：重试状态保持、无 ID 表单与 LLM 新主角串联（R28-1/R28-2）
+
+- **依赖**：I145、I148、I153、I156；**canonical owner**：Client `ImportInterpretationController` + `llm/analyze/narrative-adaptation` + Stage 19 strict schema/locks。
+- **目标**：首次 session create 失败后的重试保留作者全部审阅状态；作者只选择 AI 创建或已有角色名称，不填写任何角色/知识 ID；创作想法、背景资料和混合文档都可由 LLM 提议新主角并转换为视角叙事。
+- **兼容/退役**：既有 invocation 名称、参数字段与结果字段不变；仅把 `idea` additive 加入 narrative adaptation/reveal/plan 的 sourceRole enum。Client 内部生成稳定 candidate ID，旧显式 ID 数据仍可读取但不再渲染为输入。synopsis/existing-prose 仍只拆纲。
+- **交付物**：先冻结 `samples/i157` dev/held-out/gold；保状态 retry helper；作者语义 protagonist selector；初始已知说明；idea strict schema/contract locks；prompt 与 deterministic candidate-in-B5 guard；产品/LLM/负向夹具及 I157 smoke。
+- **验收**：重试前后 sourceHash/ranges/作者选择完全一致；DOM 零手填 ID；空项目选择 adapt-pov 默认 limited+AI 新主角；已有角色只按名称显示；idea/background/hybrid 均通过；缺 candidate、候选 ID 漂移、B5 未引用候选、synopsis/existing-prose 非法组合均失败；新 held-out ≥80%，旧 I145/I146 样本不回归，未确认零写。
+- **明确不做**：不自动接受或直接写 B3/B5/C3/C4；不开放 preserve-prose；不修改 DOCX chunk、I151 触发、归档或 DSH family pin。
+- **验证**：`pnpm run verify:i157`；`pnpm run verify:stage-26`；`artifacts/i157-source-protagonist-semantics.json`。
+
 ## Deferred Package F1：导入基础设施重构（v3.2 原 Stage 20 / I151–I155）
 
 > **后置说明**：下列卡片完整保留 v3.2 设计意图，但原 I151–I155 只作 provenance，不得执行原 `verify:i151`–`verify:i155` 或占用当前 I151 身份。恢复时必须重新编号、重新冻结依赖和验证命令。
@@ -1735,9 +1750,9 @@ TDD Route:
 
 ## 25. 完成线
 
-I1–I155 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复。
+I1–I156 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复。
 
-v3.3 当前进度：**Stage 24 / I155 已完成 → 当前顺序执行 Stage 25 / I156 来源审阅 session 持久化恢复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v3.3 当前进度：**Stage 25 / I156 已完成 → 当前顺序执行 Stage 26 / I157 来源主角作者语义恢复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
 
 I74 完成时还必须证明：
 

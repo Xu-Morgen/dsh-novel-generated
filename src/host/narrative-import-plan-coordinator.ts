@@ -40,6 +40,44 @@ export interface NarrativeImportPlanCoordinator {
   dispose(): void;
 }
 
+function withGeneratedProtagonist(input: NarrativeImportPlanInput): NarrativeImportPlanInput {
+  const candidate = input.package.outline.protagonistCandidate;
+  if (candidate === undefined) return input;
+  const existing = input.package.characters.candidates.find((character) => character.id === candidate.id);
+  if (existing !== undefined) {
+    if (existing.kind !== 'protagonist' || existing.name !== candidate.name) {
+      throw new Error(`Generated protagonist conflicts with character candidate: ${candidate.id}`);
+    }
+    return input;
+  }
+  return narrativeImportPlanInputSchema.parse({
+    ...input,
+    package: {
+      ...input.package,
+      characters: {
+        ...input.package.characters,
+        candidates: [{
+          id: candidate.id,
+          name: candidate.name,
+          aliases: [],
+          kind: 'protagonist',
+          personality: '',
+          background: candidate.premise,
+          motivation: '',
+          goals: [],
+          flaws: [],
+          abilities: [],
+          speechStyle: '',
+          staticTraits: [],
+          arc: { startingPoint: candidate.premise, desiredEnd: '', keyBeats: [] },
+          relationships: [],
+          knowledgeIds: [],
+        }, ...input.package.characters.candidates],
+      },
+    },
+  });
+}
+
 /**
  * I148 is the single preview/confirmation/application owner for a new empty
  * project. It reuses the existing six layer applier and adds C3 after the
@@ -164,7 +202,7 @@ export function createNarrativeImportPlanCoordinator(
     propose(rawInput) {
       ensureActive();
       return serialize(rawInput.projectId, async () => {
-        const input = narrativeImportPlanInputSchema.parse(rawInput);
+        const input = withGeneratedProtagonist(narrativeImportPlanInputSchema.parse(rawInput));
         await ensureEmpty(input.projectId);
         const plans = await readFile(input.projectId);
         const provisionalId = `narrative-import-plan-${plans.length + 1}`;

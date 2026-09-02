@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v3.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺与后置 F1/F2 边界。
 2. 本文件 v3.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I155 的完成事实、当前顺序 I156 来源审阅持久化修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I156 的完成事实、当前顺序 I157 来源主角语义修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
 4. `AGENTS.md` v3.3：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I155 全部完成**。当前顺序执行 I156，修复来源审阅 session 在 Windows 瞬时文件锁下首次落盘失败且无法原地重试。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R27 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I156 全部完成**。当前顺序执行 I157，修复来源审阅重试状态丢失、作者技术 ID 输入和 idea/background-material/hybrid 新主角叙事化缺口。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R28 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -66,6 +66,7 @@
 | Stage 23 来源审阅解释提示（R25） | I154 | `pnpm run verify:stage-23` |
 | Stage 24 既有作品归档（R26） | I155 | `pnpm run verify:stage-24` |
 | Stage 25 来源审阅 session 持久化恢复（R27） | I156 | `pnpm run verify:stage-25` |
+| Stage 26 来源主角语义恢复（R28） | I157 | `pnpm run verify:stage-26` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -514,7 +515,7 @@
 |---|---|---|---|
 | R19-1 | 来源角色与目标处理是两根独立轴。来源角色包含想法、梗概/计划、背景/幕后资料、已有正文和混合文档；Stage 19 目标处理只有 `expand-outline|adapt-pov`。`limited` 必须绑定现有角色或稳定待创建主角候选；`omniscient` 不强制单一主角。I141 只建纯合同，I142 才建立 session owner 与 Remote。 | 非法组合、缺 limited POV、未知且无候选 ID 的主角、低置信自动选择、跨项目或 sourceHash 变化全部拒绝；fingerprint byte-stable；I141 不发布无服务语义 Remote；I142 新增 Remote 具 strict schema、contract lock、真实 binder 和非法结果负测。 | I141–I142 |
 | R19-2 | Host 对稳定 paragraph ID 生成来源解释建议，分类 `world-truth/plot-plan/prose/author-instruction/presentation-note`；offset 由 Host 投影，混合文档由作者逐段修正并确认。解释结果是 operational evidence，不是第 14 层或素材库。 | 先冻结 dev/held-out/gold，整体与段落分类准确率均 ≥80%；paragraph ranges 有序、无重叠、完整覆盖；取消、非法 JSON、未知段落、超限、模型失败零写；Client 可访问地审阅，未裁决段阻止下一步。 | I143–I144 |
-| R19-3 | `background-material|hybrid + adapt-pov` 的 B5 必须按确认视角的行动、调查、误判、冲突和揭示顺序生成；I52 原 B5 不得直接复用。 | held-out ≥80%；第一幕直接答案泄漏、硬编码主角、按幕后年表复述、作者指令进入 beat 均失败；B5 带 paragraph evidence，重新生成保持确认意图不变；《灰烬圣典》为真实消费 fixture。 | I145 |
+| R19-3 | `background-material|hybrid + adapt-pov` 的 B5 必须按确认视角的行动、调查、误判、冲突和揭示顺序生成；I52 原 B5 不得直接复用。I157 以 R28-2 将同一合同 additive 扩展到 `idea`。 | held-out ≥80%；第一幕直接答案泄漏、硬编码主角、按幕后年表复述、作者指令进入 beat 均失败；B5 带 paragraph evidence，重新生成保持确认意图不变；《灰烬圣典》为真实消费 fixture。 | I145、I157 |
 | R19-4 | 幕后事实形成 C3 secret/backstory/foreshadow/plotpoint、holders/KnowledgeState/revealPlan；C4 只允许故事开始时已公开/已建立事件。C3 生成与 C4 确定性 guard 分卡交付。 | C3 held-out ≥80%；holders↔knows 一致；主角未持有隐藏事实；幕后/未来/presentation/作者指令进入 C4 必须失败；reveal 前 POV leak detector 零容忍。 | I146–I147 |
 | R19-5 | `NarrativeImportPlan` 明确组合 I52 的 B3/B2/C1/C2 地基候选、Stage 19 B5/C3 与安全 C4，只允许新建/空作品，经一次 I11 预览并按既有逐层语义幂等应用。Stage 19 技术失败允许显式 `partial-failure` 与同 operation 恢复，但不得谎报成功；共享 UoW 机械迁移已后置至 F1。 | 写前全量引用/readiness/freshness 预检；pending/reject/stale 零写；writer 故障准确记录已完成阶段并可重开恢复；重复 apply 不重复实体、知情或正史；成功后 B5 为读者体验、C4 无幕后泄漏、POV context 安全；产品 E2E 与 I1–I140 product-flow 全绿。 | I148–I149 |
 
@@ -587,6 +588,13 @@ README 仍为唯一 12 步，不增加步骤数量：
 |---|---|---|---|
 | R27-1 | Windows 下来源审阅 session 的原子 rename 遇到瞬时 `EPERM/EBUSY/EACCES` 必须有界重试；失败后作者可在不重新上传 DOCX 的情况下原地重试。普通提示不得泄漏工程细节，但高级详情必须保留原始原因。 | Host 故障注入证明 transient 错误后同一合法 session 落盘、非 transient/耗尽仍拒绝；Client 产品夹具证明首次 create 失败后按钮可达、第二次只复用原 Host chunks/sourceHash 并进入分析，已有 session 的分析失败不创建第二 session；公开 Remote/schema/lock、I151 触发、LLM 与分段零变化。 | I156 |
 
+## R28. 来源主角作者语义与视角叙事化（I157）
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R28-1 | session-create 失败后的原地重试必须保留作者已填写的来源角色、处理目标、POV、揭示节奏和逐段裁决；来源审阅 UI 不得要求手填角色或知情信息技术 ID。 | 产品夹具在失败后修改全套审阅选择，再重试并断言界面与 create 输入均保持；DOM 中无“主角 ID”“候选 ID”“初始已知信息 ID”输入；已有角色仅显示名称，空作品默认“AI 创建主角”。 | I157 |
+| R28-2 | `idea|background-material|hybrid + adapt-pov` 均允许 LLM 提议并串联新的限知主角；内部 candidate ID 由 Client 按 project/source 确定性生成且不展示。`synopsis|existing-prose` 维持拆纲边界。 | 新 i157 dev/held-out/gold ≥80%；idea strict Remote/schema round-trip；LLM 输出缺主角、ID 漂移或 B5 未引用新主角均失败；contract locks/binder 更新且旧字段兼容；未确认仍零写。 | I157 |
+
 ---
 
 ## Deferred / 非目标
@@ -612,6 +620,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I155 已完成。当前顺序执行 I156，修复来源审阅 session 的 Windows 瞬时文件锁与原地重试缺口；公开合同和导入语义不变。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I156 已完成。当前顺序执行 I157，修复来源审阅状态保持与作者技术 ID 暴露，并开放创作想法/背景资料/混合文档的新主角视角叙事化。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

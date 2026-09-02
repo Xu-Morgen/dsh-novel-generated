@@ -6,8 +6,8 @@ import {
 import { sourceHashSchema } from './onboarding-binding.js';
 import { outlineSchema } from './outline.js';
 
-/** I145 only adapts confirmed background/hybrid evidence into a B5 candidate. */
-export const narrativeAdaptationSourceRoleSchema = z.enum(['background-material', 'hybrid']);
+/** I157 adapts confirmed idea/background/hybrid evidence into a POV B5 candidate. */
+export const narrativeAdaptationSourceRoleSchema = z.enum(['idea', 'background-material', 'hybrid']);
 export type NarrativeAdaptationSourceRole = z.infer<typeof narrativeAdaptationSourceRoleSchema>;
 
 export const narrativeAdaptationEvidenceSchema = z.object({

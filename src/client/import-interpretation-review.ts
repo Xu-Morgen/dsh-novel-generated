@@ -73,6 +73,8 @@ export interface ImportInterpretationReviewOps {
   setNarrativeIntent(intent: NarrativeIntent | undefined): void;
   setParagraphRole(paragraphId: string, role: SourceParagraphRole): void;
   setParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  /** Author-facing options; ids remain internal option values and are never typed by the author. */
+  readonly availableCharacters?: readonly { readonly id: string; readonly name: string }[];
   setRuleStyleRulesDraft?(value: string): void;
   setRuleStyleStyleDraft?(value: string): void;
   retryRuleStyleInitialization?(): void;
@@ -119,7 +121,7 @@ const SOURCE_ROLE_HELP_LINES = Object.freeze([
   '背景设定 / 幕后资料：世界规则、历史、人物秘密和作者掌握但不应直接告诉读者的真相。',
   '已有正文：已经按小说形式写成的章节、场景、描写或对白；当前只用于拆纲，不会保真写入正式正文。',
   '混合文档：同一文件包含以上多类内容，必须继续逐个来源片段确认。',
-  '“已有主角”不是来源角色；它只在“按视角重构读者体验”的限知视角下用于绑定焦点角色。',
+  '“已有主角”不是来源角色；它只在“按视角重构读者体验”的限知视角下用于绑定焦点角色，作者只按名称选择。',
 ]);
 
 const PARAGRAPH_ROLE_HELP_LINES = Object.freeze([
@@ -221,7 +223,7 @@ export function importIntentValidationMessage(state: ImportInterpretationReviewS
   if (state.selectedSourceRole === undefined) return '请确认来源角色。';
   if (state.treatment === undefined) return '请选择当前处理目标。';
   if (state.selectedSourceRole === 'existing-prose' && state.treatment === 'adapt-pov') return '已有正文在当前阶段只能扩展为大纲；正文保真导入尚未开放。';
-  if ((state.selectedSourceRole === 'idea' || state.selectedSourceRole === 'synopsis') && state.treatment === 'adapt-pov') return '按视角重构目前只适用于背景素材或混合来源，请改选扩展为大纲。';
+  if (state.selectedSourceRole === 'synopsis' && state.treatment === 'adapt-pov') return '故事梗概在当前阶段只能扩展为大纲。';
   const intent = state.narrativeIntent;
   if (state.treatment === 'adapt-pov') {
     if (intent === undefined) return '按视角重构需要补充叙事意图。';
@@ -240,6 +242,11 @@ export function importIntentValidationMessage(state: ImportInterpretationReviewS
 export function canConfirmImportIntent(state: ImportInterpretationReviewState): boolean {
   return state.busy === false && state.confirmed === false && state.analysisStatus !== 'queued' && state.analysisStatus !== 'running'
     && importIntentValidationMessage(state) === undefined;
+}
+
+/** I157 internal stable id; project-local entity ids need only be stable for the same source. */
+export function automaticProtagonistCandidateId(sourceHash: string): string {
+  return `imported-protagonist-${sourceHash.slice(0, 12).toLowerCase()}`;
 }
 
 function optionNodes(h: El, options: ReadonlyArray<readonly [string, string]>, selected: string | undefined): unknown[] {
@@ -286,24 +293,32 @@ function selectField(h: El, label: string, value: string | undefined, options: R
 function intentFields(h: El, state: ImportInterpretationReviewState, ops: ImportInterpretationReviewOps): unknown {
   if (state.treatment !== 'adapt-pov') return null;
   const intent = state.narrativeIntent;
-  const current = intent ?? { pov: 'omniscient' as const, initialKnown: [], revealPacing: 'balanced' as const };
+  const current = intent ?? { pov: 'limited' as const, protagonistCandidateId: automaticProtagonistCandidateId(state.sourceHash), initialKnown: [], revealPacing: 'balanced' as const };
+  const characters = ops.availableCharacters ?? [];
+  const existingSelected = current.protagonistId === undefined
+    ? []
+    : characters.some((character) => character.id === current.protagonistId)
+      ? []
+      : [[`existing:${current.protagonistId}`, '已选的作品角色']] as const;
+  const protagonistOptions: ReadonlyArray<readonly [string, string]> = [
+    ['generate', '由 AI 创建并串联新主角（推荐）'],
+    ...characters.map((character) => [`existing:${character.id}`, `使用已有角色：${character.name}`] as const),
+    ...existingSelected,
+  ];
+  const protagonistSelection = current.protagonistId === undefined ? 'generate' : `existing:${current.protagonistId}`;
   return h('fieldset', { className: 'nv-import-review__intent', 'data-novel-import-interpretation-intent': '' },
     h('legend', null, '叙事意图'),
     selectField(h, '适用视角', current.pov, Object.entries(POV_LABELS) as Array<[NarrativePov, string]>, (value) => ops.setNarrativeIntent({ ...current, pov: value as NarrativePov })),
     current.pov === 'limited' ? h('div', { className: 'nv-import-review__protagonist', 'data-novel-import-interpretation-protagonist': '' },
-      h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '已有主角 ID（可选）'),
-        h('input', { className: 'nv-field__input', value: current.protagonistId ?? '', 'aria-label': '已有主角 ID', onChange: (event: { target: { value: string } }) => ops.setNarrativeIntent({ ...current, protagonistId: event.target.value.trim() || undefined, protagonistCandidateId: undefined }) }),
-      ),
-      h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '待创建主角候选 ID（可选）'),
-        h('input', { className: 'nv-field__input', value: current.protagonistCandidateId ?? '', 'aria-label': '待创建主角候选 ID', onChange: (event: { target: { value: string } }) => ops.setNarrativeIntent({ ...current, protagonistCandidateId: event.target.value.trim() || undefined, protagonistId: undefined }) }),
-      ),
+      selectField(h, '主角来源', protagonistSelection, protagonistOptions, (value) => {
+        if (value === 'generate') {
+          ops.setNarrativeIntent({ ...current, protagonistId: undefined, protagonistCandidateId: automaticProtagonistCandidateId(state.sourceHash) });
+          return;
+        }
+        ops.setNarrativeIntent({ ...current, protagonistId: value.slice('existing:'.length), protagonistCandidateId: undefined });
+      }, { 'data-novel-import-interpretation-protagonist-source': '' }),
     ) : null,
-    h('label', { className: 'nv-field' },
-      h('span', { className: 'nv-field__label' }, '初始已知信息 ID（每行一个，可选）'),
-      h('textarea', { className: 'nv-field__input', rows: 3, value: current.initialKnown.join('\n'), 'aria-label': '初始已知信息', onChange: (event: { target: { value: string } }) => ops.setNarrativeIntent({ ...current, initialKnown: event.target.value.split('\n').map((item) => item.trim()).filter(Boolean) }) }),
-    ),
+    h('p', { className: 'nv-import-review__knowledge-note', 'data-novel-import-interpretation-initial-knowledge': '' }, '主角开场已知内容将在后续秘密与揭示候选中审阅，此处无需预先建立。'),
     selectField(h, '揭示节奏', current.revealPacing, Object.entries(PACING_LABELS) as Array<[RevealPacing, string]>, (value) => ops.setNarrativeIntent({ ...current, revealPacing: value as RevealPacing })),
   );
 }
@@ -370,7 +385,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
   const validation = importIntentValidationMessage(state);
   const suggested = state.analysis?.sourceRole;
   const lowConfidence = state.analysis?.confidence === 'low';
-  const treatmentOptions = state.selectedSourceRole === 'existing-prose'
+  const treatmentOptions = state.selectedSourceRole === 'existing-prose' || state.selectedSourceRole === 'synopsis'
     ? ([['expand-outline', TREATMENT_LABELS['expand-outline']]] as const)
     : IMPORT_TREATMENT_OPTIONS;
   return h('section', { className: 'nv-import-review', 'data-novel-import-interpretation-review': '', 'data-novel-import-interpretation-status': state.analysisStatus, 'data-novel-narrow-review': '' },
@@ -510,6 +525,34 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     );
   };
 
+  const draftIntent = (state: ImportInterpretationReviewState): { sourceRole: ImportSourceRole; treatment: ImportTreatment; narrativeIntent?: NarrativeIntent } => {
+    if (state.selectedSourceRole !== undefined && state.treatment !== undefined) {
+      return {
+        sourceRole: state.selectedSourceRole,
+        treatment: state.treatment,
+        ...(state.narrativeIntent === undefined ? {} : { narrativeIntent: state.narrativeIntent }),
+      };
+    }
+    return { sourceRole: 'idea', treatment: 'expand-outline' };
+  };
+
+  const createSession = (state: ImportInterpretationReviewState, paragraphs: readonly ImportInterpretationParagraph[]): void => {
+    const session = deps.session();
+    const analysis = deps.analysis();
+    if (session === undefined || analysis === undefined) { finish({ analysisStatus: 'failed', error: '来源审阅服务暂时不可用。' }); return; }
+    void unwrap(session.create({
+      projectId: state.projectId,
+      sourceHash: state.sourceHash,
+      intent: draftIntent(state),
+      paragraphDecisions: state.paragraphs.map((paragraph) => ({ paragraphId: paragraph.paragraphId, decision: paragraph.decision, summary: paragraph.text.slice(0, 200) || '待作者裁决' })),
+    })).then((created) => {
+      if (!active() || current?.projectId !== state.projectId || current.sourceHash !== state.sourceHash) { release(); return; }
+      const identity = { projectId: state.projectId, importSessionId: created.importSessionId, sourceHash: state.sourceHash };
+      patch({ importSessionId: created.importSessionId, analysisStatus: 'running' });
+      beginAnalysis(identity, paragraphs);
+    }, (error: Error) => finish(technicalFailure(error, '来源审阅会话未建立，请重试。')));
+  };
+
   const patchRuleStyle = (projectionValue: RuleStyleImportProjection): void => {
     const candidate = projectionValue.candidate;
     patch({
@@ -550,22 +593,10 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     clearPoll();
     const initial = freshImportInterpretationReview(projectId, source.sourceHash, source.text, source.paragraphs);
     write({ ...initial, analysisStatus: 'queued', busy: true });
-    const session = deps.session();
-    const analysis = deps.analysis();
-    if (session === undefined || analysis === undefined) { finish({ analysisStatus: 'failed', error: '来源审阅服务暂时不可用。' }); return; }
-    // I142 requires a valid intent even for a draft. This provisional value is
-    // never treated as author confirmation and is replaced by the explicit form.
-    void unwrap(session.create({
-      projectId,
-      sourceHash: source.sourceHash,
-      intent: { sourceRole: 'idea', treatment: 'expand-outline' },
-      paragraphDecisions: source.paragraphs.map((paragraph) => ({ paragraphId: paragraph.paragraphId, decision: 'pending' as const, summary: '待作者裁决' })),
-    })).then((created) => {
-      if (!active()) { release(); return; }
-      const identity = { projectId, importSessionId: created.importSessionId, sourceHash: source.sourceHash };
-      patch({ importSessionId: created.importSessionId, analysisStatus: 'running' });
-      beginAnalysis(identity, source.paragraphs);
-    }, (error: Error) => finish(technicalFailure(error, '来源审阅会话未建立，请重试。')));
+    // I142 requires a valid intent even for a draft. Initial begin uses a
+    // provisional value; I157 retry reuses the author's current draft instead
+    // of recreating fresh Client state.
+    createSession(initial, source.paragraphs);
   };
 
   const retry = (): void => {
@@ -574,7 +605,10 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     if (deps.currentProjectId() !== state.projectId || state.paragraphs.length === 0) return;
     const paragraphs = sourceParagraphs(state);
     if (state.importSessionId === undefined) {
-      begin({ sourceHash: state.sourceHash, text: state.sourceText ?? '', paragraphs });
+      if (!deps.beginOp(operationKey)) return;
+      clearPoll();
+      patch({ analysisStatus: 'queued', busy: true, error: undefined, technicalError: undefined });
+      createSession(state, paragraphs);
       return;
     }
     if (!deps.beginOp(operationKey)) return;
@@ -613,21 +647,32 @@ export function createImportInterpretationController(deps: ImportInterpretationC
   };
 
   const setSourceRole = (role: ImportSourceRole | undefined): void => {
-    if (role === 'existing-prose' && current?.treatment === 'adapt-pov') {
+    if ((role === 'existing-prose' || role === 'synopsis') && current?.treatment === 'adapt-pov') {
       patch({ selectedSourceRole: role, treatment: undefined, narrativeIntent: undefined, confirmed: false });
       return;
     }
     patch({ selectedSourceRole: role, confirmed: false });
   };
   const setTreatment = (treatment: ImportTreatment | undefined): void => {
-    if (treatment === 'adapt-pov' && current?.selectedSourceRole === 'existing-prose') {
-      patch({ treatment: undefined, narrativeIntent: undefined, confirmed: false, error: '已有正文在当前阶段只能扩展为大纲；正文保真导入尚未开放。' });
+    if (treatment === 'adapt-pov' && (current?.selectedSourceRole === 'existing-prose' || current?.selectedSourceRole === 'synopsis')) {
+      patch({ treatment: undefined, narrativeIntent: undefined, confirmed: false, error: '当前来源在此阶段只能扩展为大纲。' });
       return;
     }
     if (treatment === 'expand-outline') patch({ treatment, narrativeIntent: undefined, confirmed: false });
-    else patch({ treatment, narrativeIntent: current?.narrativeIntent ?? { pov: 'omniscient', initialKnown: [], revealPacing: 'balanced' }, confirmed: false });
+    else patch({ treatment, narrativeIntent: current?.narrativeIntent ?? { pov: 'limited', protagonistCandidateId: automaticProtagonistCandidateId(current?.sourceHash ?? ''), initialKnown: [], revealPacing: 'balanced' }, confirmed: false });
   };
-  const setNarrativeIntent = (intent: NarrativeIntent | undefined): void => patch({ narrativeIntent: intent, confirmed: false });
+  const setNarrativeIntent = (intent: NarrativeIntent | undefined): void => {
+    if (intent === undefined) { patch({ narrativeIntent: undefined, confirmed: false }); return; }
+    if (intent.pov === 'omniscient') {
+      patch({ narrativeIntent: { ...intent, protagonistId: undefined, protagonistCandidateId: undefined }, confirmed: false });
+      return;
+    }
+    if (intent.protagonistId === undefined && intent.protagonistCandidateId === undefined) {
+      patch({ narrativeIntent: { ...intent, protagonistCandidateId: automaticProtagonistCandidateId(current?.sourceHash ?? '') }, confirmed: false });
+      return;
+    }
+    patch({ narrativeIntent: intent, confirmed: false });
+  };
   const setParagraphRole = (paragraphId: string, role: SourceParagraphRole): void => {
     if (current === undefined) return;
     write({ ...current, confirmed: false, paragraphs: current.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: paragraph.decision === 'pending' ? 'edited' : paragraph.decision } : paragraph) });

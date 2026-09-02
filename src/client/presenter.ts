@@ -361,6 +361,9 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     setSourceRole: (role) => ui.setImportSourceRole(role),
     setTreatment: (treatment) => ui.setImportTreatment(treatment),
     setNarrativeIntent: (intent) => ui.setImportNarrativeIntent(intent),
+    availableCharacters: states.layers.characters.status === 'ready'
+      ? states.layers.characters.list.map((character) => ({ id: character.id, name: character.name }))
+      : [],
     setParagraphRole: (paragraphId, role) => ui.setImportParagraphRole(paragraphId, role),
     setParagraphDecision: (paragraphId, decision) => ui.setImportParagraphDecision(paragraphId, decision),
     setRuleStyleRulesDraft: (value) => ui.setRuleStyleImportRulesDraft(value),

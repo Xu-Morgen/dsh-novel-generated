@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "namespace": "stage19NarrativeImportPlan",
-  "contractNote": "I148 一次预览/一次 I11 确认的可恢复 NarrativeImportPlan；不写 C5，不承诺跨 owner 全回滚。",
+  "contractNote": "I148 一次预览/一次 I11 确认的可恢复 NarrativeImportPlan；I157 additive 接受 idea sourceRole 并把新主角纳入 B3 预览；不写 C5，不承诺跨 owner 全回滚。",
   "descriptorIds": [
     "novel-creation-tool/novelNarrativeImportPlan/propose",
     "novel-creation-tool/novelNarrativeImportPlan/read",
@@ -49,6 +49,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -411,6 +412,7 @@
                         "sourceRole": {
                           "type": "string",
                           "enum": [
+                            "idea",
                             "background-material",
                             "hybrid"
                           ]
@@ -1215,6 +1217,7 @@
                         "sourceRole": {
                           "type": "string",
                           "enum": [
+                            "idea",
                             "background-material",
                             "hybrid"
                           ]
@@ -1482,6 +1485,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]
@@ -1844,6 +1848,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -2648,6 +2653,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -3012,6 +3018,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]
@@ -3374,6 +3381,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -4178,6 +4186,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -4542,6 +4551,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]
@@ -4904,6 +4914,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -5708,6 +5719,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -6072,6 +6084,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]
@@ -6434,6 +6447,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -7238,6 +7252,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -7602,6 +7617,7 @@
             "sourceRole": {
               "type": "string",
               "enum": [
+                "idea",
                 "background-material",
                 "hybrid"
               ]
@@ -7964,6 +7980,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -8768,6 +8785,7 @@
                     "sourceRole": {
                       "type": "string",
                       "enum": [
+                        "idea",
                         "background-material",
                         "hybrid"
                       ]
@@ -9083,6 +9101,7 @@
         "sourceRole": {
           "type": "string",
           "enum": [
+            "idea",
             "background-material",
             "hybrid"
           ]
@@ -9445,6 +9464,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -10249,6 +10269,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -10553,6 +10574,7 @@
         "sourceRole": {
           "type": "string",
           "enum": [
+            "idea",
             "background-material",
             "hybrid"
           ]
@@ -10915,6 +10937,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -11719,6 +11742,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -12023,6 +12047,7 @@
         "sourceRole": {
           "type": "string",
           "enum": [
+            "idea",
             "background-material",
             "hybrid"
           ]
@@ -12385,6 +12410,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -13189,6 +13215,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -13493,6 +13520,7 @@
         "sourceRole": {
           "type": "string",
           "enum": [
+            "idea",
             "background-material",
             "hybrid"
           ]
@@ -13855,6 +13883,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -14659,6 +14688,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -14963,6 +14993,7 @@
         "sourceRole": {
           "type": "string",
           "enum": [
+            "idea",
             "background-material",
             "hybrid"
           ]
@@ -15325,6 +15356,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]
@@ -16129,6 +16161,7 @@
                 "sourceRole": {
                   "type": "string",
                   "enum": [
+                    "idea",
                     "background-material",
                     "hybrid"
                   ]

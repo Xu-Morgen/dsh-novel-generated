@@ -1,0 +1,36 @@
+{
+  "iteration": "I157",
+  "requirement": "R28-1/R28-2",
+  "sampleAccuracy": {
+    "dev": 1,
+    "heldOut": 1,
+    "threshold": 0.8
+  },
+  "sourceRoles": [
+    "idea",
+    "background-material",
+    "hybrid"
+  ],
+  "guarantees": [
+    "session-create-retry-preserves-author-review-state",
+    "no-manual-character-or-knowledge-id-input",
+    "empty-project-defaults-to-ai-generated-limited-protagonist",
+    "stable-hidden-protagonist-candidate-id",
+    "generated-protagonist-required-and-referenced-by-b5",
+    "generated-protagonist-enters-b3-preview-before-i11",
+    "synopsis-and-existing-prose-remain-outline-only"
+  ],
+  "changedContracts": [
+    "stage19NarrativeAdaptation.sourceRole:add-idea",
+    "stage19NarrativeReveal.sourceRole:add-idea",
+    "stage19NarrativeImportPlan.sourceRole:add-idea"
+  ],
+  "unchangedBoundaries": [
+    "invocation-names-and-fields",
+    "i151-trigger",
+    "docx-chunks",
+    "confirmation-gate",
+    "no-direct-layer-write",
+    "f1-f2-deferred"
+  ]
+}

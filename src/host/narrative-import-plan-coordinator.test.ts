@@ -109,6 +109,55 @@ describe('I148 NarrativeImportPlanCoordinator', () => {
     expect(await coordinator.accept(identity)).toEqual(applied);
   });
 
+  it('I157 includes an LLM-proposed protagonist in the unified B3 preview before confirmation', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-import-plan-'));
+    const { owners, calls } = createOwners();
+    const base = planInput('idea-demo', 'idea-import');
+    const candidateIntent = { pov: 'limited' as const, protagonistCandidateId: 'imported-protagonist', initialKnown: [], revealPacing: 'balanced' as const };
+    const generated = narrativeImportPlanInputSchema.parse({
+      ...base,
+      sourceRole: 'idea',
+      narrativeIntent: candidateIntent,
+      package: {
+        ...base.package,
+        outline: {
+          ...base.package.outline,
+          projectId: 'idea-demo',
+          importSessionId: 'idea-import',
+          sourceRole: 'idea',
+          narrativeIntent: candidateIntent,
+          protagonistCandidate: { id: 'imported-protagonist', name: '新调查者', premise: '从一个异常线索进入故事' },
+          outline: {
+            ...base.package.outline.outline,
+            acts: base.package.outline.outline.acts.map((act) => ({
+              ...act,
+              beats: act.beats.map((beat) => ({ ...beat, charactersInvolved: ['imported-protagonist'] })),
+            })),
+          },
+        },
+        knowledge: {
+          ...base.package.knowledge,
+          projectId: 'idea-demo',
+          importSessionId: 'idea-import',
+          sourceRole: 'idea',
+          narrativeIntent: candidateIntent,
+          entries: base.package.knowledge.entries.map((entry) => ({ ...entry, revealPlan: { ...entry.revealPlan, revealTo: ['imported-protagonist'] } })),
+          states: [...base.package.knowledge.states, { characterId: 'imported-protagonist', knows: [] }],
+        },
+      },
+    });
+    const coordinator = createNarrativeImportPlanCoordinator(root, owners);
+    const proposed = await coordinator.propose(generated);
+    expect(proposed.status).toBe('pending');
+    expect(proposed.package.characters.candidates[0]).toMatchObject({
+      id: 'imported-protagonist',
+      name: '新调查者',
+      kind: 'protagonist',
+      background: '从一个异常线索进入故事',
+    });
+    expect(calls).toEqual([]);
+  });
+
   it('returns stale without confirmation/write for a non-empty target and recovers exact partial failure', async () => {
     const staleRoot = await mkdtemp(join(tmpdir(), 'novel-import-plan-'));
     const stale = createOwners({ nonEmpty: true });

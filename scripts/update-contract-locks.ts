@@ -291,7 +291,7 @@ for (const lock of EXISTING_LOCKS) {
   write('contracts/stage19/narrative-adaptation-remote.json', {
     schemaVersion: 1,
     namespace: 'stage19NarrativeAdaptation',
-    contractNote: 'I145 POV 叙事化只追加 B5/protagonist candidate Remote；不写 B3/B5，不生成 C3/C4/C5。',
+    contractNote: 'I145 POV 叙事化只追加 B5/protagonist candidate Remote；I157 additive 扩展 idea sourceRole 与新主角串联守卫；不直接写 B3/B5，不生成 C3/C4/C5。',
     descriptorIds: Object.keys(descriptors),
     descriptors,
     resultSchemaIds: Object.keys(resultSchemas),
@@ -307,7 +307,7 @@ for (const lock of EXISTING_LOCKS) {
   write('contracts/stage19/narrative-reveal-remote.json', {
     schemaVersion: 1,
     namespace: 'stage19NarrativeReveal',
-    contractNote: 'I146 C3 secret/reveal planner 只追加候选 Remote；不应用 C3、不生成或写入 C4/C5。',
+    contractNote: 'I146 C3 secret/reveal planner 只追加候选 Remote；I157 additive 接受 idea sourceRole；不应用 C3、不生成或写入 C4/C5。',
     descriptorIds: Object.keys(descriptors),
     descriptors,
     resultSchemaIds: Object.keys(resultSchemas),
@@ -323,7 +323,7 @@ for (const lock of EXISTING_LOCKS) {
   write('contracts/stage19/narrative-import-plan-remote.json', {
     schemaVersion: 1,
     namespace: 'stage19NarrativeImportPlan',
-    contractNote: 'I148 一次预览/一次 I11 确认的可恢复 NarrativeImportPlan；不写 C5，不承诺跨 owner 全回滚。',
+    contractNote: 'I148 一次预览/一次 I11 确认的可恢复 NarrativeImportPlan；I157 additive 接受 idea sourceRole 并把新主角纳入 B3 预览；不写 C5，不承诺跨 owner 全回滚。',
     descriptorIds: Object.keys(descriptors),
     descriptors,
     resultSchemaIds: Object.keys(resultSchemas),

@@ -53,7 +53,7 @@ describe('I144 来源语义审阅投影', () => {
     });
     expect(collect(tree, 'option').filter((node) => node.props?.value !== '').map((node) => node.props?.value)).toEqual([
       'idea', 'synopsis', 'background-material', 'existing-prose', 'hybrid', 'expand-outline', 'adapt-pov',
-      'limited', 'omniscient', 'slow', 'balanced', 'fast',
+      'limited', 'omniscient', 'generate', 'slow', 'balanced', 'fast',
       'world-truth', 'plot-plan', 'prose', 'author-instruction', 'presentation-note',
       'pending', 'accepted', 'edited', 'rejected',
     ]);
@@ -103,6 +103,28 @@ describe('I144 来源语义审阅投影', () => {
     expect(canConfirmImportIntent(noProtagonist)).toBe(false);
     const both = reviewedState({ narrativeIntent: { pov: 'limited', protagonistId: 'existing', protagonistCandidateId: 'candidate', initialKnown: [], revealPacing: 'balanced' } });
     expect(importIntentValidationMessage(both)).toBe('主角只能选择已有角色或待创建候选之一。');
+  });
+
+  it('I157 presents author semantics instead of technical ids and allows idea POV adaptation', () => {
+    const intents: unknown[] = [];
+    const tree = sourceInterpretationReview(h, reviewedState({ selectedSourceRole: 'idea' }), {
+      begin: () => undefined, cancel: () => undefined, confirm: () => undefined,
+      setSourceRole: () => undefined, setTreatment: () => undefined, setNarrativeIntent: (intent) => intents.push(intent),
+      setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      availableCharacters: [{ id: 'mira-internal', name: '米拉' }],
+    });
+    const protagonist = collect(tree, 'select').find((node) => node.props?.['data-novel-import-interpretation-protagonist-source'] !== undefined);
+    expect(protagonist?.props?.value).toBe('generate');
+    expect(JSON.stringify(protagonist)).toContain('由 AI 创建并串联新主角');
+    expect(JSON.stringify(protagonist)).toContain('使用已有角色：米拉');
+    expect(collect(tree, 'input').some((node) => String(node.props?.['aria-label']).includes('主角 ID'))).toBe(false);
+    expect(collect(tree, 'textarea').some((node) => String(node.props?.['aria-label']).includes('初始已知'))).toBe(false);
+    expect(JSON.stringify(tree)).toContain('此处无需预先建立');
+    expect(importIntentValidationMessage(reviewedState({ selectedSourceRole: 'idea' }))).toBeUndefined();
+    expect(importIntentValidationMessage(reviewedState({ selectedSourceRole: 'synopsis' }))).toBe('故事梗概在当前阶段只能扩展为大纲。');
+
+    (protagonist?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'existing:mira-internal' } });
+    expect(intents).toEqual([{ pov: 'limited', protagonistCandidateId: undefined, protagonistId: 'mira-internal', initialKnown: [], revealPacing: 'balanced' }]);
   });
 
   it('only shows the Stage 21 fidelity notice for existing prose', () => {

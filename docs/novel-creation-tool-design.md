@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I155 全部完成**；当前顺序执行 I156，修复来源审阅 session 的 Windows 瞬时文件锁与原地重试缺口；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I156 全部完成**；当前顺序执行 I157，修复来源审阅重试状态丢失与主角/知情技术 ID 暴露，并让创作想法、背景资料和混合文档可由 LLM 提议新主角后转为视角叙事；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -32,10 +32,11 @@
 | **v3.3 来源审阅提示修订（2026-09-02）** | 同步 I153 已完成事实；新增 I154，在来源角色、段落来源类型、段落处理和“合并此分类”旁提供统一 hover/focus 帮助，解释所有枚举与真实副作用。“段落”明确为当前 Host 来源片段而非 Word 段落一一映射；不改变分段、分类、裁决或 Host 合同。 |
 | **v3.3 作品归档修订（2026-09-02）** | 同步 I154 已完成事实；新增 I155，为既有作品增加 Host-owned 归档/恢复。归档树移出活动目录，主列表不再显示；活动位置墓碑阻断归档前缓存仓储的迟到写，所有新项目访问经统一路径 seam 拒绝归档 ID。新增 strict additive lifecycle Remote 与只恢复、不打开的归档区。 |
 | **v3.3 来源审阅持久化修订（2026-09-02）** | 同步 I155 已完成事实；新增 I156，修复 Windows Defender/索引器瞬时锁住来源审阅临时文件时 session 首次落盘直接失败，且作者界面无实际重试入口的问题。Host 有界重试 transient rename；Client 保留来源证据并原地重试，技术原因只在折叠高级详情中展示。 |
+| **v3.3 来源主角语义修订（2026-09-02）** | 同步 I156 已完成事实；新增 I157，修复 session-create 重试清空作者来源选择，以及 UI 要求手填角色/知情信息技术 ID 的问题。`idea|background-material|hybrid + adapt-pov` 可选择由 AI 创建主角，Client 只生成隐藏稳定候选 ID，LLM 必须提议新主角并在读者体验 B5 中实际串联；已有角色只按名称选择。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I155 已完成，当前顺序执行 I156 来源审阅 session 持久化修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I156 不恢复 F1/F2。
+> **v3.3 current supersession / 同步状态**：I1–I156 已完成，当前顺序执行 I157 来源主角语义修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I157 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1149,7 +1150,7 @@ project/
 
 - **来源角色 `sourceRole`**：`idea`（创作想法）、`synopsis`（故事梗概/预定剧情）、`background-material`（世界设定/幕后真相/作者设计资料）、`existing-prose`（已有可用正文）、`hybrid`（混合文档）。系统可以给出建议与置信度，但作者必须显式确认；低置信或多角色来源不得静默选择。
 - **Stage 19 处理目标 `treatment`**：`expand-outline`（沿既有 I119/I52 能力扩展为大纲）与 `adapt-pov`（按指定 POV 重构读者体验）。Stage 19 识别到 `existing-prose` 时可以明确路由到 `expand-outline`，也可以提示正文保真导入尚未交付，但不得假装已把原文写入 C5。后置 F2 保留了通过 strict additive V2 确认方法开放 `preserve-prose` 的设计；I142 的旧方法继续只接受并返回两个 Stage 19 取值，避免旧 Client 的穷举分支被静默扩宽。
-- **叙事意图 `narrativeIntent`**：仅在 `adapt-pov` 时存在。`limited` 必须绑定现有角色或带稳定候选 ID 的待创建主角；`omniscient` 可以不指定单一主角，但若指定 focal character 仍必须可解析。主角初始已知信息与 `revealPacing`（slow/balanced/fast）一同冻结，禁止硬编码 fallback。
+- **叙事意图 `narrativeIntent`**：仅在 `adapt-pov` 时存在。`limited` 必须绑定现有角色或带稳定候选 ID 的待创建主角；该 ID 是 Host/Client 内部引用，I157 起不由作者手填。`omniscient` 可以不指定单一主角，但若指定 focal character 仍必须可解析。主角初始已知信息与 `revealPacing`（slow/balanced/fast）一同冻结，禁止硬编码 fallback。
 - I141 只冻结 canonical schema、合法组合与稳定 fingerprint，不提前发布没有服务语义的 Remote。I142 的 import session owner 才负责把确认意图与 `projectId/sourceHash/importSessionId` 绑定，并提供 strict additive Remote；重新生成、恢复、提案与应用必须消费同一绑定。
 
 #### 14.15.2 D27：先解释来源，再投影叙事层
@@ -1163,7 +1164,7 @@ project/
 
 #### 14.15.3 D28：幕后素材按“客观真相—读者体验—知情揭示”分离
 
-当 `background-material|hybrid + adapt-pov` 时：
+当 `idea|background-material|hybrid + adapt-pov` 时（`idea` 由 I157 additive 扩展）：
 
 - I52 既有六层分析只提供 B3/B2/C1/C2 的故事地基候选；它原有的 B5/C4 结果不得直接进入 Stage 19 plan。B5 必须由 POV adaptation 重新生成，C4 必须经过 public-at-start guard，C3 则由专门 reveal planner 生成。
 - B5 只表达所选视角可经历的行动、调查、误判、冲突和揭示顺序，不按幕后事件发生顺序直接复述答案。
@@ -1244,7 +1245,7 @@ project/
 ### 14.20 I153：目录层 DOCX 首次受控导入入口
 
 - 目录层上传 DOCX 并创建新作品后，Client 必须以 Host 返回的 `sourceHash`、原文和 paragraph chunks 直接建立既有 `ImportInterpretationReview`；不得先启动旧 I52 六层分析。来源审阅必须独立于 `OnboardingState` 渲染，否则无六层任务时会把真实审阅状态隐藏。
-- 作者必须在这条真实产品路径中看到既有 Stage 19 来源角色，包括“背景设定 / 幕后资料”和“已有正文”；选择背景资料、按视角重构、限知视角后，既有主角 ID 与待创建主角候选入口必须可达。本迭代不新增 enum，也不把“已有主角”误建为来源类型。
+- 作者必须在这条真实产品路径中看到既有 Stage 19 来源角色，包括“背景设定 / 幕后资料”和“已有正文”；选择背景资料、按视角重构、限知视角后，已有主角与待创建主角候选入口必须可达。I157 进一步把入口收敛为“AI 创建/按名称选择”，不再暴露内部 ID；“已有主角”仍不是来源类型。
 - I151 仍只由首个已确认 import session 触发：确认前零规则/文风 LLM，确认后精确一次 begin，并继续经 I11 才写入 B1/B4。I153 只修 Client 入口接线，不改变 I150 范围细纲、I151 Host/Remote/schema、上传/项目 Remote 或后置正文保真边界。
 
 ### 14.21 I154：来源审阅分类与操作解释提示
@@ -1265,6 +1266,13 @@ project/
 - `ImportInterpretationSessionService` 继续是来源审阅 checkpoint 的唯一 Host owner；临时文件写完后的原子 rename 若在 Windows 命中瞬时 `EPERM/EBUSY/EACCES`，必须有界退避重试，非瞬时错误和耗尽重试仍 fail closed。不得吞错、改写 session 内容或新增第二持久化格式。
 - Client 在 session 建立或来源解释失败后保留原 Host paragraph ID/text/range 与 sourceHash，提供明确的“重试来源审阅”操作。已有 session 只重启分析；尚未建立 session 才重新建立 checkpoint。重试不得重新上传 DOCX、重建 range 或启动旧六层分析。
 - 普通错误文案保持作者可行动语言；原始技术原因只能放入显式折叠高级详情，便于定位文件锁、权限或服务错误。I156 不改变公开 Remote/schema/contract lock、I151 首次确认触发、LLM prompt/样本、分段或项目归档语义。
+
+### 14.24 I157：来源审阅状态与新主角语义
+
+- session 首次创建失败后，“重试来源审阅”必须复用同一份 Host sourceHash、文本范围和当前 Client 审阅状态；来源角色、处理目标、POV、揭示节奏及逐段裁决均不得被 fresh state 覆盖。已有 session 的分析重试仍只重试分析。
+- 作者界面不得要求填写 `protagonistId`、`protagonistCandidateId` 或 `initialKnown` 技术 ID。限知视角只呈现“由 AI 创建并串联新主角”和按角色名称选择已有角色；新建空作品没有已有角色时默认 AI 创建。初始已知保持空集合，后续由 C3 候选审阅确定，不要求在知识层建立前填写引用。
+- `idea|background-material|hybrid + adapt-pov` 允许从概念/幕后材料转换为视角叙事；`synopsis` 与 `existing-prose` 继续走既有拆纲边界。Client 根据 projectId/sourceHash 确定性生成隐藏 candidate ID，Host strict schema 接受 `idea` 的 additive 枚举扩展。
+- 当 intent 绑定待创建主角时，I145 LLM 输出必须包含同 ID 的 protagonist candidate，且 B5 至少一个 beat/detail beat 实际引用该角色；否则候选失败。该候选仍须进入 I148 的统一预览与 I11 确认后才可写 B3/B5，禁止直接自动写入。
 
 ---
 
