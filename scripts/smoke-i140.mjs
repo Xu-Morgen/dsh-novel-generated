@@ -135,8 +135,9 @@ for (const token of ['novelWriting/adoptDraft', 'novelWriting/proposeFinalizatio
 for (const token of ['data-novel-ie-compile-txt', 'data-novel-ie-compile-md', '编译单一全文']) {
   if (!importExport.includes(token)) fail(`export consumer missing ${token}`);
 }
-if (lock.descriptorIds.length !== 183 || lock.resultSchemaIds.length !== 89) fail('Stage 18 + I150 Remote lock is not 183/89');
-if (lock.descriptorIds.slice(-2).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions are not the Remote lock tail');
+if (lock.descriptorIds.length !== 186 || lock.resultSchemaIds.length !== 92) fail('Stage 18 + I150 + I155 Remote lock is not 186/92');
+if (lock.descriptorIds.slice(-5, -3).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions changed order before the I155 additive tail');
+if (lock.descriptorIds.slice(-3).join('|') !== 'novel-creation-tool/novelWorkspace/projectArchiveList|novel-creation-tool/novelWorkspace/projectArchive|novel-creation-tool/novelWorkspace/projectRestore') fail('I155 strict additions are not the Remote lock tail');
 
 const clientSource = read('src/client.ts') + read('src/client/presenter.ts') + read('src/client/layers/workflow.ts');
 for (const token of ['http://', 'https://', 'api.openai', 'api.anthropic', 'Authorization:']) {

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { ProjectMeta } from '../core/schema/base.js';
 import { INITIAL_STATE, type ProjectLayerReadiness, type ProjectOpenResult } from '../core/schema/project-lifecycle.js';
 import { ProjectRepository, type CreateProjectInput } from '../core/project/index.js';
+import { validateProjectId } from '../core/io/path.js';
 import type { NovelCharacterService } from './character-service.js';
 import type { NovelWorldviewService } from './worldview-service.js';
 import type { NovelOutlineService } from './outline-service.js';
@@ -13,9 +14,12 @@ import type { NovelConfirmationService } from './confirmation-service.js';
 
 export interface NovelProjectService {
   listProjects(): Promise<ProjectMeta[]>;
+  listArchivedProjects(): Promise<ProjectMeta[]>;
   createProject(input: CreateProjectInput): Promise<ProjectMeta>;
   loadProject(projectId: string): Promise<ProjectMeta>;
   openProject(projectId: string): Promise<ProjectOpenResult>;
+  archiveProject(projectId: string): Promise<ProjectMeta>;
+  restoreProject(projectId: string): Promise<ProjectMeta>;
 }
 
 interface Owners {
@@ -34,7 +38,10 @@ export function createProjectService(
 ): NovelProjectService {
   const repository = new ProjectRepository(projectsRoot);
   const inFlight = new Map<string, Promise<ProjectOpenResult>>();
+  const transitions = new Map<string, Promise<unknown>>();
   const openProject = (projectId: string): Promise<ProjectOpenResult> => {
+    const transition = transitions.get(projectId);
+    if (transition) return transition.then(() => openProject(projectId));
     const existing = inFlight.get(projectId);
     if (existing) return existing;
     const run = (async () => {
@@ -66,11 +73,26 @@ export function createProjectService(
     inFlight.set(projectId, run);
     return run.finally(() => { if (inFlight.get(projectId) === run) inFlight.delete(projectId); });
   };
+  const transitionProject = <T>(projectId: string, operation: () => Promise<T>): Promise<T> => {
+    validateProjectId(projectId);
+    const previous = transitions.get(projectId);
+    const run = (async () => {
+      if (previous) await previous.catch(() => undefined);
+      const opening = inFlight.get(projectId);
+      if (opening) await opening;
+      return operation();
+    })();
+    transitions.set(projectId, run);
+    return run.finally(() => { if (transitions.get(projectId) === run) transitions.delete(projectId); });
+  };
   return {
     listProjects: () => repository.listProjects(),
+    listArchivedProjects: () => repository.listArchivedProjects(),
     createProject: (input) => repository.createProject(input),
     loadProject: (projectId) => repository.loadProject(projectId),
     openProject,
+    archiveProject: (projectId) => transitionProject(projectId, () => repository.archiveProject(projectId)),
+    restoreProject: (projectId) => transitionProject(projectId, () => repository.restoreProject(projectId)),
   };
 }
 

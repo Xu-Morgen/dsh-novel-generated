@@ -107,12 +107,15 @@ export type WorkbenchActions = {
   ready(model: WorkspaceViewModel): void;
   fail(message: string): void;
   setProjects(list: unknown[]): void;
+  setArchivedProjects(list: unknown[]): void;
   selectProject(projectId: string, name?: string): void;
+  clearProjectSelection(): void;
   resetEditors(): void;
   browseProjects(): void;
   cancelBrowse(): void;
   showLeaveConfirm(show: boolean): void;
   projectFailed(message: string): void;
+  projectOperationStarted(): void;
   createProject(input: { projectId: string; name: string }): void;
   /** 项目目录层「空白创建」作品名称草稿（受控输入，经 store 持久化，重渲染不丢）。 */
   newProjectName(value: string): void;
@@ -338,6 +341,8 @@ export interface WorkbenchState {
   /** 可恢复的 open/切换失败信息（保持当前视图，不 brick 成整屏错误）。 */
   projectError: string | undefined;
   projects: Array<{ id: string; name: string }>;
+  /** I155：独立归档目录投影；归档项不可选择或进入编辑器。 */
+  archivedProjects: Array<{ id: string; name: string }>;
   projectLoading: boolean;
   /** 项目目录层「空白创建」作品名称草稿（受控输入，与 selectedProjectId 无关，属目录层 UI 态）。 */
   newProjectName: string;

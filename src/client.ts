@@ -116,7 +116,13 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             (model) => {
               dispatch((x) => x.ready(model as WorkspaceViewModel));
               void unwrap(service.projectList()).then(
-                (projects) => dispatch((x) => x.setProjects(projects as unknown[])),
+                (projects) => {
+                  dispatch((x) => x.setProjects(projects as unknown[]));
+                  void unwrap(service.projectArchiveList()).then(
+                    (archived) => dispatch((x) => x.setArchivedProjects(archived as unknown[])),
+                    () => dispatch((x) => x.fail('归档作品列表读取失败')),
+                  );
+                },
                 () => dispatch((x) => x.fail('作品列表读取失败')),
               );
             },
@@ -338,6 +344,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             selectedProjectId: s.selectedProjectId,
             selectedProjectName: s.selectedProjectName,
             projects: s.projects,
+            archivedProjects: s.archivedProjects,
             browsing: s.browsing,
             leaveConfirm: s.leaveConfirm,
             projectError: s.projectError,

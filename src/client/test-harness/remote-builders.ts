@@ -116,8 +116,11 @@ export interface MountOptions {
 
 export interface WorkspaceOverrides {
   projectList?: () => Promise<unknown[]>;
+  projectArchiveList?: () => Promise<unknown[]>;
   projectCreate?: (input: unknown) => Promise<unknown>;
   projectOpen?: (projectId: string) => Promise<unknown>;
+  projectArchive?: (projectId: string) => Promise<unknown>;
+  projectRestore?: (projectId: string) => Promise<unknown>;
   uploadStart?: (input: unknown) => Promise<unknown>;
   uploadChunk?: (uploadId: string, index: number, base64: string) => Promise<unknown>;
   uploadFinalize?: (uploadId: string) => Promise<unknown>;
@@ -187,8 +190,11 @@ export const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: Work
   sceneReparseAccept: overrides.sceneReparseAccept ?? (async () => ({ status: 'written', scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' }, layers: ['c2', 'c1', 'c3', 'c4', 'b2'] })),
   sceneReparseReject: overrides.sceneReparseReject ?? (async () => ({ proposalId: 'scene-reparse-fixture', status: 'rejected' })),
   projectList: overrides.projectList ?? (async () => [{ id: 'fixture-project', name: '夹具作品' }]),
+  projectArchiveList: overrides.projectArchiveList ?? (async () => []),
   projectCreate: overrides.projectCreate ?? (async () => ({})),
   projectOpen: overrides.projectOpen ?? (async () => ({})),
+  projectArchive: overrides.projectArchive ?? (async (projectId: string) => ({ id: projectId, version: 1, name: projectId })),
+  projectRestore: overrides.projectRestore ?? (async (projectId: string) => ({ id: projectId, version: 1, name: projectId })),
   uploadStart: overrides.uploadStart ?? (async () => ({ uploadId: 'fixture-upload', chunkSize: 65536, nextIndex: 0 })),
   uploadChunk: overrides.uploadChunk ?? (async () => ({ nextIndex: 1, received: 0 })),
   uploadFinalize: overrides.uploadFinalize ?? (async () => ({ sourceHash: 'a'.repeat(64), fileName: 'fixture.docx', text: '', chunks: [] })),

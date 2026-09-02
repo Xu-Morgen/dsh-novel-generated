@@ -2,7 +2,7 @@
 
 > 版本：v3.3
 > 日期：2026-09-01
-> 状态：当前执行权威（**I1–I153 全部完成**；当前顺序执行 I154 来源审阅解释提示修复；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
+> 状态：当前执行权威（**I1–I154 全部完成**；当前顺序执行 I155 既有作品归档；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v3.3（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.3（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -16,7 +16,7 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- I151 首次导入规则与文风初始化、I152 credentials seam 与 I153 真实导入入口修复均已完成。当前单一执行卡为 Stage 23 / I154：为来源角色、来源片段类型/处理及“合并此分类”补齐统一可访问解释提示。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
+- I151 首次导入规则与文风初始化、I152 credentials seam、I153 真实导入入口与 I154 来源审阅解释提示均已完成。当前单一执行卡为 Stage 24 / I155：为既有作品增加 Host-owned 归档/恢复，归档后退出主列表且不可打开或编辑。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -29,6 +29,7 @@
 - v3.3 宿主兼容修订（2026-09-02）：I151 已完成；按连续编号新增 Stage 21 / I152，修复自定义 LLM 配置直接读写旧扁平 `.credentials.yaml` 的宿主合同违例。凭据读写收敛到 `ctx.credentials`，`novel-custom` 路由和公开 Remote 保持不变；v3.2 后置卡片中的旧编号只作 provenance。
 - v3.3 导入入口修订（2026-09-02）：I152 已完成；新增 Stage 22 / I153，修复目录层 DOCX 创建作品后仍直接走旧六层分析、且来源审阅被 `OnboardingState` 条件隐藏的共同根因。I150 仍是范围细纲修复，导入来源合同继续归 I141–I149，I151 Host 合同不变。
 - v3.3 来源审阅提示修订（2026-09-02）：I153 已完成；新增 Stage 23 / I154，以统一 CSS tooltip 补充四处详细解释及 hover/focus/ARIA 行为。真实 DOCX 分段继续使用 Host 4000 字符 chunks，本迭代不改分段与领域合同。
+- v3.3 作品归档修订（2026-09-02）：I154 已完成；新增 Stage 24 / I155，以 Host 目录迁移、活动墓碑和三个 strict additive lifecycle Remote 交付既有作品归档/恢复。归档区只允许恢复，不新增删除或归档内编辑。
 
 ### 0.2 Goal
 
@@ -1577,6 +1578,18 @@ TDD Route:
 - **明确不做**：不改 4000 字符 chunk 分段、不承诺 Word 段落一一对应、不改 enum/session/Remote/prompt/schema/样本、不恢复 F1/F2。
 - **验证**：`pnpm run verify:i154`；`pnpm run verify:product-flow`；`pnpm run verify:stage-23`；`artifacts/i154-source-review-help.json`。
 
+## 25. Stage 24：既有作品归档与恢复（R26，I155）
+
+**阶段门**：`pnpm run verify:stage-24`。I155 只扩展项目生命周期，不改变作品内容 schema 或任何生成语义。
+
+### I155：Host-owned 作品归档与强制只读（R26-1）
+
+- **目标**：允许作者归档当前已存在作品；归档作品退出主项目列表，在恢复前无法打开或编辑。
+- **明确不做**：永久删除、自动/批量归档、归档内预览/编辑/搜索/导出、云同步、ProjectMeta 字段扩展、LLM/F1/F2。
+- **交付物**：`.archive/<projectId>` 完整树、活动位置墓碑、并发 lifecycle transition lane；additive `projectArchiveList/projectArchive/projectRestore` Remote；主列表归档按钮与只恢复的归档区；合同锁、binder、负向夹具与 I155 smoke。
+- **验收**：活动列表归档后立即移除；归档列表只显示恢复且零打开入口；`projectOpen`、新服务访问和归档前缓存仓储写均失败；重复/未知/非法/冲突转换 fail closed；恢复后元数据与层文件原样可开；Remote 参数/结果严格校验。
+- **验证**：`pnpm run verify:i155`；`pnpm run verify:stage-24`；`artifacts/i155-project-archive.json`。
+
 ## Deferred Package F1：导入基础设施重构（v3.2 原 Stage 20 / I151–I155）
 
 > **后置说明**：下列卡片完整保留 v3.2 设计意图，但原 I151–I155 只作 provenance，不得执行原 `verify:i151`–`verify:i155` 或占用当前 I151 身份。恢复时必须重新编号、重新冻结依赖和验证命令。
@@ -1709,9 +1722,9 @@ TDD Route:
 
 ## 25. 完成线
 
-I1–I153 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复。
+I1–I154 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示。
 
-v3.3 当前进度：**Stage 22 / I153 已完成 → 当前顺序执行 Stage 23 / I154 来源审阅解释提示修复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v3.3 当前进度：**Stage 23 / I154 已完成 → 当前顺序执行 Stage 24 / I155 既有作品归档与恢复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
 
 I74 完成时还必须证明：
 

@@ -59,6 +59,8 @@ export interface WorkbenchUi {
   saveCreationSettings(): void;
   openCreationFolder(): void;
   selectProject(id: string): void;
+  archiveProject(id: string): void;
+  restoreProject(id: string): void;
   newProjectName: string;
   newProjectNameChange(value: string): void;
   projectLoading: boolean;
@@ -156,6 +158,8 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     saveCreationSettings() { settings.saveCreationSettings(s.creationSettingsDraft); },
     openCreationFolder() { settings.openProjectFolder(); },
     selectProject(id: string) { project.openProject(id); },
+    archiveProject(id: string) { project.archiveProject(id); },
+    restoreProject(id: string) { project.restoreProject(id); },
     get newProjectName() { return s.newProjectName; },
     newProjectNameChange(value: string) { actions.newProjectName(value); },
     get projectLoading() { return s.projectLoading; },
@@ -208,6 +212,7 @@ export interface WorkbenchViewProps {
   selectedProjectId?: string;
   selectedProjectName?: string;
   projects?: Array<{ id: string; name: string }>;
+  archivedProjects?: Array<{ id: string; name: string }>;
   browsing?: boolean;
   leaveConfirm?: boolean;
   projectError?: string;
@@ -305,7 +310,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
  * `(React, props: WorkbenchViewProps)` 对象参数（review v2.0 §3.5/§5）。
  */
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
-  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, importInterpretationReview, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
+  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], archivedProjects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, importInterpretationReview, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
   const { workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
   const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState, router: routerState } = states;
   const h = el(React);
@@ -442,8 +447,19 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
                 h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`),
               ) : null,
             ),
-            // 既有作品列表（点击打开；返回列表时可切换作品）。
-            projects.length > 0 ? h('ul', { className: 'nv-workbench__project-list', 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', className: 'nv-workbench__project-open', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))) : null,
+            // 活动作品可以打开或归档；归档区只允许恢复，绝不暴露打开/编辑入口。
+            projects.length > 0 ? h('ul', { className: 'nv-workbench__project-list', 'data-novel-project-list': '' }, projects.map((project) => h('li', { className: 'nv-workbench__project-row' },
+              h('button', { type: 'button', className: 'nv-workbench__project-open', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name),
+              h('button', { type: 'button', className: 'nv-workbench__project-archive', disabled: ui.projectLoading, onClick: () => ui.archiveProject(project.id), 'data-novel-project-archive': project.id, 'aria-label': `归档作品：${project.name}` }, '归档'),
+            ))) : null,
+            archivedProjects.length > 0 ? h('details', { className: 'nv-workbench__archive', 'data-novel-project-archive-section': '' },
+              h('summary', { className: 'nv-workbench__archive-summary' }, `已归档作品（${archivedProjects.length}）`),
+              h('p', { className: 'nv-workbench__archive-hint' }, '归档作品不会出现在主列表中，恢复前不可打开或编辑。'),
+              h('ul', { className: 'nv-workbench__archive-list' }, archivedProjects.map((project) => h('li', { className: 'nv-workbench__archive-row' },
+                h('span', { 'data-novel-project-archived': project.id }, project.name),
+                h('button', { type: 'button', className: 'nv-workbench__project-restore', disabled: ui.projectLoading, onClick: () => ui.restoreProject(project.id), 'data-novel-project-restore': project.id }, '恢复'),
+              ))),
+            ) : null,
             // I153：目录层来源审阅不再依赖旧 OnboardingState。新作品 DOCX 会先建立
             // ImportInterpretationReview；只有显式存在的六层任务才展示旧分析面板。
             onboardingState === undefined && importReview === null && review === null ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },

@@ -20,6 +20,25 @@
         "projectId"
       ],
       "result": "ProjectOpenResult"
+    },
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectArchiveList",
+      "input": [],
+      "result": "ProjectMeta[]"
+    },
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectArchive",
+      "input": [
+        "projectId"
+      ],
+      "result": "ProjectMeta"
+    },
+    {
+      "id": "novel-creation-tool/novelWorkspace/projectRestore",
+      "input": [
+        "projectId"
+      ],
+      "result": "ProjectMeta"
     }
   ],
   "shapeIds": [

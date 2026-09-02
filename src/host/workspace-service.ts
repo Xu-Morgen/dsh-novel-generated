@@ -56,8 +56,11 @@ export interface WorkspaceEditorService {
   sceneReparseAccept(projectId: string, chapterId: string, sceneId: string, range: import('../core/edit/index.js').EditRange, replacement: string, proposalId: string, baseHash?: string): Promise<{ status: 'written'; scene: SceneReadResult['scene']; layers: readonly import('./text-edit-service.js').ReparseLayer[] }>;
   sceneReparseReject(projectId: string, proposalId: string): Promise<{ proposalId: string; status: 'rejected' }>;
   projectList(): Promise<import('../core/schema/base.js').ProjectMeta[]>;
+  projectArchiveList(): Promise<import('../core/schema/base.js').ProjectMeta[]>;
   projectCreate(input: import('../core/project/index.js').CreateProjectInput): Promise<import('../core/schema/base.js').ProjectMeta>;
   projectOpen(projectId: string): Promise<import('../core/schema/project-lifecycle.js').ProjectOpenResult>;
+  projectArchive(projectId: string): Promise<import('../core/schema/base.js').ProjectMeta>;
+  projectRestore(projectId: string): Promise<import('../core/schema/base.js').ProjectMeta>;
   uploadStart(input: UploadStartInput): Promise<UploadStartResult>;
   uploadChunk(uploadId: string, index: number, base64: string): Promise<UploadChunkResult>;
   uploadFinalize(uploadId: string): Promise<UploadFinalizeResult>;
@@ -125,7 +128,7 @@ export function createWorkspaceEditorService(deps: WorkspaceEditorDeps): Workspa
       return Object.freeze({ status: result.status, scene: toSceneReadResult(chapter, scene).scene, layers: result.layers });
     },
     sceneReparseReject: async (id, proposalId) => { await textEdit.open(id); return textEdit.reparseReject(id, proposalId); },
-    projectList: () => projects.listProjects(), projectCreate: (input) => projects.createProject(input), projectOpen: (id) => projects.openProject(id),
+    projectList: () => projects.listProjects(), projectArchiveList: () => projects.listArchivedProjects(), projectCreate: (input) => projects.createProject(input), projectOpen: (id) => projects.openProject(id), projectArchive: (id) => projects.archiveProject(id), projectRestore: (id) => projects.restoreProject(id),
     uploadStart: (input) => upload.uploadStart(input), uploadChunk: (uploadId, index, base64) => upload.uploadChunk(uploadId, index, base64), uploadFinalize: (uploadId) => upload.uploadFinalize(uploadId), uploadCancel: async (uploadId) => { await upload.uploadCancel(uploadId); },
   };
 }

@@ -37,5 +37,9 @@ export const INITIAL_STATE = {
 
 export const projectListResultSchema = z.array(projectMetaSchema);
 export const projectCreateResultSchema = projectMetaSchema;
+export const projectArchiveListResultSchema = z.array(projectMetaSchema);
+export const projectArchiveResultSchema = projectMetaSchema;
+export const projectRestoreResultSchema = projectMetaSchema;
 
 export type ProjectListResult = z.infer<typeof projectListResultSchema>;
+export type ProjectArchiveListResult = z.infer<typeof projectArchiveListResultSchema>;

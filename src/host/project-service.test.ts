@@ -1,5 +1,5 @@
 import { Context } from '@deepseek-ai/cordis';
-import { access, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -107,5 +107,44 @@ describe('I50 Host project lifecycle', () => {
       },
     });
     expect(root.get('novelState').current('damaged')).toEqual({ ...INITIAL_STATE, seq: 0 });
+  });
+});
+
+describe('I155 Host project archive lifecycle', () => {
+  it('removes an archived work from the active catalog and denies open plus stale editor writes until restore', async () => {
+    const { root, rootPath, service } = await fixture();
+    await service.createProject({ projectId: 'finished', name: '完结作品' });
+    await service.openProject('finished');
+
+    await expect(service.archiveProject('finished')).resolves.toMatchObject({ id: 'finished', name: '完结作品' });
+    await expect(service.listProjects()).resolves.toEqual([]);
+    await expect(service.listArchivedProjects()).resolves.toEqual([{ id: 'finished', version: 1, name: '完结作品' }]);
+    await expect(service.openProject('finished')).rejects.toThrow(/archived and read-only/);
+    await expect(root.get('novelCharacter').create('finished', {
+      id: 'late-character', name: '不得写入', aliases: [], kind: 'supporting', personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
+    })).rejects.toThrow();
+    expect((await stat(join(rootPath, 'finished'))).isFile()).toBe(true);
+
+    await expect(service.restoreProject('finished')).resolves.toMatchObject({ id: 'finished' });
+    await expect(service.openProject('finished')).resolves.toMatchObject({ project: { id: 'finished' } });
+  });
+
+  it('serializes archive behind an in-flight open for the same project', async () => {
+    const { root, service } = await fixture();
+    await service.createProject({ projectId: 'serial', name: 'Serial' });
+    let release!: () => void;
+    const blocked = new Promise<void>((resolve) => { release = resolve; });
+    const open = vi.spyOn(root.get('novelCharacter'), 'open').mockImplementation(async () => blocked);
+
+    const opening = service.openProject('serial');
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    let settled = false;
+    const archiving = service.archiveProject('serial').then((value) => { settled = true; return value; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    release();
+    await opening;
+    await expect(archiving).resolves.toMatchObject({ id: 'serial' });
+    await expect(service.openProject('serial')).rejects.toThrow(/archived and read-only/);
   });
 });

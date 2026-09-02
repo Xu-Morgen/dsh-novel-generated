@@ -188,6 +188,11 @@ function fixtureFor(endpoint: string): unknown {
         generationBaseline: { kind: 'no-outline-baseline' }, changes: [],
         postScan: { status: 'pending', sourceMatched: false, mismatchedLayers: [] },
       };
+    case 'novelWorkspace/projectArchiveList':
+      return [{ id: 'finished', version: 1, name: '完结作品' }];
+    case 'novelWorkspace/projectArchive':
+    case 'novelWorkspace/projectRestore':
+      return { id: 'finished', version: 1, name: '完结作品' };
     case 'novelSceneOutlineBinding/read':
     case 'novelSceneOutlineBinding/save':
     case 'novelSceneOutlineBinding/rebind':
@@ -478,6 +483,45 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
           range: { start: 1, end: 2 }, replacement: 'x', baseHash: 'a'.repeat(64),
         },
       }]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I155 project archive lifecycle uses strict additive binder contracts', async () => {
+    const { client, calls, dispose } = await mount(workspaceRemoteContribution);
+    try {
+      const workspace = client.get('remote.novelWorkspace') as {
+        projectArchiveList: () => Promise<unknown>;
+        projectArchive: (projectId: string) => Promise<unknown>;
+        projectRestore: (projectId: string) => Promise<unknown>;
+      };
+      await expect(unwrap(workspace.projectArchiveList())).resolves.toEqual([{ id: 'finished', version: 1, name: '完结作品' }]);
+      await expect(unwrap(workspace.projectArchive('finished'))).resolves.toMatchObject({ id: 'finished' });
+      await expect(unwrap(workspace.projectRestore('finished'))).resolves.toMatchObject({ id: 'finished' });
+      await expect(Reflect.apply(workspace.projectArchive, workspace, [])).rejects.toThrow(/expected 1 argument\(s\), got 0/);
+      await expect(Reflect.apply(workspace.projectRestore, workspace, [123])).rejects.toThrow(/rejected "projectId"/);
+      expect(calls).toEqual([
+        { endpoint: 'novelWorkspace/projectArchiveList', args: {} },
+        { endpoint: 'novelWorkspace/projectArchive', args: { projectId: 'finished' } },
+        { endpoint: 'novelWorkspace/projectRestore', args: { projectId: 'finished' } },
+      ]);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I155 rejects an invalid archived-project result before it reaches the Client', async () => {
+    const { client, calls, dispose } = await mount(workspaceRemoteContribution, (endpoint) => {
+      if (endpoint === 'novelWorkspace/projectArchive') return { id: 'finished', version: 1, name: '完结作品', editable: true };
+      return fixtureFor(endpoint);
+    });
+    try {
+      const workspace = client.get('remote.novelWorkspace') as { projectArchive: (projectId: string) => Promise<unknown> };
+      await expect(unwrap(workspace.projectArchive('finished'))).rejects.toThrow();
+      expect(calls).toEqual([{ endpoint: 'novelWorkspace/projectArchive', args: { projectId: 'finished' } }]);
     } finally {
       await dispose();
       await client.fiber.dispose();

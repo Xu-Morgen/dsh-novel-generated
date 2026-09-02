@@ -185,7 +185,10 @@
     "novel-creation-tool/novelReview/bookScan",
     "novel-creation-tool/novelImportExport/compileManuscript",
     "novel-creation-tool/novelOutlineDetailGeneration/append",
-    "novel-creation-tool/novelOutlineDetailGeneration/select"
+    "novel-creation-tool/novelOutlineDetailGeneration/select",
+    "novel-creation-tool/novelWorkspace/projectArchiveList",
+    "novel-creation-tool/novelWorkspace/projectArchive",
+    "novel-creation-tool/novelWorkspace/projectRestore"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -43757,6 +43760,165 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelWorkspace/projectArchiveList": {
+      "id": "novel-creation-tool/novelWorkspace/projectArchiveList",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "projectArchiveList",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#projectArchiveList",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "novel-creation-tool/novelWorkspace/projectArchive": {
+      "id": "novel-creation-tool/novelWorkspace/projectArchive",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "projectArchive",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#projectArchive",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "version": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool/novelWorkspace/projectRestore": {
+      "id": "novel-creation-tool/novelWorkspace/projectRestore",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "projectRestore",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#string",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string"
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#projectRestore",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "version": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -43848,7 +44010,10 @@
     "novel-creation-tool/novelReview/bookScan",
     "novel-creation-tool/novelImportExport/compileManuscript",
     "novel-creation-tool/novelOutlineDetailGeneration/append",
-    "novel-creation-tool/novelOutlineDetailGeneration/select"
+    "novel-creation-tool/novelOutlineDetailGeneration/select",
+    "novel-creation-tool/novelWorkspace/projectArchiveList",
+    "novel-creation-tool/novelWorkspace/projectArchive",
+    "novel-creation-tool/novelWorkspace/projectRestore"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -63163,6 +63328,93 @@
         "rationale",
         "createdAt",
         "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWorkspace/projectArchiveList": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool/novelWorkspace/projectArchive": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelWorkspace/projectRestore": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+        },
+        "version": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name"
       ],
       "additionalProperties": false
     }

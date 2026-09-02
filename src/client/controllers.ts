@@ -67,6 +67,8 @@ export interface ProjectControllerDeps extends ControllerBaseDeps {
 export interface ProjectController {
   openProject(projectId: string, onOpened?: () => void): void;
   createProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
+  archiveProject(projectId: string): void;
+  restoreProject(projectId: string): void;
   browseToProjects(): void;
   cancelBrowse(): void;
 }
@@ -77,6 +79,17 @@ export interface ProjectController {
  * 失败 projectFailed 保持当前视图不 brick；列表刷新失败保留既有列表。
  */
 export function createProjectController(deps: ProjectControllerDeps): ProjectController {
+  const refreshCatalog = async (target: WorkspaceNamespace): Promise<void> => {
+    const [projects, archivedProjects] = await Promise.all([
+      unwrap(target.projectList()),
+      unwrap(target.projectArchiveList()),
+    ]);
+    if (!deps.isActive()) return;
+    deps.dispatch((actions) => {
+      actions.setProjects(projects as unknown[]);
+      actions.setArchivedProjects(archivedProjects as unknown[]);
+    });
+  };
   const openProject = (projectId: string, onOpened?: () => void): void => {
     const target = deps.workspace();
     if (!deps.isActive() || target === undefined) return;
@@ -112,6 +125,33 @@ export function createProjectController(deps: ProjectControllerDeps): ProjectCon
       openProject((project as { id: string }).id, onOpened);
     }, () => { release(); deps.dispatch((actions) => actions.fail('作品创建失败')); });
   };
+  const archiveProject = (projectId: string): void => {
+    const target = deps.workspace();
+    if (!deps.isActive() || target === undefined) return;
+    const key = `project:archive:${projectId}`;
+    if (!deps.beginOp(key)) return;
+    deps.dispatch((actions) => actions.projectOperationStarted());
+    void unwrap(target.projectArchive(projectId)).then(async () => {
+      if (!deps.isActive()) return;
+      if (deps.currentProjectId() === projectId) {
+        deps.setProjectId(undefined);
+        deps.dispatch((actions) => { actions.clearProjectSelection(); actions.resetEditors(); });
+      }
+      await refreshCatalog(target);
+    }).catch((cause: Error) => {
+      if (deps.isActive()) deps.dispatch((actions) => actions.projectFailed(`作品归档失败：${toUserMessage(cause, '未知错误')}`));
+    }).finally(() => deps.endOp(key));
+  };
+  const restoreProject = (projectId: string): void => {
+    const target = deps.workspace();
+    if (!deps.isActive() || target === undefined) return;
+    const key = `project:restore:${projectId}`;
+    if (!deps.beginOp(key)) return;
+    deps.dispatch((actions) => actions.projectOperationStarted());
+    void unwrap(target.projectRestore(projectId)).then(() => refreshCatalog(target)).catch((cause: Error) => {
+      if (deps.isActive()) deps.dispatch((actions) => actions.projectFailed(`作品恢复失败：${toUserMessage(cause, '未知错误')}`));
+    }).finally(() => deps.endOp(key));
+  };
   // I55：返回作品列表（切换入口）。脏表单裁决由组件层 `requestBrowse` 先行完成，
   // 这里只切换为列表视图并刷新作品列表，不丢当前作品（browseProjects 保留 selectedProjectId）。
   const browseToProjects = (): void => {
@@ -120,9 +160,9 @@ export function createProjectController(deps: ProjectControllerDeps): ProjectCon
     deps.dispatch((actions) => actions.browseProjects());
     const target = deps.workspace();
     if (target !== undefined) {
-      void unwrap(target.projectList()).then(
-        (projects) => { release(); if (deps.isActive()) deps.dispatch((actions) => actions.setProjects(projects as unknown[])); },
-        () => release(), // 列表刷新失败不 brick：保留既有列表，切换本身非破坏性。
+      void refreshCatalog(target).then(
+        release,
+        release, // 列表刷新失败不 brick：保留既有列表，切换本身非破坏性。
       );
     } else {
       release();
@@ -131,7 +171,7 @@ export function createProjectController(deps: ProjectControllerDeps): ProjectCon
   const cancelBrowse = (): void => {
     deps.dispatch((actions) => actions.cancelBrowse());
   };
-  return Object.freeze({ openProject, createProject, browseToProjects, cancelBrowse });
+  return Object.freeze({ openProject, createProject, archiveProject, restoreProject, browseToProjects, cancelBrowse });
 }
 
 // ---------------------------------------------------------------------------

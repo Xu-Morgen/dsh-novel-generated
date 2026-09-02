@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { PROJECT_DIRECTORIES, ProjectRepository } from './index.js';
+import { PROJECT_ARCHIVE_DIRECTORY } from '../io/path.js';
 
 const roots: string[] = [];
 async function temporaryRoot(): Promise<string> {
@@ -64,6 +65,42 @@ describe('I3 ProjectRepository', () => {
     const repository = new ProjectRepository(await temporaryRoot());
     await repository.createProject({ projectId: 'same', name: 'first' });
     await expect(repository.createProject({ projectId: 'same', name: 'second' })).rejects.toThrow(/already exists/);
+  });
+
+  it('I155 archives outside the active catalog, rejects active access, and restores byte-preserving metadata', async () => {
+    const root = await temporaryRoot();
+    const repository = new ProjectRepository(root);
+    const created = await repository.createProject({ projectId: 'finished', name: '完结作品' });
+    const before = await readFile(join(root, 'finished', 'project.yaml'), 'utf8');
+
+    await expect(repository.archiveProject('finished')).resolves.toEqual(created);
+    await expect(repository.listProjects()).resolves.toEqual([]);
+    await expect(repository.listArchivedProjects()).resolves.toEqual([created]);
+    await expect(repository.loadProject('finished')).rejects.toThrow(/archived and read-only/);
+    await expect(repository.createProject({ projectId: 'finished', name: '重名作品' })).rejects.toThrow(/archived and read-only/);
+    expect((await stat(join(root, 'finished'))).isFile()).toBe(true);
+    expect(await readFile(join(root, PROJECT_ARCHIVE_DIRECTORY, 'finished', 'project.yaml'), 'utf8')).toBe(before);
+
+    await expect(repository.restoreProject('finished')).resolves.toEqual(created);
+    await expect(repository.listProjects()).resolves.toEqual([created]);
+    await expect(repository.listArchivedProjects()).resolves.toEqual([]);
+    expect(await readFile(join(root, 'finished', 'project.yaml'), 'utf8')).toBe(before);
+  });
+
+  it('I155 rejects duplicate transitions and unsafe archived entries', async () => {
+    const root = await temporaryRoot();
+    const repository = new ProjectRepository(root);
+    await repository.createProject({ projectId: 'once', name: 'Once' });
+    await repository.archiveProject('once');
+    await expect(repository.archiveProject('once')).rejects.toThrow(/archived and read-only/);
+    await repository.restoreProject('once');
+    await expect(repository.restoreProject('once')).rejects.toThrow();
+
+    await repository.createProject({ projectId: 'conflict', name: 'Conflict' });
+    await repository.archiveProject('conflict');
+    await rm(join(root, 'conflict'), { force: true });
+    await mkdir(join(root, 'conflict'));
+    await expect(repository.restoreProject('conflict')).rejects.toThrow(/Active project already exists/);
   });
 
   it('rejects a project directory symlink that escapes the root', async () => {

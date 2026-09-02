@@ -137,6 +137,52 @@ describe('I50 project-session startup', () => {
   });
 });
 
+describe('I155 project archive chooser', () => {
+  it('hides archived works from the main list, exposes restore only, and refreshes both catalogs', async () => {
+    let active = [{ id: 'alpha', name: 'Alpha' }];
+    let archived = [{ id: 'finished', name: '完结作品' }];
+    const calls: string[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => active,
+        projectArchiveList: async () => archived,
+        projectArchive: async (id) => {
+          calls.push(`archive:${id}`);
+          const project = active.find((item) => item.id === id)!;
+          active = active.filter((item) => item.id !== id);
+          archived = [...archived, project];
+          return { ...project, version: 1 };
+        },
+        projectRestore: async (id) => {
+          calls.push(`restore:${id}`);
+          const project = archived.find((item) => item.id === id)!;
+          archived = archived.filter((item) => item.id !== id);
+          active = [...active, project];
+          return { ...project, version: 1 };
+        },
+      },
+      { openProjectId: null },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    expect(collect(render(), 'button').find((node) => node.props?.['data-novel-project-open'] === 'finished')).toBeUndefined();
+    expect(collect(render(), 'span').find((node) => node.props?.['data-novel-project-archived'] === 'finished')).toBeDefined();
+    expect(collect(render(), 'button').find((node) => node.props?.['data-novel-project-restore'] === 'finished')).toBeDefined();
+
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-project-archive'] === 'alpha')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toContain('archive:alpha');
+    expect(collect(render(), 'button').find((node) => node.props?.['data-novel-project-open'] === 'alpha')).toBeUndefined();
+    expect(collect(render(), 'span').find((node) => node.props?.['data-novel-project-archived'] === 'alpha')).toBeDefined();
+
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-project-restore'] === 'finished')?.props?.onClick as () => void)();
+    await flush();
+    expect(calls).toContain('restore:finished');
+    expect(collect(render(), 'button').find((node) => node.props?.['data-novel-project-open'] === 'finished')).toBeDefined();
+  });
+});
+
 describe('I55 作品上下文栏与项目切换 (R12-2)', () => {
   const projectButton = (tree: FakeNode, id: string): FakeNode | undefined =>
     collect(tree, 'button').find((node) => node.props?.['data-novel-project-open'] === id);

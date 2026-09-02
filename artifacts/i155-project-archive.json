@@ -1,0 +1,22 @@
+{
+  "iteration": "I155",
+  "requirement": "R26-1",
+  "guarantees": [
+    "active-catalog-excludes-archived",
+    "separate-restore-only-archive-list",
+    "host-owned-tree-move",
+    "active-path-tombstone-blocks-stale-writes",
+    "archived-project-open-denied",
+    "byte-preserving-restore",
+    "strict-additive-project-lifecycle-remotes",
+    "binder-positive-and-negative-validation"
+  ],
+  "explicitNonGoals": [
+    "permanent-delete",
+    "automatic-or-bulk-archive",
+    "archive-editing",
+    "project-meta-change",
+    "llm-change",
+    "f1-or-f2"
+  ]
+}
