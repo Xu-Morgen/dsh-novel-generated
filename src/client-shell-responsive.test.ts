@@ -17,7 +17,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { analyzerStub, cleanupClientTestEnv, collect, factory, FakeFileReader, fakeReact, flush, I56_LAYERS, layerButtons, makeWorkspace, MountOptions, mount, openOnboardingReview, READY_MODEL, WorkspaceOverrides, type FakeNode } from './client/test-harness.js';
+import { cleanupClientTestEnv, collect, flush, mount, READY_MODEL, type FakeNode } from './client/test-harness.js';
 
 afterEach(cleanupClientTestEnv);
 
@@ -216,75 +216,4 @@ describe('I59 响应式、可访问性与保存反馈 (R12-6)', () => {
     expect(String(savedLine?.children?.[0] ?? '')).toBe('已保存');
   });
 
-  it('六层 apply：应用中忙碌，双击至多一次 finalApply；结果 dl 可播报', async () => {
-    let finalApplies = 0;
-    let resolveApply: ((value: unknown) => void) | undefined;
-    const applyPromise = new Promise((resolve) => { resolveApply = resolve; });
-    const { registrations } = mount(
-      () => Promise.resolve({ ok: true, value: READY_MODEL }),
-      {},
-      {
-        onboardingAnalyzer: analyzerStub(I56_LAYERS),
-        onboarding: {
-          adjudicate: async () => ({ id: 'proposal-1', status: 'accepted' }),
-          finalApply: async () => { finalApplies += 1; return applyPromise; },
-        },
-      },
-    );
-    const render = await openOnboardingReview(registrations, I56_LAYERS);
-    const clickVerdict = (layer: string, decision: string) => {
-      const button = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === layer && node.props?.['data-novel-onboarding-decision'] === decision);
-      (button?.props?.onClick as () => void)();
-    };
-    clickVerdict('characters', 'accept');
-    await flush();
-    for (const layer of ['worldview', 'outline', 'relationship', 'state', 'canon']) {
-      clickVerdict(layer, 'skip');
-      await flush();
-    }
-    const apply = () => collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-apply'] === '');
-    expect(apply()?.props?.disabled).toBe(false);
-    // 双击 apply：至多一次 finalApply，按钮进入应用中忙碌态。
-    (apply()?.props?.onClick as () => void)();
-    (apply()?.props?.onClick as () => void)();
-    expect(finalApplies).toBe(1);
-    expect(String(apply()?.children?.[0] ?? '')).toBe('应用中…');
-    expect(apply()?.props?.disabled).toBe(true);
-    // 应用完成（无 blocked/pending/retryable）→ 离开审阅并刷新作品；结果 dl 带 aria-live。
-    resolveApply?.({ projectId: 'fixture-project', onboardingSessionId: 'sess-1', appliedLayers: ['characters'], skippedLayers: ['worldview', 'outline', 'relationship', 'state', 'canon'], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] });
-    await flush();
-    expect(collect(render(), 'button').some((node) => node.props?.['data-novel-onboarding-apply'] === '')).toBe(false);
-  });
-
-  it('分析 busy 面板可播报：aria-live + aria-busy + role=status，并随 Fiber 清理', async () => {
-    const { registrations, overlayCleanups } = mount(
-      () => Promise.resolve({ ok: true, value: READY_MODEL }),
-      {},
-      {
-        onboardingAnalyzer: {
-          begin: async () => ({ onboardingSessionId: 'sess-1' }),
-          status: async () => 'running',
-          result: async () => ({}),
-        },
-      },
-    );
-    await flush();
-    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    (collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-nav'] === '')?.props?.onClick as () => void)();
-    await flush();
-    const tree = render();
-    const textarea = collect(tree, 'textarea').find((node) => node.props?.placeholder === '粘贴原文以生成六层候选');
-    const start = collect(tree, 'button').find((node) => node.props?.['data-novel-onboarding-start'] === '');
-    (textarea?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '北港位于内海西岸。' } });
-    (start?.props?.onClick as () => void)();
-    await flush();
-    const busy = collect(render(), 'section').find((node) => node.props?.['data-novel-analysis-busy'] !== undefined);
-    expect(busy?.props?.['aria-live']).toBe('polite');
-    expect(busy?.props?.['aria-busy']).toBe('true');
-    const status = collect(render(), 'p').find((node) => node.props?.['data-novel-analysis-status'] !== undefined);
-    expect(status?.props?.role).toBe('status');
-    // Fiber 清理：轮询定时器随卸载归零（不残留监听）。
-    overlayCleanups[0]();
-    await flush();
-  });
 });

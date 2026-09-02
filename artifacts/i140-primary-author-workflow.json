@@ -85,8 +85,8 @@
     "real-client-binder-and-stage18-contract-lock-pass"
   ],
   "remoteLock": {
-    "descriptorCount": 181,
-    "resultSchemaCount": 87
+    "descriptorCount": 187,
+    "resultSchemaCount": 93
   },
   "lexicon": {
     "forbiddenTermCount": 34,

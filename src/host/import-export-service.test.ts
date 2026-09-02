@@ -215,6 +215,15 @@ describe('I69 import/export service', () => {
     await expect(service.importPreview('source', { fileName: 'b.docx', format: 'docx', text: 'docx 文本' })).resolves.toMatchObject({ format: 'docx' });
     await expect(service.importPreview('source', { fileName: 'bad.exe', format: 'txt', text: '' })).rejects.toThrow();
     await expect(service.importPreview('source', { fileName: 'bad.md', format: 'txt', text: '   \n  ' })).rejects.toThrow();
+    await expect(service.normalizeSource('source', { fileName: 'pasted.md', format: 'md', text: '第一段\n\n第二段\n' })).resolves.toMatchObject({
+      projectId: 'source',
+      format: 'md',
+      text: '第一段\n\n第二段',
+      sourceHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      chunks: [
+        { index: 0, text: '第一段\n\n第二段', startOffset: 0, endOffset: 8 },
+      ],
+    });
   });
 
   it('wire 载荷不含路径与 secret（负向扫描）', async () => {

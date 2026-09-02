@@ -11,14 +11,14 @@ const composition = read('src/client.ts');
 const presenter = read('src/client/presenter.ts');
 const productTest = read('src/client-onboarding-docx.test.ts');
 
-for (const token of ['startSourceReview', 'deps.startSourceReview(openedId', 'Stage 19 来源选择', 'I151 的唯一触发事件']) {
+for (const token of ['startSourceReview', 'deps.startSourceReview(openedId', '来源语义审阅', 'I151 的唯一触发事件']) {
   if (!controllers.includes(token)) fail(`directory controlled-import routing missing ${token}`);
 }
 for (const token of ['paragraphsFromHostChunks', 'currentProjectId !== projectId', 'importInterpretation.begin']) {
   if (!composition.includes(token)) fail(`source-review composition missing ${token}`);
 }
-if (!presenter.includes('onboardingState === undefined && importReview === null && review === null')) fail('directory review is still gated by legacy onboarding state');
-for (const token of ["toContain('background-material')", "toContain('existing-prose')", "'已有主角 ID'", 'ruleStyleBegins', 'onboardingBegins).toBe(0)']) {
+if (!presenter.includes("importReview === null ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' }, importReview)")) fail('directory review is not independent of legacy onboarding state');
+for (const token of ["toContain('background-material')", "toContain('existing-prose')", '由 AI 创建并串联新主角', 'ruleStyleBegins', 'onboardingBegins).toBe(0)']) {
   if (!productTest.includes(token)) fail(`product regression missing ${token}`);
 }
 

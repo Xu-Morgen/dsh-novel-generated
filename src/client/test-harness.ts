@@ -283,6 +283,8 @@ export function mount(viewModel: () => Promise<unknown>, overrides: WorkspaceOve
       compileManuscript: async () => { throw new Error('未注入 remote.novelImportExport.compileManuscript'); },
       restore: async () => { throw new Error('未注入 remote.novelImportExport.restore'); },
       importPreview: async () => { throw new Error('未注入 remote.novelImportExport.importPreview'); },
+      normalizeSource: (importExportStub as { normalizeSource?: (projectId: string, input: { text: string }) => Promise<unknown> } | undefined)?.normalizeSource
+        ?? (async (_projectId: string, input: { text: string }) => ({ projectId: 'fixture-project', fileName: 'pasted.txt', format: 'txt', text: input.text.trim(), sourceHash: 'a'.repeat(64), chunks: [{ index: 0, text: input.text.trim(), startOffset: 0, endOffset: input.text.trim().length }] })),
     })
     : name === 'remote.novelSearch' ? (searchStub ?? {
       build: async () => { throw new Error('未注入 remote.novelSearch.build'); },

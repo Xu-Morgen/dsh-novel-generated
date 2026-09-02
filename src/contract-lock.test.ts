@@ -25,7 +25,7 @@ import { longDraftInvocations } from './host/remote/long-draft.js';
 import { reviewRepairInvocations } from './host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from './host/remote/outline-generation-scope.js';
 import { outlineDetailGenerationAppendInvocation, outlineDetailGenerationInvocations, outlineDetailGenerationSelectInvocation } from './host/remote/outline-detail-generation.js';
-import { compileManuscriptInvocation } from './host/remote/import-export.js';
+import { compileManuscriptInvocation, normalizeImportSourceInvocation } from './host/remote/import-export.js';
 import { projectArchiveInvocation, projectArchiveListInvocation, projectRestoreInvocation } from './host/remote/project-lifecycle.js';
 import { importInterpretationInvocations } from './host/remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from './host/remote/import-interpretation-analysis.js';
@@ -77,6 +77,7 @@ const i131DescriptorIds = new Set([branchChooseFreshInvocation.id]);
 const i133DescriptorIds = new Set(outlineGenerationScopeInvocations.map((descriptor) => descriptor.id));
 const i150DescriptorIds = new Set([outlineDetailGenerationAppendInvocation.id, outlineDetailGenerationSelectInvocation.id]);
 const i155DescriptorIds = new Set([projectArchiveListInvocation.id, projectArchiveInvocation.id, projectRestoreInvocation.id]);
+const i159DescriptorIds = new Set([normalizeImportSourceInvocation.id]);
 const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id));
 const i135DescriptorIds = new Set([
   writingAdoptDraftInvocation.id,
@@ -100,7 +101,7 @@ const postStage18DescriptorIds = new Set([
   ...ruleStyleImportInitializationInvocations,
 ].map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id) && !i159DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,
@@ -134,6 +135,7 @@ const stage18Descriptors = [
   projectArchiveListInvocation,
   projectArchiveInvocation,
   projectRestoreInvocation,
+  normalizeImportSourceInvocation,
 ];
 const stage18ResultDescriptors = [
   ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
@@ -175,6 +177,7 @@ const stage18ResultDescriptors = [
   projectArchiveListInvocation,
   projectArchiveInvocation,
   projectRestoreInvocation,
+  normalizeImportSourceInvocation,
 ];
 
 const docxSchemas: Record<string, z.ZodType> = {
@@ -246,8 +249,8 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
   it('锁定全部 Host invocation descriptor，I111 在 I110 五层 preview 后追加 reparse preview method / result', () => {
     expect(remoteLock.descriptorIds).toEqual(stage18Descriptors.map((descriptor) => descriptor.id));
     expect(remoteLock.resultSchemaIds).toEqual(stage18ResultDescriptors.map((descriptor) => descriptor.id));
-    expect(remoteLock.descriptorIds).toHaveLength(186);
-    expect(remoteLock.resultSchemaIds).toHaveLength(92);
+    expect(remoteLock.descriptorIds).toHaveLength(187);
+    expect(remoteLock.resultSchemaIds).toHaveLength(93);
     const descriptorSuffix = [
       ...sceneOutlineBindingInvocations.map((descriptor) => descriptor.id),
       writingProposeAtInvocation.id,
@@ -282,6 +285,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       projectArchiveListInvocation.id,
       projectArchiveInvocation.id,
       projectRestoreInvocation.id,
+      normalizeImportSourceInvocation.id,
     ];
     expect(remoteLock.descriptorIds.slice(-descriptorSuffix.length)).toEqual(descriptorSuffix);
     const resultSuffix = [
@@ -315,6 +319,7 @@ describe('I103 contracts/stage18 Remote descriptor baseline', () => {
       projectArchiveListInvocation.id,
       projectArchiveInvocation.id,
       projectRestoreInvocation.id,
+      normalizeImportSourceInvocation.id,
     ];
     expect(remoteLock.resultSchemaIds.slice(-resultSuffix.length)).toEqual(resultSuffix);
     expect(checkRemoteContractLock(remoteLock, stage18Descriptors, stage18ResultDescriptors)).toEqual([]);

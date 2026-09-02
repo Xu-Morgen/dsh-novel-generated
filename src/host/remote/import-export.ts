@@ -75,6 +75,11 @@ export const importPreviewOutcomeWireSchema = z.object({
   chunks: z.array(importPreviewChunkWireSchema),
 }).strict();
 
+/** Strict additive I159 seam; the existing importPreview result is unchanged. */
+export const normalizedImportSourceWireSchema = importPreviewOutcomeWireSchema.extend({
+  sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
+}).strict();
+
 /** I138 single-manuscript publication options/result; no file map or sidecar is exposed. */
 export const compileManuscriptInputWireSchema = compileManuscriptInputSchema;
 export const compileManuscriptOutcomeWireSchema = compileManuscriptResultSchema;
@@ -105,6 +110,10 @@ export const importExportPreviewInvocation = importExportInvocation('importPrevi
   projectIdParam,
   param('input', strictCodec('novel-creation-tool#importPreviewInput', importPreviewInputWireSchema)),
 ], strictCodec('novel-creation-tool#importPreviewOutcome', importPreviewOutcomeWireSchema));
+export const normalizeImportSourceInvocation = importExportInvocation('normalizeSource', [
+  projectIdParam,
+  param('input', strictCodec('novel-creation-tool#importPreviewInput', importPreviewInputWireSchema)),
+], strictCodec('novel-creation-tool#normalizedImportSource', normalizedImportSourceWireSchema));
 export const compileManuscriptInvocation = importExportInvocation('compileManuscript', [
   projectIdParam,
   param('input', strictCodec('novel-creation-tool#compileManuscriptInput', compileManuscriptInputWireSchema)),
@@ -115,6 +124,7 @@ export const importExportInvocations = [
   importExportTextInvocation,
   importExportRestoreInvocation,
   importExportPreviewInvocation,
+  normalizeImportSourceInvocation,
   compileManuscriptInvocation,
 ] as const;
 // 每个 Client 挂载贡献必须携带唯一 `package`（见 editor.ts 注释）。

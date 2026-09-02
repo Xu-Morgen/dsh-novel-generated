@@ -188,7 +188,8 @@
     "novel-creation-tool/novelOutlineDetailGeneration/select",
     "novel-creation-tool/novelWorkspace/projectArchiveList",
     "novel-creation-tool/novelWorkspace/projectArchive",
-    "novel-creation-tool/novelWorkspace/projectRestore"
+    "novel-creation-tool/novelWorkspace/projectRestore",
+    "novel-creation-tool/novelImportExport/normalizeSource"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -43919,6 +43920,149 @@
           "additionalProperties": false
         }
       }
+    },
+    "novel-creation-tool/novelImportExport/normalizeSource": {
+      "id": "novel-creation-tool/novelImportExport/normalizeSource",
+      "service": "novelImportExport",
+      "namespace": "novelImportExport",
+      "method": "normalizeSource",
+      "invocation": {
+        "kind": "direct"
+      },
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#projectId",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "_optional": false
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "source": "json",
+          "codec": {
+            "mode": "strict",
+            "typeSymbol": "novel-creation-tool#importPreviewInput",
+            "schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "fileName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "txt",
+                    "md",
+                    "docx"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10485760
+                }
+              },
+              "required": [
+                "fileName",
+                "format",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "_optional": false
+        }
+      ],
+      "result": {
+        "mode": "strict",
+        "typeSymbol": "novel-creation-tool#normalizedImportSource",
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "fileName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "txt",
+                "md",
+                "docx"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "chunks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "startOffset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "endOffset": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "index",
+                  "text",
+                  "startOffset",
+                  "endOffset"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "sourceHash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "projectId",
+            "fileName",
+            "format",
+            "text",
+            "chunks",
+            "sourceHash"
+          ],
+          "additionalProperties": false
+        }
+      }
     }
   },
   "resultSchemaIds": [
@@ -44013,7 +44157,8 @@
     "novel-creation-tool/novelOutlineDetailGeneration/select",
     "novel-creation-tool/novelWorkspace/projectArchiveList",
     "novel-creation-tool/novelWorkspace/projectArchive",
-    "novel-creation-tool/novelWorkspace/projectRestore"
+    "novel-creation-tool/novelWorkspace/projectRestore",
+    "novel-creation-tool/novelImportExport/normalizeSource"
   ],
   "resultSchemas": {
     "novel-creation-tool/novelBranches/list": {
@@ -63415,6 +63560,78 @@
         "id",
         "version",
         "name"
+      ],
+      "additionalProperties": false
+    },
+    "novel-creation-tool/novelImportExport/normalizeSource": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "txt",
+            "md",
+            "docx"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "startOffset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "endOffset": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "index",
+              "text",
+              "startOffset",
+              "endOffset"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sourceHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "projectId",
+        "fileName",
+        "format",
+        "text",
+        "chunks",
+        "sourceHash"
       ],
       "additionalProperties": false
     }

@@ -43,6 +43,7 @@ import { freshRouter } from '../router.js';
 import type { RouterState } from '../router.js';
 import type { OutlineDetailGenerationLayerState } from '../layers/outline-detail-generation.js';
 import type { ImportInterpretationReviewState, ImportReviewParagraph } from '../import-interpretation-review.js';
+import type { SourceImportState } from '../source-import.js';
 import { freshLlmConfigDraft } from '../settings.js';
 import { freshWorkbenchSettingsDraft } from '../workbench-settings.js';
 import type { DefineStore, StoreHandle, WorkbenchActions, WorkbenchState } from './types.js';
@@ -130,6 +131,7 @@ export function freshWorkbenchState(): WorkbenchState {
     uploadResult: undefined,
     onboarding: undefined,
     importInterpretationReview: undefined,
+    sourceImport: { text: '', format: 'txt', status: 'idle' },
     settingsView: undefined,
     settingsDraft: freshLlmConfigDraft(),
     creationSettingsView: undefined,
@@ -192,7 +194,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       setArchivedProjects: (d, list: unknown[]) => { d.archivedProjects = list as Array<{ id: string; name: string }>; d.projectLoading = false; },
       selectProject: (d, projectId: string, name?: string) => { d.selectedProjectId = projectId; d.selectedProjectName = name ?? d.selectedProjectName; d.activeView = DEFAULT_VIEW; d.workflow = freshWorkflow(projectId); d.browsing = false; d.leaveConfirm = false; d.projectError = undefined; d.projectLoading = false; },
       clearProjectSelection: (d) => { d.selectedProjectId = undefined; d.selectedProjectName = undefined; d.workflow = freshWorkflow(); d.browsing = true; d.leaveConfirm = false; d.projectError = undefined; },
-      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.workflow = freshWorkflow(d.selectedProjectId); d.onboarding = undefined; d.importInterpretationReview = undefined; d.leaveConfirm = false; },
+      resetEditors: (d) => { d.characterEditor = freshCharacterEditor(); d.worldEditor = freshWorldEditor(); d.outlineEditor = freshOutlineEditor(); d.relationshipEditor = freshRelationshipEditor(); d.stateEditor = freshStateEditor(); d.canonEditor = freshCanonEditor(); d.chapters = freshChapters(); d.review = freshReview(); d.referenceReview = freshReferenceReview(); d.router = freshRouter(); d.queue = freshQueue(); d.knowledge = freshKnowledge(); d.ruleStyle = freshRuleStyle(); d.progress = freshProgress(); d.importExport = freshImportExport(); d.search = freshSearch(); d.statistics = freshStatistics(); d.timeline = freshTimeline(); d.outlineDetailGeneration = freshOutlineDetailGeneration(); d.workflow = freshWorkflow(d.selectedProjectId); d.onboarding = undefined; d.importInterpretationReview = undefined; d.sourceImport = { text: '', format: 'txt', status: 'idle' }; d.leaveConfirm = false; },
       browseProjects: (d) => { d.browsing = true; d.projectError = undefined; d.leaveConfirm = false; },
       cancelBrowse: (d) => { d.browsing = false; d.projectError = undefined; },
       showLeaveConfirm: (d, show: boolean) => { d.leaveConfirm = show; },
@@ -218,6 +220,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
         if (d.importInterpretationReview === undefined) return;
         d.importInterpretationReview = { ...d.importInterpretationReview, confirmed: false, paragraphs: d.importInterpretationReview.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, decision } : paragraph) };
       },
+      sourceImportPatch: (d, patch: Partial<SourceImportState>) => { d.sourceImport = { ...d.sourceImport, ...patch }; },
       setCharacters: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.characters = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as CharacterShape[] }; },
       setWorldview: (d, status: 'loading' | 'ready' | 'error', list: unknown[], message?: string) => { d.worldview = status === 'error' ? { status: 'error', list: [], message } : { status, list: list as WorldShape[] }; },
       setOutline: (d, status: 'loading' | 'ready' | 'error', outline: unknown, message?: string) => { d.outline = status === 'ready' ? { status: 'ready', outline: outline as OutlineShape } : status === 'error' ? { status: 'error', message } : { status: 'loading' }; },

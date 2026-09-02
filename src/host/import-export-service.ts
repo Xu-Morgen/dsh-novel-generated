@@ -13,6 +13,7 @@ import {
 } from '../core/export/index.js';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { normalizeTextInput, type ImportFormat } from '../import/index.js';
+import { textContentHash } from '../core/text/codec.js';
 import type { CompileManuscriptInput, CompileManuscriptResult } from '../core/schema/manuscript.js';
 import type { ManuscriptCompiler } from './manuscript-compiler.js';
 
@@ -48,6 +49,11 @@ export interface ImportPreviewOutcome {
   readonly chunks: Readonly<Array<{ readonly index: number; readonly text: string; readonly startOffset: number; readonly endOffset: number }>>;
 }
 
+/** Host-owned canonical source evidence for the I159 author import entry. */
+export interface NormalizedImportSource extends ImportPreviewOutcome {
+  readonly sourceHash: string;
+}
+
 export interface ImportPreviewInput {
   readonly fileName: string;
   readonly format: ImportFormat;
@@ -60,6 +66,7 @@ export interface NovelImportExportService {
   compileManuscript(projectId: string, input: CompileManuscriptInput): Promise<CompileManuscriptResult>;
   restore(projectId: string, raw: string): Promise<ImportRestoreOutcome>;
   importPreview(projectId: string, input: ImportPreviewInput): Promise<ImportPreviewOutcome>;
+  normalizeSource(projectId: string, input: ImportPreviewInput): Promise<NormalizedImportSource>;
 }
 
 const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
@@ -181,7 +188,12 @@ export function createImportExportService(
   const compileManuscript = async (): Promise<CompileManuscriptResult> => {
     throw new Error('单一全文编译器未装配');
   };
-  return Object.freeze({ exportArchive, exportText, compileManuscript, restore, importPreview });
+
+  const normalizeSource = async (projectId: string, input: ImportPreviewInput): Promise<NormalizedImportSource> => {
+    const preview = await importPreview(projectId, input);
+    return Object.freeze({ ...preview, sourceHash: textContentHash(preview.text) });
+  };
+  return Object.freeze({ exportArchive, exportText, compileManuscript, restore, importPreview, normalizeSource });
 }
 
 /**

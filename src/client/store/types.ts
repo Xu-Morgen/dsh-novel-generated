@@ -28,6 +28,7 @@ import type { ReferenceReviewEditOps, ReferenceReviewLayerState } from '../layer
 import type { RouterEditOps, RouterState } from '../router.js';
 import type { OutlineDetailGenerationEditOps, OutlineDetailGenerationLayerState } from '../layers/outline-detail-generation.js';
 import type { ImportInterpretationReviewState, ImportReviewParagraph } from '../import-interpretation-review.js';
+import type { SourceImportState } from '../source-import.js';
 
 /**
  * I82 创作台 Client store 契约层（架构审查 §5.1 / §9 #5 拆分：store/types.ts 承载
@@ -133,6 +134,8 @@ export type WorkbenchActions = {
   importInterpretationReviewPatch(patch: Partial<ImportInterpretationReviewState>): void;
   importInterpretationParagraphRole(paragraphId: string, role: ImportReviewParagraph['selectedRole']): void;
   importInterpretationParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  /** I159 single author source-entry draft; canonical source evidence remains Host-owned. */
+  sourceImportPatch(patch: Partial<SourceImportState>): void;
   creationSettingsLoaded(view: WorkbenchSettingsViewShape): void;
   creationSettingsMutate(patch: Partial<WorkbenchSettingsDraftShape>): void;
   creationSettingsSettled(patch: Partial<WorkbenchSettingsDraftShape>): void;
@@ -351,6 +354,7 @@ export interface WorkbenchState {
   onboarding: OnboardingState | undefined;
   /** I144：来源/段落审阅态，隐藏时不触发任何 Remote。 */
   importInterpretationReview: ImportInterpretationReviewState | undefined;
+  sourceImport: SourceImportState;
   settingsView: LlmConfigViewShape | undefined;
   settingsDraft: LlmConfigDraftShape;
   creationSettingsView: WorkbenchSettingsViewShape | undefined;

@@ -487,29 +487,30 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
 export interface UploadControllerDeps extends ControllerBaseDeps {
   workspace(): WorkspaceNamespace | undefined;
   currentProjectId(): string | undefined;
-  /** 上传后对当前作品发起六层分析（I53 DOCX 入口；sourceHash/text 已由上传链给出）。 */
-  startAnalysis(projectId: string, sourceHash: string, text: string): void;
-  /** I153：目录层新作品导入必须先进入来源审阅，确认后才可继续初始化。 */
+  /** I159：目录层和作品内 DOCX 都进入同一来源审阅。 */
   startSourceReview(projectId: string, source: { sourceHash: string; text: string; chunks: readonly unknown[] }): void;
   /** 目录层上传 → 从 DOCX 新建独立作品。 */
   createProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
 }
 
 export interface UploadController {
-  /** 一次受控上传链（browsing = 渲染快照 s.browsing，由调用方传入）。 */
-  uploadFile(file: File, browsing: boolean): void;
+  /** 一次受控上传链；作品内入口必须先通过 N-7 空作品门。 */
+  uploadFile(file: File, browsing: boolean, currentProjectEligible: boolean): void;
 }
 
 /**
  * DOCX 受控上传链（迁移 ui.uploadFile；uploadDocx 逻辑在 client/upload.ts）。
- * 上传成功后在创作台内（已选作品、非浏览）维持既有六层分析；在目录层（无作品或
- * 浏览中）从 DOCX 新建独立作品，并先展示来源语义审阅。目录层路径不得绕过
- * Stage 19 来源选择，否则 I151 首次导入事件也不可达。
+ * 目录层从 DOCX 新建独立作品；作品内仅空作品可上传。两条路径都把 Host
+ * sourceHash/text/chunks 交给同一来源语义审阅，产品 Client 不再启动旧六层分析。
  */
 export function createUploadController(deps: UploadControllerDeps): UploadController {
-  const uploadFile = (file: File, browsing: boolean): void => {
+  const uploadFile = (file: File, browsing: boolean, currentProjectEligible: boolean): void => {
     const target = deps.workspace();
     if (!target || !deps.isActive()) return;
+    if (deps.currentProjectId() !== undefined && !browsing && !currentProjectEligible) {
+      deps.dispatch((actions) => actions.sourceImportPatch({ status: 'error', error: '当前作品已有内容，不能合并导入。请返回作品列表，新建独立作品后再导入。' }));
+      return;
+    }
     // I59 防重复上传（R12-6）：一次 Remote 上传链进行中忽略再次选择文件。
     if (!deps.beginOp('upload')) return;
     void uploadDocx(target, file, (progress) => deps.dispatch((x) => x.uploadProgress(progress))).then(
@@ -518,10 +519,9 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
         const { uploadId, ...uploadResult } = result;
         deps.dispatch((x) => { x.uploadSettled(uploadResult); x.uploadProgress({ phase: 'done' }); });
         const projectId = deps.currentProjectId();
-        // 创作台内（非浏览）上传 → 对当前作品发起六层分析（既有 I53 自由文本/DOCX 入口）；
-        // 项目目录层（无作品或浏览中）上传 → 一律新建独立作品，审阅在目录层展示。
+        // 作品内空作品直接复用来源审阅；目录层上传则新建独立作品后复用同一入口。
         if (projectId !== undefined && !browsing) {
-          deps.startAnalysis(projectId, result.sourceHash, result.text);
+          deps.startSourceReview(projectId, { sourceHash: result.sourceHash, text: result.text, chunks: result.chunks });
           return;
         }
         // I153：目录层 DOCX 是新作品的首次受控导入。创建并打开作品后必须直接

@@ -1,0 +1,27 @@
+{
+  "iteration": "I159",
+  "requirement": "R30-1",
+  "guarantees": [
+    "workflow-and-legacy-route-share-one-source-import-presenter",
+    "directory-docx-empty-work-docx-and-pasted-text-enter-source-semantic-review",
+    "pasted-text-hash-and-ranges-are-host-owned",
+    "non-empty-work-fails-closed-before-upload-or-normalization",
+    "legacy-six-layer-product-entry-and-navigation-removed",
+    "legacy-public-remotes-remain-compatible",
+    "i151-begins-only-after-source-confirmation"
+  ],
+  "additiveRemote": "novelImportExport/normalizeSource",
+  "unchangedContractDigests": {
+    "contracts/stage19/import-interpretation-remote.json": "de734e61709fff528450a69a644aa2eb234f80447f7914c7c7ebfd36ddab539b",
+    "contracts/stage19/import-interpretation-analysis-remote.json": "b2f6c6104ffc2d870aa5a93efee99a47e359fde2766aba01c91e1c39cdb74b2a",
+    "contracts/stage20/rule-style-import-initialization-remote.json": "5228ffd7b8a68d275991edf607e4d1466e502504588f63839c8b6d7ad442ab09"
+  },
+  "unchangedBoundaries": [
+    "source-enums",
+    "narrative-import-plan",
+    "llm-and-samples",
+    "confirmation-gate",
+    "docx-parser",
+    "f1-f2"
+  ]
+}

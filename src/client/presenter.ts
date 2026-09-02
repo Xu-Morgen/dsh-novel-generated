@@ -23,14 +23,13 @@ import { DEFAULT_VIEW, isStableView, NAV_GROUPS, resolveWorkbenchView, type Work
 import { workflowStageForView, workflowStageOf, writeWorkflowResume, type WorkflowStageId } from './workflow.js';
 import { GRID_STEP, NAV_WIDTH_MAX, NAV_WIDTH_MIN, PANEL_NAV_AUTO_COLLAPSE, PANEL_WIDTH_MAX, PANEL_WIDTH_MIN, type WorkbenchActions, type WorkbenchNamespaces, type WorkbenchOps, type WorkbenchState, type WorkbenchViewStates } from './store/types.js';
 import type { UploadProgress } from './upload.js';
-import { analysisPanel, onboardingReview, type OnboardingAdjudicationExtra, type OnboardingDecision, type OnboardingLayerId, type OnboardingState } from './onboarding.js';
-import { longDraftGuidePanel } from './long-draft-guide.js';
 import { advancedError, toUserMessage } from './presentation.js';
 import { llmSettingsPanel } from './settings.js';
 import { viewPanel, type LlmSettingsPanelProps, type WorkbenchSettingsPanelProps } from './panels/index.js';
-import type { OnboardingController, ProjectController, SettingsController, UploadController } from './controllers.js';
-import { paragraphsFromHostChunks, sourceInterpretationReview, type ImportInterpretationController, type ImportInterpretationParagraph, type ImportInterpretationReviewState } from './import-interpretation-review.js';
+import type { ProjectController, SettingsController, UploadController } from './controllers.js';
+import { sourceInterpretationReview, type ImportInterpretationController, type ImportInterpretationParagraph, type ImportInterpretationReviewState } from './import-interpretation-review.js';
 import { projectSourceAwareWorkflow } from './source-aware-workflow.js';
+import { sourceImportGate, sourceImportPresenter, type SourceImportController, type SourceImportFormat, type SourceImportState } from './source-import.js';
 
 /** ui 方法表（Overlay → 控制器命令的薄适配层；I90 收敛为单一接口）。 */
 export interface WorkbenchUi {
@@ -70,9 +69,9 @@ export interface WorkbenchUi {
   cancelLeave(): void;
   cancelBrowse(): void;
   uploadFile(file: File): void;
-  analyzeText(text: string): void;
-  cancelAnalysis(): void;
-  retryAnalysis(): void;
+  setSourceImportText(text: string): void;
+  setSourceImportFormat(format: SourceImportFormat): void;
+  submitSourceText(): void;
   beginImportInterpretation(source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void;
   retryImportInterpretation(): void;
   cancelImportInterpretation(): void;
@@ -98,10 +97,10 @@ export interface WorkbenchUiDeps {
   actions: WorkbenchActions;
   dispatch(fn: (a: WorkbenchActions) => void): void;
   project: ProjectController;
-  onboarding: OnboardingController;
   settings: SettingsController;
   upload: UploadController;
   importInterpretation: ImportInterpretationController;
+  sourceImport: SourceImportController;
   /** 关闭创作台并把焦点恢复到悬浮入口（I59/R12-6，slot 装配层注入）。 */
   closeWorkbench(): void;
 }
@@ -112,7 +111,7 @@ export interface WorkbenchUiDeps {
  * 控制器 —— 控制器不持有 store（I90 窄化传参纪律）。
  */
 export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
-  const { snapshot: s, actions, dispatch, project, onboarding, settings, upload, importInterpretation, closeWorkbench } = deps;
+  const { snapshot: s, actions, dispatch, project, settings, upload, importInterpretation, sourceImport, closeWorkbench } = deps;
   const ui: WorkbenchUi = {
     get open() { return s.open; },
     get collapsed() { return s.collapsed; },
@@ -181,10 +180,10 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
       dispatch((x) => x.showLeaveConfirm(false));
     },
     cancelBrowse() { project.cancelBrowse(); },
-    uploadFile(file: File) { upload.uploadFile(file, s.browsing); },
-    analyzeText(text: string) { onboarding.analyzeText(text); },
-    cancelAnalysis() { onboarding.cancelAnalysis(); },
-    retryAnalysis() { onboarding.retryAnalysis(); },
+    uploadFile(file: File) { upload.uploadFile(file, s.browsing, sourceImportGate(s).status === 'ready'); },
+    setSourceImportText(text: string) { actions.sourceImportPatch({ text, status: 'idle', error: undefined }); },
+    setSourceImportFormat(format: SourceImportFormat) { actions.sourceImportPatch({ format, status: 'idle', error: undefined }); },
+    submitSourceText() { sourceImport.normalizeText({ text: s.sourceImport.text, format: s.sourceImport.format }, sourceImportGate(s)); },
     beginImportInterpretation(source) { importInterpretation.begin(source); },
     retryImportInterpretation() { importInterpretation.retry(); },
     cancelImportInterpretation() { importInterpretation.cancel(); },
@@ -220,11 +219,8 @@ export interface WorkbenchViewProps {
   projectError?: string;
   upload?: UploadProgress;
   uploadResult?: { sourceHash: string; fileName: string; text: string; chunks: unknown[] };
-  onboardingState?: OnboardingState;
+  sourceImport: SourceImportState;
   importInterpretationReview?: ImportInterpretationReviewState;
-  decideOnboarding?: (layer: OnboardingLayerId, decision: OnboardingDecision, extra?: OnboardingAdjudicationExtra) => void;
-  applyOnboarding?: () => void;
-  patchOnboarding?: (patch: Partial<OnboardingState>) => void;
   settings?: LlmSettingsPanelProps;
   creationSettings?: WorkbenchSettingsPanelProps;
 }
@@ -312,7 +308,7 @@ function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => vo
  * `(React, props: WorkbenchViewProps)` 对象参数（review v2.0 §3.5/§5）。
  */
 export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unknown {
-  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], archivedProjects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, onboardingState, importInterpretationReview, decideOnboarding, applyOnboarding, patchOnboarding, settings, creationSettings } = props;
+  const { status, ns, ui, states, ops, selectedProjectId, selectedProjectName, projects = [], archivedProjects = [], browsing = false, leaveConfirm = false, projectError, upload, uploadResult, sourceImport, importInterpretationReview, settings, creationSettings } = props;
   const { workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, referenceAuditNamespace, referenceCorrectionNamespace, onboardingNamespace, longDraft } = ns;
   const { layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState, ruleStyle: ruleStyleState, progress: progressState, importExport: importExportState, search: searchState, statistics: statisticsState, timeline: timelineState, router: routerState } = states;
   const h = el(React);
@@ -323,36 +319,17 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const message = status.status === 'error' ? toUserMessage(status.message)
     : (effectiveStatus === 'error' ? '创作台暂时不可用，请稍后重试。' : undefined);
   const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
-  let sourceText = '';
-  const sourceEntry = selectedProjectId === undefined ? null : h('section', { className: 'nv-onboarding-entry', 'data-novel-onboarding-entry': '' },
-    h('label', { className: 'nv-field' },
-      h('span', { className: 'nv-field__label' }, '原文初始化'),
-      h('textarea', { className: 'nv-field__input', rows: 4, placeholder: '粘贴原文以生成六层候选', onChange: (event: { target: { value: string } }) => { sourceText = event.target.value; } }),
-    ),
-    h('button', {
-      type: 'button',
-      className: 'nv-onboarding-entry__start',
-      'data-novel-onboarding-start': '',
-      // I57：分析中防重复 start —— queued/running 期间禁用「分析原文」。
-      disabled: onboardingState?.analysis !== undefined && (onboardingState.analysis.status === 'queued' || onboardingState.analysis.status === 'running'),
-      onClick: () => ui.analyzeText(sourceText),
-    }, '分析原文'),
-    // I57：busy/progress/cancel/retry 面板（R12-4），分析失败/取消后可重试。
-    onboardingState === undefined ? null : analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
-    h('label', { className: 'nv-upload', 'data-novel-onboarding-upload': '' },
-      h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
-      h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
-    ),
-    uploadResult ? h('div', { className: 'nv-upload__result', 'data-novel-upload-result-wrap': '' },
-      h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-import-interpretation-start': '', onClick: () => {
-        try { ui.beginImportInterpretation({ sourceHash: uploadResult.sourceHash, text: uploadResult.text, paragraphs: paragraphsFromHostChunks(uploadResult.chunks) }); }
-        catch (error) { ui.beginImportInterpretation({ sourceHash: uploadResult.sourceHash, text: uploadResult.text, paragraphs: [] }); }
-      } }, '审阅来源语义'),
-    ) : null,
-    longDraftGuidePanel(h, selectedProjectId ?? 'unknown-project', longDraft),
-  );
-  const review = onboardingState === undefined ? null : onboardingReview(h, onboardingNamespace, onboardingState, patchOnboarding ?? (() => {}), decideOnboarding ?? (() => {}), applyOnboarding ?? (() => {}));
+  const gate = sourceImportGate({ ...states.layers, chapters: states.chapters });
+  const sourceEntry = selectedProjectId === undefined ? null : sourceImportPresenter(h, {
+    state: sourceImport,
+    gate,
+    uploadLabel: uploadStatusLabel(upload),
+    uploadBusy: upload?.phase === 'reading' || upload?.phase === 'uploading' || upload?.phase === 'finalizing',
+    setText: ui.setSourceImportText,
+    setFormat: ui.setSourceImportFormat,
+    submitText: ui.submitSourceText,
+    uploadFile: ui.uploadFile,
+  });
   const importReview = importInterpretationReview === undefined ? null : sourceInterpretationReview(h, importInterpretationReview, {
     begin: (source) => ui.beginImportInterpretation(source),
     retry: () => ui.retryImportInterpretation(),
@@ -374,7 +351,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     rejectRuleStyleInitialization: () => ui.rejectRuleStyleImportInitialization(),
   });
   const sourceAware = importInterpretationReview === undefined ? undefined : projectSourceAwareWorkflow({ review: importInterpretationReview });
-  const combinedReview = importReview === null ? review : h('div', { className: 'nv-onboarding-review-stack', 'data-novel-import-and-onboarding-review': '' }, importReview, review);
+  const combinedReview = importReview;
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),
@@ -468,11 +445,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
             ) : null,
             // I153：目录层来源审阅不再依赖旧 OnboardingState。新作品 DOCX 会先建立
             // ImportInterpretationReview；只有显式存在的六层任务才展示旧分析面板。
-            onboardingState === undefined && importReview === null && review === null ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },
-              onboardingState === undefined ? null : analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
-              importReview,
-              review,
-            ),
+            importReview === null ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' }, importReview),
           ),
       )
     : h('section', {

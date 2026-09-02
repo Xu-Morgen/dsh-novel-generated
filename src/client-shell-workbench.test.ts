@@ -54,7 +54,7 @@ describe('I46 创作台 workbench shell', () => {
     // 稳定 data 锚点：十八个视图按钮各带 data-novel-view（I60 新增正文 C5，I64 新增审校中心，I65 新增生成队列，I66 新增知情，I67 新增规则与文风，I68 新增进度与灵感 C6，I69 新增导入导出与备份，I71 新增搜索与追踪，I72 新增写作进度）。
     const viewButtons = collect(tree, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     expect(viewButtons.map((n) => n.props?.['data-novel-view'])).toEqual([
-      'workflow', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'timeline', 'ruleStyle', 'outline', 'chapters', 'review', 'queue', 'search', 'statistics', 'progress', 'onboarding', 'importExport', 'creationSettings', 'settings',
+      'workflow', 'characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'timeline', 'ruleStyle', 'outline', 'chapters', 'review', 'queue', 'search', 'statistics', 'progress', 'importExport', 'creationSettings', 'settings',
     ]);
     // 技术层编号只作辅助徽标（B5/C6/C5/B3/B2/B1/B4/C1/C2/C4/C3），非层视图无徽标。
     const badges = collect(tree, 'span').filter((n) => n.props?.['data-novel-nav-badge'] !== undefined);

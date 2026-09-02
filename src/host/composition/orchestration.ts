@@ -152,6 +152,7 @@ export function assembleOrchestrationSurface(base: CompositionBase, baseServices
     { method: 'exportText', call: (projectId: string, format: 'txt' | 'md') => projectPortabilityService.exportText(projectId, format) },
     { method: 'restore', call: (projectId: string, raw: string) => projectPortabilityService.restore(projectId, raw) },
     { method: 'importPreview', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.importPreview(projectId, input) },
+    { method: 'normalizeSource', call: (projectId: string, input: ImportPreviewInput) => projectPortabilityService.normalizeSource(projectId, input) },
     { method: 'compileManuscript', call: (projectId: string, input: CompileManuscriptInput) => projectPortabilityService.compileManuscript(projectId, input) },
   ], importExportInvocations));
   provideDeprecatedPortabilityAliases(ctx, projectPortabilityService);

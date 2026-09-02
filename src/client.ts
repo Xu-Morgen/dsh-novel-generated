@@ -22,8 +22,9 @@ import type { LlmConfigDraftShape } from './client/settings.js';
 import type { WorkbenchSettingsDraftShape } from './client/workbench-settings.js';
 import type { MountContext } from './client/mount.js';
 import { mountRemoteRegistry, type RemoteServiceBag } from './client/mount-registry.js';
-import { createOnboardingController, createProjectController, createSettingsController, createUploadController } from './client/controllers.js';
+import { createProjectController, createSettingsController, createUploadController } from './client/controllers.js';
 import { createImportInterpretationController, paragraphsFromHostChunks } from './client/import-interpretation-review.js';
+import { createSourceImportController } from './client/source-import.js';
 import { createWorkbenchUi, launchButton, workbenchView, type WorkbenchViewProps } from './client/presenter.js';
 
 /** 侧栏/面板宽度与步进常量已迁至 store 契约层（I82，src/client/store/types.ts）；
@@ -154,16 +155,6 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         dispatch,
         reloadProject,
       });
-      const onboarding = createOnboardingController({
-        analyzer: () => serviceBag.analyzer,
-        onboarding: () => serviceBag.onboarding,
-        currentProjectId: () => currentProjectId,
-        isActive: () => active,
-        beginOp,
-        endOp,
-        dispatch,
-        openProject: (projectId, onOpened) => project.openProject(projectId, onOpened),
-      });
       const importInterpretation = createImportInterpretationController({
         analysis: () => serviceBag.importInterpretationAnalysis,
         session: () => serviceBag.importInterpretation,
@@ -175,6 +166,18 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         dispatch,
         onConfirmed: () => {
           if (active) capturedActions?.workflowStage('outline');
+        },
+      });
+      const sourceImport = createSourceImportController({
+        normalizer: () => serviceBag.importExportNamespace,
+        currentProjectId: () => currentProjectId,
+        isActive: () => active,
+        beginOp,
+        endOp,
+        dispatch,
+        startSourceReview: (source) => {
+          importInterpretation.begin(source);
+          capturedActions?.activateOnboarding();
         },
       });
       const settings = createSettingsController({
@@ -193,7 +196,6 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         beginOp,
         endOp,
         dispatch,
-        startAnalysis: (projectId, sourceHash, text) => onboarding.startAnalysis(projectId, sourceHash, text),
         startSourceReview: (projectId, source) => {
           // createProject/onOpened 可能与作品切换竞争；只允许刚打开的新作品消费
           // 这份上传结果，且段落范围始终来自 Host chunks。
@@ -272,7 +274,7 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         // 命令），workbenchView 以 props 对象接收 —— Overlay 只做装配。
         const Overlay = (props: { useStore: <S>(sel: (s: WorkbenchState) => S) => S; actions: WorkbenchActions }): unknown => {
           const s = props.useStore((snapshot) => snapshot);
-          const ui = createWorkbenchUi({ snapshot: s, actions: props.actions, dispatch, project, onboarding, settings, upload, importInterpretation, closeWorkbench });
+          const ui = createWorkbenchUi({ snapshot: s, actions: props.actions, dispatch, project, settings, upload, importInterpretation, sourceImport, closeWorkbench });
           const layers: LayerData = {
             characters: s.characters,
             worldview: s.worldview,
@@ -350,11 +352,8 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
             projectError: s.projectError,
             upload: s.upload,
             uploadResult: s.uploadResult,
-            onboardingState: s.onboarding,
+            sourceImport: s.sourceImport,
             importInterpretationReview: s.importInterpretationReview,
-            decideOnboarding: (layer, decision, extra) => onboarding.decideOnboarding(layer, decision, extra),
-            applyOnboarding: () => onboarding.applyOnboarding(),
-            patchOnboarding: (patch) => onboarding.patchOnboarding(patch),
             settings: {
               view: s.settingsView,
               draft: s.settingsDraft,
@@ -388,7 +387,6 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
           // namespace 清空由 service bag 生命周期负责（一次性清空，等价迁移前
           // 23 个 namespace 变量逐项置 undefined）；disposer 释放由 registry 卸载器
           // 统一做（等价迁移前逐 disposer 变量释放）。
-          onboarding.clearPoll();
           importInterpretation.dispose();
           queuePoll.stop();
           capturedActions = undefined;

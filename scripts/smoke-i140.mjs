@@ -20,7 +20,7 @@ const evidence = [
   {
     step: 1,
     name: '导入来源并由作者裁决',
-    files: ['src/host/onboarding-analyzer-service.test.ts', 'src/host/onboarding-adjudication-service.test.ts', 'src/client-onboarding-adjudication.test.ts'],
+    files: ['src/host/onboarding-analyzer-service.test.ts', 'src/host/onboarding-adjudication-service.test.ts'],
     tokens: ['fake', 'accept + apply lands', 'treats an undecided layer as pending', 'edit submits the exact user value'],
   },
   {
@@ -135,9 +135,10 @@ for (const token of ['novelWriting/adoptDraft', 'novelWriting/proposeFinalizatio
 for (const token of ['data-novel-ie-compile-txt', 'data-novel-ie-compile-md', '编译单一全文']) {
   if (!importExport.includes(token)) fail(`export consumer missing ${token}`);
 }
-if (lock.descriptorIds.length !== 186 || lock.resultSchemaIds.length !== 92) fail('Stage 18 + I150 + I155 Remote lock is not 186/92');
-if (lock.descriptorIds.slice(-5, -3).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions changed order before the I155 additive tail');
-if (lock.descriptorIds.slice(-3).join('|') !== 'novel-creation-tool/novelWorkspace/projectArchiveList|novel-creation-tool/novelWorkspace/projectArchive|novel-creation-tool/novelWorkspace/projectRestore') fail('I155 strict additions are not the Remote lock tail');
+if (lock.descriptorIds.length !== 187 || lock.resultSchemaIds.length !== 93) fail('Stage 18 + I150 + I155 + I159 Remote lock is not 187/93');
+if (lock.descriptorIds.slice(-6, -4).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions changed order before the I155/I159 additive tail');
+if (lock.descriptorIds.slice(-4, -1).join('|') !== 'novel-creation-tool/novelWorkspace/projectArchiveList|novel-creation-tool/novelWorkspace/projectArchive|novel-creation-tool/novelWorkspace/projectRestore') fail('I155 strict additions changed before I159');
+if (lock.descriptorIds.at(-1) !== 'novel-creation-tool/novelImportExport/normalizeSource') fail('I159 source normalization is not the Remote lock tail');
 
 const clientSource = read('src/client.ts') + read('src/client/presenter.ts') + read('src/client/layers/workflow.ts');
 for (const token of ['http://', 'https://', 'api.openai', 'api.anthropic', 'Authorization:']) {
@@ -163,7 +164,7 @@ const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run',
   'src/host/manuscript-compiler.test.ts',
   'src/client/workflow.test.ts',
   'src/client-i121-writing-workflow.test.ts',
-  'src/client-onboarding-adjudication.test.ts',
+  'src/client-i159-source-import.test.ts',
   'src/client-panels-review.test.ts',
   'src/client-panels-import-export.test.ts',
   'src/remote-binder.test.ts',

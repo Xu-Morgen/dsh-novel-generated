@@ -40,10 +40,10 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     expect(String(((navGroupOf(tree, 'story')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('故事资料');
     expect(String(((navGroupOf(tree, 'advanced')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('进阶工具');
     expect(String(((navGroupOf(tree, 'settings')?.children?.[0] as FakeNode | undefined)?.children?.[0] ?? ''))).toBe('设置');
-    // 主流程独占 workflow；十九项既有能力仍被分层收纳。
+    // 主流程独占 workflow；旧 onboarding 仅保留 deep-link route，不再进入导航。
     expect(itemsOf(navGroupOf(tree, 'workflow'))).toEqual(['workflow']);
     expect(itemsOf(navGroupOf(tree, 'story'))).toEqual(['characters', 'worldview', 'relationship', 'state', 'canon', 'knowledge', 'timeline', 'ruleStyle']);
-    expect(itemsOf(navGroupOf(tree, 'advanced'))).toEqual(['outline', 'chapters', 'review', 'queue', 'search', 'statistics', 'progress', 'onboarding', 'importExport']);
+    expect(itemsOf(navGroupOf(tree, 'advanced'))).toEqual(['outline', 'chapters', 'review', 'queue', 'search', 'statistics', 'progress', 'importExport']);
     expect(itemsOf(navGroupOf(tree, 'settings'))).toEqual(['creationSettings', 'settings']);
   });
 
@@ -51,7 +51,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }));
     await flush();
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'timeline', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'onboarding', 'creationSettings', 'importExport', 'settings'];
+    const views = ['outline', 'progress', 'chapters', 'review', 'queue', 'search', 'statistics', 'characters', 'worldview', 'timeline', 'ruleStyle', 'relationship', 'state', 'canon', 'knowledge', 'creationSettings', 'importExport', 'settings'];
     for (const view of views) {
       const button = navButton(render(), view);
       expect(button, `nav button for ${view}`).toBeDefined();
@@ -115,7 +115,7 @@ describe('I58 任务型创作台信息架构 (R12-5)', () => {
     const nav = collect(tree, 'nav').find((n) => n.props?.['data-novel-nav'] !== undefined);
     const navItems = collect(nav, 'button').filter((n) => n.props?.['data-novel-view'] !== undefined);
     const grouped = navItems.filter((n) => collect(nav, 'section').some((s) => s.props?.['data-novel-nav-group'] !== undefined && collect(s, 'button').includes(n)));
-    expect(grouped).toHaveLength(20);
+    expect(grouped).toHaveLength(19);
     // 源码零引用：旧扁平导航 aria-label 与四互斥页签状态字段全部退役。
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const client = readFileSync(resolve(root, 'src/client.ts'), 'utf8');

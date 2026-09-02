@@ -219,6 +219,11 @@ function fixtureFor(endpoint: string): unknown {
       };
     case 'novelReview/records':
       return [];
+    case 'novelImportExport/normalizeSource':
+      return {
+        projectId: 'p1', fileName: 'pasted.txt', format: 'txt', text: '第一段', sourceHash: 'a'.repeat(64),
+        chunks: [{ index: 0, text: '第一段', startOffset: 0, endOffset: 3 }],
+      };
     case 'novelImportExport/compileManuscript':
       return {
         projectId: 'p1', format: 'txt', fileName: 'manuscript.txt', content: '目录\n\n第一章\n\n正文\n', contentHash: 'a'.repeat(64), chapterCount: 1, sceneCount: 1,
@@ -843,6 +848,38 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       await expect(Reflect.apply(ns.compileManuscript, ns, ['p1', { format: 'pdf' }])).rejects.toThrow(/rejected "input"/);
       await expect(unwrap(ns.compileManuscript('p1', { format: 'txt' }))).rejects.toThrow(/rejected "result"/);
       expect(mounted.calls).toEqual([{ endpoint: 'novelImportExport/compileManuscript', args: { projectId: 'p1', input: { format: 'txt' } } }]);
+    } finally {
+      await mounted.dispose();
+      await mounted.client.fiber.dispose();
+    }
+  });
+
+  it('I159 novelImportExport.normalizeSource：来源文本经严格参数与结果合同往返', async () => {
+    const { client, calls, dispose } = await mount(importExportRemoteContribution, (endpoint, args) => endpoint === 'novelImportExport/normalizeSource'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, format: (args.input as { format: 'txt' | 'md' }).format }
+      : fixtureFor(endpoint));
+    try {
+      const ns = client.get('remote.novelImportExport') as { normalizeSource: (...args: unknown[]) => Promise<unknown> };
+      const result = await unwrap(ns.normalizeSource('p1', { fileName: 'pasted.md', format: 'md', text: '第一段' })) as { sourceHash: string; chunks: unknown[] };
+      expect(result.sourceHash).toBe('a'.repeat(64));
+      expect(result.chunks).toHaveLength(1);
+      expect(calls).toEqual([{ endpoint: 'novelImportExport/normalizeSource', args: { projectId: 'p1', input: { fileName: 'pasted.md', format: 'md', text: '第一段' } } }]);
+      await expect(Reflect.apply(ns.normalizeSource, ns, ['p1', { fileName: 'pasted.pdf', format: 'pdf', text: '第一段' }])).rejects.toThrow(/rejected "input"/);
+      await expect(Reflect.apply(ns.normalizeSource, ns, ['p1', { fileName: 'pasted.txt', format: 'txt', text: '第一段', extra: true }])).rejects.toThrow(/rejected "input"/);
+      expect(calls).toHaveLength(1);
+    } finally {
+      await dispose();
+      await client.fiber.dispose();
+    }
+  });
+
+  it('I159 负向：来源归一化结果缺少合法摘要时真实 binder fail closed', async () => {
+    const mounted = await mount(importExportRemoteContribution, (endpoint) => endpoint === 'novelImportExport/normalizeSource'
+      ? { ...fixtureFor(endpoint) as Record<string, unknown>, sourceHash: 'invalid' }
+      : fixtureFor(endpoint));
+    try {
+      const ns = mounted.client.get('remote.novelImportExport') as { normalizeSource: (...args: unknown[]) => Promise<unknown> };
+      await expect(unwrap(ns.normalizeSource('p1', { fileName: 'pasted.txt', format: 'txt', text: '第一段' }))).rejects.toThrow(/rejected "result"/);
     } finally {
       await mounted.dispose();
       await mounted.client.fiber.dispose();

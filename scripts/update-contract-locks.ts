@@ -39,7 +39,7 @@ import {
   outlineDetailGenerationInvocations,
   outlineDetailGenerationSelectInvocation,
 } from '../src/host/remote/outline-detail-generation.js';
-import { compileManuscriptInvocation } from '../src/host/remote/import-export.js';
+import { compileManuscriptInvocation, normalizeImportSourceInvocation } from '../src/host/remote/import-export.js';
 import { importInterpretationInvocations } from '../src/host/remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from '../src/host/remote/import-interpretation-analysis.js';
 import { narrativeAdaptationInvocations } from '../src/host/remote/narrative-adaptation.js';
@@ -163,6 +163,7 @@ for (const lock of EXISTING_LOCKS) {
   const i133DescriptorIds = new Set(outlineGenerationScopeInvocations.map((descriptor) => descriptor.id));
   const i150DescriptorIds = new Set([outlineDetailGenerationAppendInvocation.id, outlineDetailGenerationSelectInvocation.id]);
   const i155DescriptorIds = new Set([projectArchiveListInvocation.id, projectArchiveInvocation.id, projectRestoreInvocation.id]);
+  const i159DescriptorIds = new Set([normalizeImportSourceInvocation.id]);
   const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id));
   const i135DescriptorIds = new Set([
     writingAdoptDraftInvocation.id,
@@ -186,7 +187,7 @@ for (const lock of EXISTING_LOCKS) {
     ...ruleStyleImportInitializationInvocations,
   ].map((descriptor) => descriptor.id));
   const descriptorSequence = [
-    ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id)),
+    ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id) && !i159DescriptorIds.has(descriptor.id)),
     ...sceneOutlineBindingInvocations,
     writingProposeAtInvocation,
     queueStartAtInvocation,
@@ -220,6 +221,7 @@ for (const lock of EXISTING_LOCKS) {
     projectArchiveListInvocation,
     projectArchiveInvocation,
     projectRestoreInvocation,
+    normalizeImportSourceInvocation,
   ];
   const resultDescriptors = [
     ...branchInvocations.filter((descriptor) => !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id)),
@@ -261,6 +263,7 @@ for (const lock of EXISTING_LOCKS) {
     projectArchiveListInvocation,
     projectArchiveInvocation,
     projectRestoreInvocation,
+    normalizeImportSourceInvocation,
   ];
   const descriptors = remoteDescriptorLockBodies(descriptorSequence);
   const resultSchemas = remoteResultShapeBodies(resultDescriptors);

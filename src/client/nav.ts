@@ -109,7 +109,6 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'search', label: '搜索与追踪' },
       { view: 'statistics', label: '写作进度' },
       { view: 'progress', label: '进度与灵感', badge: 'C6' },
-      { view: 'onboarding', label: '六层初始化审阅' },
       { view: 'importExport', label: '导入导出与备份' },
     ],
   },
@@ -129,7 +128,8 @@ export const NAV_ITEMS: readonly WorkbenchNavItem[] = NAV_GROUPS.flatMap((group)
 /** 默认视图：刷新/重开/非法值回退后保持合法的落点。 */
 export const DEFAULT_VIEW: WorkbenchViewId = 'workflow';
 
-const ALL_VIEWS: ReadonlySet<string> = new Set(NAV_ITEMS.map((item) => item.view));
+// I159 keeps the stable onboarding route for deep links without exposing it in navigation.
+const ALL_VIEWS: ReadonlySet<string> = new Set([...NAV_ITEMS.map((item) => item.view), 'onboarding']);
 
 /** 值是否为已注册的合法视图 id。 */
 export function isWorkbenchViewId(value: unknown): value is WorkbenchViewId {

@@ -62,9 +62,10 @@ for (const script of ['smoke:i149', 'verify:i149', 'verify:product-flow', 'verif
 }
 const stage18Lock = readJson('contracts/stage18/remote-descriptors.json');
 const stage19Lock = readJson('contracts/stage19/narrative-import-plan-remote.json');
-if (stage18Lock.descriptorIds.length !== 186 || stage18Lock.resultSchemaIds.length !== 92) fail('Stage 18 + I150 + I155 Remote lock is not 186/92');
-if (stage18Lock.descriptorIds.slice(-5, -3).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions changed order before the I155 additive tail');
-if (stage18Lock.descriptorIds.slice(-3).join('|') !== 'novel-creation-tool/novelWorkspace/projectArchiveList|novel-creation-tool/novelWorkspace/projectArchive|novel-creation-tool/novelWorkspace/projectRestore') fail('I155 strict additions are not the Remote lock tail');
+if (stage18Lock.descriptorIds.length !== 187 || stage18Lock.resultSchemaIds.length !== 93) fail('Stage 18 + I150 + I155 + I159 Remote lock is not 187/93');
+if (stage18Lock.descriptorIds.slice(-6, -4).join('|') !== 'novel-creation-tool/novelOutlineDetailGeneration/append|novel-creation-tool/novelOutlineDetailGeneration/select') fail('I150 strict additions changed order before the I155/I159 additive tail');
+if (stage18Lock.descriptorIds.slice(-4, -1).join('|') !== 'novel-creation-tool/novelWorkspace/projectArchiveList|novel-creation-tool/novelWorkspace/projectArchive|novel-creation-tool/novelWorkspace/projectRestore') fail('I155 strict additions changed before I159');
+if (stage18Lock.descriptorIds.at(-1) !== 'novel-creation-tool/novelImportExport/normalizeSource') fail('I159 strict addition is not the Remote lock tail');
 if (stage19Lock.descriptorIds.length !== 5 || stage19Lock.resultSchemaIds.length !== 5) fail('Stage 19 NarrativeImportPlan lock changed');
 
 const lexicon = scanAuthorLexicon();

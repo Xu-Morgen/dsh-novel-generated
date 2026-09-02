@@ -176,8 +176,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
     h('div', { className: 'nv-progress__section', 'data-novel-import-export-import': '' },
       h('h4', { className: 'nv-progress__section-title' }, '通用导入预览（I37 管线，零写）'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-import-desc': '' },
-        '选择或粘贴 txt/md 文本，预览整理后的内容与分块结果；本面板不会直接改动作品。' +
-        '（docx 导入请使用「六层初始化」入口。）'),
+        '这里只预览整理后的内容与分块结果，不会直接改动作品。要开始创作，请回到「创作流程」的“导入”。'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '源文本格式'),
         h('select', { className: 'nv-field__input', 'data-novel-ie-import-format': '', value: state.importFormat, disabled: busy, onChange: (event: { target: { value: string } }) => ops.setImportFormat(event.target.value as 'txt' | 'md') },
