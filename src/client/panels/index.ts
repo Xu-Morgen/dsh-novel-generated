@@ -148,7 +148,8 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   statistics: ({ h, projectId, ns, states, ops }) => {
     const { statisticsNamespace } = ns;
     const { statistics: statisticsState } = states;
-    return h('div', { 'data-novel-view-panel': 'statistics' }, statisticsPanel(h, projectId, statisticsNamespace, statisticsState, ops.statistics));
+    const characters = states.layers.characters.list.map((entry) => ({ id: entry.id, label: entry.name || '未命名角色' }));
+    return h('div', { 'data-novel-view-panel': 'statistics' }, statisticsPanel(h, projectId, statisticsNamespace, statisticsState, ops.statistics, characters));
   },
   // 方案 A：剧情时间线（策划组）—— 从 B5 自建有序剧情时间轴；节点可安排揭示
   // 信息与关系建立时机，手动选择当前节点并编辑保存（design §8 相关角色对）。
@@ -156,7 +157,7 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
     const { timelineNamespace } = ns;
     const { timeline: timelineState } = states;
     const names = new Map(states.layers.characters.list.map((character) => [character.id, character.name]));
-    const relationshipOptions: EntityOption[] = states.layers.relationship.list.map((relationship) => ({ id: relationship.id, label: `${names.get(relationship.from) ?? relationship.from} ↔ ${names.get(relationship.to) ?? relationship.to}` }));
+    const relationshipOptions: EntityOption[] = states.layers.relationship.list.map((relationship) => ({ id: relationship.id, label: `${names.get(relationship.from) ?? '引用已缺失'} ↔ ${names.get(relationship.to) ?? '引用已缺失'}` }));
     const knowledgeOptions: EntityOption[] = (states.knowledge.projection?.entries ?? []).map((entry) => ({ id: entry.id, label: entry.fact || '未命名信息' }));
     return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline, relationshipOptions, knowledgeOptions, ops.router));
   },
@@ -200,6 +201,7 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
         selectedAct: selectedAct === undefined ? undefined : { id: selectedAct.id, label: selectedAct.title || '未命名幕' },
         selectedBeat: selectedBeat === undefined ? undefined : { id: selectedBeat.id, label: selectedBeat.title || '未命名节' },
         selectedChapter: selectedChapter === undefined ? undefined : { id: selectedChapter.id, label: selectedChapter.title || '未命名章节' },
+        characterOptions: layers.characters.list.map((character) => ({ id: character.id, label: character.name || '未命名角色' })),
       }));
   }
   if (layer.id === 'relationship') {

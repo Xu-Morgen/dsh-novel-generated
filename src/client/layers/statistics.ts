@@ -1,6 +1,7 @@
 import type { El } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
 import type { StatisticsNamespace } from '../shared.js';
+import type { EntityOption } from '../entity-selectors.js';
 
 /**
  * I72 写作进度面板 Client（design §14.10「写作进度」/ R14-7）。
@@ -168,7 +169,8 @@ function progressBar(h: El, ratio: number, testId: string): unknown {
     h('div', { className: 'nv-statistics__bar-fill', style: { width: `${Math.min(100, Math.max(0, ratio * 100))}%` } }));
 }
 
-export function statisticsPanel(h: El, projectId: string, namespace: StatisticsNamespace | undefined, state: StatisticsLayerState, ops: StatisticsEditOps): unknown {
+export function statisticsPanel(h: El, projectId: string, namespace: StatisticsNamespace | undefined, state: StatisticsLayerState, ops: StatisticsEditOps, characterOptions: readonly EntityOption[] = []): unknown {
+  const characterName = (id: string): string => characterOptions.find((option) => option.id === id)?.label ?? (id === '' ? '未指定' : '引用已缺失');
   const available = namespace !== undefined && projectId !== undefined;
   const stats = state.stats;
   const statsLine = stats === undefined
@@ -196,14 +198,14 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
           h('div', { className: 'nv-statistics__cards', 'data-novel-statistics-cards': '' },
             `场景卡状态：计划 ${overview.cardStatusCounts.planned} · 写作中 ${overview.cardStatusCounts.writing} · 已完成 ${overview.cardStatusCounts.done}`),
           h('div', { className: 'nv-statistics__pov', 'data-novel-statistics-pov': '' },
-            h('span', { className: 'nv-statistics__pov-title' }, 'POV 分布（已写字数）'),
+            h('span', { className: 'nv-statistics__pov-title' }, '视角分布（已写字数）'),
             overview.povStats.length === 0
               ? h('span', {}, '（暂无正文）')
               : h('ul', {},
                 overview.povStats.map((stat) => h('li', { key: stat.pov, 'data-novel-statistics-pov-row': stat.pov },
-                  `${stat.pov}：${stat.units} 字 · ${stat.scenes} 场景 · ${stat.chapters} 章`))),
+                  `${characterName(stat.pov)}：${stat.units} 字 · ${stat.scenes} 场景 · ${stat.chapters} 章`))),
             overview.cardPovStats.length === 0 ? null : h('p', { className: 'nv-statistics__pov-note', 'data-novel-statistics-card-pov': '' },
-              `场景卡目标分布：${overview.cardPovStats.map((stat) => `${stat.pov} ${stat.wordTarget} 字`).join(' · ')}`),
+              `场景卡目标分布：${overview.cardPovStats.map((stat) => `${characterName(stat.pov)} ${stat.wordTarget} 字`).join(' · ')}`),
           ),
           h('div', { className: 'nv-statistics__queue', 'data-novel-statistics-queue': '' },
             `生成队列：${overview.queue.runState} · 已消耗 ${overview.queue.consumedUnits} 字预算 · 任务 ${overview.queue.totalTasks} 个（排队 ${overview.queue.taskCounts.queued} / 生成中 ${overview.queue.taskCounts.running} / 待裁决 ${overview.queue.taskCounts['candidate-ready']} / 失败 ${overview.queue.taskCounts.failed} / 已取消 ${overview.queue.taskCounts.cancelled} / 已完成 ${overview.queue.taskCounts.completed}）`),
@@ -214,7 +216,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
               : h('ul', {},
                 overview.chapters.map((chapter) => h('li', { key: chapter.chapterId, 'data-novel-statistics-chapter': chapter.chapterId },
                   h('span', { className: 'nv-statistics__chapter-main' },
-                    `第 ${chapter.index} 章 ${chapter.title}（${chapter.pov}）· ${chapter.units} 字 / ${chapter.sceneCount} 场景`),
+                    `第 ${chapter.index} 章 ${chapter.title}（${characterName(chapter.pov)}）· ${chapter.units} 字 / ${chapter.sceneCount} 场景`),
                   h('button', {
                     type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-statistics-chapter-select': chapter.chapterId,
                     disabled: state.busy.detail === true, onClick: () => ops.selectChapter(chapter.chapterId),
@@ -255,7 +257,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
                 ? h('p', { 'data-novel-statistics-card-empty': '' }, '无匹配场景卡。')
                 : h('ul', {},
                   state.sceneCards.cards.map((card) => h('li', { key: card.cardId, 'data-novel-statistics-card': card.cardId },
-                    `${card.actTitle} / ${card.beatTitle} / ${card.title}（${card.pov}）· 目标 ${card.wordTarget} 字 · 已写 ${card.writtenUnits} 字 → ${formatRatio(card.completionRatio)} · ${STATISTICS_CARD_STATUS_LABELS[card.status] ?? card.status}`)))),
+                    `${card.actTitle} / ${card.beatTitle} / ${card.title}（${characterName(card.pov)}）· 目标 ${card.wordTarget} 字 · 已写 ${card.writtenUnits} 字 → ${formatRatio(card.completionRatio)} · ${STATISTICS_CARD_STATUS_LABELS[card.status] ?? '无法识别的场景状态'}`)))),
           h('h4', { className: 'nv-statistics__subtitle' }, '任务历史（筛选）'),
           h('div', { className: 'nv-statistics__filters' },
             h('label', { className: 'nv-field nv-statistics__filter' },
@@ -273,7 +275,7 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
                 ? h('p', { 'data-novel-statistics-task-empty': '' }, '无任务记录。')
                 : h('ul', {},
                   state.tasks.tasks.map((task) => h('li', { key: task.id, 'data-novel-statistics-task': task.id },
-                    `${task.cardTitle}（${task.cardPov}）· ${STATISTICS_TASK_STATUS_LABELS[task.status] ?? task.status} · 尝试 ${task.attempts} 次 · 消耗 ${task.budgetUnits ?? 0} 字${task.error === null ? '' : ` · ${toUserMessage(task.error)}`} · ${task.updatedAt.slice(0, 10)}`)))),
+                    `${task.cardTitle}（${characterName(task.cardPov)}）· ${STATISTICS_TASK_STATUS_LABELS[task.status] ?? '无法识别的任务状态'} · 尝试 ${task.attempts} 次 · 消耗 ${task.budgetUnits ?? 0} 字${task.error === null ? '' : ` · ${toUserMessage(task.error)}`} · ${task.updatedAt.slice(0, 10)}`)))),
         ];
 
   return h('section', { className: 'nv-statistics', 'data-novel-statistics-panel': '', 'data-novel-statistics-state': state.status },

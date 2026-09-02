@@ -1,5 +1,6 @@
 import type { El } from './shared.js';
 import { toUserMessage } from './presentation.js';
+import { structuredEditor } from './structured-editor.js';
 import {
   ONBOARDING_LAYERS,
   type OnboardingAdjudicationExtra,
@@ -129,6 +130,10 @@ function currentLayerJson(state: OnboardingState, layer: OnboardingLayerId): str
   try { return JSON.stringify(layers?.[layer] ?? null, null, 2); } catch { return ''; }
 }
 
+function structuredDraft(raw: string, fallback: unknown): unknown {
+  try { return JSON.parse(raw) as unknown; } catch { return fallback; }
+}
+
 function decisionLabel(decision: OnboardingDecision): string {
   switch (decision) {
     case 'accept': return '接受';
@@ -199,17 +204,8 @@ export function onboardingReview(
             }, decisionLabel(decision))),
           ),
           panel === 'edit' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-edit-open': layer.id },
-            h('label', { className: 'nv-field' },
-              h('span', { className: 'nv-field__label' }, '编辑候选值（结构化内容，整层结构）'),
-              h('textarea', {
-                className: 'nv-field__input nv-onboarding__edit-text',
-                rows: 8,
-                spellCheck: false,
-                'data-novel-onboarding-edit-text': layer.id,
-                value: state.editTexts?.[layer.id] ?? currentLayerJson(state, layer.id),
-                onChange: (event: { target: { value: string } }) => patch({ editTexts: { ...state.editTexts, [layer.id]: event.target.value }, error: undefined }),
-              }),
-            ),
+            h('p', { className: 'nv-field__label' }, '按字段修改候选内容'),
+            structuredEditor(h, structuredDraft(state.editTexts?.[layer.id] ?? currentLayerJson(state, layer.id), (state.layers as Record<string, unknown> | undefined)?.[layer.id] ?? null), (next) => patch({ editTexts: { ...state.editTexts, [layer.id]: JSON.stringify(next) }, error: undefined }), `onboarding-${layer.id}`),
             h('div', { className: 'nv-onboarding__panel-actions' },
               h('button', { type: 'button', className: 'nv-onboarding__panel-confirm', 'data-novel-onboarding-edit-confirm': layer.id, onClick: () => confirmEdit(layer.id) }, '确认修改并接受'),
               h('button', { type: 'button', className: 'nv-onboarding__panel-cancel', 'data-novel-onboarding-edit-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消'),

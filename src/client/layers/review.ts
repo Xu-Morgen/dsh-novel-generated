@@ -158,8 +158,8 @@ function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: 
     h('label', { className: 'nv-review__issue-select' },
       h('input', { type: 'checkbox', 'data-novel-review-select': issue.id, checked: selected, onChange: () => selectIssue(issue.id) }),
       h('span', { className: 'nv-review__issue-title' },
-        h('span', { className: 'nv-review__badge nv-review__badge--' + issue.severity, 'data-novel-review-issue-badge': issue.severity }, SEVERITY_LABELS[issue.severity] ?? issue.severity),
-        h('span', { className: 'nv-review__badge', 'data-novel-review-issue-category': issue.category }, CATEGORY_LABELS[issue.category] ?? issue.category),
+        h('span', { className: 'nv-review__badge nv-review__badge--' + issue.severity, 'data-novel-review-issue-badge': issue.severity }, SEVERITY_LABELS[issue.severity] ?? '无法识别的严重度'),
+        h('span', { className: 'nv-review__badge', 'data-novel-review-issue-category': issue.category }, CATEGORY_LABELS[issue.category] ?? '无法识别的问题分类'),
         h('span', { className: 'nv-review__issue-kind', 'data-novel-review-issue-kind': '' }, KIND_LABELS[issue.kind] ?? '待处理问题'),
       ),
       h('p', { className: 'nv-review__issue-message', 'data-novel-review-issue-message': '' }, issue.message),
@@ -167,7 +167,7 @@ function issueCard(h: El, projectId: string, issue: ReviewIssueShape, selected: 
         issue.location === undefined ? '无正文定位'
           : '可定位到相关章节与场景',
         issue.references.length === 0 ? null : ` · 关联内容 ${issue.references.length} 项`,
-        ` · 状态：${STATUS_LABELS[issue.status] ?? issue.status}`,
+        ` · 状态：${STATUS_LABELS[issue.status] ?? '无法识别的问题状态'}`,
       ),
       issue.location === undefined ? null : h('div', { className: 'nv-review__issue-actions' },
         contextLinkButton(h, '定位正文', 'review', textContextLink(projectId, issue.location.chapterId, issue.location.sceneId, issue.location.anchor), links),
@@ -237,13 +237,13 @@ function bookReadinessPanel(h: El, state: BookReadinessUiState, ops: ReviewEditO
     h('button', { type: 'button', className: 'nv-btn', 'data-novel-book-readiness-refresh': '', disabled: busy, onClick: () => ops.bookReadiness() }, state.status === 'loading' ? '正在检查…' : '检查全书完成度'),
     h('button', { type: 'button', className: 'nv-btn', 'data-novel-book-scan': '', disabled: busy, onClick: () => ops.bookScan() }, '检查全书并审校'),
   );
-  if (state.status === 'idle') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'idle' }, '完成全书检查后才会建立发布门。'));
-  if (state.status === 'loading') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'loading', role: 'status', 'aria-live': 'polite' }, '正在从作品真相重算全书发布门…'));
+  if (state.status === 'idle') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'idle' }, '完成全书检查后才会判断能否发布。'));
+  if (state.status === 'loading') return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__hint', 'data-novel-book-readiness-state': 'loading', role: 'status', 'aria-live': 'polite' }, '正在根据作品内容重新判断发布条件…'));
   if (state.status === 'error' || result === undefined) return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '' }, h('h4', null, '全书发布就绪'), controls, h('p', { className: 'nv-review__repair-error', 'data-novel-book-readiness-state': 'error', role: 'alert' }, state.message ?? '全书检查失败，请重试。'));
   return h('section', { className: 'nv-review__book', 'data-novel-book-readiness-panel': '', 'data-novel-book-release-gate': result.gateOpen ? 'open' : 'closed' },
     h('h4', null, '全书发布就绪'),
     controls,
-    h('p', { className: result.gateOpen ? 'nv-review__book-gate nv-review__book-gate--open' : 'nv-review__book-gate nv-review__book-gate--closed', 'data-novel-book-readiness-state': result.status, role: 'status', 'aria-live': 'polite' }, result.gateOpen ? '发布门已开启：全书可进入导出流程。' : '发布门已关闭：请处理下方硬阻断或待裁决事项。'),
+    h('p', { className: result.gateOpen ? 'nv-review__book-gate nv-review__book-gate--open' : 'nv-review__book-gate nv-review__book-gate--closed', 'data-novel-book-readiness-state': result.status, role: 'status', 'aria-live': 'polite' }, result.gateOpen ? '已满足发布条件：全书可进入导出流程。' : '尚未满足发布条件：请处理下方硬阻断或待裁决事项。'),
     h('p', { className: 'nv-review__summary', 'data-novel-book-readiness-summary': '' }, `章节 ${result.counts.chapters} · 场景 ${result.counts.scenes} · 必需细纲卡 ${result.counts.completedCards}/${result.counts.requiredCards} · 正文场景 ${result.counts.proseScenes} · 硬阻断 ${result.counts.hardIssues} · 警告 ${result.counts.warningIssues}`),
     result.issues.length === 0
       ? h('p', { className: 'nv-review__empty', 'data-novel-book-readiness-issues': 'empty' }, '没有发布阻断问题。')
@@ -297,9 +297,9 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
           '存在未处理的硬冲突：接受将被阻止，必须重写相关正文；软警告才可显式继续。')
         : null,
       h('div', { className: 'nv-review__filters', 'data-novel-review-filters': '' },
-        filterRow(h, '分类', 'categories', ['rule', 'canon', 'knowledge', 'relationship', 'style'].map((value) => ({ value, label: CATEGORY_LABELS[value] ?? value })), state.filter.categories, ops),
-        filterRow(h, '严重度', 'severities', ['hard', 'soft'].map((value) => ({ value, label: SEVERITY_LABELS[value] ?? value })), state.filter.severities as readonly string[], ops),
-        filterRow(h, '状态', 'statuses', ['open', 'continued', 'rewrite-requested'].map((value) => ({ value, label: STATUS_LABELS[value] ?? value })), state.filter.statuses, ops),
+        filterRow(h, '分类', 'categories', ['rule', 'canon', 'knowledge', 'relationship', 'style'].map((value) => ({ value, label: CATEGORY_LABELS[value] ?? '无法识别的问题分类' })), state.filter.categories, ops),
+        filterRow(h, '严重度', 'severities', ['hard', 'soft'].map((value) => ({ value, label: SEVERITY_LABELS[value] ?? '无法识别的严重度' })), state.filter.severities as readonly string[], ops),
+        filterRow(h, '状态', 'statuses', ['open', 'continued', 'rewrite-requested'].map((value) => ({ value, label: STATUS_LABELS[value] ?? '无法识别的问题状态' })), state.filter.statuses, ops),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-filter-clear': '', onClick: () => ops.clearFilters() }, '清除过滤'),
       ),
       issues.length === 0

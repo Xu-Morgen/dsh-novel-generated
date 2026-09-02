@@ -171,7 +171,9 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     await flush();
     const trace = collect(render(), 'details').find((n) => n.props?.['data-novel-candidate-trace'] !== undefined);
     expect(trace).toBeDefined();
-    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-candidate-trace-intent'] !== undefined)?.children?.[0] ?? '')).toContain('POV mira');
+    const traceIntent = String(collect(render(), 'p').find((n) => n.props?.['data-novel-candidate-trace-intent'] !== undefined)?.children?.[0] ?? '');
+    expect(traceIntent).toContain('视角');
+    expect(traceIntent).not.toContain('mira');
     const sections = collect(render(), 'li').filter((n) => n.props?.['data-novel-candidate-trace-section'] !== undefined);
     expect(sections.map((n) => n.props?.['data-novel-candidate-trace-section'])).toEqual(['rules', 'worldview']);
     expect(String(collect(render(), 'li').find((n) => n.props?.['data-novel-candidate-trace-trigger'] === 'north-harbor')?.children?.[0] ?? '')).toContain('北港');

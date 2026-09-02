@@ -10,6 +10,12 @@ import { entitySelect, type EntityOption } from '../entity-selectors.js';
 /** B2 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const WORLD_KINDS: readonly WorldKind[] = worldKindSchema.options;
 export const TRIGGER_MODES: readonly TriggerMode[] = triggerModeSchema.options;
+export const WORLD_KIND_LABELS: Readonly<Record<WorldKind, string>> = {
+  geography: '地理', history: '历史', faction: '阵营', culture: '文化', race: '族群', concept: '概念', artifact: '器物',
+};
+export const TRIGGER_MODE_LABELS: Readonly<Record<TriggerMode, string>> = {
+  constant: '始终生效', keyword: '关键词触发', regex: '模式匹配',
+};
 
 export interface WorldLayerState {
   readonly status: 'loading' | 'ready' | 'error';
@@ -82,7 +88,7 @@ export function worldviewLayer(
     }, entry.title || '\u672a\u547d\u540d\u6761\u76ee')),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
-    h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '\u65b0\u5efa\u6761\u76ee' : `\u7f16\u8f91\u6761\u76ee\uff1a${d.title ?? editor.selectedId}`),
+    h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '\u65b0\u5efa\u6761\u76ee' : `\u7f16\u8f91\u6761\u76ee\uff1a${d.title || '\u672a\u547d\u540d\u6761\u76ee'}`),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u6807\u9898'),
@@ -91,7 +97,7 @@ export function worldviewLayer(
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
         h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as WorldKind })) },
-          WORLD_KINDS.map((kind) => h('option', { key: kind, value: kind }, kind)),
+          WORLD_KINDS.map((kind) => h('option', { key: kind, value: kind }, WORLD_KIND_LABELS[kind])),
         ),
       ),
       h('label', { className: 'nv-field' },
@@ -102,7 +108,7 @@ export function worldviewLayer(
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u89e6\u53d1\u65b9\u5f0f'),
         h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, triggerMode: event.target.value as TriggerMode })) },
-          TRIGGER_MODES.map((mode) => h('option', { key: mode, value: mode }, mode)),
+          TRIGGER_MODES.map((mode) => h('option', { key: mode, value: mode }, TRIGGER_MODE_LABELS[mode])),
         ),
       ),
       h('label', { className: 'nv-field' },
@@ -115,7 +121,7 @@ export function worldviewLayer(
         h('input', { type: 'checkbox', className: 'nv-field__check', checked: d.mutable ?? true, onChange: (event: { target: { checked: boolean } }) => ops.mutate((draft) => ({ ...draft, mutable: event.target.checked })) }),
       ),
       editor.selectedId !== undefined && d.status === 'rewritten'
-        ? h('p', { className: 'nv-editor__badge', 'data-novel-worldview-rewritten': '' }, `\u5df2\u88ab ${d.supersededBy ?? '?'} \u6539\u5199`)
+        ? h('p', { className: 'nv-editor__badge', 'data-novel-worldview-rewritten': '' }, '\u5df2\u6709\u540e\u7eed\u6539\u5199')
         : null,
     ),
     h('div', { className: 'nv-editor__actions' },

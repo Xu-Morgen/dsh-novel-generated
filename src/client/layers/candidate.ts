@@ -1,6 +1,8 @@
 import type { El, UnwrapValue, WritingNamespace } from '../shared.js';
 import { proseParagraphs } from './chapters-shared.js';
 import type { ChaptersEditOps } from './chapters.js';
+import type { EntityOption } from '../entity-selectors.js';
+import { authorEnumLabel, toUserMessage } from '../presentation.js';
 
 /**
  * I95 候选审阅片（计划 §18 I95 拆分：chapters 五职中的「候选裁决」）：
@@ -42,7 +44,7 @@ export function freshCandidatePanel(): CandidatePanelState {
  * 状态机：idle（发起入口）→ proposing → ready（审阅）→ acting（裁决中）→
  * done / error。ready 前不渲染任何裁决按钮；双击由 store 侧 inflight 去重。
  */
-export function candidatePanel(h: El, projectId: string, writing: WritingNamespace | undefined, state: CandidatePanelState, ops: ChaptersEditOps): unknown {
+export function candidatePanel(h: El, projectId: string, writing: WritingNamespace | undefined, state: CandidatePanelState, ops: ChaptersEditOps, characterOptions: readonly EntityOption[] = []): unknown {
   const available = writing !== undefined && projectId !== undefined;
   const disabled = !available || state.ui.kind === 'proposing' || state.ui.kind === 'acting';
   const proposeEntry = h('div', { className: 'nv-candidate__entry', 'data-novel-candidate-entry': '' },
@@ -104,7 +106,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
           ? h('p', { className: 'nv-candidate__hint', 'data-novel-candidate-layer-preview-empty': '' }, '五层没有需要写回的结构化变化。')
           : h('ul', { className: 'nv-candidate__layer-preview-list' }, layerPreview.changes.map((change, index) =>
             h('li', { key: `${change.layer}-${change.entityId}-${index}`, 'data-novel-candidate-layer-change': `${change.layer}:${change.kind}` },
-              `${change.layer}：${change.kind} ${change.entityType}/${change.entityId}（${change.changedFields.join('、')}）`))),
+              `${authorEnumLabel(change.layer, '内容分类')}：${authorEnumLabel(change.kind, '变更方式')}（${change.changedFields.length} 项字段变更）`))),
       );
     const traceBlock = trace === undefined
       ? null
@@ -114,12 +116,12 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
           trace.intent === 'rewrite'
             ? '局部重写：未注入结构层，只注入作者重写指令。'
             : trace.intent === 'scene-card'
-              ? `按场景卡写作：未注入结构层，只注入场景卡「${trace.sceneCard?.title ?? ''}」（POV ${trace.pov}，目标 ${trace.sceneCard?.wordTarget ?? 0} 字）。`
-              : `上下文组装：POV ${trace.pov}，注入 ${trace.sections.length} 个层（含 ${trace.knowledgeVisibleCount} 条该 POV 可见的知情）。`),
+              ? `按场景卡写作：未注入结构层，只注入场景卡「${trace.sceneCard?.title ?? ''}」（视角 ${characterOptions.find((option) => option.id === trace.pov)?.label ?? '引用已缺失'}，目标 ${trace.sceneCard?.wordTarget ?? 0} 字）。`
+              : `上下文组装：视角 ${characterOptions.find((option) => option.id === trace.pov)?.label ?? '引用已缺失'}，注入 ${trace.sections.length} 类内容（含 ${trace.knowledgeVisibleCount} 条该视角可见的知情）。`),
         trace.sections.length === 0 ? null
           : h('ul', { className: 'nv-candidate__trace-sections', 'data-novel-candidate-trace-sections': '' },
             trace.sections.map((section) => h('li', { key: section.id, 'data-novel-candidate-trace-section': section.id },
-              `${section.id}：${section.characterCount}/${section.budget} 字${section.truncated ? '（已裁剪）' : ''}`))),
+              `${authorEnumLabel(section.id, '内容分类')}：${section.characterCount}/${section.budget} 字${section.truncated ? '（已裁剪）' : ''}`))),
         trace.triggers.length === 0 ? null
           : h('ul', { className: 'nv-candidate__trace-triggers', 'data-novel-candidate-trace-triggers': '' },
             trace.triggers.map((trigger) => h('li', { key: trigger.entryId, 'data-novel-candidate-trace-trigger': trigger.entryId },
@@ -130,8 +132,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
       );
     body = h('div', { className: 'nv-candidate__review', 'data-novel-candidate-review': '' },
       h('div', { className: 'nv-candidate__meta' },
-        h('span', { className: 'nv-candidate__intent', 'data-novel-candidate-intent': '' }, { continue: '续写', 'scene-card': '场景卡写作', rewrite: '局部重写', generate: '生成' }[review.intent] ?? review.intent),
-        h('span', { className: 'nv-candidate__id' }, review.candidateId),
+        h('span', { className: 'nv-candidate__intent', 'data-novel-candidate-intent': '' }, { continue: '续写', 'scene-card': '场景卡写作', rewrite: '局部重写', generate: '生成' }[review.intent] ?? '无法识别的候选类型'),
       ),
       proseParagraphs(h, review.text),
       diffBlock,
@@ -148,7 +149,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
     body = h('p', { className: 'nv-candidate__done', 'data-novel-candidate-done': '', role: 'status', 'aria-live': 'polite' }, ui.message);
   } else {
     body = h('div', { className: 'nv-candidate__error', 'data-novel-candidate-error': '', role: 'alert', 'aria-live': 'assertive' },
-      h('p', null, ui.message),
+      h('p', null, toUserMessage(ui.message)),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-dismiss': '', onClick: () => ops.dismissCandidate() }, '关闭'),
     );
   }

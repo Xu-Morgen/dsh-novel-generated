@@ -134,8 +134,8 @@ function factCard(h: El, projectId: string, fact: KnowledgeFactShape, nameOf: Re
   return h('li', { className: 'nv-knowledge__fact' + (selected ? ' is-selected' : ''), 'data-novel-knowledge-fact': fact.id, 'data-novel-knowledge-fact-status': fact.status },
     h('div', { className: 'nv-knowledge__fact-main' },
       h('p', { className: 'nv-knowledge__fact-text', 'data-novel-knowledge-fact-text': '' }, fact.fact),
-      h('span', { className: 'nv-knowledge__badge', 'data-novel-knowledge-fact-kind': fact.kind }, KNOWLEDGE_KIND_LABELS[fact.kind] ?? fact.kind),
-      h('span', { className: 'nv-knowledge__badge nv-knowledge__badge--' + fact.status, 'data-novel-knowledge-fact-status-badge': fact.status }, KNOWLEDGE_STATUS_LABELS[fact.status] ?? fact.status),
+      h('span', { className: 'nv-knowledge__badge', 'data-novel-knowledge-fact-kind': fact.kind }, KNOWLEDGE_KIND_LABELS[fact.kind] ?? '无法识别的信息类型'),
+      h('span', { className: 'nv-knowledge__badge nv-knowledge__badge--' + fact.status, 'data-novel-knowledge-fact-status-badge': fact.status }, KNOWLEDGE_STATUS_LABELS[fact.status] ?? '无法识别的信息状态'),
     ),
     h('p', { className: 'nv-knowledge__fact-meta', 'data-novel-knowledge-fact-meta': '' },
       `知情：${fact.holders.length === 0 ? '无' : holderNames} · 计划揭示：${fact.revealPlan.revealTo.length === 0 ? '无' : `${planNames}（${fact.revealPlan.revealAt}）`}`),
@@ -143,7 +143,7 @@ function factCard(h: El, projectId: string, fact: KnowledgeFactShape, nameOf: Re
     h('p', { className: 'nv-knowledge__pov-hint', 'data-novel-knowledge-pov-hint': '' }, fact.povHint),
     contextLinkButton(h, '定位事实', 'knowledge', entityContextLink(projectId, 'knowledge', fact.id), links),
     h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-fact-action': fact.id, onClick: () => ops.selectFact(fact.id) },
-      selected ? '收起操作' : '揭示 / 变更 holder'),
+      selected ? '收起操作' : '揭示 / 变更知情角色'),
   );
 }
 
@@ -157,7 +157,7 @@ function characterCard(h: El, character: KnowledgeCharacterShape, factsById: Rea
       ? h('p', { className: 'nv-knowledge__character-empty', 'data-novel-knowledge-character-empty': '' }, '尚未知晓任何事实。')
       : h('ul', { className: 'nv-knowledge__character-knows' },
         character.knows.map((factId) => h('li', { key: factId, 'data-novel-knowledge-character-fact': factId },
-          factsById.get(factId)?.fact ?? factId)),
+          factsById.get(factId)?.fact ?? '引用已缺失')),
       ),
   );
 }
@@ -215,7 +215,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
                 }),
                 (projection?.characters ?? []).filter((character) => selectedFact.holders.includes(character.characterId)).length === 0
                   ? null
-                  : h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-holders-known': '' }, `当前知情：${selectedFact.holders.join('、')}`),
+                  : h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-holders-known': '' }, `当前知情：${selectedFact.holders.map((id) => nameOf.get(id) || '引用已缺失').join('、')}`),
               ),
               h('div', { className: 'nv-knowledge__options' },
                 h('label', { className: 'nv-field' },
@@ -238,7 +238,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
               ),
               h('div', { className: 'nv-editor__actions' },
                 h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-propose': 'reveal', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('reveal') }, state.busy.propose === true ? '提交中…' : '发起揭示提案'),
-                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-propose': 'holder-add', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('holder-add') }, state.busy.propose === true ? '提交中…' : '发起 holder 变更提案'),
+                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-propose': 'holder-add', disabled: busy || state.draft.holders.length === 0, onClick: () => ops.propose('holder-add') }, state.busy.propose === true ? '提交中…' : '发起知情角色变更提案'),
               ),
             ),
           ))
@@ -256,8 +256,8 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
             const fact = factsById.get(proposal.entryId);
             return h('li', { key: proposal.proposalId, 'data-novel-knowledge-pending-item': proposal.proposalId },
               h('p', { className: 'nv-knowledge__pending-text', 'data-novel-knowledge-pending-text': '' },
-                `${proposal.kind === 'reveal' ? '揭示' : 'holder 变更'}「${fact?.fact ?? proposal.entryId}」→ 新增知情：${proposal.holders.join('、')}`,
-                proposal.status === undefined ? '' : `；目标状态：${KNOWLEDGE_STATUS_LABELS[proposal.status] ?? proposal.status}`,
+                `${proposal.kind === 'reveal' ? '揭示' : '知情角色变更'}「${fact?.fact ?? '引用已缺失'}」→ 新增知情：${proposal.holders.map((id) => nameOf.get(id) || '引用已缺失').join('、')}`,
+                proposal.status === undefined ? '' : `；目标状态：${KNOWLEDGE_STATUS_LABELS[proposal.status] ?? '无法识别的信息状态'}`,
                 proposal.revealAt === undefined ? '' : `；时机：${proposal.revealAt}`),
               h('div', { className: 'nv-editor__actions' },
                 h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-accept': proposal.proposalId, disabled: busy, onClick: () => ops.accept(proposal.proposalId) }, state.busy.accept === true ? '应用中…' : '确认应用'),
@@ -272,7 +272,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
   }
   return h('section', { className: 'nv-knowledge', 'data-novel-knowledge-panel': '', 'data-novel-knowledge-state': state.status },
     h('h3', { className: 'nv-editor__title' }, '知情与揭示'),
-    h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-desc': '' }, '按事实与角色查看 holders / revealPlan / status；揭示与 holder 变更须经确认（Gate）后生效，知情只增不退。'),
+    h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-desc': '' }, '按事实与角色查看当前知情范围、揭示计划与信息状态；揭示与知情角色变更须经确认后生效，知情只增不退。'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),

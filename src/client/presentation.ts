@@ -16,6 +16,34 @@ export const AUTHOR_VISIBLE_TERM_DENYLIST = Object.freeze([
   'maxTokens', 'Thinking Mode', 'Effort', 'operationId', 'outline-only', 'checkpoint',
 ]);
 
+/** Canonical business values stay on wire/data anchors; this dictionary is display-only. */
+export const AUTHOR_ENUM_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  protagonist: '主角', antagonist: '对立角色', supporting: '重要配角', extra: '次要角色',
+  concept: '概念', location: '地点', faction: '阵营', item: '物品', event: '事件',
+  constant: '始终生效', keyword: '关键词触发', contextual: '按上下文触发',
+  friendship: '友谊', rivalry: '竞争', family: '家人', romance: '情感', alliance: '同盟', enmity: '敌对', mentorship: '师徒',
+  active: '生效', inactive: '停用', rewritten: '已改写',
+  secret: '秘密', foreshadow: '伏笔', plotpoint: '关键点', backstory: '身世',
+  hidden: '隐藏', 'partially-revealed': '部分揭示', revealed: '已揭示',
+  idle: '空闲', loading: '正在处理', ready: '可用', error: '失败', queued: '等待中', running: '进行中', paused: '已暂停', completed: '已完成', cancelled: '已取消', failed: '失败',
+  pending: '待处理', accepted: '已接受', rejected: '已拒绝', edited: '已修改', applied: '已应用', proposed: '等待确认', succeeded: '已生成',
+  planned: '待写', writing: '写作中', done: '已完成', draft: '草稿', revised: '已修订', canon: '已定稿',
+  open: '待处理', continued: '继续观察', 'rewrite-requested': '需要改写', hard: '硬阻断', soft: '提醒',
+  rule: '规则', knowledge: '知情', relationship: '关系', style: '文风',
+  internal: '内心冲突', external: '外部冲突', relational: '关系冲突', world: '世界规则冲突',
+  first: '第一人称', second: '第二人称', 'third-limited': '第三人称限知', 'third-omniscient': '第三人称全知', past: '过去时', present: '现在时', single: '单一视角', multi: '多视角', omniscient: '全知视角',
+  global: '全局', character: '角色', physics: '物理规则', magic: '魔法规则', technology: '科技规则', genre: '类型规则', taboo: '禁忌', permission: '许可',
+  geography: '地理', history: '历史', culture: '文化', race: '族群', artifact: '器物',
+  kin: '亲属', romantic: '情感关系', subordinate: '上下级', mentor: '师徒',
+  pass: '通过', warn: '有提醒', block: '未通过', add: '新增', update: '更新', remove: '删除',
+  characters: '角色', worldview: '世界观', outline: '大纲', text: '正文',
+});
+
+/** Unknown canonical values never leak into author-visible fallback copy. */
+export function authorEnumLabel(value: string, noun = '类型'): string {
+  return AUTHOR_ENUM_LABELS[value] ?? `无法识别的${noun}`;
+}
+
 /** 返回原始错误，供高级诊断视图使用；普通作者面板不得直接展示它。 */
 export function rawError(cause: unknown): string {
   if (cause instanceof Error) return cause.message;

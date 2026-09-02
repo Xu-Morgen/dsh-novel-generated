@@ -21,6 +21,7 @@ import type {
   RevealPacing,
 } from '../core/schema/import-interpretation.js';
 import type { WorkbenchActions } from './store/types.js';
+import { structuredEditor } from './structured-editor.js';
 
 export type { ImportInterpretationParagraph, SourceParagraphRole } from '../core/schema/import-interpretation-analysis.js';
 
@@ -359,13 +360,14 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
   const initialization = state.ruleStyleInitialization;
   if (!state.confirmed && initialization === undefined) return null;
   if (initialization === undefined) return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '' }, h('h4', null, '规则与文风初稿'), h('p', { role: 'status' }, '正在启动首次导入初始化…'));
-  const statusLabel = initialization.status === 'applied' ? '已写入本地规则与文风文件' : initialization.status === 'proposed' ? '等待作者确认' : initialization.status === 'succeeded' ? '初稿已生成，可编辑后提交确认' : initialization.status === 'failed' ? '生成失败，可重试同一首次导入任务或转到规则与文风面板手工录入' : `状态：${initialization.status}`;
+  const statusLabel = initialization.status === 'applied' ? '已写入本地规则与文风文件' : initialization.status === 'proposed' ? '等待作者确认' : initialization.status === 'succeeded' ? '初稿已生成，可编辑后提交确认' : initialization.status === 'failed' ? '生成失败，可重试同一首次导入任务或转到规则与文风面板手工录入' : initialization.status === 'cancelled' ? '本次生成已取消' : '无法识别的处理状态';
+  const parseDraft = (raw: string | undefined, fallback: unknown): unknown => { try { return JSON.parse(raw ?? '') as unknown; } catch { return fallback; } };
   return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '', 'data-novel-rule-style-import-status': initialization.status },
     h('h4', null, '规则与文风初稿'),
     h('p', { role: 'status', 'aria-live': 'polite' }, statusLabel),
     initialization.status === 'succeeded' ? h('div', { className: 'nv-import-review__rule-style-editors' },
-      h('label', { className: 'nv-field', 'data-novel-rule-style-import-rules': '' }, h('span', { className: 'nv-field__label' }, '规则初稿（结构化内容，可编辑）'), h('textarea', { rows: 10, className: 'nv-field__input', value: state.ruleStyleRulesDraft ?? '[]', onChange: (event: { target: { value: string } }) => ops.setRuleStyleRulesDraft?.(event.target.value) })),
-      h('label', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('span', { className: 'nv-field__label' }, '文风初稿（结构化内容，可编辑）'), h('textarea', { rows: 12, className: 'nv-field__input', value: state.ruleStyleStyleDraft ?? '{}', onChange: (event: { target: { value: string } }) => ops.setRuleStyleStyleDraft?.(event.target.value) })),
+      h('section', { className: 'nv-field', 'data-novel-rule-style-import-rules': '' }, h('h5', { className: 'nv-field__label' }, '规则初稿'), structuredEditor(h, parseDraft(state.ruleStyleRulesDraft, initialization.candidate?.rules ?? []), (next) => ops.setRuleStyleRulesDraft?.(JSON.stringify(next)), 'rule-style-rules')),
+      h('section', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('h5', { className: 'nv-field__label' }, '文风初稿'), structuredEditor(h, parseDraft(state.ruleStyleStyleDraft, initialization.candidate?.style ?? {}), (next) => ops.setRuleStyleStyleDraft?.(JSON.stringify(next)), 'rule-style-style')),
     ) : null,
     initialization.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert' }, toUserMessage(initialization.error, '规则与文风初始化未完成。')),
     h('div', { className: 'nv-import-review__actions' },
@@ -399,7 +401,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
       id: 'nv-import-source-role-help', kind: 'source-role', label: '来源角色说明', lines: SOURCE_ROLE_HELP_LINES, controlId: 'nv-import-source-role',
     }),
     selectField(h, '当前处理目标（必须确认）', state.treatment, treatmentOptions, (value) => ops.setTreatment(value as ImportTreatment), { 'data-novel-import-interpretation-treatment': '' }),
-    state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前阶段只支持扩展为大纲；正文保真导入尚未交付，将在 Stage 21 提供。') : null,
+    state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前只支持把已有正文扩展为大纲；保留原正文的导入暂不可用。') : null,
     intentFields(h, state, ops),
     evidencePanel(h, state),
     paragraphPanel(h, state, ops),

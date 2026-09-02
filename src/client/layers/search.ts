@@ -90,7 +90,7 @@ function hitList(h: El, hits: readonly SearchHitShape[], ops: SearchEditOps): un
   return h('ul', { className: 'nv-search__hits', 'data-novel-search-hits': '' },
     hits.map((hit) => h('li', { key: `${hit.layer}:${hit.id}`, className: 'nv-search__hit', 'data-novel-search-hit': `${hit.layer}:${hit.id}` },
       h('div', { className: 'nv-search__hit-main' },
-        h('span', { className: 'nv-search__badge', 'data-novel-search-hit-layer': hit.layer }, SEARCH_LAYER_LABELS[hit.layer] ?? hit.layer),
+        h('span', { className: 'nv-search__badge', 'data-novel-search-hit-layer': hit.layer }, SEARCH_LAYER_LABELS[hit.layer] ?? '无法识别的内容分类'),
         h('span', { className: 'nv-search__hit-title', 'data-novel-search-hit-title': '' }, hit.title),
         h('span', { className: 'nv-search__hit-score', 'data-novel-search-hit-score': String(hit.score) }, `分 ${hit.score}`),
       ),
@@ -128,7 +128,7 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
         ? null
         : h('div', { className: 'nv-search__results', 'data-novel-search-results': '' },
           h('p', { className: 'nv-search__result-count', 'data-novel-search-result-count': '' },
-            `「${state.results.query}」${state.results.pov === undefined ? '' : `（POV：${state.results.pov}）`}命中 ${state.results.total} 条`),
+            `「${state.results.query}」${state.results.pov === undefined ? '' : `（视角：${characterOptions.find((option) => option.id === state.results?.pov)?.label ?? '引用已缺失'}）`}命中 ${state.results.total} 条`),
           state.results.total === 0 ? h('p', { 'data-novel-search-empty': '' }, '无命中。') : hitList(h, state.results.hits, ops),
         ),
       h('h4', { className: 'nv-search__subtitle' }, '实体交叉引用'),

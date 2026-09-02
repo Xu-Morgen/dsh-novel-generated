@@ -66,12 +66,12 @@ export function createKnowledgeOps(runtime: OpsRuntime, port: KnowledgePort): Kn
             if (!isActive()) return;
             const result = outcome as KnowledgeProposeOutcomeShape;
             const names = new Map((state.projection?.characters ?? []).map((character) => [character.characterId, character.name]));
-            const addedNames = state.draft.holders.map((id) => names.get(id) ?? id).join('、');
+            const addedNames = state.draft.holders.map((id) => names.get(id) ?? '引用已缺失').join('、');
             knowledgePatch({
               busy: { ...snapshot.knowledge.busy, propose: false },
               selectedEntryId: undefined,
               draft: { holders: [], status: '', revealAt: '' },
-              message: `提案已提交待确认：${result.kind === 'reveal' ? '揭示' : '持有者变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效。`,
+              message: `提案已提交待确认：${result.kind === 'reveal' ? '揭示' : '知情角色变更'}「${result.preview.fact}」→ 新增知情：${addedNames}。确认后生效。`,
             });
             // 刷新待确认提案列表（Gate pending 持久化）。
             void unwrap(target.pending(projectId)).then((pendingList) => {

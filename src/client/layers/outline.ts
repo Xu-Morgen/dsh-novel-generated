@@ -52,14 +52,14 @@ function currentAct(draft: OutlineShape, actId: string): OutlineActShape { retur
 function currentBeat(act: OutlineActShape, beatId: string): OutlineBeatShape { return act.beats.find((beat) => beat.id === beatId) ?? { id: beatId, title: '', description: '', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [] }; }
 function emptyDetailBeat(actId: string, beatId: string, index: number): OutlineDetailBeatShape { return { id: `detail-${actId}-${beatId}-${index + 1}`, title: '', summary: '', pov: '', wordTarget: 500, points: [], status: 'planned' }; }
 
-function sceneCards(h: El, projectId: string, beat: OutlineBeatShape, selectedDetailId: string | undefined, onSelect: (id: string) => void, links?: ContextLinkSink): unknown {
+function sceneCards(h: El, projectId: string, beat: OutlineBeatShape, selectedDetailId: string | undefined, onSelect: (id: string) => void, characterOptions: readonly EntityOption[], links?: ContextLinkSink): unknown {
   const cards = beat.detailBeats;
   if (cards.length === 0) return h('p', { className: 'nv-outline__nodetail' }, '此节暂无细纲场景卡。');
   return h('div', { className: 'nv-outline__cards', 'data-novel-beat-cards': '' }, cards.map((card) => h('div', { key: card.id, className: 'nv-outline__card-row' },
     h('button', {
       type: 'button', className: 'nv-outline__card' + (selectedDetailId === card.id ? ' is-active' : ''),
       'data-novel-detail-card': card.id, onClick: () => onSelect(card.id),
-    }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `POV ${card.pov || '—'} · ${card.wordTarget} 字 · ${DETAIL_BEAT_STATUS_LABELS[card.status]}`), h('span', { className: 'nv-outline__card-summary' }, card.summary)),
+    }, h('span', { className: 'nv-outline__card-title' }, card.title), h('span', { className: 'nv-outline__card-meta' }, `视角 ${characterOptions.find((option) => option.id === card.pov)?.label ?? (card.pov === '' ? '未指定' : '引用已缺失')} · ${card.wordTarget} 字 · ${DETAIL_BEAT_STATUS_LABELS[card.status] ?? '无法识别的场景状态'}`), h('span', { className: 'nv-outline__card-summary' }, card.summary)),
     contextLinkButton(h, '定位场景卡', 'scene-card', entityContextLink(projectId, 'scene-card', card.id), links),
   )));
 }
@@ -102,7 +102,7 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
     entityMultiSelect(h, '前置节', beat.prerequisites, beatOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, prerequisites: value })), 'outline-prerequisites'),
     h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '可选节'), h('input', { type: 'checkbox', className: 'nv-field__check', checked: beat.optional, onChange: (event: { target: { checked: boolean } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, optional: event.target.checked })) })),
     h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-add-detail': '', onClick: () => ops.addDetailBeat(act!.id, beat.id) }, '+ 细纲场景卡')),
-    h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'), sceneCards(h, _projectId, beat, editor.selectedDetailId, ops.selectDetail, links),
+    h('h4', { className: 'nv-outline__subtitle' }, '细纲场景卡'), sceneCards(h, _projectId, beat, editor.selectedDetailId, ops.selectDetail, characterOptions, links),
     detail === undefined ? null : detailBeatEditor(h, detail, characterOptions, (update) => setDetail(act!.id, beat.id, detail.id, update), () => ops.removeDetailBeat(act!.id, beat.id, detail.id)),
   ));
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'outline', 'data-novel-layer-state': 'ready' },

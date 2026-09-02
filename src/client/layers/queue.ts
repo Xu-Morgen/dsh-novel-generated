@@ -111,7 +111,7 @@ function queueCardRow(h: El, card: QueueCardShape, selected: boolean, ops: Queue
       onChange: () => ops.toggleCard(card.id),
     }),
     h('span', { className: 'nv-queue__card-title' }, card.title),
-    h('span', { className: 'nv-queue__card-meta' }, `POV ${card.pov} · 目标 ${card.wordTarget} · ${card.status}`),
+    h('span', { className: 'nv-queue__card-meta' }, `视角已指定 · 目标 ${card.wordTarget} · ${QUEUE_TASK_STATUS_LABELS[card.status] ?? '无法识别的场景状态'}`),
   );
 }
 
@@ -120,7 +120,7 @@ function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps): unknown {
   return h('li', { className: `nv-queue__task nv-queue__task--${status}`, 'data-novel-queue-task': task.id, 'data-novel-queue-task-status': status },
     h('div', { className: 'nv-queue__task-main' },
       h('span', { className: 'nv-queue__task-title', 'data-novel-queue-task-card': '' }, task.cardTitle),
-      h('span', { className: 'nv-queue__badge nv-queue__badge--' + status, 'data-novel-queue-task-badge': status }, QUEUE_TASK_STATUS_LABELS[status] ?? status),
+      h('span', { className: 'nv-queue__badge nv-queue__badge--' + status, 'data-novel-queue-task-badge': status }, QUEUE_TASK_STATUS_LABELS[status] ?? '无法识别的任务状态'),
     ),
     h('p', { className: 'nv-queue__task-meta', 'data-novel-queue-task-meta': '' },
       `场景任务 · 第 ${task.attempts} 次尝试`,
@@ -158,7 +158,7 @@ export function queuePanel(h: El, projectId: string, queue: QueueNamespace | und
     const projection = state.projection;
     const summary = projection === undefined
       ? '尚未运行。勾选场景卡并设置预算/重试/停止策略后点击「开始生成」。'
-      : `运行态：${QUEUE_RUN_STATE_LABELS[runState] ?? runState} · 已消耗 ${projection.consumedUnits}${projection.config.wordBudget === null ? ' 单位（未设预算）' : ` / ${projection.config.wordBudget} 单位`} · 任务 ${projection.tasks.length}`;
+      : `运行状态：${QUEUE_RUN_STATE_LABELS[runState] ?? '无法识别的队列状态'} · 已消耗 ${projection.consumedUnits}${projection.config.wordBudget === null ? ' 单位（未设预算）' : ` / ${projection.config.wordBudget} 单位`} · 任务 ${projection.tasks.length}`;
     const tasks = projection?.tasks ?? [];
     const cards = state.cards;
     body = h('div', { className: 'nv-queue__ready', 'data-novel-queue-ready': '' },

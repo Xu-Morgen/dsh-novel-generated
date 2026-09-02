@@ -49,7 +49,7 @@ for (const token of ['projectSourceAwareWorkflow', 'sourceAware', 'states.workfl
 for (const token of ['I149', '导入来源并确认角色、目标与叙事意图', '按确认意图审阅大纲与揭示计划']) {
   if (!workflow.includes(token) && !readme.includes(token)) fail(`workflow product copy missing ${token}`);
 }
-for (const token of ['只能扩展为大纲', 'treatmentOptions', 'Stage 21']) {
+for (const token of ['只能扩展为大纲', 'treatmentOptions', '保留原正文的导入暂不可用']) {
   if (!review.includes(token)) fail(`existing-prose guard missing ${token}`);
 }
 if (!mountRegistry.includes('narrativeImportPlan') || !mountRegistry.includes('remote.novelNarrativeImportPlan')) fail('I148 plan namespace is not mounted for the workflow');

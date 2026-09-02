@@ -127,13 +127,14 @@ describe('I144 来源语义审阅投影', () => {
     expect(intents).toEqual([{ pov: 'limited', protagonistCandidateId: undefined, protagonistId: 'mira-internal', initialKnown: [], revealPacing: 'balanced' }]);
   });
 
-  it('only shows the Stage 21 fidelity notice for existing prose', () => {
+  it('仅对已有正文显示保真导入尚不可用的作者提示', () => {
     const tree = sourceInterpretationReview(h, reviewedState({ selectedSourceRole: 'existing-prose', treatment: 'expand-outline', narrativeIntent: undefined }), {
       begin: () => undefined, cancel: () => undefined, confirm: () => undefined, setSourceRole: () => undefined, setTreatment: () => undefined,
       setNarrativeIntent: () => undefined, setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
     });
     expect(collect(tree).some((node) => node.props?.['data-novel-import-interpretation-existing-prose'] !== undefined)).toBe(true);
-    expect(JSON.stringify(tree)).toContain('Stage 21');
+    expect(JSON.stringify(tree)).toContain('保留原正文的导入暂不可用');
+    expect(JSON.stringify(tree)).not.toContain('Stage 21');
   });
 
   it('projects only Host-provided chunk text and ranges', () => {
@@ -157,6 +158,8 @@ describe('I144 来源语义审阅投影', () => {
     });
     expect(collect(tree).some((node) => node.props?.['data-novel-rule-style-import-rules'] !== undefined)).toBe(true);
     expect(collect(tree).some((node) => node.props?.['data-novel-rule-style-import-style'] !== undefined)).toBe(true);
+    expect(collect(tree, 'textarea').some((node) => node.props?.['data-novel-rule-style-import-rules'] !== undefined || node.props?.['data-novel-rule-style-import-style'] !== undefined)).toBe(false);
+    expect(collect(tree, 'select').some((node) => node.props?.['data-novel-structured-input'] === 'rule-style-rules')).toBe(true);
     expect(collect(tree, 'button').some((node) => node.props?.['data-novel-rule-style-import-propose'] !== undefined)).toBe(true);
     expect(JSON.stringify(tree)).not.toContain('regenerate');
   });

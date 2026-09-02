@@ -9,6 +9,9 @@ import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../l
 
 /** B3 kind 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2 #6）。 */
 export const CHARACTER_KINDS: readonly CharacterKind[] = characterKindSchema.options;
+export const CHARACTER_KIND_LABELS: Readonly<Record<CharacterKind, string>> = {
+  protagonist: '主角', antagonist: '对立角色', supporting: '重要配角', extra: '次要角色', pov: '视角角色',
+};
 
 export interface CharacterLayerState {
   readonly status: 'loading' | 'ready' | 'error';
@@ -98,7 +101,7 @@ export function characterLayer(
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
         h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as CharacterKind })) },
-          CHARACTER_KINDS.map((kind) => h('option', { key: kind, value: kind }, kind)),
+          CHARACTER_KINDS.map((kind) => h('option', { key: kind, value: kind }, CHARACTER_KIND_LABELS[kind])),
         ),
       ),
       listField(h, '\u522b\u540d', d.aliases ?? [], (value) => ops.mutate((draft) => ({ ...draft, aliases: value }))),

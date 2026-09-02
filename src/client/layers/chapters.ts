@@ -425,7 +425,7 @@ function modePanel(h: El, projectId: string, writing: WritingNamespace | undefin
   const content = state.mode === 'writing'
     ? body
     : state.mode === 'candidate'
-      ? candidatePanel(h, projectId, writing, state.candidate, ops)
+      ? candidatePanel(h, projectId, writing, state.candidate, ops, choices.characters)
       : state.mode === 'versions'
         ? versionsPanel(h, projectId, branches, state.branches, ops)
         : managementPanel(h, state, ops, choices);
@@ -594,7 +594,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
           onClick: () => ops.selectChapter(item.id),
         },
           h('span', { className: 'nv-chapters__item-title' }, `第 ${item.index} 章 · ${item.title}`),
-          h('span', { className: 'nv-chapters__item-meta' }, `POV ${item.pov || '—'} · ${item.sceneCount} 个场景`),
+          h('span', { className: 'nv-chapters__item-meta' }, `视角 ${choices.characters.find((option) => option.id === item.pov)?.label ?? (item.pov === '' ? '未指定' : '引用已缺失')} · ${item.sceneCount} 个场景`),
         )),
     ),
     h('div', { className: 'nv-chapters__pane', 'data-novel-chapter-scenes': '' },

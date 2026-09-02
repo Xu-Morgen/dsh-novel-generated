@@ -24,7 +24,7 @@ export const IMPORT_SOURCE_ROLES: readonly { id: ImportSourceRole; label: string
 
 export const IMPORT_TREATMENTS: readonly { id: ImportTreatment; label: string }[] = [
   { id: 'expand-outline', label: '扩展为大纲' },
-  { id: 'adapt-pov', label: '按 POV 重构读者体验' },
+  { id: 'adapt-pov', label: '按视角重构读者体验' },
 ];
 
 export const NARRATIVE_POVS: readonly { id: NarrativePov; label: string }[] = [
@@ -37,4 +37,3 @@ export const REVEAL_PACINGS: readonly { id: RevealPacing; label: string }[] = [
   { id: 'balanced', label: '均衡揭示' },
   { id: 'fast', label: '快速揭示' },
 ];
-

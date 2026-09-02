@@ -10,6 +10,9 @@ import { contextLinkButton, entityContextLink, type ContextLinkSink } from '../l
 
 /** C1 关系类型下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const RELATIONSHIP_TYPES: readonly RelationshipType[] = relationshipTypeSchema.options;
+export const RELATIONSHIP_TYPE_LABELS: Readonly<Record<RelationshipType, string>> = {
+  kin: '亲属', romantic: '情感关系', friendship: '朋友', rivalry: '竞争对手', enmity: '敌对', allegiance: '同盟', mentor: '师徒', subordinate: '上下级',
+};
 export interface RelationshipLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly list: RelationshipShape[]; readonly message?: string; }
 export interface RelationshipEditor { selectedId: string | undefined; draft: RelationshipShape; dirty: boolean; error: string; saving: boolean; saveMessage: string; }
 export interface RelationshipEditOps { select(entry: RelationshipShape): void; newDraft(): void; mutate(update: (draft: RelationshipShape) => RelationshipShape): void; save(): void; }
@@ -43,7 +46,7 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
         entitySelect(h, '从', d.from, characterOptions, (value) => ops.mutate((draft) => ({ ...draft, from: value })), 'relationship-from'),
         entitySelect(h, '到', d.to, characterOptions, (value) => ops.mutate((draft) => ({ ...draft, to: value })), 'relationship-to'),
       ),
-      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '关系类型'), h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, type: event.target.value as RelationshipType })) }, RELATIONSHIP_TYPES.map((type) => h('option', { key: type, value: type }, type)))),
+      h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '关系类型'), h('select', { className: 'nv-field__input', value: d.type ?? 'friendship', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, type: event.target.value as RelationshipType })) }, RELATIONSHIP_TYPES.map((type) => h('option', { key: type, value: type }, RELATIONSHIP_TYPE_LABELS[type])))),
       h('div', { className: 'nv-form__row' },
         h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, `亲密度（-100..100）：${d.affinity}`), h('input', { type: 'range', min: '-100', max: '100', step: '1', className: 'nv-field__range', value: String(d.affinity ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, affinity: Number.parseInt(event.target.value, 10) || 0 })) })),
         h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, `信任（0..100）：${d.trust}`), h('input', { type: 'range', min: '0', max: '100', step: '1', className: 'nv-field__range', value: String(d.trust ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, trust: Number.parseInt(event.target.value, 10) || 0 })) })),

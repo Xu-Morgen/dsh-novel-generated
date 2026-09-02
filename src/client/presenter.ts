@@ -354,7 +354,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
   const combinedReview = importReview;
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
-      projectContextBar(h, selectedProjectName ?? selectedProjectId, ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),
+      projectContextBar(h, selectedProjectName ?? '未命名作品', ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),
       routerState.error === undefined ? null : h('div', { className: 'nv-workbench__router-error', 'data-novel-router-error': routerState.error.code, role: 'alert' },
         h('span', null, toUserMessage(routerState.error.message)),
         h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-router-error-dismiss': '', onClick: () => ops.router.dismissError() }, '知道了'),
@@ -395,7 +395,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         }),
         h('div', { className: 'nv-workbench__main' },
           // I58：单一 activeView 分发四个任务组的视图（层 / 正文 / 审校中心 / 生成队列 / 初始化审阅 / 创作设置 / LLM 设置）。
-          viewPanel(h, ui.activeView, selectedProjectId, selectedProjectName ?? selectedProjectId, {
+          viewPanel(h, ui.activeView, selectedProjectId, selectedProjectName ?? '未命名作品', {
             workspace, writing, reviewNamespace, reviewRepairNamespace, queueNamespace, knowledgeNamespace, ruleStyleNamespace, progressNamespace, importExportNamespace, branchNamespace, searchNamespace, statisticsNamespace, timelineNamespace, referenceAuditNamespace, referenceCorrectionNamespace, sceneOutlineBinding, textMutation, textDeletion, outlineReconciliation, outlineDetailGeneration, onboardingNamespace, importInterpretation: ns.importInterpretation, importInterpretationAnalysis: ns.importInterpretationAnalysis, longDraft,
           }, {
             layers, chapters, review: reviewState, referenceReview: referenceReviewState, queue: queueState, knowledge: knowledgeState,

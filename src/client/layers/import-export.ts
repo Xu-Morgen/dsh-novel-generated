@@ -151,7 +151,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
     h('div', { className: 'nv-progress__section', 'data-novel-import-export-restore': '' },
       h('h4', { className: 'nv-progress__section-title' }, '恢复（round-trip 备份恢复）'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-restore-desc': '' },
-        '选择先前导出的 .portable.json 恢复到当前作品。恢复目标必须是空作品（N-7：' +
+        '选择先前导出的 .portable.json 恢复到当前作品。恢复目标必须是空作品（' +
         '已有内容的作品不允许静默合并或覆盖；将列出冲突层并阻断）。'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '备份包文件（.portable.json）'),
@@ -164,7 +164,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-restore': '', disabled: !available || busy || state.restoreFileName === undefined, onClick: () => ops.restore() }, state.busy.restore === true ? '恢复中…' : '恢复到当前作品'),
       ),
       restoreBlocked ? h('div', { className: 'nv-import-export__blocked', 'data-novel-ie-restore-blocked': '', role: 'alert', 'aria-live': 'assertive' },
-        h('p', { 'data-novel-ie-restore-blocked-text': '' }, `恢复被阻断（N-7）：当前作品已有内容，不允许静默合并/覆盖。已存在层：${(state.restoreResult as { layers: readonly string[] }).layers.join('、')}。`),
+        h('p', { 'data-novel-ie-restore-blocked-text': '' }, `恢复被阻断：当前作品已有内容，不允许静默合并或覆盖。已存在内容：${(state.restoreResult as { layers: readonly string[] }).layers.join('、')}。`),
         h('p', { className: 'nv-settings__hint' }, '请先创建新作品（空壳）再执行恢复。'),
       ) : null,
       restoreImported ? h('p', { className: 'nv-settings__ok', 'data-novel-ie-restore-imported': '', role: 'status', 'aria-live': 'polite' },
@@ -174,7 +174,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
 
     // ---- 导入预览（I37 通用导入管线，零写）----
     h('div', { className: 'nv-progress__section', 'data-novel-import-export-import': '' },
-      h('h4', { className: 'nv-progress__section-title' }, '通用导入预览（I37 管线，零写）'),
+      h('h4', { className: 'nv-progress__section-title' }, '通用导入预览（预览期间不会写入作品）'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-import-desc': '' },
         '这里只预览整理后的内容与分块结果，不会直接改动作品。要开始创作，请回到「创作流程」的“导入”。'),
       h('label', { className: 'nv-field' },

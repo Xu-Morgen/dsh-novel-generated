@@ -184,9 +184,10 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-candidate-rewrite'] === '')?.props?.onClick as () => void)();
     await flush();
-    // 后继候选立即进入 ready 审阅（面板展示新候选 id）。
+    // 后继候选立即进入 ready 审阅，内部候选标识不暴露给作者。
     const panel = candidatePanel(render());
     expect(panel?.props?.['data-novel-candidate-state']).toBe('ready');
-    expect(collect(render(), 'span').some((n) => String(n.children?.[0] ?? '') === 'cand-3-r1')).toBe(true);
+    expect(JSON.stringify(render())).not.toContain('cand-3-r1');
+    expect(collect(render(), 'span').some((n) => String(n.children?.[0] ?? '') === '续写')).toBe(true);
   });
 })

@@ -170,8 +170,8 @@ export const PROGRESS_SCENE_STATUS_LABELS: Readonly<Record<string, string>> = {
 function consistencyFindings(projection: ProgressProjectionShape): string[] {
   const findings: string[] = [];
   if (projection.consistency.currentBeatCompleted) findings.push('当前节同时出现在「已完成节」中，请先修正完成记录。');
-  for (const beatId of projection.consistency.completedBeatsWithOpenScenes) {
-    findings.push(`已完成节「${beatId}」仍有未完成场景卡，请在大纲编辑器补齐完成状态。`);
+  for (const _beatId of projection.consistency.completedBeatsWithOpenScenes) {
+    findings.push('有已完成的节仍含未完成场景卡，请在大纲编辑器补齐完成状态。');
   }
   if (projection.consistency.navigationTargetAllScenesDone) {
     findings.push('导航目标节的全部场景卡已完成，但该节尚未标记为完成（可在完成状态中跟进）。');
@@ -182,8 +182,8 @@ function consistencyFindings(projection: ProgressProjectionShape): string[] {
 function sceneCard(h: El, card: ProgressSceneShape): unknown {
   return h('li', { className: 'nv-progress__scene', 'data-novel-progress-scene': card.id },
     h('span', { className: 'nv-progress__scene-title', 'data-novel-progress-scene-title': '' }, card.title),
-    h('span', { className: 'nv-progress__badge nv-progress__badge--' + card.status, 'data-novel-progress-scene-status': card.status }, PROGRESS_SCENE_STATUS_LABELS[card.status] ?? card.status),
-    h('span', { className: 'nv-progress__scene-meta', 'data-novel-progress-scene-meta': '' }, `${card.pov || '—'} · ${card.wordTarget} 字`),
+    h('span', { className: 'nv-progress__badge nv-progress__badge--' + card.status, 'data-novel-progress-scene-status': card.status }, PROGRESS_SCENE_STATUS_LABELS[card.status] ?? '无法识别的场景状态'),
+    h('span', { className: 'nv-progress__scene-meta', 'data-novel-progress-scene-meta': '' }, `${card.pov === '' ? '未指定视角' : '已指定视角'} · ${card.wordTarget} 字`),
     card.summary === '' ? null : h('p', { className: 'nv-progress__scene-summary', 'data-novel-progress-scene-summary': '' }, card.summary),
   );
 }
@@ -323,7 +323,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
             h('ul', { className: 'nv-progress__direction-list', 'data-novel-progress-direction-list': '' }, directions.map((direction) => directionCard(h, direction, direction.id === state.selectedDirectionId, busy, ops))),
             selected === undefined ? null
               : h('div', { className: 'nv-editor__actions' },
-                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-propose': '', disabled: busy, onClick: () => ops.proposeApply() }, state.acting ? '提交中…' : '确认应用此方向（经 Gate）'),
+                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-propose': '', disabled: busy, onClick: () => ops.proposeApply() }, state.acting ? '提交中…' : '确认应用此方向'),
               ),
           ),
       ),
