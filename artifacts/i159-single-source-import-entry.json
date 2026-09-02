@@ -12,7 +12,7 @@
   ],
   "additiveRemote": "novelImportExport/normalizeSource",
   "unchangedContractDigests": {
-    "contracts/stage19/import-interpretation-remote.json": "de734e61709fff528450a69a644aa2eb234f80447f7914c7c7ebfd36ddab539b",
+    "contracts/stage19/import-interpretation-remote.json": "9f8427f805563aaca71d514c21e7e3b057e2d5df234cafb493cfacb85afa36b5",
     "contracts/stage19/import-interpretation-analysis-remote.json": "b2f6c6104ffc2d870aa5a93efee99a47e359fde2766aba01c91e1c39cdb74b2a",
     "contracts/stage20/rule-style-import-initialization-remote.json": "5228ffd7b8a68d275991edf607e4d1466e502504588f63839c8b6d7ad442ab09"
   },

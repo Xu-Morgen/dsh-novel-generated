@@ -22,8 +22,8 @@ for (const token of [
 }
 
 const contractDigests = {
-  'contracts/stage18/remote-descriptors.json': '2a1ed9a0e0be004a542ab477f57de4fc8553ae21ed770294a5465d6e5afc41a8',
-  'contracts/stage19/import-interpretation-remote.json': 'de734e61709fff528450a69a644aa2eb234f80447f7914c7c7ebfd36ddab539b',
+  'contracts/stage18/remote-descriptors.json': 'cd960a7bcc00e7b53f5f2a0fdf3610feaa1293d6b02bf729b2d9d7068265a1d7',
+  'contracts/stage19/import-interpretation-remote.json': '9f8427f805563aaca71d514c21e7e3b057e2d5df234cafb493cfacb85afa36b5',
   'contracts/stage19/import-interpretation-analysis-remote.json': 'b2f6c6104ffc2d870aa5a93efee99a47e359fde2766aba01c91e1c39cdb74b2a',
   'contracts/stage19/narrative-adaptation-remote.json': '212868ace02dbd80dfdca03ffbd1a27227c8481230471c6b3560e79475852e4b',
   'contracts/stage19/narrative-reveal-remote.json': 'c2d62db6e82a9353c1b9719cb77b07cd6fb03255dde69805fd375f7af8a302ed',

@@ -398,7 +398,11 @@ export const ONBOARDING_STYLES = `
 .nv-import-review__paragraphs { display: flex; flex-direction: column; gap: calc(var(--nv-grid) * 0.75); min-width: 0; }
 .nv-import-review__evidence ul { margin: 0; padding-left: 1.25em; font: 12px/1.5 var(--nv-sans); color: var(--nv-ink-dim); }
 .nv-import-review__paragraph { display: flex; flex-direction: column; gap: calc(var(--nv-grid) * 0.5); padding: var(--nv-grid); border: 1px solid var(--nv-line); border-radius: calc(var(--nv-grid) * 0.6); background: var(--nv-paper-raised); min-width: 0; }
-.nv-import-review__paragraph-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 var(--nv-sans); color: var(--nv-ink); }
+.nv-import-review__paragraph-text { width: 100%; resize: vertical; box-sizing: border-box; border: 1px solid var(--nv-line); border-radius: calc(var(--nv-grid) * 0.4); background: var(--nv-paper); padding: calc(var(--nv-grid) * 0.75); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.6 var(--nv-sans); color: var(--nv-ink); cursor: text; }
+.nv-import-review__paragraph-text:focus { outline: 2px solid color-mix(in srgb, var(--nv-accent) 35%, transparent); border-color: var(--nv-accent); }
+.nv-import-review__treatment-suggestion { margin: 0; padding: calc(var(--nv-grid) * 0.625); border-left: 3px solid var(--nv-accent); background: color-mix(in srgb, var(--nv-accent) 7%, var(--nv-paper)); font: 12px/1.55 var(--nv-sans); color: var(--nv-ink); }
+.nv-import-review__decision { margin: 0; font: 600 12px/1.5 var(--nv-sans); color: var(--nv-ink-dim); }
+.nv-import-review__paragraph-action { flex-wrap: wrap; }
 .nv-import-review__evidence-text { color: var(--nv-ink-faint); }
 .nv-import-review__actions { margin-top: calc(var(--nv-grid) * 0.5); }
 

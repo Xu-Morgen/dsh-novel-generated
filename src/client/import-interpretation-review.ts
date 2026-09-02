@@ -22,6 +22,7 @@ import type {
 } from '../core/schema/import-interpretation.js';
 import type { WorkbenchActions } from './store/types.js';
 import { structuredEditor } from './structured-editor.js';
+import { mergeImportParagraphWithNext, splitImportParagraph } from './import-segmentation.js';
 
 export type { ImportInterpretationParagraph, SourceParagraphRole } from '../core/schema/import-interpretation-analysis.js';
 
@@ -74,6 +75,8 @@ export interface ImportInterpretationReviewOps {
   setNarrativeIntent(intent: NarrativeIntent | undefined): void;
   setParagraphRole(paragraphId: string, role: SourceParagraphRole): void;
   setParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  splitParagraph(paragraphId: string, offsetInParagraph: number): void;
+  mergeParagraphWithNext(paragraphId: string): void;
   /** Author-facing options; ids remain internal option values and are never typed by the author. */
   readonly availableCharacters?: readonly { readonly id: string; readonly name: string }[];
   setRuleStyleRulesDraft?(value: string): void;
@@ -104,6 +107,18 @@ const PARAGRAPH_ROLE_LABELS: Readonly<Record<SourceParagraphRole, string>> = Obj
   'author-instruction': '作者指令',
   'presentation-note': '呈现提示',
 });
+
+const PARAGRAPH_TREATMENT_SUGGESTIONS: Readonly<Record<SourceParagraphRole, string>> = Object.freeze({
+  'world-truth': '作为幕后证据保留；生成时转成线索与揭示计划，不直接把答案告诉读者。',
+  'plot-plan': '作为剧情规划保留；转换为角色可经历的行动、冲突与大纲节点。',
+  prose: '作为已有叙事保留；当前用于反向拆纲，不改写或保真写入正式正文。',
+  'author-instruction': '仅作为创作约束保留；执行其要求，但不把指令文字写进故事。',
+  'presentation-note': '仅作为呈现约束保留；用于视角、节奏或场景组织，不当作世界事实。',
+});
+
+export function paragraphTreatmentSuggestion(role: SourceParagraphRole): string {
+  return PARAGRAPH_TREATMENT_SUGGESTIONS[role];
+}
 
 const POV_LABELS: Readonly<Record<NarrativePov, string>> = Object.freeze({ limited: '限知视角', omniscient: '全知视角' });
 const PACING_LABELS: Readonly<Record<RevealPacing, string>> = Object.freeze({ slow: '慢速揭示', balanced: '均衡揭示', fast: '快速揭示' });
@@ -136,14 +151,9 @@ const PARAGRAPH_ROLE_HELP_LINES = Object.freeze([
 
 const PARAGRAPH_DECISION_HELP_LINES = Object.freeze([
   '待处理：尚未确认，任何待处理片段都会阻止完成来源确认。',
-  '保留此分类：接受当前选中的来源类型，供后续大纲或叙事投影使用。',
-  '修改后保留：表示作者已修正系统建议，并按修正后的来源类型继续使用。',
+  '按当前分类保留：接受当前选中的来源类型，供后续大纲或叙事投影使用。',
+  '修改分类后保留：只在你实际改选来源类型时自动记录，不能单独选择。',
   '排除本段：不让该来源片段进入后续叙事投影；不会修改原始 DOCX。',
-]);
-
-const MERGE_CLASSIFICATION_HELP_LINES = Object.freeze([
-  '把当前选中或系统建议的来源类型标记为“保留此分类”，等价于把“段落处理”设为接受。',
-  '它不会拼接相邻来源片段，也不会立即写入大纲、正文、设定或正史。',
 ]);
 
 /** The five source roles are a UI projection of the canonical I141 enum. */
@@ -236,6 +246,7 @@ export function importIntentValidationMessage(state: ImportInterpretationReviewS
   }
   const unresolved = state.paragraphs.some((paragraph) => paragraph.decision === 'pending');
   if (unresolved) return '请先处理所有来源段落。';
+  if (state.paragraphs.some((paragraph) => paragraph.decision !== 'rejected' && paragraph.selectedRole === undefined && paragraph.suggestedRole === undefined)) return '请确认所有保留片段的来源类型。';
   if (state.confirmed) return undefined;
   return undefined;
 }
@@ -338,21 +349,42 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
   if (state.paragraphs.length === 0) return null;
   return h('section', { className: 'nv-import-review__paragraphs', 'data-novel-import-interpretation-paragraphs': '' },
     h('h4', null, '逐段来源审阅'),
-    state.paragraphs.map((paragraph) => h('article', { key: paragraph.paragraphId, className: 'nv-import-review__paragraph', 'data-novel-import-interpretation-paragraph': paragraph.paragraphId },
-      h('p', { className: 'nv-import-review__paragraph-text' }, paragraph.text),
-      paragraph.suggestedRole === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-suggestion': paragraph.paragraphId }, `建议：${PARAGRAPH_ROLE_LABELS[paragraph.suggestedRole]}（${paragraph.confidence ?? '未标注'}）`),
-      paragraph.evidence === undefined ? null : h('p', { className: 'nv-import-review__evidence-text' }, `依据：${paragraph.evidence}`),
-      selectField(h, '段落来源类型', paragraph.selectedRole ?? paragraph.suggestedRole, IMPORT_PARAGRAPH_ROLE_OPTIONS, (value) => ops.setParagraphRole(paragraph.paragraphId, value as SourceParagraphRole), { 'data-novel-import-interpretation-paragraph-role': paragraph.paragraphId }, {
-        id: `nv-import-paragraph-role-help-${paragraph.paragraphId}`, kind: 'paragraph-source-type', label: '段落来源类型说明', lines: PARAGRAPH_ROLE_HELP_LINES, controlId: `nv-import-paragraph-role-${paragraph.paragraphId}`,
-      }),
-      selectField(h, '段落处理', paragraph.decision, [['pending', '待处理'], ['accepted', '保留此分类'], ['edited', '修改后保留'], ['rejected', '排除本段']] as const, (value) => ops.setParagraphDecision(paragraph.paragraphId, value as ImportReviewParagraph['decision']), { 'data-novel-import-interpretation-paragraph-decision': paragraph.paragraphId }, {
-        id: `nv-import-paragraph-decision-help-${paragraph.paragraphId}`, kind: 'paragraph-decision', label: '段落处理说明', lines: PARAGRAPH_DECISION_HELP_LINES, controlId: `nv-import-paragraph-decision-${paragraph.paragraphId}`,
-      }),
-      h('div', { className: 'nv-import-review__paragraph-action' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-import-interpretation-merge': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'accepted') }, '合并此分类'),
-        helpButton(h, { id: `nv-import-merge-help-${paragraph.paragraphId}`, kind: 'merge-classification', label: '合并此分类说明', lines: MERGE_CLASSIFICATION_HELP_LINES }),
-      ),
-    )),
+    state.paragraphs.map((paragraph, index) => {
+      let splitOffset = 0;
+      const effectiveRole = paragraph.selectedRole ?? paragraph.suggestedRole;
+      const decisionLabel = paragraph.decision === 'accepted' ? '已按当前分类保留'
+        : paragraph.decision === 'edited' ? '已修改分类并保留'
+          : paragraph.decision === 'rejected' ? '已排除此段' : '待你确认';
+      return h('article', { key: paragraph.paragraphId, className: 'nv-import-review__paragraph', 'data-novel-import-interpretation-paragraph': paragraph.paragraphId },
+        h('textarea', {
+          className: 'nv-import-review__paragraph-text',
+          value: paragraph.text,
+          readOnly: true,
+          rows: Math.min(8, Math.max(3, paragraph.text.split('\n').length)),
+          'aria-label': '来源片段原文（把光标放到需要分段的位置）',
+          'data-novel-import-interpretation-segment-text': paragraph.paragraphId,
+          onSelect: (event: { target: { selectionStart?: number } }) => { splitOffset = event.target.selectionStart ?? 0; },
+          onClick: (event: { target: { selectionStart?: number } }) => { splitOffset = event.target.selectionStart ?? 0; },
+        }),
+        paragraph.suggestedRole === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-suggestion': paragraph.paragraphId }, `来源类型建议：${PARAGRAPH_ROLE_LABELS[paragraph.suggestedRole]}（${paragraph.confidence ?? '未标注'}）`),
+        effectiveRole === undefined ? null : h('p', { className: 'nv-import-review__treatment-suggestion', 'data-novel-import-interpretation-treatment-suggestion': paragraph.paragraphId }, `处理建议：${paragraphTreatmentSuggestion(effectiveRole)}`),
+        paragraph.evidence === undefined ? null : h('p', { className: 'nv-import-review__evidence-text' }, `依据：${paragraph.evidence}`),
+        selectField(h, '段落来源类型', effectiveRole, IMPORT_PARAGRAPH_ROLE_OPTIONS, (value) => ops.setParagraphRole(paragraph.paragraphId, value as SourceParagraphRole), { 'data-novel-import-interpretation-paragraph-role': paragraph.paragraphId }, {
+          id: `nv-import-paragraph-role-help-${paragraph.paragraphId}`, kind: 'paragraph-source-type', label: '段落来源类型说明', lines: PARAGRAPH_ROLE_HELP_LINES, controlId: `nv-import-paragraph-role-${paragraph.paragraphId}`,
+        }),
+        h('div', { className: 'nv-import-review__label-row' },
+          h('span', { className: 'nv-field__label' }, '段落处理'),
+          helpButton(h, { id: `nv-import-paragraph-decision-help-${paragraph.paragraphId}`, kind: 'paragraph-decision', label: '段落处理说明', lines: PARAGRAPH_DECISION_HELP_LINES }),
+        ),
+        h('p', { className: 'nv-import-review__decision', role: 'status', 'data-novel-import-interpretation-paragraph-decision': paragraph.paragraphId }, decisionLabel),
+        h('div', { className: 'nv-import-review__paragraph-action' },
+          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy || effectiveRole === undefined, 'data-novel-import-interpretation-accept': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, effectiveRole !== paragraph.suggestedRole ? 'edited' : 'accepted') }, '按当前分类保留'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, 'data-novel-import-interpretation-reject': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'rejected') }, '排除此段'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, title: '先在上方原文中放置光标', 'data-novel-import-interpretation-split': paragraph.paragraphId, onClick: () => ops.splitParagraph(paragraph.paragraphId, splitOffset) }, '在光标处分段'),
+          index >= state.paragraphs.length - 1 ? null : h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, 'data-novel-import-interpretation-merge-next': paragraph.paragraphId, onClick: () => ops.mergeParagraphWithNext(paragraph.paragraphId) }, '与下一段合并'),
+        ),
+      );
+    }),
   );
 }
 
@@ -440,6 +472,8 @@ export interface ImportInterpretationController {
   setNarrativeIntent(intent: NarrativeIntent | undefined): void;
   setParagraphRole(paragraphId: string, role: SourceParagraphRole): void;
   setParagraphDecision(paragraphId: string, decision: ImportReviewParagraph['decision']): void;
+  splitParagraph(paragraphId: string, offsetInParagraph: number): void;
+  mergeParagraphWithNext(paragraphId: string): void;
   setRuleStyleRulesDraft(value: string): void;
   setRuleStyleStyleDraft(value: string): void;
   retryRuleStyleInitialization(): void;
@@ -495,6 +529,16 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     endOffset: paragraph.endOffset,
   }));
 
+  const paragraphDecisions = (state: ImportInterpretationReviewState) => state.paragraphs.map((paragraph) => {
+    const role = paragraph.selectedRole ?? paragraph.suggestedRole;
+    return {
+      paragraphId: paragraph.paragraphId,
+      decision: paragraph.decision,
+      ...(role === undefined ? {} : { role }),
+      summary: paragraph.text.slice(0, 200) || '待作者裁决',
+    };
+  });
+
   const poll = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
     const target = deps.analysis();
     if (!active() || target === undefined) { clearPoll(); release(); return; }
@@ -546,7 +590,7 @@ export function createImportInterpretationController(deps: ImportInterpretationC
       projectId: state.projectId,
       sourceHash: state.sourceHash,
       intent: draftIntent(state),
-      paragraphDecisions: state.paragraphs.map((paragraph) => ({ paragraphId: paragraph.paragraphId, decision: paragraph.decision, summary: paragraph.text.slice(0, 200) || '待作者裁决' })),
+      paragraphDecisions: paragraphDecisions(state),
     })).then((created) => {
       if (!active() || current?.projectId !== state.projectId || current.sourceHash !== state.sourceHash) { release(); return; }
       const identity = { projectId: state.projectId, importSessionId: created.importSessionId, sourceHash: state.sourceHash };
@@ -640,7 +684,7 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     const intent = { sourceRole: state.selectedSourceRole as ImportSourceRole, treatment: state.treatment as ImportTreatment, ...(state.narrativeIntent === undefined ? {} : { narrativeIntent: state.narrativeIntent }) };
     const identity = { projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash };
     patch({ busy: true, error: undefined });
-    void unwrap(session.confirm({ ...identity, intent, paragraphDecisions: state.paragraphs.map((paragraph) => ({ paragraphId: paragraph.paragraphId, decision: paragraph.decision, summary: paragraph.text.slice(0, 200) })) })).then(() => {
+    void unwrap(session.confirm({ ...identity, intent, paragraphDecisions: paragraphDecisions(state) })).then(() => {
       if (!active()) return;
       patch({ confirmed: true, busy: false });
       startRuleStyle(identity);
@@ -677,11 +721,54 @@ export function createImportInterpretationController(deps: ImportInterpretationC
   };
   const setParagraphRole = (paragraphId: string, role: SourceParagraphRole): void => {
     if (current === undefined) return;
-    write({ ...current, confirmed: false, paragraphs: current.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: paragraph.decision === 'pending' ? 'edited' : paragraph.decision } : paragraph) });
+    write({ ...current, confirmed: false, paragraphs: current.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: role === paragraph.suggestedRole ? 'accepted' : 'edited' } : paragraph) });
   };
   const setParagraphDecision = (paragraphId: string, decision: ImportReviewParagraph['decision']): void => {
     if (current === undefined) return;
     write({ ...current, confirmed: false, paragraphs: current.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, decision } : paragraph) });
+  };
+  const restartWithParagraphs = (paragraphs: readonly ImportInterpretationParagraph[]): void => {
+    const state = current;
+    const session = deps.session();
+    if (!active() || state === undefined || state.busy || state.confirmed || session === undefined || !deps.beginOp(operationKey)) return;
+    clearPoll();
+    const previousIdentity = state.importSessionId === undefined ? undefined : { projectId: state.projectId, importSessionId: state.importSessionId, sourceHash: state.sourceHash };
+    const next: ImportInterpretationReviewState = {
+      ...state,
+      importSessionId: undefined,
+      analysisStatus: 'queued',
+      analysis: undefined,
+      paragraphs: paragraphs.map((paragraph) => ({ ...paragraph, decision: 'pending' as const })),
+      busy: true,
+      error: undefined,
+      technicalError: undefined,
+    };
+    write(next);
+    const retirePrevious = async (): Promise<void> => {
+      if (previousIdentity === undefined) return;
+      const analysis = deps.analysis();
+      if (analysis !== undefined) await unwrap(analysis.cancel(previousIdentity)).catch(() => undefined);
+      await unwrap(session.discard(previousIdentity));
+    };
+    void retirePrevious().then(() => {
+      if (!active() || current !== next) { release(); return; }
+      createSession(next, paragraphs);
+    }, (error: Error) => {
+      if (active()) write({ ...state, busy: false, error: toUserMessage(error, '旧来源审阅未能安全结束，请重试分段。'), technicalError: rawError(error) });
+      release();
+    });
+  };
+  const splitParagraph = (paragraphId: string, offsetInParagraph: number): void => {
+    const state = current;
+    if (state?.sourceText === undefined) { patch({ error: '规范原文不可用，请重新导入。' }); return; }
+    try { restartWithParagraphs(splitImportParagraph(state.sourceText, sourceParagraphs(state), paragraphId, offsetInParagraph)); }
+    catch (error) { patch({ error: toUserMessage(error, '来源片段无法拆分。') }); }
+  };
+  const mergeParagraphWithNext = (paragraphId: string): void => {
+    const state = current;
+    if (state?.sourceText === undefined) { patch({ error: '规范原文不可用，请重新导入。' }); return; }
+    try { restartWithParagraphs(mergeImportParagraphWithNext(state.sourceText, sourceParagraphs(state), paragraphId)); }
+    catch (error) { patch({ error: toUserMessage(error, '来源片段无法合并。') }); }
   };
   const setRuleStyleRulesDraft = (value: string): void => patch({ ruleStyleRulesDraft: value });
   const setRuleStyleStyleDraft = (value: string): void => patch({ ruleStyleStyleDraft: value });
@@ -708,5 +795,5 @@ export function createImportInterpretationController(deps: ImportInterpretationC
   const acceptRuleStyleInitialization = (): void => decideRuleStyle('accept');
   const rejectRuleStyleInitialization = (): void => decideRuleStyle('reject');
   const dispose = (): void => { disposed = true; clearPoll(); clearRuleStylePoll(); current = undefined; };
-  return Object.freeze({ begin, retry, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, setRuleStyleRulesDraft, setRuleStyleStyleDraft, retryRuleStyleInitialization, proposeRuleStyleInitialization, acceptRuleStyleInitialization, rejectRuleStyleInitialization, dispose });
+  return Object.freeze({ begin, retry, cancel, confirm, setSourceRole, setTreatment, setNarrativeIntent, setParagraphRole, setParagraphDecision, splitParagraph, mergeParagraphWithNext, setRuleStyleRulesDraft, setRuleStyleStyleDraft, retryRuleStyleInitialization, proposeRuleStyleInitialization, acceptRuleStyleInitialization, rejectRuleStyleInitialization, dispose });
 }

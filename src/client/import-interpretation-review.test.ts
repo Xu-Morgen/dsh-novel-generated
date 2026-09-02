@@ -50,12 +50,12 @@ describe('I144 来源语义审阅投影', () => {
       begin: () => calls.push('begin'), cancel: () => calls.push('cancel'), confirm: () => calls.push('confirm'),
       setSourceRole: () => calls.push('role'), setTreatment: () => calls.push('treatment'), setNarrativeIntent: () => calls.push('intent'),
       setParagraphRole: () => calls.push('paragraph-role'), setParagraphDecision: () => calls.push('paragraph-decision'),
+      splitParagraph: () => calls.push('split'), mergeParagraphWithNext: () => calls.push('merge'),
     });
     expect(collect(tree, 'option').filter((node) => node.props?.value !== '').map((node) => node.props?.value)).toEqual([
       'idea', 'synopsis', 'background-material', 'existing-prose', 'hybrid', 'expand-outline', 'adapt-pov',
       'limited', 'omniscient', 'generate', 'slow', 'balanced', 'fast',
       'world-truth', 'plot-plan', 'prose', 'author-instruction', 'presentation-note',
-      'pending', 'accepted', 'edited', 'rejected',
     ]);
     expect(collect(tree).some((node) => node.props?.['data-novel-import-interpretation-low-confidence'] !== undefined)).toBe(true);
     expect(collect(tree).some((node) => node.props?.['data-novel-import-interpretation-evidence-item'] === 'paragraph-0001')).toBe(true);
@@ -63,16 +63,19 @@ describe('I144 来源语义审阅投影', () => {
     expect(calls).toEqual([]);
   });
 
-  it('I154 exposes detailed hover/focus help for source roles, source fragments, decisions, and merge semantics', () => {
+  it('I162 shows type and treatment suggestions, retires the duplicate edited option, and exposes segmentation actions', () => {
     const decisions: Array<[string, string]> = [];
+    const segments: Array<[string, string, number?]> = [];
     const tree = sourceInterpretationReview(h, reviewedState(), {
       begin: () => undefined, cancel: () => undefined, confirm: () => undefined,
       setSourceRole: () => undefined, setTreatment: () => undefined, setNarrativeIntent: () => undefined,
       setParagraphRole: () => undefined, setParagraphDecision: (paragraphId, decision) => decisions.push([paragraphId, decision]),
+      splitParagraph: (paragraphId, offset) => segments.push(['split', paragraphId, offset]),
+      mergeParagraphWithNext: (paragraphId) => segments.push(['merge', paragraphId]),
     });
     const helps = collect(tree, 'button').filter((node) => node.props?.['data-novel-import-help'] !== undefined);
     expect(helps.map((node) => node.props?.['data-novel-import-help'])).toEqual([
-      'source-role', 'paragraph-source-type', 'paragraph-decision', 'merge-classification',
+      'source-role', 'paragraph-source-type', 'paragraph-decision',
     ]);
     for (const help of helps) {
       expect(help.props?.type).toBe('button');
@@ -85,12 +88,19 @@ describe('I144 来源语义审阅投影', () => {
     expect(tooltipJson).toContain('创作想法');
     expect(tooltipJson).toContain('已有正文');
     expect(tooltipJson).toContain('导入服务切分出的来源片段');
-    expect(tooltipJson).toContain('不会拼接相邻来源片段');
+    expect(tooltipJson).toContain('实际改选来源类型时自动记录');
     expect(ONBOARDING_STYLES).toContain('.nv-import-help:hover .nv-import-help__tooltip');
     expect(ONBOARDING_STYLES).toContain('.nv-import-help:focus-within .nv-import-help__tooltip');
+    expect(JSON.stringify(tree)).toContain('处理建议：作为幕后证据保留');
+    expect(collect(tree, 'select').some((node) => node.props?.['data-novel-import-interpretation-paragraph-decision'] !== undefined)).toBe(false);
 
-    const merge = collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-merge'] === 'paragraph-0001');
-    (merge?.props?.onClick as () => void)();
+    const text = collect(tree, 'textarea').find((node) => node.props?.['data-novel-import-interpretation-segment-text'] === 'paragraph-0001');
+    (text?.props?.onSelect as (event: { target: { selectionStart: number } }) => void)({ target: { selectionStart: 2 } });
+    const split = collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-split'] === 'paragraph-0001');
+    (split?.props?.onClick as () => void)();
+    const accept = collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-accept'] === 'paragraph-0001');
+    (accept?.props?.onClick as () => void)();
+    expect(segments).toEqual([['split', 'paragraph-0001', 2]]);
     expect(decisions).toEqual([['paragraph-0001', 'accepted']]);
   });
 
@@ -111,6 +121,7 @@ describe('I144 来源语义审阅投影', () => {
       begin: () => undefined, cancel: () => undefined, confirm: () => undefined,
       setSourceRole: () => undefined, setTreatment: () => undefined, setNarrativeIntent: (intent) => intents.push(intent),
       setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      splitParagraph: () => undefined, mergeParagraphWithNext: () => undefined,
       availableCharacters: [{ id: 'mira-internal', name: '米拉' }],
     });
     const protagonist = collect(tree, 'select').find((node) => node.props?.['data-novel-import-interpretation-protagonist-source'] !== undefined);
@@ -131,6 +142,7 @@ describe('I144 来源语义审阅投影', () => {
     const tree = sourceInterpretationReview(h, reviewedState({ selectedSourceRole: 'existing-prose', treatment: 'expand-outline', narrativeIntent: undefined }), {
       begin: () => undefined, cancel: () => undefined, confirm: () => undefined, setSourceRole: () => undefined, setTreatment: () => undefined,
       setNarrativeIntent: () => undefined, setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      splitParagraph: () => undefined, mergeParagraphWithNext: () => undefined,
     });
     expect(collect(tree).some((node) => node.props?.['data-novel-import-interpretation-existing-prose'] !== undefined)).toBe(true);
     expect(JSON.stringify(tree)).toContain('保留原正文的导入暂不可用');
@@ -154,6 +166,7 @@ describe('I144 来源语义审阅投影', () => {
     const tree = sourceInterpretationReview(h, state, {
       begin: () => undefined, cancel: () => undefined, confirm: () => undefined, setSourceRole: () => undefined, setTreatment: () => undefined,
       setNarrativeIntent: () => undefined, setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      splitParagraph: () => undefined, mergeParagraphWithNext: () => undefined,
       setRuleStyleRulesDraft: () => undefined, setRuleStyleStyleDraft: () => undefined, proposeRuleStyleInitialization: () => undefined,
     });
     expect(collect(tree).some((node) => node.props?.['data-novel-rule-style-import-rules'] !== undefined)).toBe(true);

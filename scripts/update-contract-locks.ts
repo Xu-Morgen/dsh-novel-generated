@@ -350,7 +350,7 @@ for (const lock of EXISTING_LOCKS) {
   write('contracts/stage19/import-interpretation-remote.json', {
     schemaVersion: 1,
     namespace: 'stage19ImportInterpretation',
-    contractNote: 'I142 来源解释 operational session Remote：只追加 create/read/confirm/discard，不进入 Stage 18 baseline，也不写叙事层。',
+    contractNote: 'I142 来源解释 operational session Remote；I162 为 paragraphDecisions 可选追加最终 role，旧调用方与旧 session 保持兼容；不进入 Stage 18 baseline，也不写叙事层。',
     descriptorIds: Object.keys(descriptors),
     descriptors,
     resultSchemaIds: Object.keys(resultSchemas),

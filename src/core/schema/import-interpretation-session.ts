@@ -8,6 +8,7 @@ import {
   type ImportTreatment,
   type NarrativeIntent,
 } from './import-interpretation.js';
+import { sourceParagraphRoleSchema } from './import-interpretation-analysis.js';
 import { sourceHashSchema } from './onboarding-binding.js';
 
 /**
@@ -33,6 +34,8 @@ export type ImportInterpretationIntent = z.infer<typeof importInterpretationInte
 export const importParagraphDecisionSummarySchema = z.object({
   paragraphId: z.string().trim().min(1).max(200),
   decision: z.enum(['pending', 'accepted', 'rejected', 'edited']),
+  /** I162 optional for compatibility: new reviews persist the author's final classification. */
+  role: sourceParagraphRoleSchema.optional(),
   summary: z.string().trim().min(1).max(2000),
 }).strict();
 export type ImportParagraphDecisionSummary = z.infer<typeof importParagraphDecisionSummarySchema>;

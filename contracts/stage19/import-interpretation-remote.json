@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "namespace": "stage19ImportInterpretation",
-  "contractNote": "I142 来源解释 operational session Remote：只追加 create/read/confirm/discard，不进入 Stage 18 baseline，也不写叙事层。",
+  "contractNote": "I142 来源解释 operational session Remote；I162 为 paragraphDecisions 可选追加最终 role，旧调用方与旧 session 保持兼容；不进入 Stage 18 baseline，也不写叙事层。",
   "descriptorIds": [
     "novel-creation-tool/novelImportInterpretation/create",
     "novel-creation-tool/novelImportInterpretation/read",
@@ -130,6 +130,16 @@
                           "accepted",
                           "rejected",
                           "edited"
+                        ]
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "world-truth",
+                          "plot-plan",
+                          "prose",
+                          "author-instruction",
+                          "presentation-note"
                         ]
                       },
                       "summary": {
@@ -273,6 +283,16 @@
                       "accepted",
                       "rejected",
                       "edited"
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "world-truth",
+                      "plot-plan",
+                      "prose",
+                      "author-instruction",
+                      "presentation-note"
                     ]
                   },
                   "summary": {
@@ -487,6 +507,16 @@
                       "edited"
                     ]
                   },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "world-truth",
+                      "plot-plan",
+                      "prose",
+                      "author-instruction",
+                      "presentation-note"
+                    ]
+                  },
                   "summary": {
                     "type": "string",
                     "minLength": 1,
@@ -664,6 +694,16 @@
                           "edited"
                         ]
                       },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "world-truth",
+                          "plot-plan",
+                          "prose",
+                          "author-instruction",
+                          "presentation-note"
+                        ]
+                      },
                       "summary": {
                         "type": "string",
                         "minLength": 1,
@@ -806,6 +846,16 @@
                       "accepted",
                       "rejected",
                       "edited"
+                    ]
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "world-truth",
+                      "plot-plan",
+                      "prose",
+                      "author-instruction",
+                      "presentation-note"
                     ]
                   },
                   "summary": {
@@ -1020,6 +1070,16 @@
                       "edited"
                     ]
                   },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "world-truth",
+                      "plot-plan",
+                      "prose",
+                      "author-instruction",
+                      "presentation-note"
+                    ]
+                  },
                   "summary": {
                     "type": "string",
                     "minLength": 1,
@@ -1189,6 +1249,16 @@
                   "edited"
                 ]
               },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "world-truth",
+                  "plot-plan",
+                  "prose",
+                  "author-instruction",
+                  "presentation-note"
+                ]
+              },
               "summary": {
                 "type": "string",
                 "minLength": 1,
@@ -1346,6 +1416,16 @@
                   "accepted",
                   "rejected",
                   "edited"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "world-truth",
+                  "plot-plan",
+                  "prose",
+                  "author-instruction",
+                  "presentation-note"
                 ]
               },
               "summary": {
@@ -1507,6 +1587,16 @@
                   "edited"
                 ]
               },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "world-truth",
+                  "plot-plan",
+                  "prose",
+                  "author-instruction",
+                  "presentation-note"
+                ]
+              },
               "summary": {
                 "type": "string",
                 "minLength": 1,
@@ -1664,6 +1754,16 @@
                   "accepted",
                   "rejected",
                   "edited"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "world-truth",
+                  "plot-plan",
+                  "prose",
+                  "author-instruction",
+                  "presentation-note"
                 ]
               },
               "summary": {

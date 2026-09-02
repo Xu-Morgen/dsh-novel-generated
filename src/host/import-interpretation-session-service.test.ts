@@ -13,7 +13,7 @@ const createInput = {
   projectId: 'demo',
   sourceHash,
   intent: { sourceRole: 'background-material' as const, treatment: 'expand-outline' as const },
-  paragraphDecisions: [{ paragraphId: 'p-001', decision: 'accepted' as const, summary: '保留为幕后证据。' }],
+  paragraphDecisions: [{ paragraphId: 'p-001', decision: 'accepted' as const, role: 'world-truth' as const, summary: '保留为幕后证据。' }],
 };
 
 describe('I142 import interpretation session owner', () => {
@@ -62,6 +62,7 @@ describe('I142 import interpretation session owner', () => {
       const first = createImportInterpretationSessionService(root, (dispose) => { registeredDispose = dispose; });
       const draft = await first.create(createInput);
       expect(draft.status).toBe('draft');
+      expect(draft.paragraphDecisions[0]?.role).toBe('world-truth');
       expect(registeredDispose).toBeTypeOf('function');
       await access(join(root, 'demo', IMPORT_INTERPRETATION_SESSIONS_FILE));
       expect(await readFile(join(root, 'demo', 'characters.yaml'), 'utf8').catch(() => undefined)).toBeUndefined();
@@ -74,6 +75,13 @@ describe('I142 import interpretation session owner', () => {
         intent: createInput.intent, paragraphDecisions: createInput.paragraphDecisions,
       });
       expect(confirmed.status).toBe('confirmed');
+
+      const legacy = await reopened.create({
+        ...createInput,
+        sourceHash: replacementHash,
+        paragraphDecisions: [{ paragraphId: 'p-legacy', decision: 'accepted', summary: '旧调用方摘要' }],
+      });
+      expect(legacy.paragraphDecisions[0]).toEqual({ paragraphId: 'p-legacy', decision: 'accepted', summary: '旧调用方摘要' });
 
       const afterRestart = createImportInterpretationSessionService(root);
       await expect(afterRestart.read({ projectId: 'demo', importSessionId: draft.importSessionId, sourceHash }))

@@ -81,6 +81,8 @@ export interface WorkbenchUi {
   setImportNarrativeIntent(intent: import('../core/schema/import-interpretation.js').NarrativeIntent | undefined): void;
   setImportParagraphRole(paragraphId: string, role: import('../core/schema/import-interpretation-analysis.js').SourceParagraphRole): void;
   setImportParagraphDecision(paragraphId: string, decision: import('./import-interpretation-review.js').ImportReviewParagraph['decision']): void;
+  splitImportParagraph(paragraphId: string, offsetInParagraph: number): void;
+  mergeImportParagraphWithNext(paragraphId: string): void;
   setRuleStyleImportRulesDraft(value: string): void;
   setRuleStyleImportStyleDraft(value: string): void;
   retryRuleStyleImportInitialization(): void;
@@ -193,6 +195,8 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     setImportNarrativeIntent(intent) { importInterpretation.setNarrativeIntent(intent); },
     setImportParagraphRole(paragraphId, role) { importInterpretation.setParagraphRole(paragraphId, role); },
     setImportParagraphDecision(paragraphId, decision) { importInterpretation.setParagraphDecision(paragraphId, decision); },
+    splitImportParagraph(paragraphId, offsetInParagraph) { importInterpretation.splitParagraph(paragraphId, offsetInParagraph); },
+    mergeImportParagraphWithNext(paragraphId) { importInterpretation.mergeParagraphWithNext(paragraphId); },
     setRuleStyleImportRulesDraft(value) { importInterpretation.setRuleStyleRulesDraft(value); },
     setRuleStyleImportStyleDraft(value) { importInterpretation.setRuleStyleStyleDraft(value); },
     retryRuleStyleImportInitialization() { importInterpretation.retryRuleStyleInitialization(); },
@@ -343,6 +347,8 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
       : [],
     setParagraphRole: (paragraphId, role) => ui.setImportParagraphRole(paragraphId, role),
     setParagraphDecision: (paragraphId, decision) => ui.setImportParagraphDecision(paragraphId, decision),
+    splitParagraph: (paragraphId, offsetInParagraph) => ui.splitImportParagraph(paragraphId, offsetInParagraph),
+    mergeParagraphWithNext: (paragraphId) => ui.mergeImportParagraphWithNext(paragraphId),
     setRuleStyleRulesDraft: (value) => ui.setRuleStyleImportRulesDraft(value),
     setRuleStyleStyleDraft: (value) => ui.setRuleStyleImportStyleDraft(value),
     retryRuleStyleInitialization: () => ui.retryRuleStyleImportInitialization(),

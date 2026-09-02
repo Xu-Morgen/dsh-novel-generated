@@ -1,6 +1,6 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v3.4
+> 版本：v3.5
 > 日期：2026-09-02
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v3.4：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.28 作者入口/ID/术语收口与后置 F1/F2 边界。
-2. 本文件 v3.4：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.4：I1–I158 的完成事实、当前顺序 I159 及 Stage 28 / I159–I161 执行卡，以及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
-4. `AGENTS.md` v3.4：执行纪律。
+1. `docs/novel-creation-tool-design.md` v3.5：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.29 作者入口/ID/术语/来源片段裁决与后置 F1/F2 边界。
+2. 本文件 v3.5：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v3.5：I1–I162 与 Stage 29 的完成事实，以及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+4. `AGENTS.md` v3.5：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I158 全部完成**。当前顺序执行 I159，统一 workflow、目录层与作品内 DOCX/自由文本来源导入入口；I160–I161 已排期但必须在前序验收后依次执行。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R30 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I162 全部完成**。当前没有后续执行卡；新增工作须先立项并给出精确验证命令。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R31 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -69,6 +69,7 @@
 | Stage 26 来源主角语义恢复（R28） | I157 | `pnpm run verify:stage-26` |
 | Stage 27 来源 Remote Host 注册修复（R29） | I158 | `pnpm run verify:stage-27` |
 | Stage 28 作者入口、ID 与中文术语收口（R30） | I159–I161 | `pnpm run verify:stage-28` |
+| Stage 29 来源片段裁决闭环（R31） | I162 | `pnpm run verify:stage-29` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -612,6 +613,12 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 | R30-1 | `workflow` 的“导入”必须成为唯一普通作者入口；目录层新作品、已打开空作品的 DOCX/自由文本均先进入来源语义审阅。产品 Client 不得再直接启动旧六层 analyzer，进阶导航不得再公开“六层初始化审阅”；非空作品仍按 N-7 引导新建独立作品。 | DOM/路由消费者夹具证明 workflow import、目录 DOCX、空作品 DOCX/文本均进入同一 source review；旧 `data-novel-onboarding-start`、旧入口文案和产品 Client `startAnalysis/analyzeText` 调用归零；确认前旧六层 begin=0/I151 begin=0，确认后既有 import session 后续链不回归；legacy route deep-link 收敛到新入口。 | I159 |
 | R30-2 | 所有作者操作不得要求填写章节、场景、POV、规则、父条目、细纲目标、调和计划或其他技术 ID。新实体 ID 隐藏生成；引用字段使用名称/实体选择器或当前上下文派生，未知/已删除引用只显示只读缺失态。 | 全量 DOM 扫描无文本型 ID 控件和“请输入/填写 ID”文案；章节/场景/规则新建、POV、B2 parent、B5 binding、reconciliation、搜索过滤均以真实实体消费者夹具往返 canonical ID；重名可区分、未知引用不丢失且不能自由输入；Remote/schema/持久值逐字段不变。 | I160 |
 | R30-3 | 全部作者可见控件、枚举、状态、帮助和 ARIA 使用中文作者术语；canonical 英文值不得作为 label/fallback。旧原始 JSON 编辑器改为中文结构化表单。只允许文件格式、模型标识、服务地址与作者内容等窄 allowlist。 | 机器扫描覆盖静态/动态文本、option、placeholder、ARIA、fallback 和真实 DOM，`holder/revealPlan/status/Gate/ConfirmationGate/supersede/seq/diff/Stage/Ixx/N-x` 与 raw enum 归零；角色/世界观/关系等枚举中文往返；旧六层及规则/文风初稿无 JSON textarea；allowlist 不误伤 canonical wire/data 锚点。 | I161 |
+
+## R31. 来源片段裁决闭环（I162）
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R31-1 | 保留段落来源类型作为 POV/泄密安全边界；系统在类型建议旁给出确定性处理建议。作者可在规范原文范围内拆分当前片段或与下一片段合并，变更后必须重新分析；实际改分类自动形成 edited，不能把 edited 当作与 accepted 同义的手选项。 | 纯函数证明拆分/合并逐字保真、range 有序无重叠且非法边界 fail closed；DOM 消费夹具证明类型与处理建议同屏、光标拆分/相邻合并可达、decision 下拉退役；controller 证明重分段会 discard 旧 session 并新建/重跑，确认摘要携带最终 role；旧无 role session 仍兼容；prompt/样本、B/C/C5、I11 与来源原文不变。 | I162 |
 
 ---
 

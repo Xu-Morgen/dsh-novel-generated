@@ -1,0 +1,28 @@
+{
+  "iteration": "I162",
+  "requirement": "R31-1",
+  "decision": "keep-source-role-as-generation-safety-dependency",
+  "guarantees": [
+    "type-and-deterministic-treatment-suggestions-appear-together",
+    "author-split-and-adjacent-merge-preserve-normalized-source-ranges",
+    "surrogate-pair-empty-and-forged-range-boundaries-fail-closed",
+    "resegmentation-discards-old-session-and-runs-one-new-analysis",
+    "edited-is-derived-only-from-an-actual-role-change",
+    "confirmed-summary-carries-final-role-with-legacy-optional-compatibility"
+  ],
+  "unchangedLlmAssets": {
+    "src/llm/analyze/import-interpretation.ts": "cde979a4b7cbfbe97a7aeefae03c6705486fc7a00f6338f0b31cbe3acf938792",
+    "src/core/schema/import-interpretation-analysis.ts": "763f9997771077fe21ad4f4d458f7e9e7ca64ba52cb1dea2d299767d32699150",
+    "samples/i143/dev.json": "1b4f6178914c289f1bccb5c6d3ce0085ddec92227e4a5391b3acf2897b9dd69d",
+    "samples/i143/cases.json": "1f360e6a144d6c75a3f6fa330eaf0cb42b607b291e58fd7f6aba8890143b3142",
+    "samples/i143/gold.json": "4e84343cabfe7ccd102fa4118229b1526e16be6e35b8e9bc5c254587cd66c411"
+  },
+  "unchangedBoundaries": [
+    "source-text-and-hash",
+    "source-role-enum",
+    "llm-output",
+    "narrative-layer-owners",
+    "confirmation-gate",
+    "f1-f2"
+  ]
+}

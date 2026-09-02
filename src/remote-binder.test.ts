@@ -1388,7 +1388,7 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
     const fixture = {
       projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64),
       intent: { sourceRole: 'background-material' as const, treatment: 'expand-outline' as const },
-      paragraphDecisions: [{ paragraphId: 'p-001', decision: 'accepted' as const, summary: '保留证据。' }],
+      paragraphDecisions: [{ paragraphId: 'p-001', decision: 'edited' as const, role: 'world-truth' as const, summary: '保留证据。' }],
       status: 'draft', createdAt: ISO, updatedAt: ISO,
     };
     const mounted = await mount(importInterpretationRemoteContribution, (endpoint, args) => {
@@ -1401,7 +1401,9 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
         projectId: 'p1', sourceHash: 'a'.repeat(64), intent: fixture.intent,
         paragraphDecisions: fixture.paragraphDecisions,
       };
-      expect(await unwrap(interpretation.create(input))).toMatchObject({ importSessionId: 'imp-session-1' });
+      const created = await unwrap(interpretation.create(input));
+      expect(created).toMatchObject({ importSessionId: 'imp-session-1' });
+      expect(created.paragraphDecisions).toEqual(fixture.paragraphDecisions);
       expect(await unwrap(interpretation.read({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).toMatchObject({ status: 'draft' });
       expect(await unwrap(interpretation.confirm({
         projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64),
@@ -1431,6 +1433,10 @@ describe('I86 真实 DSH 客户端绑定器契约（R17-3 盲区消除）', () =
       await expect(Reflect.apply(interpretation.create, interpretation, [{
         projectId: 'p1', sourceHash: 'a'.repeat(64), intent: { sourceRole: 'background-material', treatment: 'expand-outline' },
         paragraphDecisions: [], extra: true,
+      }])).rejects.toThrow(/rejected "input"/);
+      await expect(Reflect.apply(interpretation.create, interpretation, [{
+        projectId: 'p1', sourceHash: 'a'.repeat(64), intent: { sourceRole: 'background-material', treatment: 'expand-outline' },
+        paragraphDecisions: [{ paragraphId: 'p-001', decision: 'accepted', role: 'not-a-role', summary: '非法分类' }],
       }])).rejects.toThrow(/rejected "input"/);
       await expect(unwrap(interpretation.read({ projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) }))).rejects.toThrow(/rejected "result"/);
       expect(mounted.calls).toEqual([{ endpoint: 'novelImportInterpretation/read', args: { input: { projectId: 'p1', importSessionId: 'imp-session-1', sourceHash: 'a'.repeat(64) } } }]);

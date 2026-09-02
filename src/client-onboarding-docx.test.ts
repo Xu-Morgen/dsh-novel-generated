@@ -96,7 +96,8 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(JSON.stringify(protagonist)).toContain('由 AI 创建并串联新主角');
     expect(collect(render(), 'input').some((node) => String(node.props?.['aria-label']).includes('主角 ID'))).toBe(false);
     expect(collect(render(), 'textarea').some((node) => String(node.props?.['aria-label']).includes('初始已知'))).toBe(false);
-    select('data-novel-import-interpretation-paragraph-decision', 'accepted');
+    const acceptParagraph = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-accept'] === 'paragraph-0001');
+    (acceptParagraph?.props?.onClick as () => void)();
 
     const confirm = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-confirm'] === '');
     expect(confirm?.props?.disabled).toBe(false);
@@ -156,7 +157,6 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     select('data-novel-import-interpretation-treatment', 'adapt-pov');
     const pacing = collect(render(), 'select').find((node) => node.props?.['aria-label'] === '揭示节奏');
     (pacing?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'fast' } });
-    select('data-novel-import-interpretation-paragraph-decision', 'accepted');
     const retryAfterChoices = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-retry'] === '');
     (retryAfterChoices?.props?.onClick as () => void)();
     await flush();
@@ -170,7 +170,7 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
         treatment: 'adapt-pov',
         narrativeIntent: { pov: 'limited', protagonistCandidateId: 'imported-protagonist-dddddddddddd', initialKnown: [], revealPacing: 'fast' },
       },
-      paragraphDecisions: [{ paragraphId: 'paragraph-0001', decision: 'accepted', summary: '保留来源证据' }],
+      paragraphDecisions: [{ paragraphId: 'paragraph-0001', decision: 'pending', summary: '保留来源证据' }],
     });
     expect(onboardingBegins).toBe(0);
     expect(collect(render(), 'section').find((node) => node.props?.['data-novel-import-interpretation-review'] === '')?.props?.['data-novel-import-interpretation-status']).toBe('succeeded');
@@ -230,6 +230,87 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(analysisBegins).toHaveLength(2);
     expect(analysisBegins[1]).toEqual(analysisBegins[0]);
     expect(collect(render(), 'section').find((node) => node.props?.['data-novel-import-interpretation-review'] === '')?.props?.['data-novel-import-interpretation-status']).toBe('succeeded');
+  });
+
+  it('I162 discards stale suggestions, reanalyzes author segmentation once, and confirms final roles', async () => {
+    (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
+    const source = '幕后真相。\n\n作者指令。';
+    const creates: unknown[] = [];
+    const discards: unknown[] = [];
+    const analysisBegins: Array<{ paragraphs: Array<{ paragraphId: string; text: string }> }> = [];
+    const confirms: unknown[] = [];
+    const { registrations } = mount(
+      () => Promise.resolve({ ok: true, value: READY_MODEL }),
+      {
+        projectList: async () => [],
+        projectCreate: async (input) => ({ id: (input as { projectId: string }).projectId, name: 'segmented' }),
+        projectOpen: async () => ({}),
+        uploadStart: async () => ({ uploadId: 'u-segment', chunkSize: 65536, nextIndex: 0 }),
+        uploadChunk: async () => ({ nextIndex: 1, received: 1 }),
+        uploadFinalize: async () => ({ sourceHash: 'f'.repeat(64), fileName: 'segment.docx', text: source, chunks: [{ index: 0, text: source, startOffset: 0, endOffset: source.length }] }),
+      },
+      {
+        openProjectId: null,
+        importInterpretation: {
+          create: async (input) => {
+            creates.push(structuredClone(input));
+            return { ...(input as Record<string, unknown>), importSessionId: `import-segment-${creates.length}`, status: 'draft', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() };
+          },
+          read: async (input) => input,
+          confirm: async (input) => { confirms.push(structuredClone(input)); return { ...(input as Record<string, unknown>), status: 'confirmed', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }; },
+          discard: async (input) => { discards.push(structuredClone(input)); return { ...(input as Record<string, unknown>), intent: { sourceRole: 'idea', treatment: 'expand-outline' }, paragraphDecisions: [], status: 'discarded', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }; },
+        },
+        importInterpretationAnalysis: {
+          begin: async (input) => { analysisBegins.push(structuredClone(input) as never); return input; },
+          status: async (input) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+          cancel: async (input) => input,
+          result: async (input) => {
+            const paragraphs = analysisBegins.at(-1)?.paragraphs ?? [];
+            return { ...(input as Record<string, unknown>), output: {
+              sourceRole: paragraphs.length === 1 ? 'background-material' : 'hybrid', confidence: 'high', evidenceParagraphIds: paragraphs.map((paragraph) => paragraph.paragraphId),
+              paragraphs: paragraphs.map((paragraph, index) => ({ paragraphId: paragraph.paragraphId, role: index === 0 ? 'world-truth' : 'author-instruction', confidence: 'high', evidence: 'fixture' })), rationale: 'fixture',
+            } };
+          },
+        },
+      },
+    );
+    await flush();
+    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
+    const upload = collect(render(), 'input').find((node) => node.props?.['data-novel-upload-input'] === '');
+    (upload?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1])], 'segment.docx')] as unknown as FileList } });
+    await flush();
+
+    const reviewTree = render();
+    const sourceArea = collect(reviewTree, 'textarea').find((node) => node.props?.['data-novel-import-interpretation-segment-text'] === 'paragraph-0001');
+    (sourceArea?.props?.onSelect as (event: { target: { selectionStart: number } }) => void)({ target: { selectionStart: '幕后真相。\n\n'.length } });
+    const split = collect(reviewTree, 'button').find((node) => node.props?.['data-novel-import-interpretation-split'] === 'paragraph-0001');
+    (split?.props?.onClick as () => void)();
+    await flush();
+
+    expect(creates).toHaveLength(2);
+    expect(discards).toEqual([{ projectId: 'segment-u-segment', importSessionId: 'import-segment-1', sourceHash: 'f'.repeat(64) }]);
+    expect(analysisBegins).toHaveLength(2);
+    expect(analysisBegins[1].paragraphs.map((paragraph) => paragraph.text)).toEqual(['幕后真相。', '作者指令。']);
+    expect(collect(render(), 'article').filter((node) => node.props?.['data-novel-import-interpretation-paragraph'] !== undefined)).toHaveLength(2);
+    expect(JSON.stringify(render())).toContain('仅作为创作约束保留');
+
+    const select = (attribute: string, value: string) => {
+      const node = collect(render(), 'select').find((candidate) => candidate.props?.[attribute] !== undefined);
+      (node?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
+    };
+    select('data-novel-import-interpretation-source-role', 'hybrid');
+    select('data-novel-import-interpretation-treatment', 'expand-outline');
+    const secondRole = collect(render(), 'select').find((node) => node.props?.['data-novel-import-interpretation-paragraph-role'] === 'paragraph-0002');
+    (secondRole?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'presentation-note' } });
+    for (const accept of collect(render(), 'button').filter((node) => node.props?.['data-novel-import-interpretation-accept'] !== undefined)) (accept.props?.onClick as () => void)();
+    const confirm = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-confirm'] === '');
+    (confirm?.props?.onClick as () => void)();
+    await flush();
+    expect(confirms).toHaveLength(1);
+    expect(confirms[0]).toMatchObject({ paragraphDecisions: [
+      { paragraphId: 'paragraph-0001', decision: 'accepted', role: 'world-truth', summary: '幕后真相。' },
+      { paragraphId: 'paragraph-0002', decision: 'edited', role: 'presentation-note', summary: '作者指令。' },
+    ] });
   });
 
   it('fails closed before creating a source session when Host chunks have no ranges', async () => {

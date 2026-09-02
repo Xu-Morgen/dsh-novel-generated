@@ -2,14 +2,14 @@
   "iteration": "I154",
   "requirement": "R25-1",
   "guarantees": [
-    "four-context-help-buttons",
+    "three-current-context-help-buttons",
     "mouse-hover-tooltip",
     "keyboard-focus-tooltip",
     "native-title-fallback",
     "aria-describedby-role-tooltip-link",
     "detailed-canonical-option-meanings",
     "source-chunk-not-word-paragraph-disclosure",
-    "merge-means-accepted-not-text-concatenation"
+    "i162-retires-misleading-merge-classification-action"
   ],
   "explicitNonGoals": [
     "docx-segmentation-change",

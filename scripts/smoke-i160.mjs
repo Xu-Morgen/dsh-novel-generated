@@ -24,7 +24,7 @@ for (const token of ['draftEntityId', "'chapter'", "'scene'", "'rule'", 'while (
 
 const unchangedContracts = {
   'contracts/stage18/remote-descriptors.json': 'cd960a7bcc00e7b53f5f2a0fdf3610feaa1293d6b02bf729b2d9d7068265a1d7',
-  'contracts/stage19/import-interpretation-remote.json': 'de734e61709fff528450a69a644aa2eb234f80447f7914c7c7ebfd36ddab539b',
+  'contracts/stage19/import-interpretation-remote.json': '9f8427f805563aaca71d514c21e7e3b057e2d5df234cafb493cfacb85afa36b5',
   'contracts/stage20/rule-style-import-initialization-remote.json': '5228ffd7b8a68d275991edf607e4d1466e502504588f63839c8b6d7ad442ab09',
 };
 for (const [path, expected] of Object.entries(unchangedContracts)) if (digest(path) !== expected) fail(`public contract changed: ${path}`);

@@ -214,7 +214,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       importInterpretationReviewPatch: (d, patch: Partial<ImportInterpretationReviewState>) => { if (d.importInterpretationReview) d.importInterpretationReview = { ...d.importInterpretationReview, ...patch }; },
       importInterpretationParagraphRole: (d, paragraphId: string, role: ImportReviewParagraph['selectedRole']) => {
         if (d.importInterpretationReview === undefined || role === undefined) return;
-        d.importInterpretationReview = { ...d.importInterpretationReview, confirmed: false, paragraphs: d.importInterpretationReview.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: paragraph.decision === 'pending' ? 'edited' : paragraph.decision } : paragraph) };
+        d.importInterpretationReview = { ...d.importInterpretationReview, confirmed: false, paragraphs: d.importInterpretationReview.paragraphs.map((paragraph) => paragraph.paragraphId === paragraphId ? { ...paragraph, selectedRole: role, decision: role === paragraph.suggestedRole ? 'accepted' : 'edited' } : paragraph) };
       },
       importInterpretationParagraphDecision: (d, paragraphId: string, decision: ImportReviewParagraph['decision']) => {
         if (d.importInterpretationReview === undefined) return;
