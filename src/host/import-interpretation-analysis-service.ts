@@ -28,12 +28,33 @@ function identityOf(input: ImportInterpretationInput): ImportInterpretationAnaly
   });
 }
 
+function sameBoundInput(current: ImportInterpretationInput, retry: ImportInterpretationInput): boolean {
+  return current.projectId === retry.projectId
+    && current.importSessionId === retry.importSessionId
+    && current.sourceHash === retry.sourceHash
+    && current.paragraphs.length === retry.paragraphs.length
+    && current.paragraphs.every((paragraph, index) => {
+      const candidate = retry.paragraphs[index];
+      return candidate !== undefined
+        && paragraph.paragraphId === candidate.paragraphId
+        && paragraph.index === candidate.index
+        && paragraph.text === candidate.text
+        && paragraph.startOffset === candidate.startOffset
+        && paragraph.endOffset === candidate.endOffset;
+    });
+}
+
 /**
  * I143 Host-only source interpretation job owner (design §14.15.2 / R19-2).
  * It classifies stable Host paragraph ids into operational evidence and never
  * writes a layer, chooses treatment/POV, or accepts model-owned offsets.
  */
 export interface NovelImportInterpretationAnalysisService {
+  /**
+   * Starts one analysis per import session. A terminal failed job may restart
+   * only when the complete Host-bound input is identical; all other duplicate
+   * session ids fail closed (design §14.30).
+   */
   begin(input: ImportInterpretationInput, settings: GenerationSettings): ImportInterpretationAnalysisBeginResult;
   status(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): ImportInterpretationAnalysisStatusResult;
   cancel(input: Pick<ImportInterpretationInput, 'projectId' | 'importSessionId' | 'sourceHash'>): Promise<ImportInterpretationAnalysisStatusResult>;
@@ -84,7 +105,13 @@ export function createImportInterpretationAnalysisService(
     begin(rawInput, settings) {
       ensureActive();
       const input = importInterpretationInputSchema.parse(rawInput);
-      if (jobs.has(input.importSessionId)) throw new Error(`Import interpretation analysis already exists: ${input.importSessionId}`);
+      const previous = jobs.get(input.importSessionId);
+      if (previous !== undefined) {
+        if (previous.status !== 'failed') throw new Error(`Import interpretation analysis already exists: ${input.importSessionId}`);
+        // I163 keeps the same operational checkpoint while preventing a retry
+        // from changing the Host-bound source projection behind that session.
+        if (!sameBoundInput(previous.input, input)) throw new Error(`Import interpretation analysis retry input mismatch: ${input.importSessionId}`);
+      }
       const current: Job = { input, controller: new AbortController(), status: 'queued' };
       jobs.set(input.importSessionId, current);
       void run(current, settings);

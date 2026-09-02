@@ -34,7 +34,35 @@ describe('I143 import interpretation analysis service', () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     expect(service.status(identity).status).toBe('succeeded');
     expect(service.result(identity).output).toEqual(output);
+    expect(() => service.begin(input, settings)).toThrow(/already exists/);
     await expect(Promise.resolve().then(() => service.status({ ...identity, sourceHash: 'b'.repeat(64) }))).rejects.toThrow(/source hash mismatch/);
+  });
+
+  it('I163 restarts only a failed job with the exact same bound input', async () => {
+    let calls = 0;
+    const backend = {
+      async *stream() {
+        calls += 1;
+        yield { type: 'text-delta' as const, text: JSON.stringify(calls === 1 ? { invalid: true } : output) };
+        yield { type: 'finish' as const, reason: { kind: 'stop' } };
+      },
+    };
+    const service = createImportInterpretationAnalysisService(backend, undefined, () => undefined);
+    const retryInput = { ...input, importSessionId: 'imp-analysis-retry' };
+    const identity = service.begin(retryInput, settings);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(service.status(identity).status).toBe('failed');
+
+    expect(() => service.begin({ ...retryInput, projectId: 'other' }, settings)).toThrow(/retry input mismatch/);
+    expect(() => service.begin({ ...retryInput, sourceHash: 'b'.repeat(64) }, settings)).toThrow(/retry input mismatch/);
+    expect(() => service.begin({ ...retryInput, paragraphs: retryInput.paragraphs.map((paragraph, index) => index === 0 ? { ...paragraph, text: '南境的城墙由黑曜石砌成。' } : paragraph) }, settings)).toThrow(/retry input mismatch/);
+
+    expect(service.begin(retryInput, settings)).toEqual(identity);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(calls).toBe(2);
+    expect(service.status(identity).status).toBe('succeeded');
+    expect(service.result(identity).output).toEqual(output);
+    expect(() => service.begin(retryInput, settings)).toThrow(/already exists/);
   });
 
   it('cancels a running job, fails closed on malformed output, and disposes all jobs', async () => {
@@ -46,9 +74,11 @@ describe('I143 import interpretation analysis service', () => {
     };
     const cancelled = createImportInterpretationAnalysisService(slow);
     const identity = cancelled.begin(input, settings);
+    expect(() => cancelled.begin(input, settings)).toThrow(/already exists/);
     await expect(cancelled.cancel(identity)).resolves.toMatchObject({ status: 'cancelled' });
     expect(cancelled.status(identity).status).toBe('cancelled');
     expect(() => cancelled.result(identity)).toThrow(/cancelled/);
+    expect(() => cancelled.begin(input, settings)).toThrow(/already exists/);
 
     const failed = createImportInterpretationAnalysisService(backendReturning({ invalid: true }));
     const failedIdentity = failed.begin({ ...input, importSessionId: 'imp-analysis-failed' }, settings);

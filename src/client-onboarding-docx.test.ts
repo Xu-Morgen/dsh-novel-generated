@@ -179,7 +179,7 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     expect(collect(render(), 'select').find((node) => node.props?.['aria-label'] === '揭示节奏')?.props?.value).toBe('fast');
   });
 
-  it('I156 retries analysis on the established session without creating another checkpoint', async () => {
+  it('I163 exposes an asynchronous analysis failure and retries the established session', async () => {
     (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
     let sourceCreates = 0;
     const analysisBegins: unknown[] = [];
@@ -207,12 +207,14 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
         importInterpretationAnalysis: {
           begin: async (input) => {
             analysisBegins.push(structuredClone(input));
-            if (analysisBegins.length === 1) throw new Error('provider timeout');
             return input;
           },
-          status: async (input) => ({ ...(input as Record<string, unknown>), status: 'succeeded' }),
+          status: async (input) => ({ ...(input as Record<string, unknown>), status: analysisBegins.length === 1 ? 'failed' : 'succeeded' }),
           cancel: async (input) => input,
-          result: async (input) => ({ ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } }),
+          result: async (input) => {
+            if (analysisBegins.length === 1) throw new Error('provider timeout after begin');
+            return { ...(input as Record<string, unknown>), output: { sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'fixture' }], rationale: 'fixture' } };
+          },
         },
       },
     );
@@ -223,6 +225,8 @@ describe('I153 DOCX new-work controlled-import entry from an empty root', () => 
     await flush();
     const retry = collect(render(), 'button').find((node) => node.props?.['data-novel-import-interpretation-retry'] === '');
     expect(retry).toBeDefined();
+    expect(JSON.stringify(render())).toContain('暂时无法连接创作服务，请稍后重试。');
+    expect(JSON.stringify(render())).toContain('provider timeout after begin');
     (retry?.props?.onClick as () => void)();
     await flush();
 

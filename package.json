@@ -401,6 +401,9 @@
     "smoke:i162": "node scripts/smoke-i162.mjs",
     "verify:i162": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i162 && pnpm run verify:product-flow",
     "verify:stage-29": "pnpm run verify:i162",
+    "smoke:i163": "node scripts/smoke-i163.mjs",
+    "verify:i163": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i163 && pnpm run verify:product-flow",
+    "verify:stage-30": "pnpm run verify:i163 && pnpm run smoke:i162",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

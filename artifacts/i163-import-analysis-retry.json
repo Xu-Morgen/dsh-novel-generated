@@ -1,0 +1,29 @@
+{
+  "iteration": "I163",
+  "requirement": "R32-1",
+  "guarantees": [
+    "failed-job-restarts-only-with-identical-bound-input",
+    "queued-running-succeeded-and-cancelled-duplicates-remain-rejected",
+    "project-source-hash-and-paragraph-mismatches-fail-closed",
+    "client-reads-existing-result-for-original-failure-detail",
+    "retry-reuses-the-import-session-without-a-second-checkpoint",
+    "late-results-cannot-overwrite-a-replacement-session"
+  ],
+  "unchangedAssets": {
+    "contracts/stage19/import-interpretation-remote.json": "9f8427f805563aaca71d514c21e7e3b057e2d5df234cafb493cfacb85afa36b5",
+    "src/llm/analyze/import-interpretation.ts": "cde979a4b7cbfbe97a7aeefae03c6705486fc7a00f6338f0b31cbe3acf938792",
+    "src/core/schema/import-interpretation-analysis.ts": "763f9997771077fe21ad4f4d458f7e9e7ca64ba52cb1dea2d299767d32699150",
+    "samples/i143/dev.json": "1b4f6178914c289f1bccb5c6d3ce0085ddec92227e4a5391b3acf2897b9dd69d",
+    "samples/i143/cases.json": "1f360e6a144d6c75a3f6fa330eaf0cb42b607b291e58fd7f6aba8890143b3142",
+    "samples/i143/gold.json": "4e84343cabfe7ccd102fa4118229b1526e16be6e35b8e9bc5c254587cd66c411"
+  },
+  "unchangedBoundaries": [
+    "remote-and-schema",
+    "llm-prompt-and-samples",
+    "session-yaml",
+    "i162-segmentation",
+    "narrative-layer-owners",
+    "confirmation-gate",
+    "f1-f2"
+  ]
+}

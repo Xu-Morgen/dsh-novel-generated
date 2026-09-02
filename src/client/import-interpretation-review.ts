@@ -551,8 +551,20 @@ export function createImportInterpretationController(deps: ImportInterpretationC
         }, (error: Error) => finish(technicalFailure(error, '来源解释未完成，请重试。')));
         return;
       }
-      if (status.status === 'failed' || status.status === 'cancelled') {
-        finish({ analysisStatus: status.status, error: status.status === 'failed' ? '来源解释未完成，请重试。' : undefined, technicalError: undefined });
+      if (status.status === 'failed') {
+        // Status intentionally keeps its public shape small. The existing
+        // result call rethrows the Host-owned failure for advanced diagnostics.
+        void unwrap(target.result(identity)).then((result) => {
+          if (!active() || current?.importSessionId !== identity.importSessionId || current.analysisStatus === 'cancelled') return;
+          finish(withAnalysis(current, result.output));
+        }, (error: Error) => {
+          if (!active() || current?.importSessionId !== identity.importSessionId || current.analysisStatus === 'cancelled') return;
+          finish(technicalFailure(error, '来源解释未完成，请重试。'));
+        });
+        return;
+      }
+      if (status.status === 'cancelled') {
+        finish({ analysisStatus: status.status, error: undefined, technicalError: undefined });
         return;
       }
       if (active()) pollTimer = setTimeout(() => poll(identity), IMPORT_ANALYSIS_POLL_MS);

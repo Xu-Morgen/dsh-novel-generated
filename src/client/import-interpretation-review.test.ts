@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canConfirmImportIntent,
+  createImportInterpretationController,
   freshImportInterpretationReview,
   importIntentValidationMessage,
   paragraphsFromHostChunks,
@@ -9,6 +10,7 @@ import {
 } from './import-interpretation-review.js';
 import type { SourceInterpretationOutput } from '../core/schema/import-interpretation-analysis.js';
 import { ONBOARDING_STYLES } from './styles/onboarding.js';
+import type { WorkbenchActions } from './store/types.js';
 
 type Node = { tag: string; props: Record<string, unknown> | null; children: unknown[] };
 const h = (tag: string, props: Record<string, unknown> | null | undefined, ...children: unknown[]): Node => ({ tag, props: props ?? null, children });
@@ -43,6 +45,52 @@ function reviewedState(overrides: Partial<ImportInterpretationReviewState> = {})
 }
 
 describe('I144 来源语义审阅投影', () => {
+  it('I163 ignores a failed-result response that arrives after a replacement session succeeds', async () => {
+    let state: ImportInterpretationReviewState | undefined;
+    let locked = false;
+    let sessionCount = 0;
+    let rejectFirstResult: ((error: Error) => void) | undefined;
+    const firstResult = new Promise<never>((_resolve, reject) => { rejectFirstResult = reject; });
+    const controller = createImportInterpretationController({
+      analysis: () => ({
+        begin: async (input: unknown) => input,
+        status: async (input: unknown) => ({ ...(input as Record<string, unknown>), status: (input as { importSessionId: string }).importSessionId === 'import-late-1' ? 'failed' : 'succeeded' }),
+        cancel: async (input: unknown) => input,
+        result: async (input: unknown) => {
+          if ((input as { importSessionId: string }).importSessionId === 'import-late-1') return firstResult;
+          return { ...(input as Record<string, unknown>), output };
+        },
+      }) as never,
+      session: () => ({
+        create: async (input: unknown) => ({ ...(input as Record<string, unknown>), importSessionId: `import-late-${++sessionCount}`, status: 'draft', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }),
+        read: async (input: unknown) => input,
+        confirm: async (input: unknown) => input,
+        discard: async (input: unknown) => input,
+      }) as never,
+      initialization: () => undefined,
+      currentProjectId: () => 'book',
+      isActive: () => true,
+      beginOp: () => { if (locked) return false; locked = true; return true; },
+      endOp: () => { locked = false; },
+      dispatch: (apply) => apply({ importInterpretationReview: (value: ImportInterpretationReviewState | undefined) => { state = value; } } as WorkbenchActions),
+      onConfirmed: () => undefined,
+    });
+    const source = { sourceHash: 'a'.repeat(64), text: '幕后资料', paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '幕后资料', startOffset: 0, endOffset: 4 }] };
+    controller.begin(source);
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    expect(state?.importSessionId).toBe('import-late-1');
+
+    controller.cancel();
+    controller.begin(source);
+    for (let index = 0; index < 12; index += 1) await Promise.resolve();
+    expect(state).toMatchObject({ importSessionId: 'import-late-2', analysisStatus: 'succeeded' });
+
+    rejectFirstResult?.(new Error('late provider failure'));
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    expect(state).toMatchObject({ importSessionId: 'import-late-2', analysisStatus: 'succeeded', technicalError: undefined });
+    controller.dispose();
+  });
+
   it('keeps the suggestion separate and exposes all five roles and two treatments', () => {
     const state = reviewedState();
     const calls: string[] = [];

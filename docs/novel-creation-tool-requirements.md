@@ -1,6 +1,6 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v3.5
+> 版本：v3.6
 > 日期：2026-09-02
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v3.5：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.29 作者入口/ID/术语/来源片段裁决与后置 F1/F2 边界。
-2. 本文件 v3.5：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.5：I1–I162 与 Stage 29 的完成事实，以及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
-4. `AGENTS.md` v3.5：执行纪律。
+1. `docs/novel-creation-tool-design.md` v3.6：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.30 作者入口/ID/术语/来源片段裁决/失败重试与后置 F1/F2 边界。
+2. 本文件 v3.6：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v3.6：I1–I163 与 Stage 30 的完成事实，以及 v3.2 原 I151–I162 后置卡片的 provenance。
+4. `AGENTS.md` v3.6：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I162 全部完成**。当前没有后续执行卡；新增工作须先立项并给出精确验证命令。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R31 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I163 与 Stage 30 全部完成**。当前没有后续执行卡；新增工作须先立项并给出精确验证命令。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R32 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -70,6 +70,7 @@
 | Stage 27 来源 Remote Host 注册修复（R29） | I158 | `pnpm run verify:stage-27` |
 | Stage 28 作者入口、ID 与中文术语收口（R30） | I159–I161 | `pnpm run verify:stage-28` |
 | Stage 29 来源片段裁决闭环（R31） | I162 | `pnpm run verify:stage-29` |
+| Stage 30 来源解释失败重试闭环（R32） | I163 | `pnpm run verify:stage-30` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -620,6 +621,12 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 |---|---|---|---|
 | R31-1 | 保留段落来源类型作为 POV/泄密安全边界；系统在类型建议旁给出确定性处理建议。作者可在规范原文范围内拆分当前片段或与下一片段合并，变更后必须重新分析；实际改分类自动形成 edited，不能把 edited 当作与 accepted 同义的手选项。 | 纯函数证明拆分/合并逐字保真、range 有序无重叠且非法边界 fail closed；DOM 消费夹具证明类型与处理建议同屏、光标拆分/相邻合并可达、decision 下拉退役；controller 证明重分段会 discard 旧 session 并新建/重跑，确认摘要携带最终 role；旧无 role session 仍兼容；prompt/样本、B/C/C5、I11 与来源原文不变。 | I162 |
 
+## R32. 来源解释失败重试闭环（I163）
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R32-1 | 来源解释 `begin` 成功受理但后台转为 failed 后，作者可用同一 import session 和完全相同的 Host 投影片段原位重试。Host 对 queued/running/succeeded 重复 begin 及 project/sourceHash/paragraph 变化继续拒绝；Client 通过既有 `result` 在高级详情展示原始失败原因，不改变公开 Remote/schema。 | Host fake backend 证明首次异步失败、同输入重试成功且调用两次；运行中/成功/错项目/hash/段落负测 fail closed；Client 消费夹具证明 status=failed 后 result 原始错误进入 technicalError、重试不新建 session、迟到旧响应不覆盖当前状态；全量/product-flow、contract lock 与 I162 回归全绿。 | I163 |
+
 ---
 
 ## Deferred / 非目标
@@ -645,6 +652,6 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I158 已完成。当前顺序执行 Stage 28 / I159，统一 workflow、目录层与作品内 DOCX/自由文本来源导入入口；I160–I161 依次收口作者手填技术 ID 与中文术语/结构化表单。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I163 与 Stage 30 已完成，当前没有后续执行卡。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

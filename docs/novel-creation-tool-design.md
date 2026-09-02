@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v3.5
-> 状态：v3.5 当前设计权威；**I1–I162 全部完成**；当前没有后续执行卡；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v3.6
+> 状态：v3.6 当前设计权威；**I1–I163 与 Stage 30 全部完成**；当前没有后续执行卡；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -36,10 +36,13 @@
 | **v3.3 来源 Remote Host 注册修订（2026-09-02）** | 同步 I157 已完成事实；新增 I158，修复 Stage 19/20 六组 Client Remote contribution 未加入唯一 `hostContribution`，导致 Connection 请求 `/api/novelImportInterpretation/create` 时 Host 网关不认领 endpoint 并返回 404。修复只补 Host strict descriptor 注册和接线完整性门，不改公开合同或领域行为。 |
 | **v3.4 作者入口与表现层收口（2026-09-02）** | 同步 I158 已完成事实；新增 Stage 28 / R30（I159–I161）。I159 把 workflow、目录层与作品内 DOCX/自由文本统一接入来源语义审阅并退役旧六层产品入口；I160 以隐藏稳定 ID、名称/实体选择器和当前上下文派生取代作者手填技术 ID；I161 为全部作者可见控件建立中文标签、结构化表单和机器术语门。领域 Schema、公开 invocation、LLM prompt/样本、I11 与 13 层真相保持不变。 |
 | **v3.5 来源片段裁决闭环（2026-09-02）** | 同步 I159–I161 已完成事实；新增并完成 Stage 29 / R31（I162）。段落来源类型继续作为幕后事实、作者指令与呈现提示不直入读者层的强依赖；审阅同时显示确定性处理建议，作者可在规范原文范围内拆分/合并片段并重新分类。“修改后保留”只由实际改分类产生，不再作为与接受同义的手选项。 |
+| **v3.6 来源解释失败重试修订（2026-09-02）** | 同步 I162 已完成事实；新增并完成 Stage 30 / R32（I163），修复来源解释 `begin` 已受理、后台转为 failed 后，Client 同 session 重试被 Host `already exists` 守卫拒绝的问题。只允许相同绑定输入的 failed job 原位重启，并在 Client 高级详情恢复原始失败原因；公开 Remote/schema、LLM prompt/样本与 session 文件不变。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.4 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
 > **v3.5 current supersession / 同步状态**：I1–I162 与 Stage 29 已完成，当前没有后续执行卡。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；Stage 29 未恢复 F1/F2。
+>
+> **v3.6 current supersession / 同步状态**：I1–I163 与 Stage 30 已完成，当前没有后续执行卡。I163 未恢复后置 F1/F2，也未改变来源解释公开合同或模型语义。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1311,6 +1314,13 @@ project/
 - 作者可以在 Host 已规范化并返回的原文范围内，把一个来源片段按光标位置拆成两段，或与下一段合并。操作必须逐字保持原文及有序、无重叠 range；变更后旧建议失效并以新片段重新建立来源审阅 session，禁止沿用陈旧分类。
 - “保留此分类”只接受当前分类；作者实际改选分类时自动记录为“修改分类后保留”。`edited` 继续作为兼容 checkpoint 值，但不再与接受并列为无差别手选项。确认摘要必须携带作者最终分类，旧调用方未提供该字段时仍可读取既有 session。
 - I162 不改来源分类 prompt/样本/阈值，不编辑规范原文，不写 B/C/C5，不开放正文保真导入，也不改变 I11 或非空作品门。
+
+### 14.30 I163：来源解释异步失败重试闭环
+
+- `begin` 已受理后，LLM/解析错误会在后台把 job 置为 `failed`；作者点击重试必须复用原 import session 与相同 Host 投影片段，不得因内存 job 已存在而永久卡死。
+- Host 只允许 `failed` job 在 projectId、sourceHash 与 paragraphs 逐字段一致时原位替换 AbortController 并重新运行。`queued`、`running`、`succeeded` 的重复 begin，以及任何绑定或段落变化继续 fail closed，避免并发模型调用、结果覆盖或同 session 偷换来源。
+- `status` 和既有 Remote/schema 形状保持不变。Client 观察到 `failed` 后调用既有 `result` 取得 Host 保存的原始异常，将中文可行动说明放在普通错误区、原始原因放在折叠高级详情；取错 session 的迟到响应不得覆盖当前审阅。
+- 本迭代只修复任务生命周期和诊断投影，不持久化 LLM 错误、不新增 retry Remote、不修改 session 文件、LLM prompt/样本/阈值、I162 分段、B/C/C5、I11 或后置 F1/F2。
 
 ---
 

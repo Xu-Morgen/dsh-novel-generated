@@ -1,6 +1,6 @@
 # AGENTS.md — AI 执行约定
 
-> 规则版本：v3.5
+> 规则版本：v3.6
 
 本文件是 AI 编码工具在本仓库工作时自动读取的固定约定。用户每次只发送「单迭代执行模板」（格式：`执行迭代 Ixx`），其余规则一律以本文件为准。
 
@@ -10,9 +10,9 @@
 
 权威文档（优先级从高到低）：
 
-1. `docs/novel-creation-tool-design.md`（v3.5）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
-2. `docs/novel-creation-tool-requirements.md`（v3.5）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v3.5）—— 执行层；**I1–I162 全部完成**。当前没有后续执行卡；新增工作必须先按权威文档立项。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
+1. `docs/novel-creation-tool-design.md`（v3.6）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
+2. `docs/novel-creation-tool-requirements.md`（v3.6）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
+3. `docs/novel-creation-tool-development-plan.md`（v3.6）—— 执行层；**I1–I163 与 Stage 30 全部完成**。当前没有后续执行卡；新增工作必须先按权威文档立项。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -38,7 +38,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 新增功能的公开合同政策：既有 invocation 的方法名、参数、结果必须向后兼容；允许新增 strict additive Remote 方法/namespace，但必须同步 canonical schema、descriptor/结果 contract lock、adapter 返回类型耦合、真实 DSH binder E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。
-- I1–I162 已完成，Stage 29 已通过 `pnpm run verify:stage-29`。当前没有后续执行卡；新增工作必须先在设计、需求与计划中建立唯一迭代身份，不得擅自恢复后置 F1/F2。
+- I1–I163 与 Stage 30 已完成并通过 `pnpm run verify:stage-30`。当前没有后续执行卡；新增工作必须先在设计、需求与计划中建立唯一迭代身份，不得擅自恢复后置 F1/F2。
 
 ## 3. 完成定义（DoD）
 
