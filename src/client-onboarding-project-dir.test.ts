@@ -95,9 +95,10 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       {
-        projectList: async () => [{ id: 'alpha', name: 'Alpha' }],
+        projectList: async () => [{ id: 'untitled', name: '已有中文作品' }],
         projectCreate: async (input) => {
           const parsed = input as { projectId: string; name: string };
+          if (parsed.projectId === 'untitled') throw new Error('Project already exists: untitled');
           created.push(parsed);
           return { id: parsed.projectId, name: parsed.name };
         },
@@ -113,8 +114,8 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
     (input?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1])], '续作.docx')] as unknown as FileList } });
     await flush();
     // 目录层上传 → 新建独立作品并打开（而不是把文档并入当前作品）。
-    expect(created).toEqual([{ projectId: 'untitled', name: '续作' }]);
-    expect(opened).toEqual(['untitled']);
+    expect(created).toEqual([{ projectId: 'untitled-u1', name: '续作' }]);
+    expect(opened).toEqual(['untitled-u1']);
     // 审阅部分提到项目目录：停在浏览态，六层审阅在目录层可见。
     expect(byData(render(), 'data-novel-project-browsing', '')).toBeDefined();
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-directory-review'] === '')).toBe(true);
@@ -138,7 +139,7 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
         onboardingAnalyzer: analyzerStub(I56_LAYERS),
         onboarding: {
           adjudicate: async () => ({ id: 'proposal-1', status: 'accepted' }),
-          finalApply: async () => ({ projectId: 'untitled', onboardingSessionId: 'sess-1', appliedLayers: ['characters'], skippedLayers: ['worldview', 'outline', 'relationship', 'state', 'canon'], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
+          finalApply: async () => ({ projectId: 'untitled-u1', onboardingSessionId: 'sess-1', appliedLayers: ['characters'], skippedLayers: ['worldview', 'outline', 'relationship', 'state', 'canon'], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
         },
       },
     );
@@ -170,7 +171,7 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
     // apply 成功：审阅消失、离开目录层、进入创作台并落到大纲阶段。
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(false);
     expect(byData(render(), 'data-novel-project-browsing', '')).toBeUndefined();
-    expect(render().props?.['data-novel-project-open']).toBe('untitled');
+    expect(render().props?.['data-novel-project-open']).toBe('untitled-u1');
     expect(render().props?.['data-novel-route']).toBe('workflow');
     expect(collect(render(), 'li').some((node) => node.props?.['data-novel-workflow-stage'] === 'outline' && node.props?.['data-novel-workflow-stage-state'] === 'current')).toBe(true);
   });

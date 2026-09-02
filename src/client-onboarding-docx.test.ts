@@ -40,9 +40,9 @@ describe('I53 DOCX new-work entry from an empty root', () => {
     await flush();
 
     // 空 root 上传必须自动新建并打开作品，再进入六层审阅（I53 三入口）。
-    expect(created).toEqual([{ projectId: 'my-book', name: 'my book' }]);
-    expect(opened).toEqual(['my-book']);
-    expect(render().props?.['data-novel-project-open']).toBe('my-book');
+    expect(created).toEqual([{ projectId: 'my-book-u1', name: 'my book' }]);
+    expect(opened).toEqual(['my-book-u1']);
+    expect(render().props?.['data-novel-project-open']).toBe('my-book-u1');
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(true);
     expect(collect(render(), 'p').some((node) => node.props?.['data-novel-upload-result'] !== undefined)).toBe(true);
   });

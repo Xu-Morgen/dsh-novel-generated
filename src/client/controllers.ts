@@ -21,7 +21,7 @@
 import type { WorkbenchActions } from './store/types.js';
 import { reloadProject, type ProjectOpenLayers } from './project-session.js';
 import { toUserMessage } from './presentation.js';
-import { uploadDocx } from './upload.js';
+import { projectIdForUpload, uploadDocx } from './upload.js';
 import {
   ANALYSIS_POLL_INTERVAL_MS,
   adjudicateOne,
@@ -472,7 +472,8 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
     void uploadDocx(target, file, (progress) => deps.dispatch((x) => x.uploadProgress(progress))).then(
       (result) => {
         deps.endOp('upload');
-        deps.dispatch((x) => { x.uploadSettled(result); x.uploadProgress({ phase: 'done' }); });
+        const { uploadId, ...uploadResult } = result;
+        deps.dispatch((x) => { x.uploadSettled(uploadResult); x.uploadProgress({ phase: 'done' }); });
         const projectId = deps.currentProjectId();
         // 创作台内（非浏览）上传 → 对当前作品发起六层分析（既有 I53 自由文本/DOCX 入口）；
         // 项目目录层（无作品或浏览中）上传 → 一律新建独立作品，审阅在目录层展示。
@@ -486,7 +487,7 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
         // is presented at the project-directory level（审阅部分提到项目目录），
         // so stay in the chooser view instead of entering the workbench.
         const name = result.fileName.replace(/\.docx$/i, '') || '未命名作品';
-        deps.createProject({ projectId: slug(name), name }, () => {
+        deps.createProject({ projectId: projectIdForUpload(name, uploadId), name }, () => {
           const openedId = deps.currentProjectId();
           if (openedId !== undefined) {
             deps.startAnalysis(openedId, result.sourceHash, result.text);
