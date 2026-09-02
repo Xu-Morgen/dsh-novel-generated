@@ -2,13 +2,14 @@ import { z } from 'zod';
 
 /**
  * LLM 设置页（额外页面）的 Remote 契约：用户手动输入自定义 API URL、模型名称
- * 与 API Key，Host 负责持久化到本地 DSH（settings.yaml / .credentials.yaml /
- * a2-settings.yaml）。Key 只经 Host 落盘，永不回传浏览器（design §0.1.2 凭据 seam）。
+ * 与 API Key，Host 负责经 DSH settings/credentials seam 持久化 provider、凭据引用
+ * 与 A2 active backend。Key 只交给 Host 的 `ctx.credentials`，永不回传浏览器
+ * （design §0.1.2 / §14.19）。
  */
 
 /** 本插件在 DSH `llm-pi-ai.providers` 中拥有的 provider id。 */
 export const NOVEL_LLM_PROVIDER_ID = 'novel-custom';
-/** Key 写入 `~/.dsh/.credentials.yaml` 时使用的环境引用名。 */
+/** 交给 DSH `CredentialProvider` 管理并由 provider 配置引用的凭据名。 */
 export const NOVEL_LLM_CREDENTIAL_REF = 'NOVEL_CUSTOM_API_KEY';
 
 /** 模型名不得含 `/` 或空白（modelRef 必须为 provider/model 形式）。 */

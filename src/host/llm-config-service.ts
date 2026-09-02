@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { credentialRef, type CredentialProvider } from '@deepseek-ai/dsh-credentials';
 import { dump, load } from 'js-yaml';
 
 import {
@@ -27,20 +28,24 @@ import {
 import { readYaml } from '../core/io/yaml.js';
 
 /**
- * LLM 设置持久化 owner（本地 DSH 三处文件，设计 §0.1.2 凭据/设置 seam）：
+ * LLM 设置持久化 owner（设计 §0.1.2 / §14.19 凭据与设置 seam）：
  *
- * - `~/.dsh/.credentials.yaml`：API Key 按环境引用名写入（凭据 seam，永不进项目）；
+ * - `ctx.credentials`：API Key 按环境引用名交给 DSH canonical owner（永不进项目）；
  * - `~/.dsh/settings.yaml`：在 `llm-pi-ai.providers.novel-custom` 注册
  *   OpenAI 兼容 provider（baseURL + apiKeyEnv + models），供 DSH `ctx.llm` 路由；
  * - `~/.dsh/novel-settings/a2-settings.yaml`：把活动 backend 切到该自定义路由。
  *
- * 合并均为读-改-写，保留 DSH 已存在的其它 providers/凭据；Key 永不从 load 返回。
+ * settings 合并为读-改-写；凭据文件 schema、权限、锁和热重载完全归 DSH
+ * `CredentialProvider`。Key 永不从 load 返回。
  */
 
 export interface NovelLlmConfigService {
   load(): Promise<LlmConfigView>;
   save(input: LlmConfigSaveInput): Promise<LlmConfigSaveResult>;
 }
+
+/** I152：配置面只消费凭据公开 seam，不读取值，也不拥有 provider 的落盘格式。 */
+export type NovelLlmCredentialService = Pick<CredentialProvider, 'describe' | 'set'>;
 
 /** 读取一个可能缺失/损坏的 YAML 文件为对象，失败按空对象处理。 */
 async function readYamlObject(filePath: string): Promise<Record<string, unknown>> {
@@ -73,12 +78,18 @@ function mergeProvider(settingsDoc: Record<string, unknown>, providerId: string,
 }
 
 export function createLlmConfigService(
+  credentials: NovelLlmCredentialService | undefined,
   dshHome: string = process.env.DSH_HOME ?? join(homedir(), '.dsh'),
   settingsRoot?: string,
 ): NovelLlmConfigService {
   const settingsFile = join(dshHome, 'settings.yaml');
-  const credentialsFile = join(dshHome, '.credentials.yaml');
   const index = new SettingsIndex(settingsRoot);
+  const credential = credentialRef(NOVEL_LLM_CREDENTIAL_REF);
+
+  const requireCredentials = (): NovelLlmCredentialService => {
+    if (!credentials) throw new Error('DSH credentials service is unavailable');
+    return credentials;
+  };
 
   const readProvider = async (): Promise<{ baseUrl: string; model: string }> => {
     const doc = await readYamlObject(settingsFile);
@@ -92,9 +103,8 @@ export function createLlmConfigService(
   };
 
   const readHasKey = async (): Promise<boolean> => {
-    const creds = await readYamlObject(credentialsFile);
-    const value = creds[NOVEL_LLM_CREDENTIAL_REF];
-    return typeof value === 'string' && value.length > 0;
+    const info = await requireCredentials().describe(credential);
+    return info.configured;
   };
 
   /**
@@ -135,17 +145,18 @@ export function createLlmConfigService(
     async save(input) {
       // 显式声明输出类型：zod 泛型推断会把字段枚举宽化为 string。
       const parsed = llmConfigSaveInputSchema.parse(input) as LlmConfigSaveInput;
-      // 1. API Key → 本地 DSH 凭据 seam。Key 留空 = 保留已保存的 Key；两者皆无则报错。
+      // 1. API Key → DSH credentials seam。必须先提交凭据；失败时 settings/A2 零写。
+      // Key 留空表示保留任一有效来源（file/env/.env），配置面只询问 describe，绝不读值。
       const apiKey = parsed.apiKey.trim();
-      let effectiveKey = apiKey;
-      if (effectiveKey === '') {
-        const existing = (await readYamlObject(credentialsFile))[NOVEL_LLM_CREDENTIAL_REF];
-        if (typeof existing !== 'string' || existing.length === 0) {
+      const credentialService = requireCredentials();
+      if (apiKey === '') {
+        const existing = await credentialService.describe(credential);
+        if (!existing.configured) {
           throw new Error('请先填写 API Key（当前未保存任何 Key，留空无法保留）');
         }
-        effectiveKey = existing;
+      } else {
+        await credentialService.set(credential, apiKey);
       }
-      await mergeYaml(credentialsFile, (doc) => { doc[NOVEL_LLM_CREDENTIAL_REF] = effectiveKey; });
       // 2. provider 路由 → settings.yaml（OpenAI 兼容 completions 端点）。
       await mergeYaml(settingsFile, (doc) => mergeProvider(doc, NOVEL_LLM_PROVIDER_ID, {
         apiKeyEnv: NOVEL_LLM_CREDENTIAL_REF,

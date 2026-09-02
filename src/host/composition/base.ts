@@ -132,7 +132,9 @@ export function assembleBaseServices(base: CompositionBase): BaseServices {
   const inspirationService = createInspirationService(llm, onFiberDispose);
   ctx.provide('novelInspiration', inspirationService);
   const uploadService = createHostUploadService(onFiberDispose);
-  const llmConfigService = createLlmConfigService(undefined, config.settingsRoot);
+  // I152（设计 §14.19）：凭据 schema/权限/锁/热重载归 DSH canonical provider；
+  // LLM 配置面只消费同一个 ctx.credentials seam，不再直接碰凭据文件。
+  const llmConfigService = createLlmConfigService(credentials, undefined, config.settingsRoot);
   // I91：defineRemote 第 5 参传 descriptor（仅类型面）—— call 闭包与 descriptor
   // 派生形状逐位对齐，方法签名变更在接线层即报编译错（review v2.0 §3.1）。
   ctx.provide('novelLlmConfig', defineRemote('novelLlmConfig', 'novelLlmConfig', llmConfigService, [

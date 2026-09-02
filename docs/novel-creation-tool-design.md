@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I150 全部完成**，Stage 19（I141–I149）与 I150 范围细纲修复已成为当前代码基线；当前执行 I151，交付作品首次导入时一次性规则与文风 LLM 初始化及本地文件落地；v3.2 原 I151–I162 改为后置设计包；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I151 全部完成**；当前顺序执行 I152，将自定义 LLM 凭据读写归还 DSH `ctx.credentials` canonical owner；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -27,10 +27,11 @@
 | **v3.1（2026-09-01）** | 按设计审查收缩 Stage 19：I141–I149 只交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E，不再夹带 C5 保真导入。新增 Stage 20 / R20（I150–I154）以纯重构建立结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / R21（I155–I161）在该地基上交付已有正文保真导入。修复原 I141 过早冻结 Remote、I146 隐含通用 UoW、I147 隐含结构化 DOCX reader 及后半段大卡过重问题；§0.1、13 层模型和 I1–I140 历史保持不变。 |
 | **v3.2（2026-09-01）** | 在原 I150 前插入范围细纲生成修复 I150：当前选中节直接成为生成范围，作者可提交生成要求并对已有节显式追加新的 LLM 候选，逐卡选择是否保留；已有卡与范围外内容保持保护。大纲工作区下拉框显示中文标签但不改变 canonical 枚举。原 Stage 20 顺延为 I151–I155，原 Stage 21 顺延为 I156–I162；22 个 Stage 与宿主基线不变。 |
 | **v3.3（2026-09-01）** | 将 v3.2 原 I151–I162 导入基础设施与正文保真卡片整体改为后置设计包，原编号只作 provenance，恢复时必须重新编号。当前路线切换为查漏补缺：I150 已完成范围细纲修复，I151 只在作品首次导入事件中启动一次 Host-owned“规则与文风初始化” LLM 任务，候选经 I11 后分别落地 `rules/*.yaml` 与 `style.yaml`，后续只允许用户经现有 B1/B4 控制面手工改写。应用启动/打开作品不得被视为初始化事件。§0.1 宿主基线与 I1–I150 交付事实不变。 |
+| **v3.3 宿主兼容修订（2026-09-02）** | 同步 I151 已完成事实；按连续编号新增 I152，修复 `novelLlmConfig` 直接按旧扁平布局改写 `.credentials.yaml` 的宿主合同违例。凭据状态与保存只经 `ctx.credentials.describe/set`；`novel-custom` provider、公开 Remote、A2 路由及生成行为不变。v3.2 后置卡片的旧编号只作 provenance，不占用当前编号。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：`README.md`、`novel-creation-tool-development-plan.md`、`novel-creation-tool-requirements.md` 与 `AGENTS.md` 均以 v3.3 为当前目标和执行材料。I1–I150 已完成，当前执行 I151 首次导入规则/文风初始化。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得使用原编号执行或与当前 I151 混用；恢复时必须重新编号并重新冻结验收。
+> **v3.3 current supersession / 同步状态**：I1–I151 已完成，当前顺序执行 I152 credentials seam 兼容修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I152 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1229,6 +1230,12 @@ project/
 - LLM 结果只是可编辑初稿；Client 展示 B1/B4 双分区预览，用户可手工修改或拒绝。接受必须复用唯一 I11 ConfirmationGate，待 project/source/session/fingerprint freshness 复验后由 Host 经现有 `NovelRuleService`/`NovelStyleService` 落地，Client 不得读写文件。
 - B1 的唯一作品真相仍是 `rules/*.yaml`，B4 的唯一作品真相仍是 `style.yaml`。成功响应前必须证明所有选中规则文件与风格文件已完整写入；拒绝、取消、stale、非空 B1/B4 或任一写入失败不得返回伪成功，也不得静默覆盖作者现值。
 - 首次成功落地后，后续修改只经 I67 已有 B1/B4 控制面与 Host 领域校验进行；再次打开应用只读取本地文件，不启动 LLM。模型未配置或任务失败时，明确显示可重试同一首次导入任务或转手工录入，不阻塞作品数据打开。
+
+### 14.19 I152：自定义 LLM 凭据的 DSH seam 所有权修复
+
+- `novel-custom` 是本项目为了把作者填写的 OpenAI-compatible endpoint 接入 DSH `llm-pi-ai` 而创建的固定 provider route；它不是新模型实现，也不拥有另一套作品数据读取或 prompt 流程。小说所有生成仍经同一 A2 active backend、上下文组装器与 `ctx.llm`，差异仅在最终 provider/model/endpoint 路由。
+- `.credentials.yaml` 的 schema、文件权限、跨进程锁、热重载和来源优先级属于 DSH `CredentialProvider`。小说插件只保存引用名 `NOVEL_CUSTOM_API_KEY`，配置状态经 `describe()`，新值经 `set()`；禁止直接读取、合并或整体回写凭据文件。
+- 修复不得改变 `novelLlmConfig` Remote 形状、`novel-custom` provider id、A2 `modelRef`/`secretRef`、采样参数或任何 prompt/schema。缺失 credentials seam、环境只读遮蔽或 provider 写失败必须在 settings/A2 改写前 fail closed。
 
 ---
 

@@ -1,10 +1,13 @@
+import { Context } from '@deepseek-ai/cordis';
+import { credentialKey, credentialRef } from '@deepseek-ai/dsh-credentials';
+import LocalCredentialProvider, { parseCredentialsDocument } from '@deepseek-ai/dsh-credentials-local';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { load } from 'js-yaml';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { createLlmConfigService } from './llm-config-service.js';
+import { createLlmConfigService, type NovelLlmCredentialService } from './llm-config-service.js';
 import { A2_SETTINGS_FILE, resolveA2GenerationConfig } from '../core/settings-index/index.js';
 import { NOVEL_LLM_CREDENTIAL_REF, NOVEL_LLM_PROVIDER_ID } from '../core/schema/llm-config.js';
 
@@ -22,20 +25,31 @@ async function makeHome(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'novel-llm-config-'));
 }
 
-describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => {
+function fakeCredentials(initiallyConfigured = false): NovelLlmCredentialService & {
+  describe: ReturnType<typeof vi.fn>;
+  set: ReturnType<typeof vi.fn>;
+} {
+  let configured = initiallyConfigured;
+  return {
+    describe: vi.fn(async () => ({ configured, ...(configured ? { source: 'file' } : {}), writable: true })),
+    set: vi.fn(async () => { configured = true; }),
+  };
+}
+
+describe('I152 novel LLM config service (DSH credentials seam + settings/A2)', () => {
   it('persists key, provider route and A2 active backend, and load never returns the key', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
-    const service = createLlmConfigService(dshHome, settingsRoot);
+    const credentials = fakeCredentials();
+    const service = createLlmConfigService(credentials, dshHome, settingsRoot);
 
     await expect(service.load()).resolves.toEqual({ providerId: NOVEL_LLM_PROVIDER_ID, baseUrl: '', model: '', hasKey: false, ...VIEW_DEFAULTS });
 
     const saved = await service.save(SAVE_INPUT);
     expect(saved).toEqual({ ok: true, modelRef: `${NOVEL_LLM_PROVIDER_ID}/gpt-4o` });
 
-    // 1. credentials.yaml 只多一个引用键，值即用户 key。
-    const credentials = load(await readFile(join(dshHome, '.credentials.yaml'), 'utf8')) as Record<string, unknown>;
-    expect(credentials[NOVEL_LLM_CREDENTIAL_REF]).toBe(SAVE_INPUT.apiKey);
+    // 1. Key 只交给 DSH credentials seam；配置服务不拥有凭据文件格式。
+    expect(credentials.set).toHaveBeenCalledWith(credentialRef(NOVEL_LLM_CREDENTIAL_REF), SAVE_INPUT.apiKey);
     // 2. settings.yaml 注册 OpenAI 兼容 provider。
     const settings = load(await readFile(join(dshHome, 'settings.yaml'), 'utf8')) as {
       'llm-pi-ai'?: { providers?: Record<string, { apiKeyEnv?: string; api?: string; baseURL?: string; models?: Array<{ id?: string }> }> };
@@ -62,7 +76,7 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
   it('persists maxTokens and thinking controls into A2 sampling and resolves them into generation settings', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
-    const service = createLlmConfigService(dshHome, settingsRoot);
+    const service = createLlmConfigService(fakeCredentials(), dshHome, settingsRoot);
 
     await service.save({ ...SAVE_INPUT, maxTokens: 131072, thinking: 'disabled', reasoningEffort: 'low' });
 
@@ -91,6 +105,7 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
   it('merges without clobbering existing DSH providers or credentials', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
+    const credentials = fakeCredentials();
     await writeFile(join(dshHome, 'settings.yaml'), [
       'llm-pi-ai:',
       '  providers:',
@@ -102,18 +117,63 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
       '        - id: gpt-5.6-sol',
       '',
     ].join('\n'));
-    await writeFile(join(dshHome, '.credentials.yaml'), 'DEEPSEEK_API_KEY: sk-existing\n');
-
-    const service = createLlmConfigService(dshHome, settingsRoot);
+    const service = createLlmConfigService(credentials, dshHome, settingsRoot);
     await service.save(SAVE_INPUT);
 
     const settings = load(await readFile(join(dshHome, 'settings.yaml'), 'utf8')) as Record<string, unknown>;
     const providers = (settings['llm-pi-ai'] as { providers: Record<string, unknown> }).providers;
     expect(providers['codex5']).toBeDefined();
     expect(providers[NOVEL_LLM_PROVIDER_ID]).toBeDefined();
-    const credentials = load(await readFile(join(dshHome, '.credentials.yaml'), 'utf8')) as Record<string, unknown>;
-    expect(credentials['DEEPSEEK_API_KEY']).toBe('sk-existing');
-    expect(credentials[NOVEL_LLM_CREDENTIAL_REF]).toBe(SAVE_INPUT.apiKey);
+    expect(credentials.set).toHaveBeenCalledWith(credentialRef(NOVEL_LLM_CREDENTIAL_REF), SAVE_INPUT.apiKey);
+
+    await rm(dshHome, { recursive: true, force: true });
+    await rm(settingsRoot, { recursive: true, force: true });
+  });
+
+  it('uses the real rc.2 LocalCredentialProvider and preserves its versioned refs/records document', async () => {
+    const dshHome = await makeHome();
+    const settingsRoot = await makeHome();
+    const ctx = new Context();
+    await ctx.plugin(LocalCredentialProvider, { dshHome, watch: false });
+    try {
+      const existingRef = credentialRef('EXISTING_API_KEY');
+      const existingRecord = credentialKey('llm-pi-ai', 'existing-route');
+      await ctx.credentials.set(existingRef, 'sk-existing-value');
+      await ctx.credentials.modifyRecord(existingRecord, async () => ({ kind: 'api-key', key: 'sk-record-value' }));
+
+      const service = createLlmConfigService(ctx.credentials, dshHome, settingsRoot);
+      await service.save(SAVE_INPUT);
+
+      const filename = join(dshHome, '.credentials.yaml');
+      const raw = await readFile(filename, 'utf8');
+      const document = parseCredentialsDocument(raw, filename);
+      expect(document.refs.get('EXISTING_API_KEY')).toBe('sk-existing-value');
+      expect(document.refs.get(NOVEL_LLM_CREDENTIAL_REF)).toBe(SAVE_INPUT.apiKey);
+      expect(document.records.get(existingRecord)).toEqual({ kind: 'api-key', key: 'sk-record-value' });
+      expect(load(raw)).toMatchObject({ version: 1, refs: { EXISTING_API_KEY: 'sk-existing-value', [NOVEL_LLM_CREDENTIAL_REF]: SAVE_INPUT.apiKey } });
+      await expect(ctx.credentials.resolve(credentialRef(NOVEL_LLM_CREDENTIAL_REF))).resolves.toEqual({ value: SAVE_INPUT.apiKey, source: 'file' });
+    } finally {
+      await ctx.fiber.dispose();
+      await rm(dshHome, { recursive: true, force: true });
+      await rm(settingsRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('fails closed before settings/A2 writes when the credentials seam is absent or rejects a write', async () => {
+    const dshHome = await makeHome();
+    const settingsRoot = await makeHome();
+    const unavailable = createLlmConfigService(undefined, dshHome, settingsRoot);
+    await expect(unavailable.load()).rejects.toThrow(/credentials service is unavailable/);
+    await expect(unavailable.save(SAVE_INPUT)).rejects.toThrow(/credentials service is unavailable/);
+
+    const rejecting: NovelLlmCredentialService = {
+      describe: async () => ({ configured: true, source: 'env', writable: false }),
+      set: async () => { throw new Error('credential is supplied read-only by the launching environment'); },
+    };
+    const service = createLlmConfigService(rejecting, dshHome, settingsRoot);
+    await expect(service.save(SAVE_INPUT)).rejects.toThrow(/read-only/);
+    await expect(readFile(join(dshHome, 'settings.yaml'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(readFile(join(settingsRoot, A2_SETTINGS_FILE), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
 
     await rm(dshHome, { recursive: true, force: true });
     await rm(settingsRoot, { recursive: true, force: true });
@@ -121,7 +181,7 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
 
   it('rejects invalid baseUrl, empty model or short key', async () => {
     const dshHome = await makeHome();
-    const service = createLlmConfigService(dshHome);
+    const service = createLlmConfigService(fakeCredentials(), dshHome);
     await expect(service.save({ ...SAVE_INPUT, baseUrl: 'not-a-url' })).rejects.toThrow(/API URL/);
     await expect(service.save({ ...SAVE_INPUT, model: '' })).rejects.toThrow(/模型名称/);
     await expect(service.save({ ...SAVE_INPUT, model: 'a/b' })).rejects.toThrow(/模型名称/);
@@ -132,14 +192,14 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
   it('keeps the stored key when save passes an empty key, and rejects an empty key with none stored', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
-    const service = createLlmConfigService(dshHome, settingsRoot);
+    const credentials = fakeCredentials();
+    const service = createLlmConfigService(credentials, dshHome, settingsRoot);
 
     await expect(service.save({ ...SAVE_INPUT, apiKey: '' })).rejects.toThrow(/API Key/);
 
     await service.save(SAVE_INPUT);
     await service.save({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', apiKey: '', maxTokens: 65536, thinking: 'disabled', reasoningEffort: 'low' });
-    const credentials = load(await readFile(join(dshHome, '.credentials.yaml'), 'utf8')) as Record<string, unknown>;
-    expect(credentials[NOVEL_LLM_CREDENTIAL_REF]).toBe(SAVE_INPUT.apiKey);
+    expect(credentials.set).toHaveBeenCalledTimes(1);
     const view = await service.load();
     expect(view).toMatchObject({ baseUrl: 'https://new.example.com/v1', model: 'gpt-5', hasKey: true, maxTokens: 65536, thinking: 'disabled' });
 
@@ -150,7 +210,7 @@ describe('I-novel LLM config service (本地 DSH 三处文件持久化)', () => 
   it('persists the A2 file path listed in the error surface', async () => {
     const dshHome = await makeHome();
     const settingsRoot = await makeHome();
-    const service = createLlmConfigService(dshHome, settingsRoot);
+    const service = createLlmConfigService(fakeCredentials(), dshHome, settingsRoot);
     await service.save(SAVE_INPUT);
     await expect(readFile(join(settingsRoot, A2_SETTINGS_FILE), 'utf8')).resolves.toContain(NOVEL_LLM_PROVIDER_ID);
     await rm(dshHome, { recursive: true, force: true });

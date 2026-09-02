@@ -2,7 +2,7 @@
 
 > 版本：v3.3
 > 日期：2026-09-01
-> 状态：当前执行权威（**I1–I150 全部完成**；Stage 18、Stage 19 与 I150 已成为真实代码基线；当前执行 I151 首次导入规则与文风初始化；v3.2 原 I151–I162 为后置 provenance）
+> 状态：当前执行权威（**I1–I151 全部完成**；当前顺序执行 I152 DSH credentials seam 兼容修复；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v3.3（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.3（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -16,7 +16,7 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- 当前单一执行卡为 Stage 20 查漏补缺 I151：首次导入规则与文风初始化。v3.2 原 Stage 20/21 和原 I151–I162 整体后置，不计入当前可执行迭代数；唯一可复现项目 DSH family pin 为 `0.1.1-rc.2`。
+- I151 首次导入规则与文风初始化已完成。当前单一执行卡为 Stage 21 / I152：修复 LLM 设置页绕过 `ctx.credentials` 写出 rc.2 非法顶层凭据键；v3.2 原 I151–I162 仍只作后置 provenance，不占用当前连续迭代编号。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -26,6 +26,7 @@
 - v3.1（2026-09-01）：按设计审查收缩 Stage 19 / **I141–I149** 为来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与产品 E2E；新增 Stage 20 / **I150–I154** 纯重构结构化来源、共享 import operation 与空作品初始化 UoW；新增 Stage 21 / **I155–I161** 独立交付已有正文保真导入。I141 不再提前冻结无服务语义 Remote，C3/C4、结构化 DOCX、UoW、manuscript candidate 与应用均拆为独立可验收切片。
 - v3.2（2026-09-01）：在原 I150 前插入范围细纲生成产品修复迭代 **I150**；原 Stage 20 I150–I154 顺延为 **I151–I155**，原 Stage 21 I155–I161 顺延为 **I156–I162**。修复只扩展 I133–I134/R18-12 与 I139–I140/R18-15：选中节自动接线、作者生成要求、对已有节显式追加 LLM 新候选、逐卡保留、原卡保护与大纲工作区下拉框中文显示；不改底层枚举值，不夹带导入基础设施或正文保真能力。
 - v3.3（2026-09-01）：将 v3.2 原 I151–I162 导入基础设施/正文保真卡片完整保留为后置 F1/F2 provenance，原编号不再是可执行身份，恢复时必须重新编号。当前进入查漏补缺：I150 保持原修复边界，I151 仅在作品首次导入事件中启动一次“规则与文风初始化” LLM 任务，经 I11 后写入 `rules/*.yaml` 与 `style.yaml`，后续只手工改写。
+- v3.3 宿主兼容修订（2026-09-02）：I151 已完成；按连续编号新增 Stage 21 / I152，修复自定义 LLM 配置直接读写旧扁平 `.credentials.yaml` 的宿主合同违例。凭据读写收敛到 `ctx.credentials`，`novel-custom` 路由和公开 Remote 保持不变；v3.2 后置卡片中的旧编号只作 provenance。
 
 ### 0.2 Goal
 
@@ -1532,6 +1533,20 @@ TDD Route:
 - **明确不做**：不在 app/open 时根据空文件推断初始化，不对纯空白创建臆造内容，不覆盖已有规则/风格，不为日常编辑保留 LLM 重生成，不恢复 F1/F2，不改六层裁决语义。
 - **验证**：`pnpm run verify:i151`；`pnpm run verify:product-flow`；`pnpm run verify:stage-20`；`artifacts/i151-rule-style-import-initialization.json`。
 
+## 22. Stage 21：DSH credentials seam 兼容修复（R23，I152）
+
+**阶段门**：`pnpm run verify:stage-21`。当前执行编号严格承接已完成 I151，因此使用 I152；v3.2 后置包中的旧 I151–I162 标签只作非执行 provenance，不占用当前编号，也不恢复 F1/F2。
+
+### I152：自定义 LLM 凭据归还 `ctx.credentials` canonical owner（R23-1）
+
+- **依赖**：I31、I85、I91、I151；**canonical owner**：DSH `ctx.credentials` / `CredentialProvider`。
+- **目标**：消除 `NovelLlmConfigService` 对 `$DSH_HOME/.credentials.yaml` schema、权限、锁和热重载的越权所有权；保存经 `CredentialProvider.set()`，配置状态经 `describe()`，由 rc.2 provider 自行维护 `version: 1` / `refs` 文档。
+- **兼容/退役**：`novel-custom` provider id、`novelLlmConfig.load/save` Remote 形状、`settings.yaml` 的 `llm-pi-ai.providers.novel-custom`、A2 `modelRef`/`secretRef` 全部保持兼容；退役小说插件直接读写 `.credentials.yaml` 的内部实现。
+- **交付物**：`@deepseek-ai/dsh-credentials` 精确生产依赖与 `dsh-credentials-local` 测试依赖；credentials seam 注入；真实 LocalCredentialProvider 消费者夹具；非法/缺失/只读 seam 负测；I152 smoke 产物。
+- **验收**：真实 rc.2 provider 保存后文档只有 `version`/`refs`/`records` 顶层空间且引用可立即解析；其他 refs/records 保留；留空 API key 只在已配置时允许；缺失 seam、只读环境遮蔽、provider set 失败均零 settings/A2 写；Client/Remote 不出现 key；源码不再直接读写 `.credentials.yaml`；全量回归与 I85 宿主门全绿。
+- **明确不做**：不升级 DSH，不新增或复制模型路由，不改 provider/model/sampling/prompt/schema，不自动修改用户现有损坏文件，不恢复 F1/F2。
+- **验证**：`pnpm run verify:i152`；`pnpm run verify:stage-21`；`artifacts/i152-credentials-seam.json`。
+
 ## Deferred Package F1：导入基础设施重构（v3.2 原 Stage 20 / I151–I155）
 
 > **后置说明**：下列卡片完整保留 v3.2 设计意图，但原 I151–I155 只作 provenance，不得执行原 `verify:i151`–`verify:i155` 或占用当前 I151 身份。恢复时必须重新编号、重新冻结依赖和验证命令。
@@ -1664,9 +1679,9 @@ TDD Route:
 
 ## 23. 完成线
 
-I1–I150 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复。
+I1–I151 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化。
 
-v3.3 当前进度：**Stage 19 来源确认与幕后素材 POV 叙事化 I141–I149 已完成 → I150 范围细纲修复已完成 → 当前执行 Stage 20 / I151 首次导入规则与文风初始化**。v3.2 原 I151–I162 为后置 F1/F2 provenance，不得依原编号执行。当前 I151 未达 DoD 不得进入下一迭代。
+v3.3 当前进度：**Stage 20 / I151 已完成 → 当前顺序执行 Stage 21 / I152 credentials seam 兼容修复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
 
 I74 完成时还必须证明：
 

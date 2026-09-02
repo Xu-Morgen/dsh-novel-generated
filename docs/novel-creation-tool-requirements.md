@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v3.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺与后置 F1/F2 边界。
 2. 本文件 v3.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I150 的完成事实、当前 I151 查漏补缺卡片及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I151 的完成事实、当前顺序 I152 credentials seam 兼容修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
 4. `AGENTS.md` v3.3：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I150 全部完成**；Stage 18 的 README 十二步产品流、合同地基与新增能力，Stage 19 的来源确认、幕后素材叙事化、C3/C4 安全边界与产品 E2E，以及 I150 范围细纲修复均已通过各自 verify 并成为当前代码基线。当前执行 I151，交付作品首次导入触发的一次性 B1/B4 LLM 初始化与本地文件落地。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作 provenance，恢复时必须重新编号。旧 I103–I112 十张大卡、v2.7 的 I107–I128 编号及“Stage 18 先行”顺序均已失效。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
+- 当前迭代身份：**I1–I151 全部完成**。当前顺序执行 I152，修复自定义 LLM 配置绕过 DSH `ctx.credentials`、向 rc.2 文档写入非法顶层凭据键的问题。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R22 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
@@ -61,6 +61,7 @@
 | Stage 18 合同地基、作者主流程与新增功能（R18） | I103–I140 | `pnpm run verify:stage-18` |
 | Stage 19 来源确认与幕后素材 POV 叙事化（R19） | I141–I149 | `pnpm run verify:stage-19` |
 | Stage 20 查漏补缺（R18-12、R18-15、R22） | I150–I151 | `pnpm run verify:stage-20` |
+| Stage 21 DSH credentials seam 兼容修复（R23） | I152 | `pnpm run verify:stage-21` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -552,6 +553,12 @@ README 仍为唯一 12 步，不增加步骤数量：
 |---|---|---|---|
 | R22-1 | 仅在 Host 确认的新建/空作品**首次受控导入事件**中，同时启动一个 Host-owned“规则与文风初始化” LLM 任务。它是独立于 I52 六层 analyzer 的单次 strict B1+B4 候选任务，不改 `ONBOARDING_LAYER_KEYS`。候选可编辑，规则初稿强制 `immutable:false`，经唯一 I11 确认和 freshness 复验后由 Host 分别写入 `rules/*.yaml` 与 `style.yaml`；成功后不再提供 LLM 重生成，后续只经 I67 控制面手工改写。 | 先冻结 dev/held-out/gold 和 fake backend，B1/B4 每类 ≥80%；首次导入精确一次 LLM，同 operation 重试/重放不重复启动；应用启动、Client 挂载、`projectOpen`、重开、空白创建、后续导入和“B1/B4 文件为空”均零 LLM；跨 project/source/session、stale、reject/cancel、非空 B1/B4、非法结果和任一写入失败零覆盖/不伪成功；重启只从本地文件读取。 | I151 |
 
+## R23. DSH credentials seam 兼容修复（I152）
+
+| ID | 需求 | 验收/证据 | 迭代 |
+|---|---|---|---|
+| R23-1 | `novelLlmConfig` 不得直接解析或改写 `$DSH_HOME/.credentials.yaml`；Host 必须经 DSH `ctx.credentials` 的 `describe/set` 管理 `NOVEL_CUSTOM_API_KEY`。`novel-custom` provider id、Remote 形状、A2 路由及生成参数保持不变。 | 真实 rc.2 `LocalCredentialProvider` 消费者夹具生成 `version: 1` + `refs` 合法文档并可立即 resolve；其他 refs/records 保留；缺 seam、环境只读遮蔽、写入失败均 fail closed 且零 settings/A2 写；源码负向扫描无凭据文件直写；全量测试与 I85 宿主兼容回归全绿。 | I152 |
+
 ---
 
 ## Deferred / 非目标
@@ -577,6 +584,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I150 已完成。v2.0–v2.9 已交付 Host/Client 产品闭环、作品启动、正文写作、架构治理、Stage 18 合同与 README 十二步作者主流程；Stage 19 / I141–I149 已交付来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与主流程 E2E，I150 已交付范围细纲生成修复。当前执行 I151，交付仅首次导入触发的一次性 B1/B4 LLM 初始化与本地文件落地。v3.2 原 I151–I162 已后置为 F1/F2，恢复时重新编号。**
+**直接结论：I1–I151 已完成。当前顺序执行 I152，将自定义 LLM 密钥读写归还 DSH `ctx.credentials` canonical owner；不改变 `novel-custom` 路由、公开 Remote 或生成语义。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance，不占用当前连续编号。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
