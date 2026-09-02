@@ -444,10 +444,10 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
             ),
             // 既有作品列表（点击打开；返回列表时可切换作品）。
             projects.length > 0 ? h('ul', { className: 'nv-workbench__project-list', 'data-novel-project-list': '' }, projects.map((project) => h('button', { type: 'button', className: 'nv-workbench__project-open', onClick: () => ui.selectProject(project.id), 'data-novel-project-open': project.id }, project.name))) : null,
-            // 审阅部分提到项目目录：文档导入新建作品后，六层分析/审阅在项目目录层展示。
-            // 原文与 sourceHash 保留在 OnboardingState，取消/失败可在此重试；apply 成功后进入创作台。
-            onboardingState === undefined ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },
-              analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
+            // I153：目录层来源审阅不再依赖旧 OnboardingState。新作品 DOCX 会先建立
+            // ImportInterpretationReview；只有显式存在的六层任务才展示旧分析面板。
+            onboardingState === undefined && importReview === null && review === null ? null : h('div', { className: 'nv-onboarding-stack', 'data-novel-directory-review': '' },
+              onboardingState === undefined ? null : analysisPanel(h, onboardingState, () => ui.cancelAnalysis(), () => ui.retryAnalysis()),
               importReview,
               review,
             ),

@@ -1,0 +1,21 @@
+{
+  "iteration": "I153",
+  "requirement": "R24-1",
+  "rootCause": "directory DOCX creation launched legacy six-layer analysis and rendered source review only when OnboardingState existed",
+  "guarantees": [
+    "new-project-docx-opens-source-review",
+    "background-and-existing-prose-options-visible",
+    "existing-protagonist-input-reachable",
+    "legacy-six-layer-not-started-before-source-confirmation",
+    "i151-starts-once-after-confirmed-first-import",
+    "directory-review-independent-of-onboarding-state"
+  ],
+  "explicitNonGoals": [
+    "i150-outline-contract-change",
+    "new-import-enum",
+    "preserve-prose",
+    "prompt-or-sample-change",
+    "host-remote-change",
+    "subsequent-import-redesign"
+  ]
+}

@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I151 全部完成**；当前顺序执行 I152，将自定义 LLM 凭据读写归还 DSH `ctx.credentials` canonical owner；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I152 全部完成**；当前顺序执行 I153，修复目录层 DOCX 新作品导入绕过来源审阅、导致 Stage 19 选项与 I151 不可达的 Client 接线；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -28,10 +28,11 @@
 | **v3.2（2026-09-01）** | 在原 I150 前插入范围细纲生成修复 I150：当前选中节直接成为生成范围，作者可提交生成要求并对已有节显式追加新的 LLM 候选，逐卡选择是否保留；已有卡与范围外内容保持保护。大纲工作区下拉框显示中文标签但不改变 canonical 枚举。原 Stage 20 顺延为 I151–I155，原 Stage 21 顺延为 I156–I162；22 个 Stage 与宿主基线不变。 |
 | **v3.3（2026-09-01）** | 将 v3.2 原 I151–I162 导入基础设施与正文保真卡片整体改为后置设计包，原编号只作 provenance，恢复时必须重新编号。当前路线切换为查漏补缺：I150 已完成范围细纲修复，I151 只在作品首次导入事件中启动一次 Host-owned“规则与文风初始化” LLM 任务，候选经 I11 后分别落地 `rules/*.yaml` 与 `style.yaml`，后续只允许用户经现有 B1/B4 控制面手工改写。应用启动/打开作品不得被视为初始化事件。§0.1 宿主基线与 I1–I150 交付事实不变。 |
 | **v3.3 宿主兼容修订（2026-09-02）** | 同步 I151 已完成事实；按连续编号新增 I152，修复 `novelLlmConfig` 直接按旧扁平布局改写 `.credentials.yaml` 的宿主合同违例。凭据状态与保存只经 `ctx.credentials.describe/set`；`novel-custom` provider、公开 Remote、A2 路由及生成行为不变。v3.2 后置卡片的旧编号只作 provenance，不占用当前编号。 |
+| **v3.3 导入入口修订（2026-09-02）** | 同步 I152 已完成事实；新增 I153 修复目录层 DOCX 新作品入口仍直接启动旧六层分析、且来源审阅渲染错误依赖 `OnboardingState` 的接线回归。新作品上传后先进入既有 Stage 19 来源审阅；背景资料/已有正文与已有主角入口可达，确认后才触发 I151。I150 仍只属于范围细纲生成，不重写其历史边界。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I151 已完成，当前顺序执行 I152 credentials seam 兼容修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I152 不恢复 F1/F2。
+> **v3.3 current supersession / 同步状态**：I1–I152 已完成，当前顺序执行 I153 目录层首次受控导入接线修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I153 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1236,6 +1237,12 @@ project/
 - `novel-custom` 是本项目为了把作者填写的 OpenAI-compatible endpoint 接入 DSH `llm-pi-ai` 而创建的固定 provider route；它不是新模型实现，也不拥有另一套作品数据读取或 prompt 流程。小说所有生成仍经同一 A2 active backend、上下文组装器与 `ctx.llm`，差异仅在最终 provider/model/endpoint 路由。
 - `.credentials.yaml` 的 schema、文件权限、跨进程锁、热重载和来源优先级属于 DSH `CredentialProvider`。小说插件只保存引用名 `NOVEL_CUSTOM_API_KEY`，配置状态经 `describe()`，新值经 `set()`；禁止直接读取、合并或整体回写凭据文件。
 - 修复不得改变 `novelLlmConfig` Remote 形状、`novel-custom` provider id、A2 `modelRef`/`secretRef`、采样参数或任何 prompt/schema。缺失 credentials seam、环境只读遮蔽或 provider 写失败必须在 settings/A2 改写前 fail closed。
+
+### 14.20 I153：目录层 DOCX 首次受控导入入口
+
+- 目录层上传 DOCX 并创建新作品后，Client 必须以 Host 返回的 `sourceHash`、原文和 paragraph chunks 直接建立既有 `ImportInterpretationReview`；不得先启动旧 I52 六层分析。来源审阅必须独立于 `OnboardingState` 渲染，否则无六层任务时会把真实审阅状态隐藏。
+- 作者必须在这条真实产品路径中看到既有 Stage 19 来源角色，包括“背景设定 / 幕后资料”和“已有正文”；选择背景资料、按视角重构、限知视角后，既有主角 ID 与待创建主角候选入口必须可达。本迭代不新增 enum，也不把“已有主角”误建为来源类型。
+- I151 仍只由首个已确认 import session 触发：确认前零规则/文风 LLM，确认后精确一次 begin，并继续经 I11 才写入 B1/B4。I153 只修 Client 入口接线，不改变 I150 范围细纲、I151 Host/Remote/schema、上传/项目 Remote 或后置正文保真边界。
 
 ---
 

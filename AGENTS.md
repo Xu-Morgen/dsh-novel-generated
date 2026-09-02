@@ -12,7 +12,7 @@
 
 1. `docs/novel-creation-tool-design.md`（v3.3）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v3.3）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v3.3）—— 执行层；**I1–I151 全部完成**。当前顺序执行 I152：把自定义 LLM 凭据读写归还 DSH `ctx.credentials`，修复 rc.2 凭据文档非法顶层键；`novel-custom` 路由和公开合同不变。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
+3. `docs/novel-creation-tool-development-plan.md`（v3.3）—— 执行层；**I1–I152 全部完成**。当前顺序执行 I153：修复目录层 DOCX 新建作品仍绕过 Stage 19 来源审阅、导致来源选项和 I151 初始化不可达的 Client 接线。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级宿主基线（不可修改）
@@ -38,7 +38,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 新增功能的公开合同政策：既有 invocation 的方法名、参数、结果必须向后兼容；允许新增 strict additive Remote 方法/namespace，但必须同步 canonical schema、descriptor/结果 contract lock、adapter 返回类型耦合、真实 DSH binder E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。
-- I1–I151 已完成。当前单一执行卡为 **I152**：`NovelLlmConfigService` 只经 DSH `ctx.credentials.describe/set` 管理 `NOVEL_CUSTOM_API_KEY`，不得直接读写 `.credentials.yaml`；保持 `novel-custom` provider、Remote、A2 路由、采样与 prompt 不变。v3.2 原 I151–I162 仍只作后置 provenance，不占用当前编号；不得借 I152 恢复 F1/F2、升级 DSH 或修改用户凭据文件。每迭代单独 commit，当前验证命令为 `pnpm run verify:i152`。
+- I1–I152 已完成。当前单一执行卡为 **I153**：目录层 DOCX 新建并打开作品后必须直接启动既有来源语义审阅，背景资料/已有正文与已有主角入口可达；来源确认前旧六层分析和 I151 均零调用，确认后 I151 精确启动一次。不得借 I153 改写 I150、来源 enum、Host Remote/prompt/schema 或恢复 F1/F2。每迭代单独 commit，当前验证命令为 `pnpm run verify:i153`。
 
 ## 3. 完成定义（DoD）
 

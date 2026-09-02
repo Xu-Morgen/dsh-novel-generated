@@ -1,14 +1,13 @@
 /**
- * I95 按面板拆分（计划 §18 I95）：项目目录层新增小说作品（空白创建 + 文档导入，审阅提到项目目录）
+ * I95 按面板拆分；I153 将目录层 DOCX 路径迁移到首次受控来源审阅。
  */
 /**
- * I83 拆分自 client.test.ts（架构审查 §4.2）：六层初始化闭环 —— DOCX/空白作品入口、
- * 分析失败、逐层裁决、进度/取消/重试/应用刷新（I52 / I53 / I56 / I57）。
+ * 空白创建仍直接打开；DOCX 新作品必须先确认来源语义，不能再隐式启动旧六层分析。
  */
 
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { analyzerStub, cleanupClientTestEnv, collect, factory, FakeFileReader, fakeReact, flush, I56_LAYERS, layerButtons, makeWorkspace, MountOptions, mount, openOnboardingReview, READY_MODEL, WorkspaceOverrides, type FakeNode } from './client/test-harness.js';
+import { cleanupClientTestEnv, collect, FakeFileReader, flush, mount, READY_MODEL, type FakeNode } from './client/test-harness.js';
 
 afterEach(cleanupClientTestEnv);
 describe('项目目录层新增小说作品（空白创建 + 文档导入，审阅提到项目目录）', () => {
@@ -116,63 +115,12 @@ describe('项目目录层新增小说作品（空白创建 + 文档导入，审�
     // 目录层上传 → 新建独立作品并打开（而不是把文档并入当前作品）。
     expect(created).toEqual([{ projectId: 'untitled-u1', name: '续作' }]);
     expect(opened).toEqual(['untitled-u1']);
-    // 审阅部分提到项目目录：停在浏览态，六层审阅在目录层可见。
+    // I153：停在浏览态，但先显示来源语义审阅，不得启动旧六层审阅。
     expect(byData(render(), 'data-novel-project-browsing', '')).toBeDefined();
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-directory-review'] === '')).toBe(true);
-    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(true);
-    // 创作台 body 未渲染（无任务导航），apply 成功后才进入创作台。
-    expect(collect(render(), 'nav')).toHaveLength(0);
-  });
-
-  it('目录层审阅终态锁定并 apply 成功 → 离开目录层进入创作台角色层', async () => {
-    (globalThis as unknown as { FileReader: unknown }).FileReader = FakeFileReader;
-    const { registrations } = mount(
-      () => Promise.resolve({ ok: true, value: READY_MODEL }),
-      {
-        projectList: async () => [],
-        projectCreate: async (input) => ({ id: (input as { projectId: string }).projectId, name: (input as { name: string }).name }),
-        projectOpen: async (id) => ({ project: { id, name: '新书' }, layers: { characters: 'ready', worldview: 'ready', outline: 'ready', relationship: 'ready', state: 'ready', canon: 'ready' } }),
-        ...UPLOAD_CHAIN,
-      },
-      {
-        openProjectId: null,
-        onboardingAnalyzer: analyzerStub(I56_LAYERS),
-        onboarding: {
-          adjudicate: async () => ({ id: 'proposal-1', status: 'accepted' }),
-          finalApply: async () => ({ projectId: 'untitled-u1', onboardingSessionId: 'sess-1', appliedLayers: ['characters'], skippedLayers: ['worldview', 'outline', 'relationship', 'state', 'canon'], blockedLayers: [], pendingLayers: [], retryable: false, errors: [] }),
-        },
-      },
-    );
-    await flush();
-    const render = () => registrations['shell.overlay'][0].component() as FakeNode;
-    const input = collect(render(), 'input').find((node) => node.props?.['data-novel-upload-input'] === '');
-    (input?.props?.onChange as (event: { target: { files: FileList | null } }) => void)({ target: { files: [new File([new Uint8Array([1])], '新书.docx')] as unknown as FileList } });
-    // 等待分析完成、审阅候选出现（与 openOnboardingReview 同款轮询窗口）。
-    for (let round = 0; round < 20; round += 1) {
-      await flush();
-      if (collect(render(), 'button').some((node) => node.props?.['data-novel-onboarding-apply'] !== undefined)) break;
-    }
-    expect(byData(render(), 'data-novel-project-browsing', '')).toBeDefined();
-    // 六层终态：characters 接受，其余显式跳过 → apply 启用。
-    const clickVerdict = (layer: string, decision: string) => {
-      const button = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-verdict'] === layer && node.props?.['data-novel-onboarding-decision'] === decision);
-      (button?.props?.onClick as () => void)();
-    };
-    clickVerdict('characters', 'accept');
-    await flush();
-    for (const layer of ['worldview', 'outline', 'relationship', 'state', 'canon']) {
-      clickVerdict(layer, 'skip');
-      await flush();
-    }
-    const apply = collect(render(), 'button').find((node) => node.props?.['data-novel-onboarding-apply'] === '');
-    expect(apply?.props?.disabled).toBe(false);
-    (apply?.props?.onClick as () => void)();
-    await flush();
-    // apply 成功：审阅消失、离开目录层、进入创作台并落到大纲阶段。
+    expect(collect(render(), 'section').some((node) => node.props?.['data-novel-import-interpretation-review'] === '')).toBe(true);
     expect(collect(render(), 'section').some((node) => node.props?.['data-novel-onboarding'] === '')).toBe(false);
-    expect(byData(render(), 'data-novel-project-browsing', '')).toBeUndefined();
-    expect(render().props?.['data-novel-project-open']).toBe('untitled-u1');
-    expect(render().props?.['data-novel-route']).toBe('workflow');
-    expect(collect(render(), 'li').some((node) => node.props?.['data-novel-workflow-stage'] === 'outline' && node.props?.['data-novel-workflow-stage-state'] === 'current')).toBe(true);
+    // 创作台 body 未渲染（无任务导航），来源确认后才进入后续作者流程。
+    expect(collect(render(), 'nav')).toHaveLength(0);
   });
 });

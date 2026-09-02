@@ -23,7 +23,7 @@ import type { WorkbenchSettingsDraftShape } from './client/workbench-settings.js
 import type { MountContext } from './client/mount.js';
 import { mountRemoteRegistry, type RemoteServiceBag } from './client/mount-registry.js';
 import { createOnboardingController, createProjectController, createSettingsController, createUploadController } from './client/controllers.js';
-import { createImportInterpretationController } from './client/import-interpretation-review.js';
+import { createImportInterpretationController, paragraphsFromHostChunks } from './client/import-interpretation-review.js';
 import { createWorkbenchUi, launchButton, workbenchView, type WorkbenchViewProps } from './client/presenter.js';
 
 /** 侧栏/面板宽度与步进常量已迁至 store 契约层（I82，src/client/store/types.ts）；
@@ -188,6 +188,16 @@ export default function factory(require: BundleRequire): ClientPluginEntry {
         endOp,
         dispatch,
         startAnalysis: (projectId, sourceHash, text) => onboarding.startAnalysis(projectId, sourceHash, text),
+        startSourceReview: (projectId, source) => {
+          // createProject/onOpened 可能与作品切换竞争；只允许刚打开的新作品消费
+          // 这份上传结果，且段落范围始终来自 Host chunks。
+          if (currentProjectId !== projectId) return;
+          try {
+            importInterpretation.begin({ sourceHash: source.sourceHash, text: source.text, paragraphs: paragraphsFromHostChunks(source.chunks) });
+          } catch {
+            importInterpretation.begin({ sourceHash: source.sourceHash, text: source.text, paragraphs: [] });
+          }
+        },
         createProject: (input, onOpened) => project.createProject(input, onOpened),
       });
 

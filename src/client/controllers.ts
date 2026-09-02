@@ -449,6 +449,8 @@ export interface UploadControllerDeps extends ControllerBaseDeps {
   currentProjectId(): string | undefined;
   /** 上传后对当前作品发起六层分析（I53 DOCX 入口；sourceHash/text 已由上传链给出）。 */
   startAnalysis(projectId: string, sourceHash: string, text: string): void;
+  /** I153：目录层新作品导入必须先进入来源审阅，确认后才可继续初始化。 */
+  startSourceReview(projectId: string, source: { sourceHash: string; text: string; chunks: readonly unknown[] }): void;
   /** 目录层上传 → 从 DOCX 新建独立作品。 */
   createProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
 }
@@ -460,8 +462,9 @@ export interface UploadController {
 
 /**
  * DOCX 受控上传链（迁移 ui.uploadFile；uploadDocx 逻辑在 client/upload.ts）。
- * 上传成功后在创作台内（已选作品、非浏览）对当前作品分析；在目录层（无作品或
- * 浏览中）从 DOCX 新建独立作品并在目录层展示审阅（I53 new-work entry）。
+ * 上传成功后在创作台内（已选作品、非浏览）维持既有六层分析；在目录层（无作品或
+ * 浏览中）从 DOCX 新建独立作品，并先展示来源语义审阅。目录层路径不得绕过
+ * Stage 19 来源选择，否则 I151 首次导入事件也不可达。
  */
 export function createUploadController(deps: UploadControllerDeps): UploadController {
   const uploadFile = (file: File, browsing: boolean): void => {
@@ -481,18 +484,15 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
           deps.startAnalysis(projectId, result.sourceHash, result.text);
           return;
         }
-        // I53 DOCX new-work entry: with no project open yet (or browsing
-        // the project directory), create a NEW project from the uploaded
-        // document, open it, then drive the six-layer review. The review
-        // is presented at the project-directory level（审阅部分提到项目目录），
-        // so stay in the chooser view instead of entering the workbench.
+        // I153：目录层 DOCX 是新作品的首次受控导入。创建并打开作品后必须直接
+        // 建立来源审阅；作者确认该 session 才形成 I151 的唯一触发事件。旧实现
+        // 在这里直接启动六层分析，使来源类型/主角选项与规则文风初始化均不可达。
         const name = result.fileName.replace(/\.docx$/i, '') || '未命名作品';
         deps.createProject({ projectId: projectIdForUpload(name, uploadId), name }, () => {
           const openedId = deps.currentProjectId();
           if (openedId !== undefined) {
-            deps.startAnalysis(openedId, result.sourceHash, result.text);
-            // startAnalysis 已切到「六层初始化审阅」页签；browse 让目录层
-            // 可见审阅（apply 成功后 openProject 才进入创作台）。
+            deps.startSourceReview(openedId, { sourceHash: result.sourceHash, text: result.text, chunks: result.chunks });
+            // 来源审阅保持在目录层；确认后由 source-aware workflow 决定后续路径。
             deps.dispatch((actions) => actions.browseProjects());
           }
         });

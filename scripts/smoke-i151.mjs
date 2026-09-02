@@ -29,14 +29,16 @@ if (JSON.stringify([...dev.caseIds, ...heldOut.caseIds]) !== JSON.stringify(gold
 if (lock.descriptorIds.length !== 7 || lock.resultSchemaIds.length !== 7 || lock.descriptorIds.some((id) => id.endsWith('/regenerate'))) fail('strict additive Remote lock shape is invalid');
 if (!onboarding.includes("z.enum(['characters', 'worldview', 'outline', 'relationship', 'state', 'canon'])")) fail('I52 ONBOARDING_LAYER_KEYS baseline changed');
 
-const focused = spawnCaptured('corepack', ['pnpm', 'exec', 'vitest', 'run',
+// I153：Windows 的全局 pnpm 不保证同时安装 corepack；直接使用项目锁定的
+// Vitest 入口，保证新设备 smoke 不依赖包管理器的全局启动器。
+const focused = spawnCaptured('node', [resolve(repoRoot, 'node_modules/vitest/vitest.mjs'), 'run',
   'src/llm/analyze/rule-style-import-initialization.test.ts',
   'src/host/rule-style-import-initialization-service.test.ts',
   'src/host/import-interpretation-session-service.test.ts',
   'src/client/import-interpretation-review.test.ts',
   'src/rule-style-import-initialization-contract.test.ts',
   'src/remote-binder.test.ts', '--testNamePattern=I151',
-], { cwd: repoRoot });
+], { cwd: repoRoot, env: { ...process.env, TMPDIR: '/tmp', TEMP: '/tmp', TMP: '/tmp' } });
 if (focused.status !== 0) fail(`focused regression failed (exit ${focused.status}):\n${focused.output.slice(0, 14000)}`);
 
 const artifact = {
