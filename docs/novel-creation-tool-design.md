@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
 > 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I156 全部完成**；当前顺序执行 I157，修复来源审阅重试状态丢失与主角/知情技术 ID 暴露，并让创作想法、背景资料和混合文档可由 LLM 提议新主角后转为视角叙事；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 状态：v3.3 当前设计权威；**I1–I157 全部完成**；当前顺序执行 I158，修复来源导入 Remote 遗漏 Host Typert face 注册而被 DSH `/api` 返回 404 的接线缺口；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -33,10 +33,11 @@
 | **v3.3 作品归档修订（2026-09-02）** | 同步 I154 已完成事实；新增 I155，为既有作品增加 Host-owned 归档/恢复。归档树移出活动目录，主列表不再显示；活动位置墓碑阻断归档前缓存仓储的迟到写，所有新项目访问经统一路径 seam 拒绝归档 ID。新增 strict additive lifecycle Remote 与只恢复、不打开的归档区。 |
 | **v3.3 来源审阅持久化修订（2026-09-02）** | 同步 I155 已完成事实；新增 I156，修复 Windows Defender/索引器瞬时锁住来源审阅临时文件时 session 首次落盘直接失败，且作者界面无实际重试入口的问题。Host 有界重试 transient rename；Client 保留来源证据并原地重试，技术原因只在折叠高级详情中展示。 |
 | **v3.3 来源主角语义修订（2026-09-02）** | 同步 I156 已完成事实；新增 I157，修复 session-create 重试清空作者来源选择，以及 UI 要求手填角色/知情信息技术 ID 的问题。`idea|background-material|hybrid + adapt-pov` 可选择由 AI 创建主角，Client 只生成隐藏稳定候选 ID，LLM 必须提议新主角并在读者体验 B5 中实际串联；已有角色只按名称选择。 |
+| **v3.3 来源 Remote Host 注册修订（2026-09-02）** | 同步 I157 已完成事实；新增 I158，修复 Stage 19/20 六组 Client Remote contribution 未加入唯一 `hostContribution`，导致 Connection 请求 `/api/novelImportInterpretation/create` 时 Host 网关不认领 endpoint 并返回 404。修复只补 Host strict descriptor 注册和接线完整性门，不改公开合同或领域行为。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I156 已完成，当前顺序执行 I157 来源主角语义修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I157 不恢复 F1/F2。
+> **v3.3 current supersession / 同步状态**：I1–I157 已完成，当前顺序执行 I158 来源 Remote Host 注册修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I158 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1273,6 +1274,12 @@ project/
 - 作者界面不得要求填写 `protagonistId`、`protagonistCandidateId` 或 `initialKnown` 技术 ID。限知视角只呈现“由 AI 创建并串联新主角”和按角色名称选择已有角色；新建空作品没有已有角色时默认 AI 创建。初始已知保持空集合，后续由 C3 候选审阅确定，不要求在知识层建立前填写引用。
 - `idea|background-material|hybrid + adapt-pov` 允许从概念/幕后材料转换为视角叙事；`synopsis` 与 `existing-prose` 继续走既有拆纲边界。Client 根据 projectId/sourceHash 确定性生成隐藏 candidate ID，Host strict schema 接受 `idea` 的 additive 枚举扩展。
 - 当 intent 绑定待创建主角时，I145 LLM 输出必须包含同 ID 的 protagonist candidate，且 B5 至少一个 beat/detail beat 实际引用该角色；否则候选失败。该候选仍须进入 I148 的统一预览与 I11 确认后才可写 B3/B5，禁止直接自动写入。
+
+### 14.25 I158：来源导入 Remote 的 Host 网关可达性
+
+- DSH Client Remote 通过 Connection 调用 `/api/<namespace>/<method>`；Host `TypertGatewayService` 只有在当前 Host Typert face 已登记对应 strict descriptor 时才认领该 endpoint。Client contribution 可挂载不代表 Host descriptor 已自动注册，二者必须由机器守卫保持完整。
+- `hostContribution` 是本插件 Host strict descriptors 的唯一注册 owner。I142–I148 与 I151 已公开的 `novelImportInterpretation`、`novelImportInterpretationAnalysis`、`novelNarrativeAdaptation`、`novelNarrativeReveal`、`novelNarrativeImportPlan`、`novelRuleStyleImportInitialization` 必须全部加入该 face；任何 Client-mounted descriptor 若缺失都必须在测试中失败。
+- 修复不得新增 REST server、fallback endpoint、动态 handler 或第二注册面，也不得修改 invocation ID、namespace、参数、结果 schema、领域 service、LLM prompt/样本或 I11 写回边界。真实 Typert Registry + Gateway + 插件组合必须完成来源 session create 往返，并证明卸载后 descriptor 消失。
 
 ---
 

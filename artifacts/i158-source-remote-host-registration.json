@@ -1,0 +1,33 @@
+{
+  "iteration": "I158",
+  "requirement": "R29-1",
+  "sourceImportDescriptorCount": 28,
+  "guarantees": [
+    "all-six-source-import-client-contributions-registered-in-single-host-face",
+    "real-dsh-api-interceptor-claims-novelImportInterpretation-create",
+    "real-gateway-dispatch-creates-draft-session",
+    "unknown-endpoint-not-claimed",
+    "fiber-dispose-withdraws-local-descriptors",
+    "withdrawn-endpoint-returns-structured-error-not-bare-404",
+    "zero-duplicate-host-descriptor-ids"
+  ],
+  "unchangedContractDigests": {
+    "contracts/stage18/remote-descriptors.json": "2a1ed9a0e0be004a542ab477f57de4fc8553ae21ed770294a5465d6e5afc41a8",
+    "contracts/stage19/import-interpretation-remote.json": "de734e61709fff528450a69a644aa2eb234f80447f7914c7c7ebfd36ddab539b",
+    "contracts/stage19/import-interpretation-analysis-remote.json": "b2f6c6104ffc2d870aa5a93efee99a47e359fde2766aba01c91e1c39cdb74b2a",
+    "contracts/stage19/narrative-adaptation-remote.json": "212868ace02dbd80dfdca03ffbd1a27227c8481230471c6b3560e79475852e4b",
+    "contracts/stage19/narrative-reveal-remote.json": "c2d62db6e82a9353c1b9719cb77b07cd6fb03255dde69805fd375f7af8a302ed",
+    "contracts/stage19/narrative-import-plan-remote.json": "2f5bafa88871321e585ee417edc403f043f87938458fc530fad0672a40a45757",
+    "contracts/stage20/rule-style-import-initialization-remote.json": "5228ffd7b8a68d275991edf607e4d1466e502504588f63839c8b6d7ad442ab09"
+  },
+  "unchangedBoundaries": [
+    "public-invocations",
+    "schemas-and-results",
+    "domain-services",
+    "client-ui",
+    "llm-and-samples",
+    "confirmation-gate",
+    "docx-chunks",
+    "dsh-pin"
+  ]
+}

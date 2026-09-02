@@ -27,6 +27,12 @@ import { outlineGenerationScopeInvocations } from './host/remote/outline-generat
 import { outlineDetailGenerationAppendInvocation, outlineDetailGenerationInvocations, outlineDetailGenerationSelectInvocation } from './host/remote/outline-detail-generation.js';
 import { compileManuscriptInvocation } from './host/remote/import-export.js';
 import { projectArchiveInvocation, projectArchiveListInvocation, projectRestoreInvocation } from './host/remote/project-lifecycle.js';
+import { importInterpretationInvocations } from './host/remote/import-interpretation.js';
+import { importInterpretationAnalysisInvocations } from './host/remote/import-interpretation-analysis.js';
+import { narrativeAdaptationInvocations } from './host/remote/narrative-adaptation.js';
+import { narrativeRevealInvocations } from './host/remote/narrative-reveal.js';
+import { narrativeImportPlanInvocations } from './host/remote/narrative-import-plan.js';
+import { ruleStyleImportInitializationInvocations } from './host/remote/rule-style-import-initialization.js';
 import { characterFormSchema, outlineFormSchema, relationshipFormSchema, worldFormSchema } from './client/shapes.js';
 import { actSchema, beatSchema, detailBeatSchema } from './core/schema/outline.js';
 import { uploadChunkResultSchema, uploadFinalizeResultSchema, uploadStartInputSchema, uploadStartResultSchema, docxTextChunkSchema } from './core/schema/upload.js';
@@ -85,8 +91,16 @@ const i136DescriptorIds = new Set([
 ]);
 const i137DescriptorIds = new Set([bookReadinessInvocation.id, bookScanInvocation.id]);
 const i138DescriptorIds = new Set([compileManuscriptInvocation.id]);
+const postStage18DescriptorIds = new Set([
+  ...importInterpretationInvocations,
+  ...importInterpretationAnalysisInvocations,
+  ...narrativeAdaptationInvocations,
+  ...narrativeRevealInvocations,
+  ...narrativeImportPlanInvocations,
+  ...ruleStyleImportInitializationInvocations,
+].map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,

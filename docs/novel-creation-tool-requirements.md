@@ -13,7 +13,7 @@
 
 1. `docs/novel-creation-tool-design.md` v3.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺与后置 F1/F2 边界。
 2. 本文件 v3.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I156 的完成事实、当前顺序 I157 来源主角语义修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I157 的完成事实、当前顺序 I158 来源 Remote Host 注册修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
 4. `AGENTS.md` v3.3：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I156 全部完成**。当前顺序执行 I157，修复来源审阅重试状态丢失、作者技术 ID 输入和 idea/background-material/hybrid 新主角叙事化缺口。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R28 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I157 全部完成**。当前顺序执行 I158，修复来源导入 Client Remote 已挂载但 Host strict descriptors 未登记、导致 DSH `/api` 404 的接线缺口。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R29 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -67,6 +67,7 @@
 | Stage 24 既有作品归档（R26） | I155 | `pnpm run verify:stage-24` |
 | Stage 25 来源审阅 session 持久化恢复（R27） | I156 | `pnpm run verify:stage-25` |
 | Stage 26 来源主角语义恢复（R28） | I157 | `pnpm run verify:stage-26` |
+| Stage 27 来源 Remote Host 注册修复（R29） | I158 | `pnpm run verify:stage-27` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -595,6 +596,12 @@ README 仍为唯一 12 步，不增加步骤数量：
 | R28-1 | session-create 失败后的原地重试必须保留作者已填写的来源角色、处理目标、POV、揭示节奏和逐段裁决；来源审阅 UI 不得要求手填角色或知情信息技术 ID。 | 产品夹具在失败后修改全套审阅选择，再重试并断言界面与 create 输入均保持；DOM 中无“主角 ID”“候选 ID”“初始已知信息 ID”输入；已有角色仅显示名称，空作品默认“AI 创建主角”。 | I157 |
 | R28-2 | `idea|background-material|hybrid + adapt-pov` 均允许 LLM 提议并串联新的限知主角；内部 candidate ID 由 Client 按 project/source 确定性生成且不展示。`synopsis|existing-prose` 维持拆纲边界。 | 新 i157 dev/held-out/gold ≥80%；idea strict Remote/schema round-trip；LLM 输出缺主角、ID 漂移或 B5 未引用新主角均失败；contract locks/binder 更新且旧字段兼容；未确认仍零写。 | I157 |
 
+## R29. 来源导入 Remote 的 Host 网关可达性（I158）
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R29-1 | 所有已由产品 Client 挂载的来源导入 strict Remote descriptors 必须同时登记在唯一 Host Typert face，使 DSH Gateway 能认领 `/api/<namespace>/<method>`。不得用 REST fallback、动态 handler 或第二注册 owner 掩盖遗漏。 | 集合守卫证明 import interpretation、analysis、rule/style initialization、narrative adaptation/reveal/import-plan 六组 Client descriptors 在 Host face 中零缺失/零重复；真实 Registry+Gateway+plugin 完成 `novelImportInterpretation/create` 往返并在卸载后撤销；未知 endpoint 保持不认领；既有 contract locks 不变。 | I158 |
+
 ---
 
 ## Deferred / 非目标
@@ -620,6 +627,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I156 已完成。当前顺序执行 I157，修复来源审阅状态保持与作者技术 ID 暴露，并开放创作想法/背景资料/混合文档的新主角视角叙事化。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I157 已完成。当前顺序执行 I158，修复来源导入 strict Remote 遗漏 Host Typert face 注册而产生的 DSH `/api` 404。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
