@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyzerStub, cleanupClientTestEnv, collect, factory, FakeFileReader, fakeReact, flush, I56_LAYERS, layerButtons, makeWorkspace, MountOptions, mount, openOnboardingReview, READY_MODEL, WorkspaceOverrides, type FakeNode } from './client/test-harness.js';
 import { QUEUE_POLL_INTERVAL_MS } from './client/ops/queue.js';
+import { draftEntityId } from './client/draft-identity.js';
 
 afterEach(cleanupClientTestEnv);
 
@@ -106,14 +107,13 @@ describe('I67 规则与文风控制面 UI (R14-2)', () => {
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-rule-new'] === '')?.props?.onClick as () => void)();
     await flush();
-    // 填表单：id / statement / scope / kind / priority / immutable / active / examples。
+    // 填表单：技术标识由隐藏 factory 生成；作者只填写语义字段。
     const input = (selector: string): ((value: string) => void) =>
       (value: string) => (collect(render(), 'input').find((n) => n.props?.[selector] !== undefined)?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
     const textarea = (selector: string): ((value: string) => void) =>
       (value: string) => (collect(render(), 'textarea').find((n) => n.props?.[selector] !== undefined)?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
     const select = (selector: string): ((value: string) => void) =>
       (value: string) => (collect(render(), 'select').find((n) => n.props?.[selector] !== undefined)?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value } });
-    input('data-novel-rule-edit-id')('harbor-seal-2');
     textarea('data-novel-rule-edit-statement')('第二道封印。');
     select('data-novel-rule-edit-scope')('location');
     select('data-novel-rule-edit-kind')('taboo');
@@ -127,10 +127,10 @@ describe('I67 规则与文风控制面 UI (R14-2)', () => {
     await flush();
     // Client 只提交受控值（无领域 fallback：不本地校验、不补默认）。
     expect(created).toEqual([{
-      id: 'harbor-seal-2', scope: 'location', kind: 'taboo', statement: '第二道封印。',
+      id: draftEntityId('rule', '第二道封印。', PROJECTION.rules.map((rule) => rule.id)), scope: 'location', kind: 'taboo', statement: '第二道封印。',
       priority: 80, immutable: true, active: false, examples: ['海图显字'],
     }]);
-    expect(messageOf(render())).toContain('已保存规则「harbor-seal-2」（v1）');
+    expect(messageOf(render())).toContain('已保存规则');
   });
 
   it('编辑既有规则：readRule 拉详情填充表单 → updateRule payload；Host 拒绝（immutable）展示错误且面板不 brick', async () => {
@@ -226,7 +226,7 @@ describe('I67 规则与文风控制面 UI (R14-2)', () => {
       tone: '克制', proseStyle: '精确', chapterFormat: '场景断行', dialogueConventions: '中文引号',
       forbidden: ['突然之间', '命运的齿轮'],
     }]);
-    expect(messageOf(render())).toContain('已保存风格档案「雾港 noir」（v1，id global-style）');
+    expect(messageOf(render())).toContain('已保存风格档案「雾港 noir」（版本 1）');
   });
 
   it('Host 拒绝（非法枚举/越界优先级）时错误消息展示且面板不 brick', async () => {

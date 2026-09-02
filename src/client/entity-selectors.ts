@@ -12,12 +12,24 @@ export interface EntityOption {
   readonly label: string;
 }
 
+function disambiguate(options: readonly EntityOption[]): EntityOption[] {
+  const totals = new Map<string, number>();
+  options.forEach((option) => totals.set(option.label, (totals.get(option.label) ?? 0) + 1));
+  const seen = new Map<string, number>();
+  return options.map((option) => {
+    if ((totals.get(option.label) ?? 0) < 2) return option;
+    const position = (seen.get(option.label) ?? 0) + 1;
+    seen.set(option.label, position);
+    return { ...option, label: `${option.label}（同名第 ${position} 项）` };
+  });
+}
+
 function withMissing(options: readonly EntityOption[], values: readonly string[]): EntityOption[] {
   const known = new Set(options.map((option) => option.id));
   const missing = values
     .filter((id, index, list) => id.length > 0 && list.indexOf(id) === index && !known.has(id))
-    .map((id) => ({ id, label: `未找到实体：${id}` }));
-  return [...options, ...missing];
+    .map((id) => ({ id, label: '引用已缺失（保留原值）' }));
+  return disambiguate([...options, ...missing]);
 }
 
 /** Render a single canonical-id selector with a safe unknown/deleted option. */
@@ -44,7 +56,7 @@ export function entitySelect(
         key: option.id,
         value: option.id,
         'data-novel-entity-option-id': option.id,
-        'data-novel-entity-unknown': option.label.startsWith('未找到实体：') ? '' : undefined,
+        'data-novel-entity-unknown': option.label.startsWith('引用已缺失') ? '' : undefined,
       }, option.label)),
     ),
   );
@@ -79,7 +91,7 @@ export function entityMultiSelect(
         key: option.id,
         className: 'nv-entity-option',
         'data-novel-entity-option': option.id,
-        'data-novel-entity-unknown': option.label.startsWith('未找到实体：') ? '' : undefined,
+        'data-novel-entity-unknown': option.label.startsWith('引用已缺失') ? '' : undefined,
       },
         h('input', {
           type: 'checkbox',

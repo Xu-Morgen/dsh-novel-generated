@@ -92,7 +92,9 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   chapters: ({ h, projectId, ns, states, ops }) => {
     const { workspace, writing, branchNamespace } = ns;
     const { chapters } = states;
-    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, branchNamespace, chapters, ops.chapters));
+    const characters = states.layers.characters.list.map((character) => ({ id: character.id, label: character.name || '未命名角色' }));
+    const detailBeats = states.layers.outlineEditor.draft.acts.flatMap((act) => act.beats.flatMap((beat) => beat.detailBeats.map((card) => ({ id: card.id, label: `${act.title || '未命名幕'} / ${beat.title || '未命名节'} / ${card.title || '未命名场景卡'}` }))));
+    return h('div', { 'data-novel-view-panel': 'chapters' }, chaptersPanel(h, projectId, workspace, writing, branchNamespace, chapters, ops.chapters, { characters, detailBeats }));
   },
   // I64：一致性审校中心（写作组）—— 五类问题统一投影 + 刷新/过滤 + 显式裁决（R13-5）。
   review: ({ h, projectId, ns, states, ops }) => {
@@ -134,7 +136,13 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   search: ({ h, projectId, ns, states, ops }) => {
     const { searchNamespace } = ns;
     const { search: searchState } = states;
-    return h('div', { 'data-novel-view-panel': 'search' }, searchPanel(h, projectId, searchNamespace, searchState, ops.search));
+    const references: EntityOption[] = [
+      ...states.layers.characters.list.map((entry) => ({ id: entry.id, label: `角色：${entry.name || '未命名'}` })),
+      ...states.layers.worldview.list.map((entry) => ({ id: entry.id, label: `世界观：${entry.title || '未命名'}` })),
+      ...(states.knowledge.projection?.entries ?? []).map((entry) => ({ id: entry.id, label: `信息：${entry.fact || '未命名'}` })),
+    ];
+    const characters = states.layers.characters.list.map((entry) => ({ id: entry.id, label: entry.name || '未命名角色' }));
+    return h('div', { 'data-novel-view-panel': 'search' }, searchPanel(h, projectId, searchNamespace, searchState, ops.search, characters, references));
   },
   // I72：写作进度面板（写作组）—— 可重建派生统计：章节字数/目标完成度/场景卡状态/POV 分布/任务历史（R14-7）。
   statistics: ({ h, projectId, ns, states, ops }) => {
@@ -149,7 +157,7 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
     const { timeline: timelineState } = states;
     const names = new Map(states.layers.characters.list.map((character) => [character.id, character.name]));
     const relationshipOptions: EntityOption[] = states.layers.relationship.list.map((relationship) => ({ id: relationship.id, label: `${names.get(relationship.from) ?? relationship.from} ↔ ${names.get(relationship.to) ?? relationship.to}` }));
-    const knowledgeOptions: EntityOption[] = (states.knowledge.projection?.entries ?? []).map((entry) => ({ id: entry.id, label: entry.fact || entry.id }));
+    const knowledgeOptions: EntityOption[] = (states.knowledge.projection?.entries ?? []).map((entry) => ({ id: entry.id, label: entry.fact || '未命名信息' }));
     return h('div', { 'data-novel-view-panel': 'timeline' }, timelinePanel(h, projectId, timelineNamespace, timelineState, ops.timeline, relationshipOptions, knowledgeOptions, ops.router));
   },
 };
@@ -179,14 +187,14 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
   }
   if (layer.id === 'worldview') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderWorldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, ops.worldview));
+      renderWorldviewLayer(h, projectId, workspace, layers.worldview, layers.worldEditor, ops.worldview, layers.worldview.list.map((entry) => ({ id: entry.id, label: entry.title || '未命名条目' }))));
   }
   if (layer.id === 'outline') {
     const selectedAct = layers.outlineEditor.draft.acts.find((act) => act.id === layers.outlineEditor.selectedActId);
     const selectedBeat = selectedAct?.beats.find((beat) => beat.id === layers.outlineEditor.selectedBeatId);
     const selectedChapter = chapters.list.find((chapter) => chapter.id === chapters.selectedChapterId);
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
-      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || character.id })), ops.router, detailGeneration === undefined ? undefined : {
+      renderOutlineLayer(h, projectId, workspace, layers.outline, layers.outlineEditor, ops.outline, layers.characters.list.map((character) => ({ id: character.id, label: character.name || '未命名角色' })), ops.router, detailGeneration === undefined ? undefined : {
         ...detailGeneration,
         outlineDirty: layers.outlineEditor.dirty,
         selectedAct: selectedAct === undefined ? undefined : { id: selectedAct.id, label: selectedAct.title || '未命名幕' },
@@ -198,7 +206,7 @@ function contentArea(h: El, projectId: string, workspace: WorkspaceNamespace | u
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },
       // 关系 from/to 以 B3 角色 id 持久化；显示时 join 角色名（改名不换 id，见
       // CharacterRepository.update），未知 id 回退显示 id 本身。
-      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship, layers.canon.events.map((event) => ({ id: event.id, label: event.summary || event.id })), ops.router));
+      renderRelationshipLayer(h, projectId, workspace, layers.characters.list, layers.relationship, layers.relationshipEditor, ops.relationship, layers.canon.events.map((event) => ({ id: event.id, label: event.summary || '未命名事件' })), ops.router));
   }
   if (layer.id === 'state') {
     return h('main', { className: 'nv-workbench__content', 'data-novel-content': '' },

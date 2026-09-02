@@ -586,7 +586,7 @@ describe('I114 正文变化与细纲调和 Client 消费 (R18-11d)', () => {
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'materials')?.props?.onClick as () => void)();
     await flush();
-    const planInput = collect(render(), 'input').find((node) => node.props?.['data-novel-management-input'] === 'reconciliation-plan-id');
+    const planInput = collect(render(), 'select').find((node) => node.props?.['data-novel-entity-select'] === 'reconciliation-plan');
     (planInput?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: PLAN.planId } });
     (collect(render(), 'button').find((node) => node.props?.['data-novel-reconciliation-read'] !== undefined)?.props?.onClick as () => void)();
     await flush();

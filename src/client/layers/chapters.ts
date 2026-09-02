@@ -13,6 +13,13 @@ import { freshSceneEditor, sceneEditorPanel, type SceneEditorState } from './sce
 import { freshWritingWorkflow, type WritingWorkflowState } from '../writing-workflow.js';
 import { freshPolishSession, type PolishSessionState } from '../polish-session.js';
 import type { PolishMode } from '../../core/candidate/index.js';
+import { entitySelect, type EntityOption } from '../entity-selectors.js';
+
+export interface ChaptersEntityChoices {
+  readonly characters: readonly EntityOption[];
+  readonly detailBeats: readonly EntityOption[];
+  readonly reconciliationPlans?: readonly EntityOption[];
+}
 
 /**
  * I60/I61 C5 章节/场景导航 + 正文编辑面板组合根（design §5.12 / §14.9 / R13-1 /
@@ -413,7 +420,7 @@ function chapterModeTabs(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
   );
 }
 
-function modePanel(h: El, projectId: string, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps, body: unknown): unknown {
+function modePanel(h: El, projectId: string, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps, body: unknown, choices: ChaptersEntityChoices): unknown {
   const item = CHAPTER_MODE_ITEMS.find((candidate) => candidate.id === state.mode) ?? CHAPTER_MODE_ITEMS[0];
   const content = state.mode === 'writing'
     ? body
@@ -421,7 +428,7 @@ function modePanel(h: El, projectId: string, writing: WritingNamespace | undefin
       ? candidatePanel(h, projectId, writing, state.candidate, ops)
       : state.mode === 'versions'
         ? versionsPanel(h, projectId, branches, state.branches, ops)
-        : managementPanel(h, state, ops);
+        : managementPanel(h, state, ops, choices);
   return h('div', {
     id: 'novel-chapters-mode-panel',
     className: 'nv-chapters__mode-panel',
@@ -439,7 +446,7 @@ function managementInput(h: El, label: string, value: string, onChange: (value: 
   );
 }
 
-function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps, choices: ChaptersEntityChoices): unknown {
   const management = state.management;
   const chapter = state.chapter.read;
   const selectedScene = state.scene.item;
@@ -451,9 +458,8 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-create': '', onClick: () => ops.createChapter() }, '新建章节'),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-management-refresh': '', onClick: () => ops.refreshManagement() }, '刷新管理状态'),
     ),
-    managementInput(h, '章节 ID', management.chapterDraft.id, (value) => ops.chapterDraft({ id: value }), 'chapter-id'),
     managementInput(h, '章节标题', management.chapterDraft.title, (value) => ops.chapterDraft({ title: value }), 'chapter-title'),
-    managementInput(h, 'POV ID', management.chapterDraft.pov, (value) => ops.chapterDraft({ pov: value }), 'chapter-pov'),
+    entitySelect(h, '视角角色', management.chapterDraft.pov, choices.characters, (value) => ops.chapterDraft({ pov: value }), 'chapter-pov'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-update': '', onClick: () => ops.updateChapter() }, '保存章节元数据'),
       state.selectedChapterId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-reorder-up': '', onClick: () => ops.reorder('up') }, '章节上移') : null,
@@ -464,7 +470,6 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
     ),
     chapter !== undefined ? h('div', { className: 'nv-chapters__management-scene-form', 'data-novel-scene-management': '' },
       h('h4', { className: 'nv-editor__title' }, `第 ${chapter.index} 章场景管理`),
-      managementInput(h, '场景 ID', management.sceneDraft.id, (value) => ops.sceneDraft({ id: value }), 'scene-id'),
       managementInput(h, '场景摘要', management.sceneDraft.summary, (value) => ops.sceneDraft({ summary: value }), 'scene-summary'),
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-create': '', onClick: () => ops.createScene() }, '新建场景'),
@@ -474,7 +479,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
     ) : null,
     h('div', { className: 'nv-chapters__binding', 'data-novel-scene-outline-binding': '' },
       h('h4', { className: 'nv-editor__title' }, '场景—细纲绑定'),
-      managementInput(h, '细纲目标 ID', management.bindingDetailBeatId, (value) => ops.managementPatch({ bindingDetailBeatId: value }), 'binding-target'),
+      entitySelect(h, '细纲目标', management.bindingDetailBeatId, choices.detailBeats, (value) => ops.managementPatch({ bindingDetailBeatId: value }), 'binding-target'),
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-save': '', onClick: () => ops.bindingSave() }, '绑定'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-rebind': '', onClick: () => ops.bindingRebind() }, '改绑'),
@@ -482,7 +487,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
       ),
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-binding-state': management.binding?.status ?? 'idle' }, `手动绑定 ${management.binding?.manual.length ?? 0} 条；有效映射 ${management.binding?.effective.length ?? 0} 条`),
     ),
-    reconciliationPanel(h, reconciliation, ops),
+    reconciliationPanel(h, reconciliation, ops, choices.reconciliationPlans ?? []),
     h('div', { className: 'nv-chapters__deletion', 'data-novel-deletion': '', 'data-novel-deletion-state': deletion.status },
       h('h4', { className: 'nv-editor__title' }, '受控删除'),
       deletion.impact !== undefined ? h('p', { className: 'nv-chapters__item-meta', 'data-novel-deletion-impact': '' }, `影响：${deletion.impact.sceneCount} 个场景，${deletion.impact.proseCharacters} 字，${deletion.impact.branchCount} 个分支；绑定 ${deletion.impact.bindings.length} 条`) : null,
@@ -499,11 +504,11 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
   );
 }
 
-function reconciliationPanel(h: El, state: ChapterManagementState['reconciliation'], ops: ChaptersEditOps): unknown {
+function reconciliationPanel(h: El, state: ChapterManagementState['reconciliation'], ops: ChaptersEditOps, planOptions: readonly EntityOption[]): unknown {
   const plan = state.plan;
   return h('div', { className: 'nv-chapters__reconciliation', 'data-novel-outline-reconciliation': '', 'data-novel-reconciliation-state': state.status },
     h('h4', { className: 'nv-editor__title' }, '正文变化与细纲调和'),
-    managementInput(h, '调和计划 ID', state.planId, (value) => ops.reconciliationPlanId(value), 'reconciliation-plan-id'),
+    entitySelect(h, '调和计划', state.planId, planOptions, (value) => ops.reconciliationPlanId(value), 'reconciliation-plan'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-read': '', onClick: () => ops.reconciliationRead() }, '读取影响计划'),
       state.proposalId === undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-propose': '', onClick: () => ops.reconciliationPropose(), disabled: plan === undefined }, '提交一次确认') : null,
@@ -541,7 +546,7 @@ function reconciliationPanel(h: El, state: ChapterManagementState['reconciliatio
   );
 }
 
-export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceNamespace | undefined, writing: WritingNamespace | undefined, branches: BranchNamespace | undefined, state: ChaptersLayerState, ops: ChaptersEditOps, choices: ChaptersEntityChoices = { characters: [], detailBeats: [] }): unknown {
   if (state.status === 'loading') {
     return h('section', { className: 'nv-chapters', 'data-novel-chapters-panel': '', 'data-novel-chapters-state': 'loading' }, '正在装载章节…');
   }
@@ -617,7 +622,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
       writingWorkflowPanel(h, state.workflow),
       polishSessionPanel(h, state, ops),
       chapterModeTabs(h, state, ops),
-      modePanel(h, projectId, writing, branches, state, ops, body),
+      modePanel(h, projectId, writing, branches, state, ops, body, choices),
     ),
   );
 }

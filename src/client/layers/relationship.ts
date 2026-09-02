@@ -23,9 +23,9 @@ export function newRelationshipDraft(): RelationshipShape {
 
 /** C1 editor: all entity-valued fields use named selectors and preserve missing IDs. */
 export function relationshipLayer(h: El, _projectId: string, _workspace: WorkspaceNamespace | undefined, characters: readonly { id: string; name: string }[], layerState: RelationshipLayerState, editor: RelationshipEditor, ops: RelationshipEditOps, milestoneOptions: readonly EntityOption[] = [], links?: ContextLinkSink): unknown {
-  const characterOptions = characters.map((character) => ({ id: character.id, label: character.name || character.id }));
+  const characterOptions = characters.map((character) => ({ id: character.id, label: character.name || '未命名角色' }));
   const nameOf = new Map(characters.map((character) => [character.id, character.name]));
-  const labelOf = (id: string): string => nameOf.get(id) ?? id;
+  const labelOf = (id: string): string => nameOf.get(id) || '引用已缺失';
   if (layerState.status === 'loading') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'loading' }, '正在装载关系…');
   if (layerState.status === 'error') return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'relationship', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '关系素材读取失败');
   const d = editor.draft;

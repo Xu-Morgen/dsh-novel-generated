@@ -129,8 +129,8 @@ export const KNOWLEDGE_STATUS_LABELS: Readonly<Record<string, string>> = {
 };
 
 function factCard(h: El, projectId: string, fact: KnowledgeFactShape, nameOf: ReadonlyMap<string, string>, selected: boolean, ops: KnowledgeEditOps, links?: ContextLinkSink): unknown {
-  const holderNames = fact.holders.map((id) => nameOf.get(id) ?? id).join('、');
-  const planNames = fact.revealPlan.revealTo.map((id) => nameOf.get(id) ?? id).join('、');
+  const holderNames = fact.holders.map((id) => nameOf.get(id) || '引用已缺失').join('、');
+  const planNames = fact.revealPlan.revealTo.map((id) => nameOf.get(id) || '引用已缺失').join('、');
   return h('li', { className: 'nv-knowledge__fact' + (selected ? ' is-selected' : ''), 'data-novel-knowledge-fact': fact.id, 'data-novel-knowledge-fact-status': fact.status },
     h('div', { className: 'nv-knowledge__fact-main' },
       h('p', { className: 'nv-knowledge__fact-text', 'data-novel-knowledge-fact-text': '' }, fact.fact),

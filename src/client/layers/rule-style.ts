@@ -154,11 +154,7 @@ function ruleCard(h: El, rule: RuleShape, selected: boolean, ops: RuleStyleEditO
 
 function ruleForm(h: El, draft: RuleDraftShape, acting: boolean, isNew: boolean, ops: RuleStyleEditOps): unknown {
   return h('div', { className: 'nv-rulestyle__form', 'data-novel-rule-form': isNew ? '__new__' : draft.id },
-    h('p', { className: 'nv-rulestyle__form-title', 'data-novel-rule-form-title': '' }, isNew ? '新建规则' : `编辑规则：${draft.id}`),
-    !isNew ? null : h('label', { className: 'nv-field' },
-      h('span', { className: 'nv-field__label' }, '规则 ID（稳定标识，保存后不可改）'),
-      h('input', { type: 'text', className: 'nv-field__input', 'data-novel-rule-edit-id': '', value: draft.id, onChange: (event: { target: { value: string } }) => ops.setRuleDraft({ id: event.target.value }) }),
-    ),
+    h('p', { className: 'nv-rulestyle__form-title', 'data-novel-rule-form-title': '' }, isNew ? '新建规则' : '编辑规则'),
     h('label', { className: 'nv-field' },
       h('span', { className: 'nv-field__label' }, '规则陈述'),
       h('textarea', { className: 'nv-field__input', 'data-novel-rule-edit-statement': '', rows: 3, value: draft.statement, onChange: (event: { target: { value: string } }) => ops.setRuleDraft({ statement: event.target.value }) }),

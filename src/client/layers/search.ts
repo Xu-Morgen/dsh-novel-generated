@@ -1,6 +1,7 @@
 import type { El } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
 import type { SearchNamespace } from '../shared.js';
+import { entitySelect, type EntityOption } from '../entity-selectors.js';
 
 /**
  * I71 全局搜索与上下文追踪 Client 面板（design §14.10「搜索与上下文追踪」/ R14-6）。
@@ -98,7 +99,7 @@ function hitList(h: El, hits: readonly SearchHitShape[], ops: SearchEditOps): un
     )));
 }
 
-export function searchPanel(h: El, projectId: string, namespace: SearchNamespace | undefined, state: SearchLayerState, ops: SearchEditOps): unknown {
+export function searchPanel(h: El, projectId: string, namespace: SearchNamespace | undefined, state: SearchLayerState, ops: SearchEditOps, characterOptions: readonly EntityOption[] = [], referenceOptions: readonly EntityOption[] = []): unknown {
   const available = namespace !== undefined && projectId !== undefined;
   const stats = state.stats;
   const countsLine = stats === undefined
@@ -120,15 +121,7 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
         }),
       ),
       h('div', { className: 'nv-search__row' },
-        h('label', { className: 'nv-field nv-search__pov' },
-          h('span', { className: 'nv-field__label' }, 'POV 过滤（可选，只过滤知情层）'),
-          h('input', {
-            type: 'text', className: 'nv-field__input', 'data-novel-search-pov': '',
-            value: state.pov, disabled: state.acting,
-            placeholder: '角色 id，如 mira',
-            onChange: (event: { target: { value: string } }) => ops.setPov(event.target.value),
-          }),
-        ),
+        entitySelect(h, '视角角色（可选，只过滤知情层）', state.pov, characterOptions, ops.setPov, 'search-pov'),
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-search-submit': '', disabled: state.acting || state.query.trim() === '', onClick: () => ops.search() }, '搜索'),
       ),
       state.results === undefined
@@ -140,15 +133,7 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
         ),
       h('h4', { className: 'nv-search__subtitle' }, '实体交叉引用'),
       h('div', { className: 'nv-search__row' },
-        h('label', { className: 'nv-field nv-search__ref' },
-          h('span', { className: 'nv-field__label' }, '引用键（角色名/别名/条目 id）'),
-          h('input', {
-            type: 'text', className: 'nv-field__input', 'data-novel-search-ref-input': '',
-            value: state.referenceKey, disabled: state.acting,
-            placeholder: '如：米拉、北港、know-1',
-            onChange: (event: { target: { value: string } }) => ops.setReferenceKey(event.target.value),
-          }),
-        ),
+        entitySelect(h, '引用实体', state.referenceKey, referenceOptions, ops.setReferenceKey, 'search-reference'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-ref-submit': '', disabled: state.acting || state.referenceKey.trim() === '', onClick: () => ops.references() }, '查引用'),
       ),
       state.references === undefined

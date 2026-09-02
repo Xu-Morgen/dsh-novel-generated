@@ -7,6 +7,7 @@ import type { OutlineReconciliationChoice } from '../../core/schema/outline-reco
 import type { FinalizationPanelState, OutlineReconciliationPanelState, ChapterManagementDraft, ChapterManagementState, ChaptersEditOps, SceneManagementDraft } from '../layers/chapters.js';
 import type { FinalizationApplyResult, FinalizationPlan } from '../../core/schema/finalization.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
+import { draftEntityId } from '../draft-identity.js';
 
 type ManagementPort = Pick<OpsPorts, 'workspace' | 'writing' | 'queueNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
 
@@ -62,7 +63,8 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     const draft = snapshot.chapters.management.chapterDraft;
     if (!text || projectId === undefined || !beginOp('chapters:management:create-chapter')) return;
     patch({ status: 'loading', message: '' });
-    void unwrap(text.chapterCreate(projectId, { ...draft, expectedFingerprint: snapshot.chapters.management.projectFingerprint ?? '' })).then((result) => {
+    const id = draft.id || draftEntityId('chapter', `${draft.index}:${draft.title}`, snapshot.chapters.list.map((chapter) => chapter.id));
+    void unwrap(text.chapterCreate(projectId, { ...draft, id, expectedFingerprint: snapshot.chapters.management.projectFingerprint ?? '' })).then((result) => {
       endOp('chapters:management:create-chapter');
       if (!isActive()) return;
       const value = result as { fingerprint: string };
@@ -96,10 +98,12 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     const draft = snapshot.chapters.management.sceneDraft;
     if (!text || projectId === undefined || chapterId === undefined || !beginOp('chapters:management:create-scene')) return;
     patch({ status: 'loading', message: '' });
+    const occupied = snapshot.chapters.chapter.read?.scenes.map((scene) => scene.id) ?? [];
+    const id = draft.id || draftEntityId('scene', `${chapterId}:${draft.index}:${draft.summary}`, occupied);
     void unwrap(text.sceneCreate(projectId, {
       chapterId,
       index: draft.index,
-      scene: { id: draft.id, content: draft.content, summary: draft.summary, beats: draft.beats, canonEvents: draft.canonEvents, notes: draft.notes },
+      scene: { id, content: draft.content, summary: draft.summary, beats: draft.beats, canonEvents: draft.canonEvents, notes: draft.notes },
       expectedFingerprint: snapshot.chapters.management.projectFingerprint ?? '',
     })).then((result) => {
       endOp('chapters:management:create-scene');

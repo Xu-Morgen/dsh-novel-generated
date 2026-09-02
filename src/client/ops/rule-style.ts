@@ -6,6 +6,7 @@ import { toUserMessage } from '../presentation.js';
 import { freshRuleDraft, freshStyleDraft } from '../layers/rule-style.js';
 import type { RuleDraftShape, RuleShape, RuleStyleEditOps, RuleStyleLayerState, RuleStyleProjectionShape, StyleDraftShape, StyleShape } from '../layers/rule-style.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
+import { draftEntityId } from '../draft-identity.js';
 type RuleStylePort = Pick<OpsPorts, 'ruleStyleNamespace'>;
 
 export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): RuleStyleEditOps {
@@ -79,13 +80,13 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
           };
           ruleStylePatch({ acting: true, message: undefined });
           const call = state.editingRuleId === '__new__'
-            ? target.createRule(projectId, { ...payload, id: draft.id.trim() })
+            ? target.createRule(projectId, { ...payload, id: draftEntityId('rule', draft.statement, state.projection?.rules.map((rule) => rule.id) ?? []) })
             : target.updateRule(projectId, draft.id.trim(), payload);
           void unwrap(call).then((rule) => {
             release();
             if (!isActive()) return;
             const saved = rule as RuleShape;
-            ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则「${saved.id}」（v${saved.version}）。` });
+            ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则（版本 ${saved.version}）。` });
             // 刷新列表投影以反映同一 Host 真相（生成/检测消费同一存储）。
             void unwrap(target.list(projectId)).then((projection) => {
               if (!isActive()) return;
@@ -114,7 +115,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             release();
             if (!isActive()) return;
             const saved = style as StyleShape;
-            ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（v${saved.version}，id ${saved.id}）。` });
+            ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（版本 ${saved.version}）。` });
             // 刷新投影：style 视图同步（含 version/id）。
             void unwrap(target.list(projectId)).then((projection) => {
               if (!isActive()) return;

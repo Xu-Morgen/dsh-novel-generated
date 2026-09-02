@@ -5,6 +5,7 @@ import { triggerModeSchema, worldKindSchema, type TriggerMode, type WorldKind } 
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
 export type { WorldShape } from '../shapes.js';
 import type { WorldShape } from '../shapes.js';
+import { entitySelect, type EntityOption } from '../entity-selectors.js';
 
 /** B2 下拉选项：直接来自 core 枚举（消除硬编码副本，review §6.2/§6.3）。 */
 export const WORLD_KINDS: readonly WorldKind[] = worldKindSchema.options;
@@ -58,6 +59,7 @@ export function worldviewLayer(
   layerState: WorldLayerState,
   editor: WorldEditor,
   ops: WorldEditOps,
+  parentOptions: readonly EntityOption[] = [],
 ): unknown {
   if (layerState.status === 'loading') {
     return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'loading' }, '\u6b63\u5728\u88c5\u8f7d\u4e16\u754c\u89c2\u2026');
@@ -77,7 +79,7 @@ export function worldviewLayer(
       className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''),
       'data-novel-worldview-id': entry.id,
       onClick: () => ops.select(entry),
-    }, entry.title ?? entry.id)),
+    }, entry.title || '\u672a\u547d\u540d\u6761\u76ee')),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '\u65b0\u5efa\u6761\u76ee' : `\u7f16\u8f91\u6761\u76ee\uff1a${d.title ?? editor.selectedId}`),
@@ -107,10 +109,7 @@ export function worldviewLayer(
         h('span', { className: 'nv-field__label' }, '\u6743\u91cd'),
         h('input', { type: 'number', className: 'nv-field__input', value: String(d.weight ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, weight: Number.parseInt(event.target.value, 10) || 0 })) }),
       ),
-      h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u7236\u6761\u76ee\uff08\u53ef\u7a7a\uff09'),
-        h('input', { type: 'text', className: 'nv-field__input', value: d.parent ?? '', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, parent: event.target.value === '' ? null : event.target.value })) }),
-      ),
+      entitySelect(h, '\u7236\u6761\u76ee\uff08\u53ef\u7a7a\uff09', d.parent ?? '', parentOptions.filter((option) => option.id !== d.id), (value) => ops.mutate((draft) => ({ ...draft, parent: value === '' ? null : value })), 'worldview-parent'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '\u53ef\u5426\u6539\u5199'),
         h('input', { type: 'checkbox', className: 'nv-field__check', checked: d.mutable ?? true, onChange: (event: { target: { checked: boolean } }) => ops.mutate((draft) => ({ ...draft, mutable: event.target.checked })) }),

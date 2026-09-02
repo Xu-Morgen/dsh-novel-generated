@@ -63,9 +63,9 @@ describe('I124 Client router/back-stack', () => {
     await flush();
     const input = collect(render(), 'input').find((node) => node.props?.['data-novel-search-input'] !== undefined);
     (input?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '海图' } });
-    const pov = collect(render(), 'input').find((node) => node.props?.['data-novel-search-pov'] !== undefined);
+    const pov = collect(render(), 'select').find((node) => node.props?.['data-novel-entity-select'] === 'search-pov');
     (pov?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'mira' } });
-    const reference = collect(render(), 'input').find((node) => node.props?.['data-novel-search-ref-input'] !== undefined);
+    const reference = collect(render(), 'select').find((node) => node.props?.['data-novel-entity-select'] === 'search-reference');
     (reference?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'north-harbor' } });
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-search-submit'] === '')?.props?.onClick as () => void)();
@@ -78,7 +78,7 @@ describe('I124 Client router/back-stack', () => {
     await flush();
     expect(render().props?.['data-novel-route']).toBe('search');
     expect((collect(render(), 'input').find((node) => node.props?.['data-novel-search-input'] !== undefined)?.props?.value)).toBe('海图');
-    expect((collect(render(), 'input').find((node) => node.props?.['data-novel-search-pov'] !== undefined)?.props?.value)).toBe('mira');
-    expect((collect(render(), 'input').find((node) => node.props?.['data-novel-search-ref-input'] !== undefined)?.props?.value)).toBe('north-harbor');
+    expect((collect(render(), 'select').find((node) => node.props?.['data-novel-entity-select'] === 'search-pov')?.props?.value)).toBe('mira');
+    expect((collect(render(), 'select').find((node) => node.props?.['data-novel-entity-select'] === 'search-reference')?.props?.value)).toBe('north-harbor');
   });
 });

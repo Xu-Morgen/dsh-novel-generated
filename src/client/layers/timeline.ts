@@ -77,7 +77,7 @@ export function timelinePanel(
   );
   const detail = h('div', { className: 'nv-editor__detail' },
     h('h3', { className: 'nv-editor__title', 'data-novel-timeline-node-title': node.id }, `${node.order + 1}. ${node.label}`),
-    h('p', { className: 'nv-field__label' }, `当前时间点：${current === null ? '自动（按写作位置）' : `手动选择 ${timeline.nodes.find((item) => item.id === current)?.label ?? current}`}`),
+    h('p', { className: 'nv-field__label' }, `当前时间点：${current === null ? '自动（按写作位置）' : `手动选择 ${timeline.nodes.find((item) => item.id === current)?.label ?? '引用已缺失'}`}`),
     h('div', { className: 'nv-form' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-timeline-set-current': node.id, onClick: () => ops.setCurrent(current === node.id ? null : node.id) }, current === node.id ? '取消手动选择（恢复自动）' : '设为当前时间点'),
       characterText(h, '故事内时间标注（storyTime）', node.storyTime ?? '', (value) => ops.mutate((draft) => ({ ...draft, nodes: draft.nodes.map((item) => item.id === node.id ? { ...item, storyTime: value } : item) }))),

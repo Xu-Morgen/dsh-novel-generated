@@ -60,7 +60,7 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-result-count'] !== undefined)?.children?.[0] ?? '')).toContain('命中 1 条');
     expect(collect(render(), 'li').some((n) => n.props?.['data-novel-search-hit'] === 'text:scene-1')).toBe(true);
     // POV 过滤透传（Host 在查询时用 live C3 knows 过滤，Client 零领域过滤）。
-    (collect(render(), 'input').find((n) => n.props?.['data-novel-search-pov'] !== undefined)?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'mira' } });
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-entity-select'] === 'search-pov')?.props?.onChange as (e: { target: { value: string } }) => void)({ target: { value: 'mira' } });
     await flush();
     (collect(render(), 'button').find((n) => n.props?.['data-novel-search-submit'] === '')?.props?.onClick as () => void)();
     await flush();
