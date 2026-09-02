@@ -1,6 +1,6 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v3.3
+> 版本：v3.4
 > 日期：2026-09-02
 > 状态：当前需求、验收与迭代覆盖权威
 > 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
@@ -11,10 +11,10 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v3.3：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺与后置 F1/F2 边界。
-2. 本文件 v3.3：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.3：I1–I157 的完成事实、当前顺序 I158 来源 Remote Host 注册修复卡及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
-4. `AGENTS.md` v3.3：执行纪律。
+1. `docs/novel-creation-tool-design.md` v3.4：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.28 作者入口/ID/术语收口与后置 F1/F2 边界。
+2. 本文件 v3.4：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v3.4：I1–I158 的完成事实、当前顺序 I159 及 Stage 28 / I159–I161 执行卡，以及 v3.2 原 I151–I162 后置卡片的 provenance；Stage 19（I141–I149）卡片保留为已完成执行记录。
+4. `AGENTS.md` v3.4：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
@@ -22,8 +22,8 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I157 全部完成**。当前顺序执行 I158，修复来源导入 Client Remote 已挂载但 Host strict descriptors 未登记、导致 DSH `/api` 404 的接线缺口。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R29 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- 当前迭代身份：**I1–I158 全部完成**。当前顺序执行 I159，统一 workflow、目录层与作品内 DOCX/自由文本来源导入入口；I160–I161 已排期但必须在前序验收后依次执行。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。任何当前可执行需求必须能追溯到一个唯一正式迭代和精确验证命令。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R30 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
 
 ### 0.3 统一验收纪律
 
@@ -68,6 +68,7 @@
 | Stage 25 来源审阅 session 持久化恢复（R27） | I156 | `pnpm run verify:stage-25` |
 | Stage 26 来源主角语义恢复（R28） | I157 | `pnpm run verify:stage-26` |
 | Stage 27 来源 Remote Host 注册修复（R29） | I158 | `pnpm run verify:stage-27` |
+| Stage 28 作者入口、ID 与中文术语收口（R30） | I159–I161 | `pnpm run verify:stage-28` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -602,13 +603,23 @@ README 仍为唯一 12 步，不增加步骤数量：
 |---|---|---|---|
 | R29-1 | 所有已由产品 Client 挂载的来源导入 strict Remote descriptors 必须同时登记在唯一 Host Typert face，使 DSH Gateway 能认领 `/api/<namespace>/<method>`。不得用 REST fallback、动态 handler 或第二注册 owner 掩盖遗漏。 | 集合守卫证明 import interpretation、analysis、rule/style initialization、narrative adaptation/reveal/import-plan 六组 Client descriptors 在 Host face 中零缺失/零重复；真实 Registry+Gateway+plugin 完成 `novelImportInterpretation/create` 往返并在卸载后撤销；未知 endpoint 保持不认领；既有 contract locks 不变。 | I158 |
 
+## R30. 作者入口、技术 ID 与中文术语收口（I159–I161）
+
+R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品入口要求；R12-2 其余作品切换、脏表单与目录层新增作品能力继续有效。
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R30-1 | `workflow` 的“导入”必须成为唯一普通作者入口；目录层新作品、已打开空作品的 DOCX/自由文本均先进入来源语义审阅。产品 Client 不得再直接启动旧六层 analyzer，进阶导航不得再公开“六层初始化审阅”；非空作品仍按 N-7 引导新建独立作品。 | DOM/路由消费者夹具证明 workflow import、目录 DOCX、空作品 DOCX/文本均进入同一 source review；旧 `data-novel-onboarding-start`、旧入口文案和产品 Client `startAnalysis/analyzeText` 调用归零；确认前旧六层 begin=0/I151 begin=0，确认后既有 import session 后续链不回归；legacy route deep-link 收敛到新入口。 | I159 |
+| R30-2 | 所有作者操作不得要求填写章节、场景、POV、规则、父条目、细纲目标、调和计划或其他技术 ID。新实体 ID 隐藏生成；引用字段使用名称/实体选择器或当前上下文派生，未知/已删除引用只显示只读缺失态。 | 全量 DOM 扫描无文本型 ID 控件和“请输入/填写 ID”文案；章节/场景/规则新建、POV、B2 parent、B5 binding、reconciliation、搜索过滤均以真实实体消费者夹具往返 canonical ID；重名可区分、未知引用不丢失且不能自由输入；Remote/schema/持久值逐字段不变。 | I160 |
+| R30-3 | 全部作者可见控件、枚举、状态、帮助和 ARIA 使用中文作者术语；canonical 英文值不得作为 label/fallback。旧原始 JSON 编辑器改为中文结构化表单。只允许文件格式、模型标识、服务地址与作者内容等窄 allowlist。 | 机器扫描覆盖静态/动态文本、option、placeholder、ARIA、fallback 和真实 DOM，`holder/revealPlan/status/Gate/ConfirmationGate/supersede/seq/diff/Stage/Ixx/N-x` 与 raw enum 归零；角色/世界观/关系等枚举中文往返；旧六层及规则/文风初稿无 JSON textarea；allowlist 不误伤 canonical wire/data 锚点。 | I161 |
+
 ---
 
 ## Deferred / 非目标
 
 | ID | 项目 | 约束与理由 |
 |---|---|---|
-| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的传统六层初始化走 I50–I53，幕后叙事化走 I141–I149；正文保真初始化保留于后置 F2，当前无迭代号；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
+| N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的作者入口由 I159 统一进入 I141–I149 来源语义审阅，I50–I53 旧六层只保留兼容合同；正文保真初始化保留于后置 F2，当前无迭代号；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
 | N-2 | 向量检索 | 语义向量检索和 B2 `vector` trigger 延后；当前使用关键词/正则/全文与 I40 精确 SQLite 索引。文件始终是 source of truth。 |
 | N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM、浏览器直读/直写作品文件或 DSH 之外的受支持主路径。I51 文件选择器只允许把受限用户输入运输到 Host 临时区，Client 不解析且不成为文件 owner。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
@@ -627,6 +638,6 @@ README 仍为唯一 12 步，不增加步骤数量：
 
 ## 结论
 
-**直接结论：I1–I157 已完成。当前顺序执行 I158，修复来源导入 strict Remote 遗漏 Host Typert face 注册而产生的 DSH `/api` 404。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I158 已完成。当前顺序执行 Stage 28 / I159，统一 workflow、目录层与作品内 DOCX/自由文本来源导入入口；I160–I161 依次收口作者手填技术 ID 与中文术语/结构化表单。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。

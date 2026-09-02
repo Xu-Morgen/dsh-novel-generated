@@ -1,10 +1,10 @@
 # AI 长篇小说创作器 — 开发计划（DSH 插件版）
 
-> 版本：v3.3
+> 版本：v3.4
 > 日期：2026-09-02
-> 状态：当前执行权威（**I1–I157 全部完成**；当前顺序执行 I158 来源 Remote Host 注册修复；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v3.3（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.3（需求 ID、验收、迭代覆盖）
+> 状态：当前执行权威（**I1–I158 全部完成**；当前顺序执行 Stage 28 / I159 来源导入唯一作者入口；I160–I161 已排期但不得提前执行；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v3.4（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.4（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
@@ -16,7 +16,7 @@
 - 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
 - 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- I151 首次导入规则与文风初始化、I152 credentials seam、I153 真实导入入口、I154 来源审阅解释提示、I155 作品归档、I156 来源审阅 session 持久化恢复与 I157 来源主角语义均已完成。当前单一执行卡为 Stage 27 / I158：把已公开的来源导入 strict descriptors 补入唯一 Host Typert face，消除 `/api/novelImportInterpretation/create` 404。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
+- I151 首次导入规则与文风初始化、I152 credentials seam、I153 目录层真实导入入口、I154 来源审阅解释提示、I155 作品归档、I156 来源审阅 session 持久化恢复、I157 来源主角语义与 I158 来源 Remote Host 注册均已完成。当前单一执行卡为 Stage 28 / I159：把 workflow、目录层与作品内 DOCX/自由文本统一接入来源语义审阅并退役产品 Client 的旧六层直达路径。I160–I161 只作后续排期。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -33,6 +33,7 @@
 - v3.3 来源审阅持久化修订（2026-09-02）：I155 已完成；新增 Stage 25 / I156，在既有 I142 session owner 内补 Windows transient rename 有界重试，并在 I144 Client 审阅面板补原地重试与折叠技术详情；公开 Remote/schema/LLM/分段不变。
 - v3.3 来源主角语义修订（2026-09-02）：I156 已完成；新增 Stage 26 / I157，修复首次 create 重试重置 Client state 和技术 ID 输入。`idea|background-material|hybrid + adapt-pov` 统一支持隐藏稳定候选 ID 与 LLM 新主角串联；synopsis/existing-prose、I151、分段和 F1/F2 边界不变。
 - v3.3 来源 Remote Host 注册修订（2026-09-02）：I157 已完成；新增 Stage 27 / I158，修复 I142–I148/I151 的 Client contributions 已存在但 `hostContribution` 遗漏相同 strict descriptors 的接线缺口。只补唯一 Host face、完整性守卫与真实 Gateway E2E，不改公开合同和领域行为。
+- v3.4 作者入口与表现层收口（2026-09-02）：I158 已完成；新增 Stage 28 / R30（I159–I161）。I159 统一来源导入入口，I160 退役作者手填技术 ID，I161 以中文标签、结构化表单和全量术语门收口作者界面。三卡只改变 Client 产品入口/投影及必要的 Host-owned 文本规范化 seam，不改领域 Schema、既有 invocation、LLM prompt/样本、I11 或 F1/F2。
 
 ### 0.2 Goal
 
@@ -1633,6 +1634,40 @@ TDD Route:
 - **明确不做**：不改来源语义、LLM、I11、持久化、DOCX、Client UI、DSH pin 或 F1/F2。
 - **验证**：`pnpm run verify:i158`；`pnpm run verify:stage-27`；`artifacts/i158-source-remote-host-registration.json`。
 
+## 29. Stage 28：作者入口、ID 与中文术语收口（R30，I159–I161）
+
+**阶段门**：`pnpm run verify:stage-28`。三张卡严格串行：I159 只收敛来源导入入口，I160 只退役手填技术 ID，I161 才执行全量中文术语与结构化表单门。领域 Schema、既有 invocation/result、LLM prompt/样本、I11、13 层 source of truth 与后置 F1/F2 均不改变。
+
+### I159：来源导入唯一作者入口（R30-1）
+
+- **依赖**：I153、I157–I158；**canonical owner**：Client `workflow` import route + `UploadController` + 来源输入 composition port。
+- **目标**：让 workflow、目录层和已打开空作品的 DOCX/自由文本全部先进入既有来源语义审阅，退役产品 Client 对旧六层 analyzer 的直接可达入口。
+- **兼容/退役**：保留稳定 `onboarding` route ID 及旧 onboarding/analyzer Remote 以兼容 deep-link/外部调用，但 route 只收敛到新来源入口；删除进阶导航“六层初始化审阅”、旧自由文本“分析原文”、作品内上传后的 `startAnalysis` 分支及导入导出中的旧入口指引，不保留 hidden UI fallback。若自由文本缺 Host-owned 范围投影，只允许 strict additive 规范化 seam，并须同步 schema、descriptor/result lock、adapter 类型与真实 binder；不得由 Client 伪造 chunks/ranges。
+- **交付物**：单一 source-import presenter/controller；workflow/legacy route 收敛；目录 DOCX、空作品 DOCX、自由文本三种消费者夹具；非空作品 N-7 引导；旧入口负向扫描；I159 smoke 产物。
+- **验收**：三种输入均渲染同一 source review 并可选择来源角色/处理目标/POV；确认前旧六层 begin=0 且 I151 begin=0，确认后既有 source-aware 后续链保持；非空作品上传/分析前明确阻断并引导新建独立作品；产品 Client 中 `data-novel-onboarding-start`、旧入口文案和 `startAnalysis/analyzeText` 调用归零；legacy deep-link 不断且不恢复旧 UI；全量/product-flow 绿。
+- **明确不做**：不执行 I160/I161；不删除旧公开 Remote；不改来源枚举、NarrativeImportPlan、I151、LLM、样本、I11、DOCX parser、安全上限或 F1/F2。
+- **验证**：`pnpm run verify:i159`；`pnpm run verify:product-flow`；`artifacts/i159-single-source-import-entry.json`。
+
+### I160：作者表单零手填技术 ID（R30-2）
+
+- **依赖**：I159、I117、I150、I157；**canonical owner**：Client entity selectors + 单一 draft identity helper + 各面板薄 adapter。
+- **目标**：退役章节、场景、POV、规则、父条目、细纲目标、调和计划、搜索过滤等全部自由文本技术 ID 输入，作者只按名称、内容和当前上下文操作。
+- **兼容/退役**：canonical ID、持久文档和 Remote 参数逐字段不变；新实体 ID 隐藏生成，已有 ID 只读保留；引用字段统一用名称/实体选择器，未知/已删除值只显示安全缺失态。删除旧 input/onChange 写操作，不保留 hidden/free-text fallback。
+- **交付物**：章节/场景/规则隐藏 ID factory；角色 POV、B2 parent、B5 binding、reconciliation、搜索引用选择器；重名消歧与缺失引用投影；全量 DOM/源码手填 ID 守卫；真实 Host round-trip 消费者夹具；I160 smoke。
+- **验收**：可达 DOM 无文本型 ID 控件、“ID/id/标识”输入提示或复制 ID 操作；新建章节/场景/规则产生合法稳定且无冲突 ID；POV/parent/binding/reconciliation/search 只提交所选 canonical ID；重名可区分，未知值不丢失且不可自由改写；I117/I150/I157 回归及 contract locks 全绿。
+- **明确不做**：不改 ID schema/格式、Host repository、公开 Remote、自动引用领域语义或 I161 文案；不把显示名称写入 canonical 引用。
+- **验证**：`pnpm run verify:i160`；`artifacts/i160-id-free-author-controls.json`。
+
+### I161：中文作者术语、结构化表单与全量门（R30-3）
+
+- **依赖**：I159–I160、I132、I140；**canonical owner**：Client presentation dictionaries + author-visible terminology scanner。
+- **目标**：把全部可达作者界面的英文业务枚举、内部机制词、迭代编号和原始 JSON 编辑器收口为中文作者语言与结构化表单，并建立不可回归的全量机器门。
+- **兼容/退役**：canonical 英文 enum/wire/storage/data anchors 保持不变；展示层使用穷尽中文映射，未知值 fail closed 为中文错误而非 raw fallback。DOCX/TXT/Markdown、模型标识、服务地址和作者内容进入窄 allowlist；技术错误原文只能存在于折叠高级详情。
+- **交付物**：角色/世界观/关系/状态/正史/知情/正文/候选/来源/导入导出中文词典；旧六层与规则/文风初稿的中文结构化编辑器；静态 AST + 动态 DOM 术语扫描；option/placeholder/ARIA/fallback 覆盖；allowlist 误报负测；I161 smoke。
+- **验收**：所有可达主流程与进阶面板中 raw enum、`holder/revealPlan/status/Gate/ConfirmationGate/supersede/seq/diff/Stage/Ixx/N-x` 归零；原始 JSON textarea 归零；中文表单提交与既有 canonical payload 逐字段等价；未知状态不泄漏英文；文件格式/模型/作者内容不误报；隐藏面板零请求，`verify:product-flow`、`pnpm test`、build 全绿。
+- **明确不做**：不修改 schema、Remote、LLM prompt/样本/gold/阈值，不翻译作者正文、模型名、URL、文件扩展名或内部源码标识，不恢复独立 UI/主题系统。
+- **验证**：`pnpm run verify:i161`；`pnpm run verify:product-flow`；`pnpm run verify:stage-28`；`artifacts/i161-chinese-author-presentation-gate.json`。
+
 ## Deferred Package F1：导入基础设施重构（v3.2 原 Stage 20 / I151–I155）
 
 > **后置说明**：下列卡片完整保留 v3.2 设计意图，但原 I151–I155 只作 provenance，不得执行原 `verify:i151`–`verify:i155` 或占用当前 I151 身份。恢复时必须重新编号、重新冻结依赖和验证命令。
@@ -1765,9 +1800,9 @@ TDD Route:
 
 ## 25. 完成线
 
-I1–I157 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复。
+I1–I158 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返。
 
-v3.3 当前进度：**Stage 26 / I157 已完成 → 当前顺序执行 Stage 27 / I158 来源 Remote Host 注册修复**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v3.4 当前进度：**Stage 27 / I158 已完成 → 当前顺序执行 Stage 28 / I159 来源导入唯一作者入口**。I160–I161 已排期但只能在前序验收后依次执行；v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
 
 I74 完成时还必须证明：
 

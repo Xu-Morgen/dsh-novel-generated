@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v3.3
-> 状态：v3.3 当前设计权威；**I1–I157 全部完成**；当前顺序执行 I158，修复来源导入 Remote 遗漏 Host Typert face 注册而被 DSH `/api` 返回 404 的接线缺口；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v3.4
+> 状态：v3.4 当前设计权威；**I1–I158 全部完成**；当前顺序执行 I159，统一来源导入作者入口并退役产品 Client 的旧六层直达路径；I160–I161 已排期为手填 ID 与中文术语专项收口；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -34,10 +34,11 @@
 | **v3.3 来源审阅持久化修订（2026-09-02）** | 同步 I155 已完成事实；新增 I156，修复 Windows Defender/索引器瞬时锁住来源审阅临时文件时 session 首次落盘直接失败，且作者界面无实际重试入口的问题。Host 有界重试 transient rename；Client 保留来源证据并原地重试，技术原因只在折叠高级详情中展示。 |
 | **v3.3 来源主角语义修订（2026-09-02）** | 同步 I156 已完成事实；新增 I157，修复 session-create 重试清空作者来源选择，以及 UI 要求手填角色/知情信息技术 ID 的问题。`idea|background-material|hybrid + adapt-pov` 可选择由 AI 创建主角，Client 只生成隐藏稳定候选 ID，LLM 必须提议新主角并在读者体验 B5 中实际串联；已有角色只按名称选择。 |
 | **v3.3 来源 Remote Host 注册修订（2026-09-02）** | 同步 I157 已完成事实；新增 I158，修复 Stage 19/20 六组 Client Remote contribution 未加入唯一 `hostContribution`，导致 Connection 请求 `/api/novelImportInterpretation/create` 时 Host 网关不认领 endpoint 并返回 404。修复只补 Host strict descriptor 注册和接线完整性门，不改公开合同或领域行为。 |
+| **v3.4 作者入口与表现层收口（2026-09-02）** | 同步 I158 已完成事实；新增 Stage 28 / R30（I159–I161）。I159 把 workflow、目录层与作品内 DOCX/自由文本统一接入来源语义审阅并退役旧六层产品入口；I160 以隐藏稳定 ID、名称/实体选择器和当前上下文派生取代作者手填技术 ID；I161 为全部作者可见控件建立中文标签、结构化表单和机器术语门。领域 Schema、公开 invocation、LLM prompt/样本、I11 与 13 层真相保持不变。 |
 
-> **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.3 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
+> **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.4 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
-> **v3.3 current supersession / 同步状态**：I1–I157 已完成，当前顺序执行 I158 来源 Remote Host 注册修复。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；I158 不恢复 F1/F2。
+> **v3.4 current supersession / 同步状态**：I1–I158 已完成，当前顺序执行 I159 统一来源导入作者入口；I160–I161 依次执行且不得提前夹带。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；Stage 28 不恢复 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1280,6 +1281,27 @@ project/
 - DSH Client Remote 通过 Connection 调用 `/api/<namespace>/<method>`；Host `TypertGatewayService` 只有在当前 Host Typert face 已登记对应 strict descriptor 时才认领该 endpoint。Client contribution 可挂载不代表 Host descriptor 已自动注册，二者必须由机器守卫保持完整。
 - `hostContribution` 是本插件 Host strict descriptors 的唯一注册 owner。I142–I148 与 I151 已公开的 `novelImportInterpretation`、`novelImportInterpretationAnalysis`、`novelNarrativeAdaptation`、`novelNarrativeReveal`、`novelNarrativeImportPlan`、`novelRuleStyleImportInitialization` 必须全部加入该 face；任何 Client-mounted descriptor 若缺失都必须在测试中失败。
 - 修复不得新增 REST server、fallback endpoint、动态 handler 或第二注册面，也不得修改 invocation ID、namespace、参数、结果 schema、领域 service、LLM prompt/样本或 I11 写回边界。真实 Typert Registry + Gateway + 插件组合必须完成来源 session create 往返，并证明卸载后 descriptor 消失。
+
+### 14.26 I159：来源导入唯一作者入口
+
+- 本节取代 §14.7、§14.8 与 §14.10 中“目录层直接展示六层初始化审阅”的旧产品入口描述；这些旧段落只保留 I50–I55 的交付 provenance，不再定义 I159 后的可达 UI。
+- `workflow` 的“导入”是唯一普通作者入口；目录层新作品 DOCX、已打开空作品的 DOCX 与自由文本都必须先取得 Host-owned 规范文本、范围和 sourceHash，再进入既有来源语义审阅。Client 不得自行猜测文本范围，也不得从产品入口直接调用旧六层 `startAnalysis/analyzeText`。
+- 稳定 `onboarding` route ID 可保留供既有 deep-link 解析，但必须渲染或重定向到同一来源导入入口；进阶导航不再公开“六层初始化审阅”。旧 onboarding/analyzer Remote 保持公开兼容，不删除、不改形状，但产品 Client 零直接调用者。
+- 已有非空作品继续遵守 N-7：入口必须在上传或分析前明确引导新建独立作品，不得把“统一入口”解释为开放合并导入。目录层 DOCX 已交付路径保持 source review；自由文本也必须经 Host 规范化 seam，禁止浏览器构造伪 Host chunks。
+- 来源确认后的 I151、I145–I149、I11 与 source-aware workflow 行为不变；确认前旧六层 begin=0、I151 begin=0，确认后仍只按既有 import session 触发后续步骤。
+
+### 14.27 I160：作者表单零手填技术 ID
+
+- 作者创建章节、场景、规则等实体时只填写名称或内容；稳定 ID 由单一 Client draft identity helper 隐藏生成并由 Host 继续校验。编辑已有实体不得重新生成或允许改写 ID。
+- POV、世界观父条目、细纲目标、调和计划、时间线/关系/知情引用与搜索过滤必须来自按名称显示的实体选择器或当前选中上下文；未知/已删除引用使用明确的只读缺失态，不恢复自由文本 ID fallback。
+- canonical 持久值和 Remote 参数仍使用既有英文 ID；本迭代只改变作者输入投影，不修改任何 schema、invocation 或领域引用规则。名称重复时选择器必须提供足够的中文上下文区分，但普通路径不得显示或要求复制技术 ID。
+
+### 14.28 I161：中文作者术语与结构化表单门
+
+- 角色、世界观、关系、状态、正史、知情、正文、候选、来源审阅和导入导出全部作者可见枚举必须以中文标签呈现；canonical 英文值只存在于 wire、存储和 `data-*` 锚点。未知值 fail closed 为中文“无法识别的类型/状态”，不得回退显示原始英文。
+- `holder/revealPlan/status/Gate/ConfirmationGate/supersede/seq/diff/Stage N/Ixx/N-x` 等内部机制词从普通与进阶作者界面归零；必要动作改为“知情角色、揭示计划、确认、修订、快照序号、差异”等作者语言。DOCX/TXT/Markdown、模型名、服务地址和作者原文属于显式 allowlist，不得把 allowlist 扩展成任意英文豁免。
+- 旧六层候选和首次规则/文风初稿不得再要求编辑原始 JSON；应使用按领域字段分组的中文结构化表单，提交时仍构造既有 canonical 结果。技术诊断只可留在折叠高级详情，普通错误始终先给中文可行动说明。
+- 单一机器扫描必须覆盖直接字符串、option label、placeholder/ARIA、动态状态映射、空值 fallback 与真实渲染 DOM；主流程和所有可达进阶面板均纳入，内部合同、测试 fixture、`data-*`、文件格式和作者内容不得误报。
 
 ---
 
