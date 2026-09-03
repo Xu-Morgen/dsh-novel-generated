@@ -1,22 +1,22 @@
-# AI 长篇小说创作器 — 开发计划（DSH 插件版）
+# AI 长篇小说创作器 — 开发计划（Electron 桌面版）
 
-> 版本：v3.7
+> 版本：v4.0
 > 日期：2026-09-03
-> 状态：当前执行权威（**I1–I164 与 Stage 31 全部完成；当前没有后续执行卡**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续迭代编号）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v3.7（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v3.7（需求 ID、验收、迭代覆盖）
+> 状态：当前执行权威（**I1–I164 / Stage 0–31 已完成；I165 / Stage 32 已完成桌面版立项；I166–I186 为当前 Electron 迁移执行卡**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v4.0（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.0（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
 
-## 0. 文档头与 v1.x supersession
+## 0. 文档头、历史基线与 v4.0 supersession
 
 ### 0.1 本版变更
 
-- 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）**整体失效**，仅保留为 provenance；不再作为当前排期、执行、验收或完成声明依据。
-- 本项目当前唯一身份是 **DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin**，宿主基线不可修改（见设计 §0.1）。
+- 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）仍只作 provenance；v4.0 Electron 路线不恢复浏览器直连 LLM、Renderer 文件 I/O 或旧编号。
+- 本项目在 `desktop` 分支的当前唯一身份是 **Electron 本地桌面应用**；Main/Preload/Renderer、strict IPC 与 Main-owned 数据/LLM/凭据为不可修改宿主基线（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- I1–I164 与 Stage 31 均已完成。当前没有后续执行卡；I164 只修复 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。唯一可复现项目 DSH family pin 仍为 `0.1.1-rc.2`。
+- I1–I164 与 Stage 0–31 均已完成并作为迁移来源保持可追溯；I165 完成 v4.0 权威切换和执行计划。I166–I186 按运行时地基→IPC→Renderer→数据→退役→发布顺序执行。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -35,43 +35,42 @@
 - v3.3 来源 Remote Host 注册修订（2026-09-02）：I157 已完成；新增 Stage 27 / I158，修复 I142–I148/I151 的 Client contributions 已存在但 `hostContribution` 遗漏相同 strict descriptors 的接线缺口。只补唯一 Host face、完整性守卫与真实 Gateway E2E，不改公开合同和领域行为。
 - v3.4 作者入口与表现层收口（2026-09-02）：I158 已完成；新增 Stage 28 / R30（I159–I161）。I159 统一来源导入入口，I160 退役作者手填技术 ID，I161 以中文标签、结构化表单和全量术语门收口作者界面。三卡只改变 Client 产品入口/投影及必要的 Host-owned 文本规范化 seam，不改领域 Schema、既有 invocation、LLM prompt/样本、I11 或 F1/F2。
 - v3.7 自定义 DeepSeek 能力声明修订（2026-09-03）：溯源确认提交 `0073524` 引入 reasoning 参数、I85 升级的 rc.2 能力前置校验未由真实 `llm-pi-ai` 消费者覆盖；新增并完成 Stage 31 / R33（I164），在既有 provider 模型项补 `off/low/high/max` 能力声明并补真实宿主负向/正向门，不改 Remote、A2、凭据或模型 prompt。
+- v4.0 Electron 桌面版立项（2026-09-03）：新增 Stage 32–36 / I165–I186。I165 只切换权威与冻结迁移卡；I166–I172 建立桌面运行时、Kernel、路径、凭据、LLM 与 IPC 安全地基；I173–I180 迁移 Renderer 和作者流程；I181–I182 迁移 Agent/旧库；I183–I186 删除生产 DSH 并完成安装、安全、恢复与产品 E2E。
 
 ### 0.2 Goal
 
-把设计文档定义的「结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链」作为 DSH 插件分阶段落地。每个迭代结束都是可演示、可测试、可回归、可独立提交的可用状态。
+把已完成的「结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链」从 DSH 平台适配层迁移为 Electron 桌面应用，同时保持领域行为、作品格式、样本阈值和作者十二步流程。每个迭代结束都是可演示、可测试、可回归、可独立提交的可用状态。
 
 ### 0.3 Architecture（简述）
 
-- 唯一运行宿主：DSH；唯一发布形态：ordinary persistent Cordis Plugin。
-- 生产安装走**所选 profile 的 bundle path**：package 声明 `dsh.bundle.patch` 并显式列入所选 profile 的有序 `dsh.profile.bundles`；plugin row 只有一个 insertion owner。
-- Host 拥有作品文件 I/O、凭据、`ctx.llm`、持久化/索引、领域 Services/Events/Tools、导入导出和业务校验；Client 只拥有注册到 DSH Slot 的 UI，不拥有领域真相。
-- 所有副作用归属 Cordis Fiber，停止/更新/卸载后必须完整 dispose。
-- 小说内部扩展点统一称为 **Extension**，不是外层 Cordis Plugin。
+- 唯一运行宿主与发布形态：Electron 本地桌面应用。
+- Main 创建唯一 `ApplicationKernel`，拥有作品文件 I/O、凭据、`LlmBackend`、持久化/索引、领域 Services、任务、导入导出和业务校验。
+- Preload 只发布 strict、版本化 `novelDesktop` bridge；Renderer 只拥有 React UI 和瞬态状态。
+- 所有副作用归属 `DesktopLifecycle`，窗口关闭、应用退出和升级重启后必须完整 dispose。
+- 小说内部扩展点统一称为 **Extension**，不是 Electron 外层插件，不得创建第二窗口/进程 owner。
 
 ### 0.4 Tech Stack
 
 | 项 | 决策 | 依据 |
 |---|---|---|
-| 运行时 | Node.js ≥22（以所选 profile 实际支持为准） | 设计 §0.1 / Cordis 当前代际 |
+| 运行时 | Electron（精确版本由 I166 兼容门冻结）+ 开发工具 Node.js ≥22 | 设计 §0.1 / R34-2 |
 | 语言 | TypeScript strict，ESM | 13 层 schema 需类型约束 |
-| 包管理 | pnpm + 提交锁文件 | DSH 插件安装经 profile 转发 pnpm |
-| 插件框架 | `@deepseek-ai/cordis`（当前观测 4.0.1） | 设计 §0.1 |
-| DSH | 唯一运行时与项目 manifest/profile/lockfile pin 均为 `0.1.1-rc.2`，禁止 rc.7 fallback 或混装 | 设计 §0.1.3 / D23 |
-| 生产组合 | bundle path（`dsh.bundle.patch` + `dsh.profile.bundles`） | 设计 §0.1.1 |
-| 本地 smoke 组合 | 仓库 `cordis.yml` + loader/include（仅 smoke） | 设计 §0.1.1 |
-| Host 构建 | TypeScript 编译输出 ESM + 类型声明 | 设计 §0.1.3 |
-| Client 构建 | I2 起 React 18 + DSH Runtime/Slots + DSH-compatible bundle | 设计 §0.1.3 |
-| UI | DSH Slot Client（禁止独立 HTML/SPA/Vite app） | 设计 §0.1.2 |
-| LLM | Host `ctx.llm`（禁止直连 OpenAI/兼容 endpoint） | 设计 §0.1.2 |
+| 包管理 | pnpm + 提交锁文件 | 可复现桌面构建 |
+| 桌面框架 | Electron + I166 选定的构建/打包器 | 设计 §0.1.1 |
+| 生产组成 | Main + sandboxed Preload + Renderer；无本地 Web server | 设计 §0.1.1 |
+| Host 构建 | Main/ApplicationKernel ESM bundle + native Node 能力 | 设计 §0.1.3 |
+| Client 构建 | React Renderer + 单一 HTML/root + preload 类型声明 | 设计 §0.1.3 |
+| IPC | canonical strict registry + contextBridge，参数/结果双向校验 | R34-7/R34-8 |
+| LLM | Main `LlmBackend` + `CredentialStore`，Renderer 禁止直连 | 设计 §0.1.2 |
 | 存储 | 文件式 YAML（设定/状态）+ jsonl（正史）+ Markdown（正文）；SQLite 仅重建索引 | 设计 §10 |
 | 测试 | Vitest + jsdom + 消费者夹具 + held-out 样本 | 设计 §0.1.3 / 需求 §0.3 |
 
-### 0.5 Composition 合同（本计划唯一执行入口）
+### 0.5 Desktop composition 合同（本计划唯一执行入口）
 
-- 发布 package 是所选 profile 的 `package.json` 依赖；权威 `pnpm-lock.yaml` 锁定解析。
-- 本项目固定选择 **bundle path**：package manifest 声明 `dsh.bundle.patch`，同一 package 显式列入所选 profile 的有序 `dsh.profile.bundles`；不得再由 profile/home patch 重复插入 row。
-- 仓库 `cordis.yml` 只用于本地 Loader smoke，不是生产发现/安装入口；shipped DSH composition 永不编辑。
-- 同一部署中 bundle path 与直接 patch-row 路径互斥；row 的 insertion owner 恰好一个 composition layer。
+- `ApplicationKernel` 是领域组合的唯一 owner；Main 启动一次、退出 dispose 一次。
+- `novelDesktop` 是 Renderer 唯一系统能力入口；Main handler 与 Renderer client 从同一 strict registry 派生。
+- 开发/测试/生产共用 Main/Preload/Renderer entry graph；生产包不得依赖 DSH、localhost server 或远端 UI。
+- 迁移期间旧 `src/index.ts`、`src/client.ts` 和 Typert descriptors 只作等价来源；I183 后不得进入生产构建图。
 
 ### 0.6 TDD Route
 
@@ -85,7 +84,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I140）
+### 0.7 全局执行纪律（贯穿 I1–I186）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -93,11 +92,12 @@ TDD Route:
 4. LLM 样本优先：改 prompt/schema 前先建/更新样本集及 held-out；gold 不可变，低于阈值即失败。
 5. 阈值：硬检测器 canonical 违规 100% 命中 + 整体 ≥90%；正史解析 ≥85%；其他 LLM ≥80%。
 6. I11 起所有「用户确认」复用 ConfirmationGate；未确认不写回，重复确认幂等。
-7. 安装/卸载/装载 smoke 使用一次性 `DSH_HOME` 与测试 profile，不污染现有 profile。
+7. I166 起桌面 smoke 使用一次性 Electron `userData`、临时作品库与隔离凭据 adapter，不污染真实用户目录；I1–I164 的历史 DSH smoke 仅在对应历史回归需要时使用临时 `DSH_HOME`。
 8. 提交自检：`git status` 只含本迭代文件；`git diff` 无 console.log/临时文件/死代码；无真实 key。
 9. 阶段收尾跑全量 `pnpm test` + 本阶段全部 held-out 回归 + `pnpm run verify:stage-N`。
 10. 重构/修复迭代（I75–I84、I86–I102）叠加纪律：以「重构/修复前后领域行为等价 + 缺陷消除」为完成条件（既有全量测试 + 相关 stage 回归 + LLM 样本阈值不变 + 本迭代专属负向扫描断言）；只消除复制与接线债务，禁止夹带新功能或改变公开契约（I100 公开命名统一属独立迁移迭代，必须带兼容期与退役文档）；结构性拆分一次一个切片（见 §16；Stage 17 立项输入与修复专属纪律见 §18）。
-11. 宿主兼容升级（I85）叠加纪律：版本观测与项目 pin 分离；manifest/profile/lockfile 必须同迭代同版本切换；完整 base+web+plugin 与 Client/Remote/Tools/LLM 门未通过时不得声明新基线，不保留 rc.7 fallback，不触碰作品数据。
+11. 宿主兼容升级（I85）叠加纪律是历史完成条件；不得用它覆盖 v4.0 Electron 基线。
+12. Electron 迁移（I166–I186）叠加纪律：一次只替换一个 owner/seam；先建立消费者夹具再退役旧 DSH adapter；Renderer 禁止 Node/文件/secret/provider；I183 前允许迁移期旧源存在，I183 后禁止生产双路径。
 
 ---
 
@@ -1841,11 +1841,209 @@ TDD Route:
 
 ---
 
-## 25. 完成线
+## 33. Stage 32：Electron 桌面版权威与迁移合同（R34，I165）
+
+> 状态：I165 已完成。本阶段只改变 `desktop` 分支的当前产品权威和后续排期，不迁移运行时代码，不把旧 DSH 路径伪装成桌面完成态。
+
+### I165：Electron 宿主重置与连续迁移计划
+
+- **目标**：将三份权威文档和 `AGENTS.md` 从“DSH 唯一宿主”原子切换为 Electron Main/Preload/Renderer 基线，冻结 I166–I186 连续执行卡。
+- **明确不做**：安装 Electron、修改领域代码、建立窗口/IPC、删除 DSH 依赖、恢复 F1/F2、迁移用户作品。
+- **交付物**：设计 v4.0 §0.1/§14.32/D34，需求 v4.0 H0/R34/阶段矩阵，计划 v4.0 Stage 32–36，执行约定 v4.0，静态权威一致性 smoke。
+- **验收**：当前权威只声明 Electron 为唯一宿主；历史 DSH 文字有明确 provenance 边界；I165–I186 连续且每卡都有目标/不做/交付物/验收/验证；工作区已有用户文件状态未被纳入提交。
+- **验证**：`pnpm run verify:i165`；`pnpm run verify:stage-32`。
+
+## 34. Stage 33：Electron 运行时与安全边界地基（R34，I166–I172）
+
+### I166：桌面 workspace、精确版本与最小启动门
+
+- **目标**：建立 Main/Preload/Renderer 三入口和 Windows 首发的可复现 Electron dev/build/package 骨架，冻结精确版本。
+- **明确不做**：迁移产品 UI、领域服务、LLM、凭据或旧数据；不删除 DSH 源码。
+- **交付物**：桌面目录、构建/打包配置、单一 HTML/root 占位、BrowserWindow 安全默认、single-instance lock、最小启动 smoke。
+- **验收**：clean install/build 可启动唯一窗口；`contextIsolation:true`、`sandbox:true`、`nodeIntegration:false`；第二实例只聚焦；生产配置无 dev URL/监听端口。
+- **验证**：`pnpm run verify:i166`。
+
+### I167：framework-neutral ApplicationKernel 与 DesktopLifecycle
+
+- **目标**：从 Cordis composition 提取服务装配顺序、窄 ports 和统一 disposer，形成 Main 可消费的唯一 Kernel。
+- **明确不做**：IPC、Renderer、LLM provider、凭据实现、领域行为变化或 DSH 退役。
+- **交付物**：`src/app` kernel/lifecycle/ports、fake port 消费者夹具、Cordis 组合等价映射文档。
+- **验收**：启动/停止/重启不重复注册；任务/AbortController/disposer 归零；`src/app` 不 import Electron/DSH；既有领域测试全绿。
+- **验证**：`pnpm run verify:i167`。
+
+### I168：桌面数据根与统一路径 port
+
+- **目标**：以 Electron `userData` 下的作品库为默认根，收敛 repository path 解析并保留 containment、归档墓碑和原子写语义。
+- **明确不做**：自动读取/移动 `~/.dsh`、UI 迁移、凭据、LLM 或作品格式变更。
+- **交付物**：DesktopPaths port/adapter、library-root 配置、project/settings/cache/temp 路径合同与正负测试。
+- **验收**：新根 create/open/archive/restore round-trip；符号链接/穿越/只读/双 root 混写 fail closed；不硬编码 `.dsh`。
+- **验证**：`pnpm run verify:i168`。
+
+### I169：Main-owned CredentialStore
+
+- **目标**：用不回显 secret 的 `CredentialStore` 替代 DSH credentials seam，保持 A2 CredentialRef 语义。
+- **明确不做**：Renderer 设置 UI、直接 provider 调用、明文 fallback、读取旧 `.credentials.yaml` 或迁移旧 Key。
+- **交付物**：CredentialStore port、平台安全存储 adapter、fake/真实平台夹具、日志与归档 secret 扫描。
+- **验收**：只公开 `describe/set/delete` 等受控语义；Renderer/IPC 无 secret 读取；安全存储不可用或写失败时 settings/A2 零写。
+- **验证**：`pnpm run verify:i169`。
+
+### I170：Main-owned OpenAI-compatible LlmBackend
+
+- **目标**：以独立 provider adapter 替代 `ctx.llm`/`llm-pi-ai`，保持流、reasoning、stop、取消、错误和模型引用行为。
+- **明确不做**：改 prompt/schema/gold/阈值、浏览器直连、自动探测模型能力或新增供应商功能。
+- **交付物**：Main provider adapter、CredentialStore 解析接线、fake/真实消费者夹具、旧 DSH port 等价测试。
+- **验收**：text delta/finish/cancel/error 逐项等价；unsupported option 显式失败；全部已有 LLM held-out 回归保持阈值。
+- **验证**：`pnpm run verify:i170`。
+
+### I171：canonical strict IPC registry
+
+- **目标**：把现有 214 invocation 转为 framework-neutral 单一 registry，机械派生 Main handler、Renderer client 类型和 contract lock。
+- **明确不做**：Preload 暴露、产品 UI、方法改名、参数/结果变化或调用方 fallback。
+- **交付物**：IPC method descriptor、codec/envelope、注册器、214 方法覆盖锁与非法参数/结果测试。
+- **验收**：namespace/method 零缺失/重复；调用前参数与返回前结果均 strict parse；未知方法、非法结果、不可序列化值 fail closed。
+- **验证**：`pnpm run verify:i171`。
+
+### I172：安全 Preload bridge 与真实 IPC 生命周期门
+
+- **目标**：通过 `contextBridge` 暴露唯一版本化 `novelDesktop` API，并完成 Main handler、进度/取消、错误信封和清理闭环。
+- **明确不做**：迁移产品面板、暴露 `ipcRenderer`/fs/shell/process、任意 channel 或第二 bridge。
+- **交付物**：preload bridge、Main IPC binder、BrowserWindow E2E、CSP/navigation/new-window guards、生命周期 smoke。
+- **验收**：Renderer 只能调用 allowlist 方法；恶意 channel/消息/导航失败；窗口关闭与应用退出后 handler、listener、任务和迟到响应归零。
+- **验证**：`pnpm run verify:i172`；`pnpm run verify:stage-33`。
+
+## 35. Stage 34：Renderer 与作者工作流迁移（R34，I173–I180）
+
+### I173：独立 React root 与 Store adapter
+
+- **目标**：用唯一 Electron Renderer root 和 framework-neutral Store adapter 挂载现有 presenter/panels，不依赖 ModuleLoader、Slot 或 DSH defineStore。
+- **明确不做**：接真实业务 IPC、改作者流程、重做视觉设计或新增主题系统。
+- **交付物**：Renderer bootstrap、Store adapter、桌面 shell、样式/token 映射、mount/unmount DOM 夹具。
+- **验收**：旧 WorkbenchActions/State 行为等价；单 root；焦点/响应式/中文术语门保持；Renderer bundle 无 Node/DSH/provider import。
+- **验证**：`pnpm run verify:i173`。
+
+### I174：Renderer IPC client 与 service bag
+
+- **目标**：以 I171/I172 生成 client 替换 31 个 `$mount`，保持 `unwrap`、迟到响应、取消和 unload 语义。
+- **明确不做**：迁移具体领域面板或修改 invocation 形状。
+- **交付物**：DesktopServiceBag、transport registry、连接状态/错误投影、全 service 可达性消费者夹具。
+- **验收**：31 个现有 Client service key 全部映射且零手写重复；非法结果不进入 store；卸载后不写 UI；无 Remote fallback。
+- **验证**：`pnpm run verify:i174`。
+
+### I175：作品目录、创建、打开、归档与设置入口
+
+- **目标**：迁移作品列表、空白创建、打开/readiness、归档/恢复和作品设置的桌面首个可用闭环。
+- **明确不做**：导入来源分析、正文生成、旧库迁移或删除作品。
+- **交付物**：project/workspace IPC 接线、目录页、受控文件夹打开、项目切换与脏状态夹具。
+- **验收**：Main 重新验证 projectId；多作品隔离；归档只读；Renderer 不获得真实路径；重启恢复合法选择而不建立全局 current project。
+- **验证**：`pnpm run verify:i175`。
+
+### I176：B1–B5 与 C1–C4 结构化编辑面迁移
+
+- **目标**：迁移规则、文风、角色、世界观、大纲、关系、状态、知情与正史的编辑/只读/确认路径。
+- **明确不做**：C5 写作、批量队列、导入来源或领域 schema 变化。
+- **交付物**：对应 panels/ops 的 DesktopServiceBag 接线、实体选择器、保存状态与 Gate 消费者夹具。
+- **验收**：所有 canonical ID 仍隐藏/选择；C4 append-only、C3 单调、B2 supersede、I11 确认与既有 DOM 契约保持。
+- **验证**：`pnpm run verify:i176`。
+
+### I177：C5 正文、候选、分支与统一定稿迁移
+
+- **目标**：迁移章节/场景管理、正文编辑、生成候选、接受草稿、分支、五层预览和一次确认式定稿。
+- **明确不做**：自动接受、改写 parser prompt/gold、恢复富文本编辑器或后台静默写层。
+- **交付物**：writing/text/branch/finalization IPC 消费、生成进度/取消、C5 与五层写回 E2E。
+- **验收**：候选前零写、草稿只写 C5、finalize 单 Gate/UoW、拒绝/stale/取消零写；正文逐字与分支 freshness 保持。
+- **验证**：`pnpm run verify:i177`。
+
+### I178：审校、修复、润色与自动队列迁移
+
+- **目标**：迁移 review/repair/reference-correction/polish/queue 的任务编排和可恢复 UI。
+- **明确不做**：新增后台 daemon、多进程队列、自动确认或改变本地单写 lane。
+- **交付物**：任务进度事件、取消/暂停/恢复、会话级润色、错误详情和恢复 E2E。
+- **验收**：先候选后裁决；队列不自动接受；窗口关闭取消/持久任务恢复边界明确；重复点击至多一次 Main 调用。
+- **验证**：`pnpm run verify:i178`。
+
+### I179：DOCX/文本导入与来源语义审阅迁移
+
+- **目标**：迁移文件选择、受控上传/规范化、来源角色/分段/分类、POV 叙事化、首次 B1/B4 初始化和 I11 应用。
+- **明确不做**：浏览器解析 DOCX、开放非空作品合并、恢复 F1/F2 正文保真包或改 LLM 样本。
+- **交付物**：Main dialog/tokenized file access、导入 IPC、source-aware workflow、失败原位重试与产品 E2E。
+- **验收**：Renderer 不见路径/原始文件能力；zip bomb/越界/错绑定失败；分类与分段逐字；揭示前无 C3/C4/POV 泄漏。
+- **验证**：`pnpm run verify:i179`。
+
+### I180：搜索、统计、时间线、导出与桌面设置收口
+
+- **目标**：迁移剩余可达面板和 OS 集成，完成现有 31 个 Client service 的产品消费者覆盖。
+- **明确不做**：新增业务功能、向量检索、DOCX 正式交稿、自动更新或旧库迁移。
+- **交付物**：search/statistics/timeline/progress/import-export/settings IPC 消费、Main 下载/保存/打开目录适配、Stage 34 product-flow。
+- **验收**：派生索引可重建；导出零技术 sidecar；文件保存由 Main dialog 授权；31 service 全部至少一条真实 Renderer→Main 消费者夹具。
+- **验证**：`pnpm run verify:i180`；`pnpm run verify:stage-34`。
+
+## 36. Stage 35：桌面助手与旧库迁移（R34，I181–I182）
+
+### I181：DSH Tools → Main-owned 桌面助手
+
+- **目标**：把现有 novel agent commands 迁入桌面助手/命令面，复用同一 Kernel、上下文 owner、LLM 与 ConfirmationGate。
+- **明确不做**：创建第二聊天后端、第二领域 Service、插件市场或任意 shell 命令能力。
+- **交付物**：assistant command registry、最小 Renderer 面、open/status/context/continue/inspire 等价测试。
+- **验收**：参数执行前校验；上下文和正文主流程同 owner；所有副作用归 DesktopLifecycle；未知命令失败。
+- **验证**：`pnpm run verify:i181`。
+
+### I182：旧 DSH 作品库与设置的显式迁移向导
+
+- **目标**：提供旧 `~/.dsh/novel-projects`/novel settings 的预览、备份、复制、schema/hash 验证、确认切换与回滚。
+- **明确不做**：自动扫描即迁移、移动/删除旧源、迁移 API Key、合并冲突项目或修改作品格式。
+- **交付物**：migration planner/executor、冲突报告、备份 manifest、UI 向导与 fixtures。
+- **验收**：旧源逐字不变；缺失/损坏/冲突/中途失败/重复执行 fail closed 或幂等；新库可打开/导出，回滚恢复旧活动根。
+- **验证**：`pnpm run verify:i182`；`pnpm run verify:stage-35`。
+
+## 37. Stage 36：DSH 退役、桌面发布与最终验收（R34，I183–I186）
+
+### I183：生产 DSH/Cordis 依赖与入口退役
+
+- **目标**：在桌面消费者覆盖完成后 delete-first 移除生产 DSH/Cordis/Slot/Typert/ModuleLoader/`ctx.llm` 依赖和入口。
+- **明确不做**：删除历史文档/合同证据、修改领域行为、删除用户数据或保留兼容双路径。
+- **交付物**：manifest/lockfile 清理、旧 composition/client wrapper 退役、legacy fixture 隔离、dependency/bundle scans。
+- **验收**：无 DSH 环境 clean install/build/test/boot；production graph/asar 零 DSH；所有 214 方法由 desktop registry 唯一拥有。
+- **验证**：`pnpm run verify:i183`。
+
+### I184：Windows 安装、升级与卸载保留
+
+- **目标**：交付可重复的 Windows 安装包、版本升级和卸载/重装流程。
+- **明确不做**：静默自动更新服务、macOS/Linux 发布承诺或删除作品/凭据。
+- **交付物**：packager config、artifact manifest/checksum、安装→启动→升级→卸载→重装 smoke。
+- **验收**：安装包离线启动；升级保留设置/作品；卸载保留作品 source of truth；重装可重新打开。
+- **验证**：`pnpm run verify:i184`。
+
+### I185：桌面安全、异常退出与恢复门
+
+- **目标**：完成 CSP/navigation/IPC/凭据/文件 token 安全审计，以及生成、写盘或迁移中异常退出的恢复验证。
+- **明确不做**：云同步、多用户、分布式事务或无界后台补偿。
+- **交付物**：安全扫描、故障注入、crash/relaunch、单实例与临时文件清理报告。
+- **验收**：Renderer 越权路径归零；异常退出不产生伪成功或损坏源文件；重启恢复 pending/queue 合同；临时数据可清理且真相不删。
+- **验证**：`pnpm run verify:i185`。
+
+### I186：无 DSH 十二步产品 E2E 与桌面发布就绪
+
+- **目标**：在干净、无 DSH 的系统环境中验证从首次启动到整书导出的 README 十二步唯一作者流程并冻结桌面 release baseline。
+- **明确不做**：恢复 F1/F2、加入新产品功能、降低样本阈值或把手工演示当验收。
+- **交付物**：desktop product-flow、全量 stage 汇总、安装包证据、迁移/安全/性能报告和发布清单。
+- **验收**：typecheck、全量 test/build、全部相关 held-out、214 IPC lock、Main/Renderer E2E、安装升级、旧库迁移、异常恢复全绿；生产零 DSH/Cordis；作者完成十二步无需技术 ID。
+- **验证**：`pnpm run verify:i186`；`pnpm run verify:stage-36`。
+
+## 38. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。
 
-v3.7 当前进度：**Stage 31 / I164 已完成；当前没有后续执行卡**。v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v4.0 当前进度：**Stage 32 / I165 已完成；下一步为 I166。I166–I186 是当前 Electron 迁移执行卡。** v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+
+Stage 36 / I186 达成后还必须证明：
+
+- Electron 是唯一生产宿主，Main/Preload/Renderer 权限边界和 single-instance 写 owner 成立；
+- 无 DSH 环境可 clean install、build、启动、升级、卸载/重装并完成十二步作者流程；
+- 生产 dependencies、bundle、asar/安装目录零 DSH/Cordis/Slot/Typert/ModuleLoader/`ctx.llm`；
+- 作品格式、13 层真相、ConfirmationGate、幂等/写回顺序、样本/gold/阈值与 I1–I164 领域行为保持；
+- 旧 `~/.dsh` 库只经显式预览/备份/验证迁移，源数据不变，卸载不删除作品；
+- 214 个调用面由单一 strict IPC registry 覆盖，参数/结果双向校验且无调用方 fallback；
+- Renderer 无 Node、文件、secret、provider client 或任意 IPC 能力；全部长期副作用随 DesktopLifecycle 回收。
 
 I74 完成时还必须证明：
 
@@ -1931,7 +2129,17 @@ F1/F2 的结构化来源、共享 UoW 与正文保真验收仍保留在后置卡
 
 ---
 
-## 24. Risks 与 Retirement
+## 39. Risks 与 Retirement
+
+- **Electron 双主路径风险**：迁移期间旧 DSH 代码只能作为等价来源和隔离夹具；不得让 Electron 与 DSH 同时成为发布入口。I183 必须 delete-first 清除生产依赖、入口和 bundle 残留。
+- **IPC 攻击面风险**：214 个调用不能逐个临时手写；必须由 canonical registry 派生 handler/client，Main 双向校验，preload 只暴露 allowlist，Renderer 不得获得任意 channel。
+- **Renderer 越权风险**：`nodeIntegration:false`、`contextIsolation:true`、`sandbox:true`、CSP、navigation/new-window guard 是阻断门；任何文件、路径、secret 或 provider client 进入 Renderer 均失败。
+- **凭据迁移风险**：旧 DSH API Key 不自动读取或迁移；作者需在桌面安全存储重新配置。禁止为便利增加明文配置或 secret 回显。
+- **作品迁移风险**：I182 只能复制并验证旧库，不能移动/删除源；冲突和中途失败不得切换活动根。安装升级/卸载同样不得删除作品 source of truth。
+- **生命周期风险**：Cordis Fiber 退役后，DesktopLifecycle 必须显式拥有 IPC handlers、窗口监听、timer、任务、临时文件和 LLM AbortController；关闭/重启后的残留会造成双写或泄密。
+- **打包环境差异风险**：开发 dev server 成功不能替代 packaged app；每阶段至少运行相应 production bundle smoke，Stage 36 必须使用真实 Windows 安装包。
+
+以下条目记录 I1–I164 的历史风险与既有领域不变式；涉及 DSH/Slot/Fiber 的内容只作迁移回归来源，不是当前平台实现要求：
 
 - **Client 公开合同风险**：I2 若无法证明公开 out-of-tree Client bundling/Remote，则按停止线停止，不使用动态 RPC 或 internal builder fallback。
 - **DSH 版本漂移与兼容门**：I54 已完成 Slot 落点决策；I85 已把唯一项目 DSH family pin 从 `0.1.0-rc.7` 原子切换为 `0.1.1-rc.2`，并重跑真实 base+web+plugin 与完整 Client/Remote/Tools/LLM 门；门内任一失败即回退 I85，不以混装或双路 fallback 过关。当前无运行时观测与项目 pin 的漂移。

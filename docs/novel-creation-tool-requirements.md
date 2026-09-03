@@ -1,9 +1,9 @@
 # AI 长篇小说创作器 — 需求与覆盖权威
 
-> 版本：v3.7
+> 版本：v4.0
 > 日期：2026-09-03
 > 状态：当前需求、验收与迭代覆盖权威
-> 产品身份：DeepSeek Harness（DSH）中的 ordinary persistent Cordis Plugin；DSH 是唯一宿主
+> 产品身份：Electron 本地桌面应用；Electron 是 `desktop` 分支唯一宿主
 
 ## 0. 权威、优先级与溯源
 
@@ -11,25 +11,25 @@
 
 权威优先级如下；发生冲突时，前者优先：
 
-1. `docs/novel-creation-tool-design.md` v3.7：产品与架构设计权威，尤其是 §0.1 宪法级宿主基线、D24、D25、I150 范围细纲修复裁决、§14.18 查漏补缺、§14.26–§14.31 作者入口/ID/术语/来源片段裁决/失败重试/LLM 能力声明与后置 F1/F2 边界。
-2. 本文件 v3.7：需求 ID、验收证据、迭代覆盖与非目标权威。
-3. `docs/novel-creation-tool-development-plan.md` v3.7：I1–I164 与 Stage 31 的完成事实，以及 v3.2 原 I151–I162 后置卡片的 provenance。
-4. `AGENTS.md` v3.7：执行纪律。
+1. `docs/novel-creation-tool-design.md` v4.0：产品与架构设计权威，尤其是 §0.1 Electron 宪法级宿主基线、D34、§14.32 桌面迁移边界，以及既有领域设计。
+2. 本文件 v4.0：需求 ID、验收证据、迭代覆盖与非目标权威。
+3. `docs/novel-creation-tool-development-plan.md` v4.0：I1–I164 / Stage 0–31 的完成事实、I165 桌面立项事实与 I166–I186 当前迁移执行卡。
+4. `AGENTS.md` v4.0：执行纪律。
 5. `docs/aegis/plans/2026-08-19-dsh-plugin-baseline-reset.md`：本次基线重置的决策与任务 provenance，不替代前三项产品权威。
 6. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）：架构审查记录；v1.0 为 Stage 15（R16）重构立项输入，v2.0 为 Stage 17 修复迭代（I86–I102）立项输入；review record，非设计权威，不覆盖上述产品权威。
 
 ### 0.2 v1.x supersession 与 provenance
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
-- v1.x 的独立 Node/Vite 应用、浏览器 LLM、旧里程碑和旧迭代编号已经失效；历史 `I1a–I28b2` 不得用于当前排期、执行、验收或完成声明。
-- 当前迭代身份：**I1–I164 与 Stage 31 全部完成；当前没有后续执行卡**。v3.2 原 I151–I162 已后置为 F1/F2 设计包，原编号只作非执行 provenance、不占用当前连续编号。
-- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R33 或未来产品能力的通过抵消；I2 或专门兼容性门失败时必须执行停止线。
+- v1.x 的独立 Node/Vite 路线仍只作 provenance；v4.0 选择的是具备严格 Main/Preload/Renderer 边界的 Electron 应用，不恢复浏览器直连 LLM、Renderer 文件 I/O 或旧 `I1a–I28b2` 排期。
+- 当前迭代身份：**I1–I164 / Stage 0–31 已完成并作为 DSH 历史基线；I165 / Stage 32 已完成桌面版立项；I166–I186 为当前执行卡**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
+- H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R34 或未来产品能力抵消；I171–I172 IPC 安全门失败时必须停止 Renderer 产品迁移。
 
 ### 0.3 统一验收纪律
 
 1. 单迭代验证命令固定为 `pnpm run verify:iN`；阶段累积验证固定为 `pnpm run verify:stage-N`。表中列出的命令是最低证据，不得用手工演示替代。
 2. 每项验收必须同时包含正向断言、相关负向断言和可检查产物；地基切片还须有下游消费者夹具。
-3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有 LLM 调用只能走 Host 的 `ctx.llm`；禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
+3. LLM 集成先以 fake backend/mock parser 做确定性接线，再跑真实模型样本。所有生产 LLM 调用只能走 Electron Main 的 `LlmBackend`；Renderer 禁止直接调用 OpenAI/Anthropic/兼容 endpoint，禁止读取或传递直接 API key。
 4. 硬检测器：canonical 违规样本 **100% 命中**且整体准确率 **≥90%**；正史解析器准确率 **≥85%**；其他 LLM 模块准确率 **≥80%**。
 5. 样本、held-out 子集和 gold 均为不可变验收资产；不得为过关修改样本、held-out、gold 或阈值。dev 可用于调优，held-out 只用于收尾验收。
 6. **LLM 样本优先是规范性顺序**：任何 prompt/schema 变更前必须先建立或更新样本集及其 held-out 子集，再实施变更并运行样本回归；回归低于既定 gold/阈值即失败，不得降低阈值或改写不可变样本过关。此横切纪律逐迭代纳入回归义务：I17—`pnpm run verify:i17`；I21—`pnpm run verify:i21`；I22—`pnpm run verify:i22`；I24—`pnpm run verify:i24`；I25—`pnpm run verify:i25`；I26—`pnpm run verify:i26`；I27—`pnpm run verify:i27`；I28—`pnpm run verify:i28`；I29—`pnpm run verify:i29`；I38—`pnpm run verify:i38`；I41—`pnpm run verify:i41`；I42—`pnpm run verify:i42`；I43—`pnpm run verify:i43`；I44—`pnpm run verify:i44`；I45—`pnpm run verify:i45`；I52—`pnpm run verify:i52`；I62—`pnpm run verify:i62`；I112—`pnpm run verify:i112`；I113—`pnpm run verify:i113`；I118—`pnpm run verify:i118`；I119—`pnpm run verify:i119`；I123—`pnpm run verify:i123`；I128—`pnpm run verify:i128`；I134—`pnpm run verify:i134`；I143—`pnpm run verify:i143`；I145—`pnpm run verify:i145`；I146—`pnpm run verify:i146`；I150—`pnpm run verify:i150`；I151—`pnpm run verify:i151`。I109–I111、I135–I137 与 I147–I149 复用既有 parser/detector 时仍须运行对应既有 held-out 回归，不得以“未改 prompt”跳过集成回归；v3.2 后置卡片中的原 I157–I158 只作 provenance，不占用当前验证命令。I151 必须先冻结 dev/held-out/gold，再改 prompt/schema，每类准确率不低于 80%。
@@ -72,28 +72,33 @@
 | Stage 29 来源片段裁决闭环（R31） | I162 | `pnpm run verify:stage-29` |
 | Stage 30 来源解释失败重试闭环（R32） | I163 | `pnpm run verify:stage-30` |
 | Stage 31 自定义 DeepSeek 能力声明修复（R33） | I164 | `pnpm run verify:stage-31` |
+| Stage 32 Electron 桌面版权威与迁移合同（R34） | I165 | `pnpm run verify:stage-32` |
+| Stage 33 Electron 运行时地基（R34） | I166–I172 | `pnpm run verify:stage-33` |
+| Stage 34 Renderer 与作者工作流迁移（R34） | I173–I180 | `pnpm run verify:stage-34` |
+| Stage 35 桌面助手与旧库迁移（R34） | I181–I182 | `pnpm run verify:stage-35` |
+| Stage 36 DSH 退役与桌面发布（R34） | I183–I186 | `pnpm run verify:stage-36` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
 ---
 
-## H0. 宪法级宿主要求（最高优先级）
+## H0. 宪法级 Electron 宿主要求（最高优先级）
 
 | ID | 规范性要求 | 可机器验收与证据 | 计划迭代 | 精确验证 |
 |---|---|---|---|---|
-| H0-1 | 发布 package 必须是**所选 DSH profile 的 `package.json` 依赖**；权威 lockfile 锁定其解析版本。不得依赖 home patch 的虚构独立依赖目录。 | manifest/lockfile 断言 package 从 selected profile dependency chain 解析；删除依赖后 boot 必须失败。 | I1 | `pnpm run verify:i1`; `pnpm run verify:stage-0` |
-| H0-2 | 本项目选择唯一 **bundle path**：package manifest 声明 `dsh.bundle.patch`，且同一 package 明确列入所选 profile 的有序 `dsh.profile.bundles`。plugin row 只能有一个 insertion owner；不得再由 profile/home patch 重复插入。仓库 `cordis.yml` 仅可用于本地 Loader smoke。 | 静态检查 manifest/profile；selected-profile boot 断言仅一个 row；重复 owner 夹具必须失败；仅安装而未列 bundle 时不得激活。 | I1 | `pnpm run verify:i1`; `pnpm run verify:stage-0` |
-| H0-3 | 交付物必须是 ordinary persistent Cordis Plugin：npm/仓库 package 与 composition 配置跨 DSH 重启存在。动态 `cordis_define` 只可临时原型，绝非安装、发布或生产装载路径。 | 安装→启动→停止→DSH 重启→再次启动 smoke 均由 selected profile 完成；发布文件与脚本零动态定义依赖。 | I1 | `pnpm run verify:i1`; `pnpm run verify:stage-0` |
-| H0-4 | Host 是作品文件 I/O、路径、YAML/jsonl、SQLite、凭据、`ctx.llm`、领域 Service/Event/Tool、导入导出和业务校验的唯一 owner；Client 不得持有领域真相。 | Host service 契约测试；Client bundle 负向扫描禁止 file/secret/LLM endpoint；越权调用被拒绝。 | I1, I2 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:stage-0` |
-| H0-5 | Client 只拥有注册到经核验 DSH Web GUI Slot 的视图、交互状态和视图适配，并只使用已证明的公共 Host–Client 合同。 | 最小 probe 只注册一个 Slot；无文件、凭据、领域实现；卸载后 Slot 消失。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
-| H0-6 | Service、Event、Tool、Slot、样式、监听、任务及全部副作用必须归属当前 Cordis Fiber；停止、更新、卸载后完整 dispose。 | 生命周期测试记录注册数归零；stop/restart 后不得重复监听或残留 UI/Service。 | I1, I2 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:stage-0` |
-| H0-7 | **I1 严格 Host-only**：只建立 package/profile/bundle/Host Service/Fiber 地基；不得产生 Client 代码、Client seam、probe、产品 UI、伪 RPC 或 standalone fallback。 | I1 构建产物和源码负向扫描无 client/Slot/Remote/UI 入口；Host selected-profile lifecycle smoke 通过。 | I1 | `pnpm run verify:i1`; `pnpm run verify:stage-0` |
-| H0-8 | **I2 仅为 gate-only Client probe**：只证明公共 client bundle、公共 Remote、selected-profile boot、单一 Slot 注册与 Fiber 卸载；probe 必须非产品、不得演化为工作区。 | 真实 package build + selected-profile boot + 单一 Slot mount/unmount smoke；产品术语、领域读取/写入和多 Slot 均为负向失败。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
-| H0-9 | **公共合同停止线**：I2 必须证明受支持的普通 out-of-tree plugin 公共 Remote 与 client bundling/装载合同。不得使用动态 `harness.handle`/`host.call`，不得以内置或未发布 builder/`clientBundle` API fallback。证明失败即 I2 失败，禁止开始 I33–I36 及任何产品 Client 工作。 | 依赖/API allowlist 与 forbidden-symbol 扫描；公开 contract 集成 smoke；缺公共合同夹具必须 fail closed，且产品 Client 构建任务保持阻塞。 | I2 | `pnpm run verify:i2`; `pnpm run verify:stage-0` |
-| H0-10 | 禁止 standalone UI：无独立 HTML、`createRoot()` 自挂载、独立 SPA/Vite server 或第二主路径；禁止浏览器直连 LLM、直接文件访问、长期 key/secret。 | repository 与 Client bundle 负向扫描；核心能力只能在现有 DSH GUI/Host 中启动。 | I1, I2, I33 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i33`; `pnpm run verify:stage-0`; `pnpm run verify:stage-6` |
-| H0-11 | 工具链 pin：Node.js **22+**、pnpm、TypeScript strict、ESM；项目 manifest 固定 DSH family/Cordis 兼容范围，lockfile 固定精确解析版本。唯一项目 DSH family pin 已由 I85 切换为 `0.1.1-rc.2`（此前为 `0.1.0-rc.7`）。 | engines/packageManager/type/module/tsconfig/lockfile 静态断言；DSH family 直接依赖、selected profile 与 lockfile 同版本；Node 低版本、npm lock、CJS 输出、混装版本夹具失败。 | I1, I85 | `pnpm run verify:i1`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
-| H0-12 | 必须具备可重复的 install/build/selected-profile boot/stop/restart 验证；stop 后消失，restart 后恰好恢复一次。宿主升级还必须在真实 base+web+plugin 组合中重跑完整 Client gate。 | 干净安装、Host build、首次 boot、Client mount、Remote 往返、stop、同进程 restart、DSH 重启后 boot 的脚本日志与断言。 | I1, I2, I85 | `pnpm run verify:i1`; `pnpm run verify:i2`; `pnpm run verify:i85`; `pnpm run verify:stage-16` |
-| H0-13 | DSH family 升级必须是单一专门兼容迭代：manifest、selected profile 与 lockfile 原子切换至同一精确版本；不得保留旧宿主 fallback，不得用运行时观测冒充已验证项目基线。I85 已按此完成：唯一项目 pin 现为 `0.1.1-rc.2`。 | `0.1.1-rc.2` 同版本断言；rc.7 残留/混装负向扫描；真实 base+web+plugin selected-profile boot；完整 Client/Remote/Tools/LLM 合同与生命周期门。 | I85 | `pnpm run verify:i85`; `pnpm run verify:stage-16` |
+| H0-1 | Electron 是 `desktop` 分支唯一受支持运行宿主与主交付形态；不得把 DSH 插件、Web server 或 PWA 保留为第二生产路径。 | 当前权威文档与发布图扫描；无 DSH 环境可启动产品；双入口夹具失败。 | I165, I183 | `pnpm run verify:i165`; `pnpm run verify:i183`; `pnpm run verify:stage-36` |
+| H0-2 | Main 是唯一 Host，拥有领域 Service、文件、SQLite、LLM、凭据、任务、导入导出和业务校验；Renderer 只拥有 UI 与瞬态状态。 | 分层 import 扫描；Renderer 越权夹具失败；Main 消费者测试覆盖项目读写与生成。 | I167–I170, I173 | `pnpm run verify:i170`; `pnpm run verify:i173`; `pnpm run verify:stage-34` |
+| H0-3 | 应用固定为 Main/Preload/Renderer 三层；Preload 只发布版本化 `novelDesktop` bridge，不得暴露任意 `ipcRenderer`、fs、shell、process 或路径。 | preload API 快照、任意 channel/未知方法负测、Renderer bundle forbidden-import 扫描。 | I166, I172 | `pnpm run verify:i172`; `pnpm run verify:stage-33` |
+| H0-4 | BrowserWindow 必须 `contextIsolation:true`、`sandbox:true`、`nodeIntegration:false`，限制 navigation/new-window，并配置生产 CSP。 | 真实 BrowserWindow webPreferences 断言；恶意导航、window.open、inline/eval 和 Node 探针失败。 | I166, I172, I185 | `pnpm run verify:i172`; `pnpm run verify:i185`; `pnpm run verify:stage-36` |
+| H0-5 | Main–Renderer 只经 canonical strict IPC registry 通信；参数调用前校验、结果返回前校验，错误使用稳定信封，取消与进度有界。 | 既有 214 invocation 集合零缺失/零重复；非法参数、非法结果、未知 method、取消竞态负测。 | I171–I172, I174 | `pnpm run verify:i171`; `pnpm run verify:i174`; `pnpm run verify:stage-34` |
+| H0-6 | 全部副作用归 `DesktopLifecycle`：kernel、IPC handler、窗口监听、timer、任务、临时文件和 LLM 请求在窗口关闭/应用退出后完整 dispose。 | 启动→关闭→重开及退出 smoke；handler/listener/timer/request 计数归零且不重复注册。 | I167, I172, I185 | `pnpm run verify:i167`; `pnpm run verify:i185`; `pnpm run verify:stage-36` |
+| H0-7 | 首版保持本地单用户、单 Main 写 owner；必须取得 single-instance lock，第二实例只聚焦已有窗口。 | 双实例 smoke 证明只有一个 kernel/写 lane，第二实例零项目写入。 | I166, I185 | `pnpm run verify:i166`; `pnpm run verify:i185` |
+| H0-8 | 作品文件仍为 source of truth；默认根位于 Electron `userData`，用户可受控选择库根。旧 `~/.dsh` 只经显式预览、备份、复制验证和确认后迁移。 | 新根 round-trip；路径穿越/符号链接负测；旧库源哈希不变；失败回滚且不切换活动根。 | I168, I182 | `pnpm run verify:i168`; `pnpm run verify:i182`; `pnpm run verify:stage-35` |
+| H0-9 | 长期凭据只由 Main `CredentialStore` 管理，不回显 secret；不得进入 YAML、作品包、日志、IPC、Renderer/Web Storage。安全存储不可用时 fail closed。 | fake secure store + 真实平台消费者门；源码/产物/日志/归档扫描；读取 secret 的 Renderer 合同不存在。 | I169 | `pnpm run verify:i169`; `pnpm run verify:stage-33` |
+| H0-10 | 所有 LLM 调用只走 Main `LlmBackend`；保留流式 chunk、reasoning、stop、取消和错误语义。Renderer 禁止直连模型 endpoint。 | fake/真实 adapter 消费者夹具；Renderer 网络请求扫描；既有 held-out 阈值不变。 | I170 | `pnpm run verify:i170`; `pnpm run verify:stage-33` |
+| H0-11 | Electron、构建器、React 与打包工具必须精确 pin 并由 lockfile 固定；升级单独立项。开发可用本地资产服务，生产包不得监听网络端口。 | manifest/lockfile/build 配置扫描；production smoke 无监听端口、无 dev URL。 | I166, I184 | `pnpm run verify:i166`; `pnpm run verify:i184` |
+| H0-12 | I183 后生产 dependencies、源码入口、构建与安装包必须零 DSH/Cordis/Slot/Typert/ModuleLoader/`ctx.llm`；历史夹具只能在 `legacy-dsh` 隔离范围。 | dependency graph、bundle、asar/安装目录和源码边界扫描；删去 DSH 环境后 build/test/boot 成功。 | I183 | `pnpm run verify:i183`; `pnpm run verify:stage-36` |
+| H0-13 | 必须具备可重复的 clean install、首次启动、升级、异常退出恢复和卸载验证；升级/卸载不得删除作品 source of truth。 | Windows 安装包 smoke、版本升级、崩溃恢复、卸载后作品哈希保持及重装重开。 | I184–I186 | `pnpm run verify:i186`; `pnpm run verify:stage-36` |
 
 ---
 
@@ -102,7 +107,7 @@
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
 | R0-1 | 产品解决扁平聊天范式的无状态、无时间线、无正史、无知情边界和长线漂移问题。 | Stage 4 walkthrough 展示正文接受后 C1/C2/C3/C4 结构化累积，而非只追加聊天文本。 | I19, I30 | `pnpm run verify:i19`; `pnpm run verify:i30`; `pnpm run verify:stage-4` |
-| R0-2 | 产品等于结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链，并且只作为 DSH 插件运行。 | Host pipeline、Slot 工作区和写作工具的累积 smoke 全部在 selected profile 内完成。 | I1, I19, I33, I45 | `pnpm run verify:i1`; `pnpm run verify:i19`; `pnpm run verify:i33`; `pnpm run verify:i45`; `pnpm run verify:stage-8` |
+| R0-2 | 产品等于结构化叙事状态引擎 + 分层上下文组装器 + LLM 生成器 + 创作环境工具链，并只作为 Electron 桌面应用运行。 | Main pipeline、Renderer 工作区和写作工具在无 DSH 环境的打包应用内完成产品 smoke。 | I165, I173–I186 | `pnpm run verify:i186`; `pnpm run verify:stage-36` |
 | R0-3 | 支持短篇快起稿、长篇一致、多视角不串味、生成可校验四种核心使用形态。 | 四个固定场景分别证明快速生成、跨章状态保持、POV 过滤和硬/软校验。 | I19, I22, I24, I30 | `pnpm run verify:i19`; `pnpm run verify:i22`; `pnpm run verify:i24`; `pnpm run verify:i30`; `pnpm run verify:stage-4` |
 | R0-4 | 设计目标必须保持：长线一致、叙事可控、多视角安全、可解释可回滚、模型无关、可移植。 | 分别由正史/状态、大纲、KnowledgeFilter、快照/审计、A2 配置、包导入导出契约覆盖。 | I4, I5, I15, I18, I31, I39 | `pnpm run verify:i4`; `pnpm run verify:i5`; `pnpm run verify:i15`; `pnpm run verify:i18`; `pnpm run verify:i31`; `pnpm run verify:i39`; `pnpm run verify:stage-7` |
 | R0-5 | 本地单用户、中文优先；不引入多用户服务或模型微调要求。 | 中文项目夹具端到端通过；无账户/租户/训练 pipeline。 | I3, I19 | `pnpm run verify:i3`; `pnpm run verify:i19`; `pnpm run verify:stage-2` |
@@ -147,7 +152,7 @@
 | R3-1 | ContextAssembler kernel 支持固定 section 顺序、serializer 注册、宏和预算。 | prompt snapshot、顺序和预算负测。 | I12 | `pnpm run verify:i12`; `pnpm run verify:stage-2` |
 | R3-2 | B3/B2/C2 以角色恒定压缩、世界观触发、状态结构化快照方式序列化。 | 命中/未命中与缺字段夹具；无散文式状态。 | I13 | `pnpm run verify:i13`; `pnpm run verify:stage-2` |
 | R3-3 | B5/C6 只注入当前导航目标/细纲卡；C1 注入相关关系摘要；C3 经 POV 过滤；C4/C5 使用近期原文、远期摘要和检索。 | 各层最小上下文快照，不得塞入整本大纲或未授权知识。 | I14–I16, I18 | `pnpm run verify:i14`; `pnpm run verify:i15`; `pnpm run verify:i16`; `pnpm run verify:i18`; `pnpm run verify:stage-2` |
-| R3-4 | 正文生成只由 Host 调用 `ctx.llm`，Client 不得选择直接 endpoint/key；模板/模型配置只传受控引用。 | fake `ctx.llm` 接线测试 + 真实 smoke；源码/产物无 OpenAI endpoint、API key 或浏览器 fetch seam。 | I17, I31 | `pnpm run verify:i17`; `pnpm run verify:i31`; `pnpm run verify:stage-5` |
+| R3-4 | 正文生成只由 Main 的 `LlmBackend` 调用 provider；Renderer 不得取得直接 endpoint/key 或模型 client，模板/模型配置只传受控引用。 | fake backend + 真实 Main adapter smoke；Renderer 源码/产物无 provider SDK、API key 或模型 fetch seam。 | I17, I31, I170 | `pnpm run verify:i170`; `pnpm run verify:stage-33` |
 | R3-5 | 完整生成集成读取导航、状态、知情、正史并组装上下文，产出候选 C5 文本。 | 固定夹具改变状态/POV/beat 后 prompt 与候选结果相应改变。 | I19 | `pnpm run verify:i19`; `pnpm run verify:stage-2` |
 | R3-6 | 用户裁决支持接受、重写、分支；只有接受内容进入解析写回。 | reject/rewrite 不写层；accept 恰好触发一次 parser fan-out。 | I19, I30 | `pnpm run verify:i19`; `pnpm run verify:i30`; `pnpm run verify:stage-4` |
 
@@ -175,20 +180,20 @@
 
 ## R6. 模型配置与内部 Extension
 
-> **术语硬约束**：Extension 是小说产品内部扩展点，不是 Cordis Plugin，不具有独立宿主、文件、凭据、LLM、composition 或 UI owner 身份。
+> **术语硬约束**：Extension 是小说产品内部扩展点，不是 Electron 外层插件，不具有独立进程、窗口、文件、凭据、LLM 或 UI owner 身份。
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
-| R6-1 | A2 提供模型引用、采样参数、PromptTemplate、InstructPreset；长期凭据仅为 Host SecretRef。 | 配置持久化/切换测试；Client 序列化结果无 secret；生成只走 `ctx.llm`。 | I31 | `pnpm run verify:i31`; `pnpm run verify:stage-5` |
+| R6-1 | A2 提供模型引用、采样参数、PromptTemplate、InstructPreset；长期凭据仅为 Main CredentialRef。 | 配置持久化/切换测试；Renderer 序列化结果无 secret；生成只走 Main `LlmBackend`。 | I31, I169–I170 | `pnpm run verify:i170`; `pnpm run verify:stage-33` |
 | R6-2 | 内部 Extension registry 支持 Provider、Injector、Validator、Parser、关系规则和后端策略扩展。 | 每类注册/冲突/卸载测试；重复 ID 拒绝；Fiber dispose 后注册归零。 | I32 | `pnpm run verify:i32`; `pnpm run verify:stage-5` |
-| R6-3 | Extension 只能经 Host 注册表和领域 Service 工作，不得直读文件、解析凭据、直调 LLM 或自挂 UI。 | 能力对象 allowlist；越权 Extension 夹具失败；需要视图时只能贡献产品允许的 Slot 内容。 | I32 | `pnpm run verify:i32`; `pnpm run verify:stage-5` |
-| R6-4 | UI 主题可作为 A2 配置后置，不阻塞产品工作区；不得引入 standalone shell。 | 无主题时工作区完整可用；主题配置缺失不触发第二 UI。 | I31, I33 | `pnpm run verify:i31`; `pnpm run verify:i33`; `pnpm run verify:stage-6` |
+| R6-3 | Extension 只能经 Main 注册表和领域 Service 工作，不得直读文件、解析凭据、直调 LLM、创建窗口或绕过 strict IPC。 | 能力对象 allowlist；越权 Extension 夹具失败。 | I32, I167, I181 | `pnpm run verify:i181`; `pnpm run verify:stage-35` |
+| R6-4 | UI 主题可作为 A2 配置后置，不阻塞产品工作区；不得引入第二 Renderer shell。 | 无主题时工作区完整可用；主题配置缺失不触发第二窗口/root。 | I31, I173 | `pnpm run verify:i173`; `pnpm run verify:stage-34` |
 
-## R7. DSH Slot 创作工作区
+## R7. 创作工作区（I33–I36 历史合同；由 R34 迁移）
 
 | ID | 需求 | 验收/证据 | 迭代 | 验证 |
 |---|---|---|---|---|
-| R7-1 | 首个产品 Client 是 I2 门后注册到已核验 DSH Slot 的工作区；只经已证明公共 Remote 调 Host。 | I2 pass 作为构建前置；Slot mount/unmount；无独立页面。 | I33 | `pnpm run verify:i33`; `pnpm run verify:stage-6` |
+| R7-1 | I33 历史 Client 工作区能力必须完整迁入 Electron Renderer；运行时入口由 I173 的唯一 React root 取代 DSH Slot。 | 旧 DOM/交互合同消费者夹具复用；Renderer mount/unmount；无 Slot/ModuleLoader 运行依赖。 | I33, I173–I180 | `pnpm run verify:stage-34` |
 | R7-2 | B3 角色与 B2 世界观提供列表/详情编辑，保存走 Host 校验与持久化。 | 编辑 round-trip、非法字段错误展示、Client 不直接写文件。 | I34 | `pnpm run verify:i34`; `pnpm run verify:stage-6` |
 | R7-3 | B5/细纲与 C1 关系提供精确编辑；细纲仍是 B5 子结构。 | 列表/详情/保存/冲突夹具；不产生第 14 层。 | I35 | `pnpm run verify:i35`; `pnpm run verify:stage-6` |
 | R7-4 | C2 提供快照查看与回滚入口；C4 为只读，更正必须走 supersede + ConfirmationGate。 | 回滚后新当前快照正确；直接编辑正史控件不存在且 Remote 拒绝。 | I36 | `pnpm run verify:i36`; `pnpm run verify:stage-6` |
@@ -245,7 +250,7 @@
 
 ---
 
-## R12. DSH 停靠侧板与现有 UI 修复
+## R12. 停靠侧板与现有 UI 修复（历史表现合同）
 
 > 定位：I1–I53 已完成后的第一优先级修复。先消除“居中独立浮窗”形态和现有 UI 正确性缺口，不新增正文领域能力；Slot 选择必须服从设计 D20。
 
@@ -336,14 +341,18 @@
 
 | 宿主面 | 需求 ID | 迭代 | 必须证明的证据 |
 |---|---|---|---|
-| selected-profile dependency + pins | H0-1, H0-11, H0-13 | I1, I85 | profile manifest、项目 lockfile、DSH family 同版本、Node22+/pnpm/strict ESM |
-| chosen bundle composition + one owner | H0-2 | I1, I85 | `dsh.bundle.patch` + `dsh.profile.bundles` + 单 row |
-| ordinary persistent lifecycle | H0-3, H0-12, H0-13 | I1–I2, I85 | install/build/base+web+plugin boot/Client mount/stop/restart/upgrade/uninstall |
-| Host ownership | H0-4, H0-7 | I1 | Host-only Service/Fiber；无 Client 产物 |
-| Client ownership and gate | H0-5, H0-8 | I2 | 非产品单 Slot probe |
-| Fiber cleanup | H0-6 | I1–I2 | Host/Client 副作用归零 |
-| public contract stop line | H0-9 | I2 | 公共 Remote/bundle；失败即停 |
-| no standalone/browser LLM | H0-10 | I1, I2, I33 | forbidden-path scans + DSH-only smoke |
+| Electron 唯一宿主与精确版本 | H0-1, H0-11 | I165–I166 | manifest/lockfile 精确 pin、唯一桌面入口、生产零监听端口 |
+| Main 唯一领域 owner | H0-2 | I167–I170 | ApplicationKernel、DesktopPaths、CredentialStore、LlmBackend 消费者夹具 |
+| Preload strict bridge | H0-3 | I171–I172 | canonical registry、allowlist、参数/结果 codec、真实 IPC E2E |
+| Renderer 权限边界 | H0-4 | I173–I180 | 单一 React root；无 Node/Electron/fs/provider import；31 service 消费覆盖 |
+| BrowserWindow 安全默认 | H0-5 | I166, I172, I185 | webPreferences、CSP、导航/新窗口和任意 channel 负测 |
+| DesktopLifecycle cleanup | H0-6 | I167, I172, I185 | stop/restart/crash 后任务、监听器、handler、临时资源归零 |
+| 单实例写 owner | H0-7 | I166, I185 | 第二实例只聚焦/转发；并发启动无双 writer |
+| 桌面数据根与旧库迁移 | H0-8 | I168, I182 | userData/library-root containment、显式备份/复制/hash/回滚 |
+| 凭据不出 Main | H0-9 | I169 | secure store、IPC/log/export secret 扫描、安全存储失败零写 |
+| LLM 不出 Main | H0-10 | I170 | fake/真实 provider adapter、流/取消/错误等价、Renderer 网络扫描 |
+| DSH 生产退役 | H0-12 | I183 | dependencies/source/bundle/asar 零 DSH/Cordis；无 DSH 可 boot |
+| 桌面安装与恢复 | H0-13 | I184–I186 | clean install、升级、卸载保留、重装重开、crash recovery、十二步 E2E |
 
 ### M-13. 13 层覆盖矩阵
 
@@ -634,6 +643,23 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 |---|---|---|---|
 | R33-1 | `novel-custom` 保存既有 DeepSeek 思考控件时，provider 模型目录必须声明 `off/low/high/max` reasoning levels，使 A2 的显式 effort 能通过 DSH `0.1.1-rc.2` provider-I/O 前置能力校验。不得改变 `novelLlmConfig` Remote、A2 sampling、modelRef/secretRef、凭据 seam 或 UI 输入形状。 | 回归测试断言 settings YAML 含精确同名映射且保留其他 provider；真实 rc.2 `llm-pi-ai` 消费者夹具先以旧 `{id}` 配置复现 `UNSUPPORTED_REASONING_EFFORT`，再证明新配置的 `low/high/max` 全部可解析且能力目录含 `off`；空/非法能力声明 fail closed；I85 确定性 Host 合同夹具、I152 smoke 与全量回归全绿。 | I164 |
 
+## R34. Electron 桌面应用架构迁移（I165–I186）
+
+| ID | Requirement | Acceptance | Iteration |
+|---|---|---|---|
+| R34-1 | 三份权威文档与执行约定必须统一把 Electron 定为唯一当前宿主，并把 I1–I164 DSH 路线降为已完成 provenance；连续桌面迭代不得与 F1/F2 历史编号冲突。 | 文档扫描证明当前标题、§0.1、H0、计划、结论一致；I165–I186 连续且每卡含目标/不做/交付物/验收/验证。 | I165 |
+| R34-2 | 建立精确 pin 的 Electron Main/Preload/Renderer 构建与启动地基，Windows 为首发平台；安全 webPreferences、CSP、single-instance lock 和 production 零监听端口从地基开始生效。 | clean install/build；真实 Electron smoke 显示唯一窗口与进程边界；双实例、Node 探针、恶意导航和 production 端口负测失败。 | I166 |
+| R34-3 | 从 Cordis composition 提取 framework-neutral `ApplicationKernel` 与 `DesktopLifecycle`，领域 Service 构造、依赖顺序和 dispose 语义保持等价。 | fake ports 消费者夹具覆盖启动/停止/重启；既有领域测试全绿；`src/app` 零 Electron/DSH import。 | I167 |
+| R34-4 | 桌面路径 owner 使用 Electron `userData` 和受控 library root；所有 repository 通过单一 path port 解析，保持 containment、归档墓碑和原子写语义。 | 新根项目 create/open/archive/restore round-trip；路径穿越、符号链接、只读目录和两个 root 混写失败。 | I168 |
+| R34-5 | Main `CredentialStore` 取代 DSH credentials，且不提供 secret 回读到 Renderer；A2 设置只保存 CredentialRef。 | secure-store fake/真实平台夹具；API Key 不出 Main、不进日志/IPC/作品包；安全存储不可用零设置写。 | I169 |
+| R34-6 | Main `LlmBackend` 取代 `ctx.llm`/`llm-pi-ai`，支持 OpenAI-compatible DeepSeek 路由、流式文本、reasoning、stop、取消和稳定错误。 | fake adapter、受控真实 adapter 消费者、取消/错误/不支持参数负测；全部既有 LLM held-out 阈值不变。 | I170 |
+| R34-7 | 建立 framework-neutral strict invocation registry，以现有 214 个方法为基线派生 Main handler、Renderer client 与 contract lock。 | namespace/method 零缺失/重复；参数/结果/错误信封正负测试；无 `unknown` fallback 或手写双合同。 | I171 |
+| R34-8 | Preload 只暴露版本化 `novelDesktop` API，完成 IPC 注册、取消/进度和 DesktopLifecycle 清理；安全门通过前不得迁移产品 UI。 | 真实 preload/BrowserWindow E2E；任意 channel、未知方法、非法消息、迟到响应和卸载残留负测。 | I172 |
+| R34-9 | 现有 Client Store、presenter、panels、controllers 和 ops 分批迁入唯一 React root，保持作者中文术语、焦点、响应式和当前全部工作流。 | I173–I180 每卡复用对应 DOM/交互消费者夹具；31 个现有服务消费面全部经 IPC；Renderer 无 DSH/Node/provider import。 | I173–I180 |
+| R34-10 | DSH Tools 的小说 Agent 能力迁为 Main-owned 桌面助手/命令面，不产生第二领域 owner 或第二 LLM 路径。 | `open/status/context/continue/inspire` 等价夹具；参数先校验；所有生成复用同一 Kernel、ConfirmationGate 与 `LlmBackend`。 | I181 |
+| R34-11 | 旧 `~/.dsh/novel-projects` 和 novel settings 只经显式迁移向导进入桌面根；迁移前预览与备份，复制后按 canonical schema/hash 验证，确认后才切换。 | 无源/损坏/冲突/中途失败/重复迁移负测；旧源逐字不变；新库可打开、导出和回滚。 | I182 |
+| R34-12 | 生产依赖图退役 DSH/Cordis，并交付 Windows 安装、升级、异常退出恢复、卸载保留和无 DSH 十二步产品 E2E。 | I183 零依赖/零入口扫描；I184 安装升级；I185 安全恢复；I186 全量 test/build/held-out/IPC/package/product-flow 全绿。 | I183–I186 |
+
 ---
 
 ## Deferred / 非目标
@@ -642,10 +668,10 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 |---|---|---|
 | N-1 | SillyTavern 迁移/格式适配 | 明确排除 ST 一键迁移及世界书兼容导入导出。导入到已有作品的通用 B2/B5 候选走 I37–I38；新建/空作品的作者入口由 I159 统一进入 I141–I149 来源语义审阅，I50–I53 旧六层只保留兼容合同；正文保真初始化保留于后置 F2，当前无迭代号；自定义可移植包走 I39。可参考字段思想，不建立兼容 owner。 |
 | N-2 | 向量检索 | 语义向量检索和 B2 `vector` trigger 延后；当前使用关键词/正则/全文与 I40 精确 SQLite 索引。文件始终是 source of truth。 |
-| N-3 | standalone host/UI | 不做独立 Node/Vite 应用、独立 Web server、SPA、HTML 入口、浏览器 LLM、浏览器直读/直写作品文件或 DSH 之外的受支持主路径。I51 文件选择器只允许把受限用户输入运输到 Host 临时区，Client 不解析且不成为文件 owner。 |
+| N-3 | Web/PWA 与双宿主 | 不做独立 Web server、浏览器/PWA 发布、Renderer 直连 LLM、Renderer 直读/直写作品文件或 Electron 之外的受支持主路径。Electron Renderer 的单一 HTML/React root 是当前生产 UI，不属于本项排除。 |
 | N-4 | 多用户服务与模型微调 | 起步为本地单用户、中文优先；不含租户、账号系统或训练 pipeline。 |
 | N-5 | 自动强制改写大纲 | 偏差先记录；R18-11 只允许系统分析影响并生成逐卡调和候选。接受新方向或调整未来细纲必须由用户逐卡选择并经 ConfirmationGate；wording-only、普通保存、未确认和后台扫描均不得修改未来 B5 语义，只有显式 finalize 可确定性推进当前卡完成状态。 |
-| N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞 I33–I36 工作区；不得借此引入第二 UI shell。I46–I49 创作台视觉体系消费宿主 `--dsw-alias-*` token 明暗适配，不建立 novel 自有主题引擎，A-7 保持后置。 |
+| N-6 | UI 主题完整体系 | A2 可配置但后置，不阻塞桌面迁移；不得借此引入第二 Renderer shell。迁移期把旧 `--dsw-alias-*` 映射为桌面 token，A-7 自有主题引擎仍后置。 |
 | N-7 | 已有非空作品合并导入 | Stage 10、Stage 19、I151 与后置 F2 均只面向新建/空作品；不静默合并或覆盖已有 B/C 层或 C5。未来若支持必须单独定义冲突、迁移、备份与逐项确认合同。 |
 | N-8 | C2 扩展对象 | `items`、`factions`、`globalFlags` 仍属设计 §5.9 目标模型，但当前 `worldStateSchema` 只交付 scene/characters。扩展须单独进行 schema/storage/迁移/UI 迭代；I50–I53 不生成这些字段。 |
 | N-9 | 重构改变领域契约与产品能力 | Stage 15（I75–I84）重构只消除复制与接线债务：不改变任何领域契约、公开 Remote/wire 形状、LLM 样本/gold/阈值与产品功能；公开服务改名属破坏性变更，另行立项走兼容迁移。 |
@@ -659,6 +685,6 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I164 与 Stage 31 已完成；`novel-custom` DeepSeek reasoning capability 声明已修复，当前没有后续执行卡。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I164 / Stage 0–31 是已完成的 DSH 历史基线；I165 / Stage 32 已完成 Electron 桌面版立项；I166–I186 是当前迁移执行卡。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
-H0 是不可被产品功能抵消的最高优先级；I1 必须保持 Host-only，I2 必须保持 gate-only。I54 已按 D20 选定单一 `shell.overlay` 右侧停靠侧板路径；I85 不重开该产品决策，只验证其在 `0.1.1-rc.2` live Slot 合同中的装卸与零 fallback。内部 Extension 始终只是产品内部能力点。当前执行、验收与完成声明不得使用历史 `I1a–I28b2`；它们仅存在于 Git 历史和 v1.x provenance 中，不是当前权威。
+H0 是不可被产品功能抵消的最高优先级；Main/Preload/Renderer、strict IPC、Main-owned 数据/LLM/凭据和 DesktopLifecycle 是当前停止线。I1/I2、`shell.overlay`、Typert 与 DSH pin 仅记录旧交付事实，不再定义当前运行时。内部 Extension 始终只是产品内部能力点。当前执行不得使用历史 `I1a–I28b2` 或 v3.2 原 I151–I162；它们只作 provenance。

@@ -407,6 +407,9 @@
     "smoke:i164": "node scripts/smoke-i164.mjs",
     "verify:i164": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i164 && pnpm run smoke:i152",
     "verify:stage-31": "pnpm run verify:i164 && pnpm run verify:stage-30",
+    "smoke:i165": "node scripts/smoke-i165.mjs",
+    "verify:i165": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i165",
+    "verify:stage-32": "pnpm run verify:i165",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {
