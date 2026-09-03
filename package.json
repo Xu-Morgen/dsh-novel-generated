@@ -446,6 +446,8 @@
     "verify:i167": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i167",
     "smoke:i168": "node scripts/smoke-i168.mjs",
     "verify:i168": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i168",
+    "smoke:i169": "node scripts/smoke-i169.mjs",
+    "verify:i169": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i169",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

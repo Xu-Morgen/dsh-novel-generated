@@ -2,8 +2,10 @@ import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
+import { createCredentialStore } from '../../app/credentials.js';
 import type { ApplicationPorts } from '../../app/ports.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
+import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
 
 const DESKTOP_SMOKE = '1';
@@ -111,6 +113,9 @@ const applicationKernel = createApplicationKernel({
     base: async (ports) => {
       const paths = await createDesktopPaths({ userDataRoot: app.getPath('userData') });
       ports.provide('desktopPaths', paths);
+      const credentials = createCredentialStore(createElectronSecureStorage(paths.settingsFile('credentials.bin')));
+      ports.provide('credentialStore', credentials.store);
+      ports.provide('credentialResolver', credentials.resolver);
       ports.registerDisposer(() => {
         if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
         mainWindow = null;

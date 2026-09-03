@@ -16,3 +16,11 @@ export type {
   ApplicationServicePort,
 } from './ports.js';
 export type { DesktopPaths } from './paths.js';
+export { createCredentialStore } from './credentials.js';
+export type {
+  CredentialDescription,
+  CredentialStore,
+  CredentialStoreBundle,
+  MainCredentialResolver,
+  SecureSecretStorage,
+} from './credentials.js';
