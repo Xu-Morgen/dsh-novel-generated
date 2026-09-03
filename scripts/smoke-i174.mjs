@@ -1,7 +1,9 @@
 import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
+import { spawnCaptured } from './spawn-captured.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
@@ -24,7 +26,7 @@ for (const required of ['bridge.cancel(requestId)', 'removeProgressListener()', 
 }
 
 const smokeTempDir = process.platform === 'win32' ? tmpdir() : '/tmp';
-const focused = spawnSync('pnpm', ['exec', 'vitest', 'run', 'src/desktop/renderer/desktop-ipc-client.test.ts', 'src/desktop/renderer/shell.test.ts'], {
+const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run', 'src/desktop/renderer/desktop-ipc-client.test.ts', 'src/desktop/renderer/shell.test.ts'], {
   cwd: root,
   encoding: 'utf8',
   env: { ...process.env, TMPDIR: smokeTempDir, TEMP: smokeTempDir, TMP: smokeTempDir, CI: 'true', VITEST_MIN_WORKERS: '1', VITEST_MAX_WORKERS: '1' },

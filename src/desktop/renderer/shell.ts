@@ -14,11 +14,19 @@ import type {
 import type { WorkbenchViewId } from '../../client/nav.js';
 import type { WorkflowStageId } from '../../client/workflow.js';
 import type { SourceImportFormat } from '../../client/source-import.js';
+import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
+import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 
 const NOOP = (): void => {};
+const MEMORY_PREFERENCE = new Map<string, string>();
+const FALLBACK_PREFERENCE: ProjectPreferenceStore = {
+  getItem: (key) => MEMORY_PREFERENCE.get(key) ?? null,
+  setItem: (key, value) => { MEMORY_PREFERENCE.set(key, value); },
+  removeItem: (key) => { MEMORY_PREFERENCE.delete(key); },
+};
 
 const PENDING_NAMESPACES: WorkbenchNamespaces = {
   workspace: undefined,
@@ -156,21 +164,97 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
   };
 }
 
+function preferenceStore(): ProjectPreferenceStore {
+  return typeof window === 'undefined' ? FALLBACK_PREFERENCE : window.localStorage;
+}
+
+function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow): React.ReactElement {
+  return React.createElement('section', { className: 'nv-workbench__state nv-workbench__state--chooser', 'data-novel-project-chooser': '' },
+    React.createElement('header', { className: 'nv-workbench__brand' },
+      React.createElement('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
+      React.createElement('div', null, React.createElement('h2', { className: 'nv-workbench__title' }, '创作台'), React.createElement('span', { className: 'nv-workbench__subtitle' }, '桌面作品目录')),
+    ),
+    state.browsing && state.selectedProjectId !== undefined
+      ? React.createElement('button', { type: 'button', 'data-novel-browse-cancel': '', onClick: actions.cancelBrowse }, '返回当前作品')
+      : null,
+    state.projectError ? React.createElement('p', { role: 'alert', 'data-novel-project-error': '' }, state.projectError) : null,
+    React.createElement('section', { className: 'nv-workbench__new-project', 'data-novel-project-create-section': '' },
+      React.createElement('h3', null, '新建小说作品'),
+      React.createElement('input', {
+        type: 'text',
+        value: state.newProjectName,
+        placeholder: '作品名称（留空为「未命名作品」）',
+        'data-novel-project-name-input': '',
+        onChange: (event: React.ChangeEvent<HTMLInputElement>) => actions.newProjectName(event.target.value),
+      }),
+      React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-create': '', onClick: () => workflow.createBlankProject(state.newProjectName) }, '创建空白作品'),
+    ),
+    state.projects.length === 0 ? React.createElement('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。') : null,
+    React.createElement('ul', { 'data-novel-project-list': '' }, state.projects.map((project) => React.createElement('li', { key: project.id },
+      React.createElement('button', { type: 'button', 'data-novel-project-open': project.id, onClick: () => workflow.requestOpen(project.id) }, project.name),
+      React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-archive': project.id, onClick: () => workflow.archiveProject(project.id) }, '归档'),
+    ))),
+    state.archivedProjects.length === 0 ? null : React.createElement('section', { 'data-novel-project-archive-section': '' },
+      React.createElement('h3', null, `已归档作品（${state.archivedProjects.length}）`),
+      React.createElement('p', null, '归档作品为只读目录，恢复前不可打开或编辑。'),
+      React.createElement('ul', null, state.archivedProjects.map((project) => React.createElement('li', { key: project.id, 'data-novel-archived-project': project.id },
+        React.createElement('span', null, project.name),
+        React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-restore': project.id, onClick: () => workflow.restoreProject(project.id) }, '恢复'),
+      ))),
+    ),
+  );
+}
+
+function openedProjectView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, settingsNamespace: DesktopIpcClient['services']['workbenchSettings']): React.ReactElement {
+  const creationSettings = state.creationSettingsDraft;
+  return React.createElement('section', { className: 'nv-workbench', 'data-novel-project-open': state.selectedProjectId, 'data-novel-project-ready': 'true' },
+    React.createElement('header', { className: 'nv-workbench__project-context', 'data-novel-project-context': '' },
+      React.createElement('strong', { 'data-novel-project-context-name': '' }, state.selectedProjectName ?? '未命名作品'),
+      React.createElement('span', { role: 'status', 'data-novel-project-readiness': 'verified' }, '作品结构已由主进程验证'),
+      React.createElement('button', { type: 'button', 'data-novel-back-to-projects': '', onClick: workflow.requestBrowse }, '返回作品列表'),
+    ),
+    state.leaveConfirm ? React.createElement('div', { role: 'alertdialog', 'data-novel-leave-confirm': '' },
+      React.createElement('p', null, '有未保存的修改，离开将丢弃这些修改。'),
+      React.createElement('button', { type: 'button', 'data-novel-leave-discard': '', onClick: workflow.confirmLeave }, '离开并放弃修改'),
+      React.createElement('button', { type: 'button', 'data-novel-leave-cancel': '', onClick: workflow.cancelLeave }, '取消'),
+    ) : null,
+    workbenchSettingsPanel(
+      (tag, props, ...children) => React.createElement(tag, props, ...(children as React.ReactNode[])),
+      settingsNamespace,
+      creationSettings,
+      (patch) => actions.creationSettingsMutate(patch),
+      () => workflow.saveSettings(creationSettings),
+      state.selectedProjectId,
+      workflow.openProjectFolder,
+    ) as React.ReactNode,
+  );
+}
+
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
 export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>; client: DesktopIpcClient }): React.ReactElement {
   const state = useDesktopStore(props.store, (snapshot) => snapshot);
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
+  const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore() }), [props.store, props.client]);
+  React.useEffect(() => {
+    void workflow.start();
+    return workflow.dispose;
+  }, [workflow]);
   const ui = createDesktopShellUi(state, props.store.actions);
-  const content = state.open
-    ? workbenchView(React, {
+  const loading = workbenchView(React, {
         status: { status: 'loading' },
         ns: PENDING_NAMESPACES,
         ui,
         states: viewStates(state),
         ops: PENDING_OPS,
         sourceImport: state.sourceImport,
-      })
-    : launchButton(React, actionsOpen(props.store.actions));
+      });
+  const content = !state.open
+    ? launchButton(React, actionsOpen(props.store.actions))
+    : state.status.status !== 'ready'
+      ? loading
+      : state.selectedProjectId !== undefined && !state.browsing
+        ? openedProjectView(state, props.store.actions, workflow, props.client.services.workbenchSettings)
+        : projectDirectoryView(state, props.store.actions, workflow);
 
   return React.createElement(
     React.Fragment,
@@ -179,6 +263,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     React.createElement('main', {
       className: 'desktop-shell',
       'data-novel-desktop-root': 'true',
+      'data-novel-workspace': state.status.status,
       'data-novel-connection-status': connection.status,
       'data-novel-pending-requests': String(connection.pendingCount),
     }, content as React.ReactNode),

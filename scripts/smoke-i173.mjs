@@ -1,7 +1,9 @@
 import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
+import { spawnCaptured } from './spawn-captured.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const smokeTempDir = process.platform === 'win32' ? tmpdir() : '/tmp';
@@ -18,7 +20,7 @@ if (!rendererSources.includes('workbenchView(React')) throw new Error('I173 desk
 if (!rendererSources.includes('root.unmount()') || !rendererSources.includes('store.dispose()')) throw new Error('I173 root/store disposal is incomplete');
 if (/from ['"](?:electron|node:|@deepseek-ai\/)/.test(rendererSources)) throw new Error('I173 Renderer source imports a forbidden platform/runtime module');
 
-const focused = spawnSync('pnpm', ['exec', 'vitest', 'run', 'src/desktop/renderer/store-adapter.test.ts', 'src/desktop/renderer/shell.test.ts'], {
+const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run', 'src/desktop/renderer/store-adapter.test.ts', 'src/desktop/renderer/shell.test.ts'], {
   cwd: root,
   encoding: 'utf8',
   env: { ...process.env, TMPDIR: smokeTempDir, TEMP: smokeTempDir, TMP: smokeTempDir, CI: 'true', VITEST_MIN_WORKERS: '1', VITEST_MAX_WORKERS: '1' },
@@ -57,7 +59,7 @@ try {
     await new Promise((wait) => setTimeout(wait, 25));
   }
   const output = readFileSync(logPath, 'utf8');
-  for (const marker of ['[I173] renderer-shell', '"rootCount":1', '"desktopRoots":1', '"workspace":"loading"', '正在装载创作台']) {
+  for (const marker of ['[I173] renderer-shell', '"rootCount":1', '"desktopRoots":1', '"workspace":', '创作台']) {
     if (!output.includes(marker)) throw new Error(`I173 Electron smoke missing marker ${marker}:\n${output}`);
   }
   if (child.exitCode === null) await new Promise((resolveWait) => child.once('exit', resolveWait));

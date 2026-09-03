@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
@@ -11,6 +11,7 @@ import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-
 import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
+import { createDesktopProjectHandlers } from './project-handlers.js';
 
 const DESKTOP_SMOKE = '1';
 const DEFAULT_SMOKE_HOLD_MS = 1_000;
@@ -82,6 +83,22 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I173] renderer-shell ${probe}`);
     }).catch(() => undefined), 'desktop renderer shell probe');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'i175-smoke', name: '桌面冒烟作品' }], 'i175-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', ['i175-smoke'], 'i175-open');
+        const archived = await invoke('novel-creation-tool/novelWorkspace/projectArchive', ['i175-smoke'], 'i175-archive');
+        const archivedOpen = await invoke('novel-creation-tool/novelWorkspace/projectOpen', ['i175-smoke'], 'i175-archived-open');
+        const restored = await invoke('novel-creation-tool/novelWorkspace/projectRestore', ['i175-smoke'], 'i175-restore');
+        const settings = await invoke('novel-creation-tool/novelWorkbenchSettings/load', [], 'i175-settings');
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return JSON.stringify({ created, opened, archived, archivedOpen, restored, settings, chooser: document.querySelectorAll('[data-novel-project-chooser]').length });
+      })()`,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I175] project-loop ${probe}`);
+    }).catch(() => undefined), 'desktop project lifecycle smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -175,6 +192,7 @@ const applicationKernel = createApplicationKernel({
 
       const ipcHandlers = new Map<string, IpcHandler>([
         ['novel-creation-tool/novelProbe/probe', async () => ({ marker: 'I2-PROBE', ready: true })],
+        ...createDesktopProjectHandlers(paths, (directory) => { void shell.openPath(directory); }),
       ]);
       const ipcBinder = bindElectronIpc({
         ipcMain,
