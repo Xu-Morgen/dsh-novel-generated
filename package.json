@@ -453,6 +453,9 @@
     "update:desktop-ipc-lock": "node --import tsx/esm scripts/update-desktop-ipc-lock.mjs",
     "smoke:i171": "node scripts/smoke-i171.mjs",
     "verify:i171": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i171",
+    "smoke:i172": "node scripts/smoke-i172.mjs",
+    "verify:i172": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i172",
+    "verify:stage-33": "pnpm run verify:i166 && pnpm run verify:i167 && pnpm run verify:i168 && pnpm run verify:i169 && pnpm run verify:i170 && pnpm run verify:i171 && pnpm run verify:i172",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

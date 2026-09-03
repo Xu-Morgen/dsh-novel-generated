@@ -1,12 +1,15 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
 import { createCredentialStore } from '../../app/credentials.js';
+import type { IpcHandler } from '../../app/ipc-registry.js';
 import type { ApplicationPorts } from '../../app/ports.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
 import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
+import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
+import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
 
 const DESKTOP_SMOKE = '1';
@@ -61,6 +64,12 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I166] renderer-probe ${probe}`);
     }).catch(() => undefined), 'desktop smoke renderer probe');
+    ports.registerTask(window.webContents.executeJavaScript(
+      "window.novelDesktop.invoke('novel-creation-tool/novelProbe/probe', [], 'i172-smoke').then((result) => { document.documentElement.dataset.novelI172Probe = JSON.stringify(result); return result; })",
+      true,
+    ).then((result) => {
+      if (result && typeof result === 'object') writeSmokeMarker(`[I172] ipc-probe ${JSON.stringify(result)}`);
+    }).catch(() => undefined), 'desktop smoke IPC probe');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -151,6 +160,18 @@ const applicationKernel = createApplicationKernel({
         app.removeListener('activate', onActivate);
         app.removeListener('before-quit', onBeforeQuit);
       }, 'Electron application listeners');
+
+      const ipcHandlers = new Map<string, IpcHandler>([
+        ['novel-creation-tool/novelProbe/probe', async () => ({ marker: 'I2-PROBE', ready: true })],
+      ]);
+      const ipcBinder = bindElectronIpc({
+        ipcMain,
+        registry: desktopIpcRegistry,
+        handlers: ipcHandlers,
+        isSenderAllowed: (event) => mainWindow !== null && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents,
+        registerDisposer: ports.registerDisposer,
+      });
+      ports.provide('ipcBinder', ipcBinder);
     },
     management: () => undefined,
     orchestration: () => undefined,

@@ -59,7 +59,11 @@ export type IpcErrorCode =
   | 'invalid-result'
   | 'not-serializable'
   | 'handler-unavailable'
-  | 'handler-failed';
+  | 'handler-failed'
+  | 'invalid-request'
+  | 'forbidden-sender'
+  | 'cancelled'
+  | 'bridge-closed';
 
 /** Error details contain only safe, non-secret location metadata. */
 export type IpcErrorDetails = Readonly<Record<string, string | number | boolean | null>>;
@@ -71,6 +75,12 @@ export type IpcEnvelope<Value> =
 
 /** A handler receives already validated positional arguments. */
 export type IpcHandler = (...args: readonly unknown[]) => unknown | PromiseLike<unknown>;
+
+/** Host-owned cancellation/progress context appended only by a transport binder. */
+export interface IpcInvocationContext {
+  readonly signal: AbortSignal;
+  reportProgress(value: IpcJsonValue): void;
+}
 
 /** Reviewable descriptor projection used by the desktop contract lock. */
 export interface IpcMethodContract {
@@ -121,7 +131,7 @@ export interface IpcRegistry<Descriptors extends readonly IpcMethodDescriptor[]>
   list(): readonly Descriptors[number][];
   parseArguments(methodId: string, args: readonly unknown[]): readonly unknown[];
   parseResult(methodId: string, value: unknown): unknown;
-  invoke(methodId: string, args: readonly unknown[], handler?: IpcHandler): Promise<IpcEnvelope<unknown>>;
+  invoke(methodId: string, args: readonly unknown[], handler?: IpcHandler, context?: IpcInvocationContext): Promise<IpcEnvelope<unknown>>;
   contractLock(): IpcContractLock;
 }
 
@@ -161,7 +171,7 @@ export function createIpcRegistry<const Descriptors extends readonly IpcMethodDe
       const descriptor = requireDescriptor(byId, methodId);
       return parseResult(descriptor, value);
     },
-    async invoke(methodId, args, handler) {
+    async invoke(methodId, args, handler, context) {
       const descriptor = byId.get(methodId);
       if (descriptor === undefined) return failure(new IpcContractError('unknown-method', 'IPC method is not allowlisted', { methodId }));
       if (handler === undefined) return failure(new IpcContractError('handler-unavailable', 'IPC method handler is unavailable', { methodId }));
@@ -175,7 +185,7 @@ export function createIpcRegistry<const Descriptors extends readonly IpcMethodDe
 
       let value: unknown;
       try {
-        value = await handler(...parsedArgs);
+        value = context === undefined ? await handler(...parsedArgs) : await handler(...parsedArgs, context);
       } catch {
         return failure(new IpcContractError('handler-failed', 'IPC method handler failed', { methodId }));
       }

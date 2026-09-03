@@ -1,9 +1,9 @@
 export {};
 
+import type { DesktopBridge } from '../preload/bridge.js';
+
 declare global {
   interface Window {
-    readonly novelDesktop: Readonly<{
-      readonly version: 1;
-    }>;
+    readonly novelDesktop: DesktopBridge;
   }
 }

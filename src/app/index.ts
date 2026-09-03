@@ -32,6 +32,7 @@ export type {
   IpcErrorDetails,
   IpcEnvelope,
   IpcHandler,
+  IpcInvocationContext,
   IpcJsonObject,
   IpcJsonValue,
   IpcMethodContract,
@@ -40,3 +41,5 @@ export type {
   IpcRegistry,
   IpcSchemaContract,
 } from './ipc-registry.js';
+export { IPC_CANCEL_CHANNEL, IPC_INVOKE_CHANNEL, IPC_PROGRESS_CHANNEL } from './ipc-transport.js';
+export type { IpcCancelRequest, IpcInvokeRequest, IpcProgressEvent } from './ipc-transport.js';
