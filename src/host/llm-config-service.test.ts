@@ -52,11 +52,21 @@ describe('I152 novel LLM config service (DSH credentials seam + settings/A2)', (
     expect(credentials.set).toHaveBeenCalledWith(credentialRef(NOVEL_LLM_CREDENTIAL_REF), SAVE_INPUT.apiKey);
     // 2. settings.yaml 注册 OpenAI 兼容 provider。
     const settings = load(await readFile(join(dshHome, 'settings.yaml'), 'utf8')) as {
-      'llm-pi-ai'?: { providers?: Record<string, { apiKeyEnv?: string; api?: string; baseURL?: string; models?: Array<{ id?: string }> }> };
+      'llm-pi-ai'?: {
+        providers?: Record<string, {
+          apiKeyEnv?: string;
+          api?: string;
+          baseURL?: string;
+          models?: Array<{ id?: string; reasoningEfforts?: Record<string, string | null> }>;
+        }>;
+      };
     };
     const provider = settings['llm-pi-ai']!.providers![NOVEL_LLM_PROVIDER_ID];
     expect(provider).toMatchObject({ apiKeyEnv: NOVEL_LLM_CREDENTIAL_REF, api: 'openai-completions', baseURL: SAVE_INPUT.baseUrl });
-    expect(provider.models![0]!.id).toBe('gpt-4o');
+    expect(provider.models).toEqual([{
+      id: 'gpt-4o',
+      reasoningEfforts: { off: null, low: 'low', high: 'high', max: 'max' },
+    }]);
     // 3. A2 活动 backend 指向自定义路由。
     const a2 = await import('../core/settings-index/index.js').then((m) => new m.SettingsIndex(settingsRoot).load());
     const config = resolveA2GenerationConfig(a2);
@@ -97,6 +107,13 @@ describe('I152 novel LLM config service (DSH credentials seam + settings/A2)', (
     const a2b = await new (await import('../core/settings-index/index.js')).SettingsIndex(settingsRoot).load();
     expect(a2b.backends.find((item) => item.id === NOVEL_LLM_PROVIDER_ID)!.sampling).toEqual({ maxTokens: 65536, reasoning: 'max' });
     expect((await service.load()).reasoningEffort).toBe('max');
+
+    // I164：重复保存不得丢失 rc.2 hand-declared model 的 reasoning capability。
+    const settings = load(await readFile(join(dshHome, 'settings.yaml'), 'utf8')) as {
+      'llm-pi-ai': { providers: Record<string, { models: Array<{ reasoningEfforts?: unknown }> }> };
+    };
+    expect(settings['llm-pi-ai'].providers[NOVEL_LLM_PROVIDER_ID]!.models[0]!.reasoningEfforts)
+      .toEqual({ off: null, low: 'low', high: 'high', max: 'max' });
 
     await rm(dshHome, { recursive: true, force: true });
     await rm(settingsRoot, { recursive: true, force: true });

@@ -1,7 +1,7 @@
 # AI 长篇小说创作器 — 完整设计文档
 
-> 版本：v3.6
-> 状态：v3.6 当前设计权威；**I1–I163 与 Stage 30 全部完成**；当前没有后续执行卡；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
+> 版本：v3.7
+> 状态：v3.7 当前设计权威；**I1–I164 与 Stage 31 全部完成，当前没有后续执行卡**；v3.2 原 I151–I162 保持后置 provenance 且不占用当前连续编号；以 DeepSeek Harness/Cordis 普通持久插件为唯一当前实现方向
 > 定位：DeepSeek Harness 内具备持久化叙事状态的 AI 长篇小说创作器（不是独立前端）
 
 ## 0. 版本变更记录
@@ -37,12 +37,15 @@
 | **v3.4 作者入口与表现层收口（2026-09-02）** | 同步 I158 已完成事实；新增 Stage 28 / R30（I159–I161）。I159 把 workflow、目录层与作品内 DOCX/自由文本统一接入来源语义审阅并退役旧六层产品入口；I160 以隐藏稳定 ID、名称/实体选择器和当前上下文派生取代作者手填技术 ID；I161 为全部作者可见控件建立中文标签、结构化表单和机器术语门。领域 Schema、公开 invocation、LLM prompt/样本、I11 与 13 层真相保持不变。 |
 | **v3.5 来源片段裁决闭环（2026-09-02）** | 同步 I159–I161 已完成事实；新增并完成 Stage 29 / R31（I162）。段落来源类型继续作为幕后事实、作者指令与呈现提示不直入读者层的强依赖；审阅同时显示确定性处理建议，作者可在规范原文范围内拆分/合并片段并重新分类。“修改后保留”只由实际改分类产生，不再作为与接受同义的手选项。 |
 | **v3.6 来源解释失败重试修订（2026-09-02）** | 同步 I162 已完成事实；新增并完成 Stage 30 / R32（I163），修复来源解释 `begin` 已受理、后台转为 failed 后，Client 同 session 重试被 Host `already exists` 守卫拒绝的问题。只允许相同绑定输入的 failed job 原位重启，并在 Client 高级详情恢复原始失败原因；公开 Remote/schema、LLM prompt/样本与 session 文件不变。 |
+| **v3.7 自定义 DeepSeek 能力声明修订（2026-09-03）** | 溯源确认思考强度由提交 `0073524` 引入，而 I85 升级到 DSH `0.1.1-rc.2` 后新增的模型能力前置校验未被真实 `llm-pi-ai` 消费者夹具覆盖；新增并完成 Stage 31 / R33（I164），只为既有 `novel-custom` 模型声明 UI/A2 已承诺的 `off/low/high/max` reasoning levels，并补真实 rc.2 能力解析门。公开 Remote、A2 sampling、凭据 owner、prompt/schema/样本不变。 |
 
 > **v3.2 historical supersession / 历史同步状态**：本段只记录 v3.2 曾将剩余排期定为 I150–I162；该排期已被下方 v3.4 current supersession 取代。README 的 12 步主流程已由 I140 交付，I150 只修复步骤 3 的范围细纲体验。历史 v1.x 文本、旧 I103–I112 大卡及 v2.7 的 I107–I128 编号只保留 provenance，不得恢复旧 React/Vite 独立应用计划、旧编号或“Stage 18 先行”顺序。两份 architecture review 仍只是已完成 Stage 15 / Stage 17 的立项输入，不修改本文件 §0.1 宿主基线。
 >
 > **v3.5 current supersession / 同步状态**：I1–I162 与 Stage 29 已完成，当前没有后续执行卡。v3.2 原 Stage 20/21 与原 I151–I162 只作后置设计 provenance，不得以历史身份执行且不占用当前连续编号；Stage 29 未恢复 F1/F2。
 >
 > **v3.6 current supersession / 同步状态**：I1–I163 与 Stage 30 已完成，当前没有后续执行卡。I163 未恢复后置 F1/F2，也未改变来源解释公开合同或模型语义。
+
+> **v3.7 current supersession / 同步状态**：I1–I164 与 Stage 31 已完成，当前没有后续执行卡。I164 未升级 DSH，未扩展作者设置或公开合同，也未恢复后置 F1/F2。
 >
 > 本文后续保留的“v1.x”“v1.2 新增/降级”等标签仅标记需求与决策的**历史来源（provenance）**；它们不恢复旧里程碑、旧迭代顺序或旧宿主实现的当前执行权威。
 
@@ -1321,6 +1324,13 @@ project/
 - Host 只允许 `failed` job 在 projectId、sourceHash 与 paragraphs 逐字段一致时原位替换 AbortController 并重新运行。`queued`、`running`、`succeeded` 的重复 begin，以及任何绑定或段落变化继续 fail closed，避免并发模型调用、结果覆盖或同 session 偷换来源。
 - `status` 和既有 Remote/schema 形状保持不变。Client 观察到 `failed` 后调用既有 `result` 取得 Host 保存的原始异常，将中文可行动说明放在普通错误区、原始原因放在折叠高级详情；取错 session 的迟到响应不得覆盖当前审阅。
 - 本迭代只修复任务生命周期和诊断投影，不持久化 LLM 错误、不新增 retry Remote、不修改 session 文件、LLM prompt/样本/阈值、I162 分段、B/C/C5、I11 或后置 F1/F2。
+
+### 14.31 I164：`novel-custom` DeepSeek reasoning capability 闭环
+
+- `0073524` 已把设置页的深度思考与 `low/high/max` 写入 A2 sampling，并由 Host LLM port 转发为 `reasoningEffort`；该变更同时以 DeepSeek Thinking Mode 作为唯一参数语义。I85 升级至 DSH `0.1.1-rc.2` 后，`ctx.llm` 会在 provider I/O 前校验精确模型的 reasoning capability；手工声明的 `novel-custom` 模型只有 `{ id }`，因此所有显式 effort 被拒绝。这是跨版本消费者门缺失，不是 I152 credentials owner 修复或后续业务迭代造成的冲突。
+- `NovelLlmConfigService` 保存 provider 时，必须在同一模型项声明 `reasoningEfforts`：`off` 表示不发送 effort，`low/high/max` 保持同名 wire value。它只补足既有 UI/A2/port 已承诺的能力目录，不新增设置字段、不改变 Remote、A2 sampling、modelRef、secretRef 或凭据 seam。
+- 真实 DSH `0.1.1-rc.2` `llm-pi-ai` 消费者夹具必须证明：缺声明的 hand-declared route 对 `high` 复现 `UNSUPPORTED_REASONING_EFFORT`；保存后的 provider 经真实能力解析后接受 `low/high/max`，并把 `off` 暴露为可选关闭档。非法/空能力字典由宿主配置校验 fail closed。
+- 本迭代不升级 DSH、不探测远端模型、不根据模型名猜能力、不改 prompt/schema/样本，也不宣称任意非 DeepSeek-compatible endpoint 支持这些扩展参数；作者填写的 endpoint 仍须兑现既有 DeepSeek 思考控件所声明的兼容能力。
 
 ---
 

@@ -1,0 +1,36 @@
+{
+  "iteration": "I164",
+  "requirement": "R33-1",
+  "rootCause": {
+    "featureIntroduction": "0073524 added A2/port reasoning without provider model capability metadata",
+    "compatibilityTrigger": "I85 pinned DSH 0.1.1-rc.2 with provider-I/O preflight capability validation",
+    "notCausedBy": [
+      "I152 credentials owner migration",
+      "I153-I163 product changes"
+    ]
+  },
+  "guarantees": [
+    "saved-hand-declared-model-offers-off-low-high-max",
+    "legacy-id-only-route-reproduces-unsupported-reasoning-effort",
+    "real-rc2-llm-pi-ai-accepts-low-high-max-before-provider-io",
+    "invalid-reasoning-capability-fails-closed",
+    "other-provider-and-a2-sampling-remain-intact"
+  ],
+  "consumerFixture": "scripts/i164-llm-reasoning-capability-consumer.mjs: NovelLlmConfigService settings YAML -> real rc.2 PiAi Config/apply -> LlmRuntime model/call resolution",
+  "unchangedAssets": {
+    "contracts/stage18/remote-descriptors.json": "cd960a7bcc00e7b53f5f2a0fdf3610feaa1293d6b02bf729b2d9d7068265a1d7",
+    "src/core/schema/llm-config.ts": "086641bb21fbfbc63baf77a03faf4b32aade28157258d30d84ad6a6d29477dc5",
+    "src/core/settings-index/index.ts": "267d9ff35fd1ad3ea9525f85b7cee1b7e0244d906fb478b5569c11bfbd9f2750",
+    "src/llm/port/index.ts": "dfe31a8f4b9b3913c41504dc74e2e9121219b1be47ac24e2cc90553fad395c99",
+    "src/client/settings.ts": "5484abc595451d22eab3a7b45cba460ef81f4c8ff49b94a6c1c2bb9e3737d059"
+  },
+  "explicitNonGoals": [
+    "real-billable-request",
+    "dsh-upgrade",
+    "remote-or-client-change",
+    "a2-schema-change",
+    "prompt-or-sample-change",
+    "F1",
+    "F2"
+  ]
+}

@@ -404,6 +404,9 @@
     "smoke:i163": "node scripts/smoke-i163.mjs",
     "verify:i163": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i163 && pnpm run verify:product-flow",
     "verify:stage-30": "pnpm run verify:i163 && pnpm run smoke:i162",
+    "smoke:i164": "node scripts/smoke-i164.mjs",
+    "verify:i164": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i164 && pnpm run smoke:i152",
+    "verify:stage-31": "pnpm run verify:i164 && pnpm run verify:stage-30",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {
@@ -429,6 +432,7 @@
     "@deepseek-ai/dsh-attachment": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.1-rc.2",
     "@deepseek-ai/dsh-credentials-local": "0.1.1-rc.2",
+    "@deepseek-ai/dsh-llm-pi-ai": "0.1.1-rc.2",
     "@types/node": "^24.0.0",
     "@types/react": "^18.2.0",
     "esbuild": "^0.28.0",

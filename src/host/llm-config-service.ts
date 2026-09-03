@@ -47,6 +47,19 @@ export interface NovelLlmConfigService {
 /** I152：配置面只消费凭据公开 seam，不读取值，也不拥有 provider 的落盘格式。 */
 export type NovelLlmCredentialService = Pick<CredentialProvider, 'describe' | 'set'>;
 
+/**
+ * I164 / R33-1：`novel-custom` 是手工声明的 DSH provider route，无法从同名
+ * pi-ai catalog 继承模型能力。这里声明的档位与既有设置页、A2 sampling 和
+ * `reasoningEffort` port 一一对应；缺少它们时 rc.2 会在 provider I/O 前拒绝请求。
+ * `off: null` 仅作为能力目录的关闭档；现有 port 在 off 时不发送 effort。
+ */
+const NOVEL_CUSTOM_REASONING_EFFORTS = Object.freeze({
+  off: null,
+  low: 'low',
+  high: 'high',
+  max: 'max',
+} as const);
+
 /** 读取一个可能缺失/损坏的 YAML 文件为对象，失败按空对象处理。 */
 async function readYamlObject(filePath: string): Promise<Record<string, unknown>> {
   try {
@@ -162,7 +175,7 @@ export function createLlmConfigService(
         apiKeyEnv: NOVEL_LLM_CREDENTIAL_REF,
         api: 'openai-completions',
         baseURL: parsed.baseUrl,
-        models: [{ id: parsed.model }],
+        models: [{ id: parsed.model, reasoningEfforts: { ...NOVEL_CUSTOM_REASONING_EFFORTS } }],
       }));
       // 3. A2 活动 backend → 该自定义路由；sampling 落生成参数（maxTokens 固定档位
       //    + 思维链/强度），并保留既有 sampling 字段（如 temperature）。
