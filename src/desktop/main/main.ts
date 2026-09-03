@@ -1,6 +1,8 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
 
+import { createApplicationKernel } from '../../app/kernel.js';
+import type { ApplicationPorts } from '../../app/ports.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
 
 const DESKTOP_SMOKE = '1';
@@ -45,16 +47,16 @@ function installWindowSecurity(window: BrowserWindow, rendererRoot: string): voi
   });
 }
 
-function installSmokeProbe(window: BrowserWindow): void {
+function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void {
   if (!isSmokeRun()) return;
 
   window.webContents.once('did-finish-load', () => {
-    void window.webContents.executeJavaScript(
+    ports.registerTask(window.webContents.executeJavaScript(
       "document.documentElement.dataset.novelI166Probe ?? ''",
       true,
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I166] renderer-probe ${probe}`);
-    }).catch(() => undefined);
+    }).catch(() => undefined), 'desktop smoke renderer probe');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -62,7 +64,8 @@ function installSmokeProbe(window: BrowserWindow): void {
     );
 
     const holdMs = Number(process.env.NOVEL_DESKTOP_SMOKE_HOLD_MS ?? DEFAULT_SMOKE_HOLD_MS);
-    setTimeout(() => app.quit(), Number.isFinite(holdMs) && holdMs >= 0 ? holdMs : DEFAULT_SMOKE_HOLD_MS);
+    const timer = setTimeout(() => app.quit(), Number.isFinite(holdMs) && holdMs >= 0 ? holdMs : DEFAULT_SMOKE_HOLD_MS);
+    ports.registerDisposer(() => clearTimeout(timer), 'desktop smoke hold timer');
   });
 }
 
@@ -87,7 +90,7 @@ function createMainWindow(): BrowserWindow {
 
   mainWindow = window;
   installWindowSecurity(window, root);
-  installSmokeProbe(window);
+  installSmokeProbe(window, applicationKernel.ports);
   window.once('ready-to-show', () => window.show());
   window.once('closed', () => {
     if (mainWindow === window) mainWindow = null;
@@ -96,24 +99,66 @@ function createMainWindow(): BrowserWindow {
   return window;
 }
 
+/**
+ * Main owns the only application kernel. The three empty composition seams
+ * preserve the base → management → orchestration order until later iterations
+ * attach the migrated domain services; window listeners and smoke timers are
+ * already registered through the same lifecycle owner.
+ */
+const applicationKernel = createApplicationKernel({
+  composition: {
+    base: (ports) => {
+      ports.registerDisposer(() => {
+        if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
+        mainWindow = null;
+      }, 'main window');
+
+      const onSecondInstance = (): void => {
+        writeSmokeMarker('[I166] second-instance-focused');
+        focusMainWindow();
+      };
+      const onWindowAllClosed = (): void => {
+        if (process.platform !== 'darwin') app.quit();
+      };
+      const onActivate = (): void => {
+        if (applicationKernel.snapshot().state === 'running') void createMainWindow();
+      };
+      let quitting = false;
+      const onBeforeQuit = (event: Electron.Event): void => {
+        if (quitting) return;
+        event.preventDefault();
+        quitting = true;
+        void applicationKernel.stop().catch(() => undefined).then(() => app.quit());
+      };
+
+      app.on('second-instance', onSecondInstance);
+      app.on('window-all-closed', onWindowAllClosed);
+      app.on('activate', onActivate);
+      app.on('before-quit', onBeforeQuit);
+      ports.registerDisposer(() => {
+        app.removeListener('second-instance', onSecondInstance);
+        app.removeListener('window-all-closed', onWindowAllClosed);
+        app.removeListener('activate', onActivate);
+        app.removeListener('before-quit', onBeforeQuit);
+      }, 'Electron application listeners');
+    },
+    management: () => undefined,
+    orchestration: () => undefined,
+  },
+});
+
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!hasSingleInstanceLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    writeSmokeMarker('[I166] second-instance-focused');
-    focusMainWindow();
-  });
-
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
-  });
-
-  app.on('activate', () => { void createMainWindow(); });
-
   void app.whenReady().then(() => {
     app.setAppUserModelId('com.novelcreationtool.desktop');
+    return applicationKernel.start();
+  }).then(() => {
     createMainWindow();
+  }).catch(() => {
+    writeSmokeMarker('[I167] kernel-start-failed');
+    app.quit();
   });
 }
