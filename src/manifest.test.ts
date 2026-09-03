@@ -27,8 +27,8 @@ describe('I1 manifest contract', () => {
     expect(pkg.packageManager).toMatch(/^pnpm@\d+\.\d+\.\d+$/);
   });
 
-  it('exposes the Host entry and declares the bundle patch layer', () => {
-    expect(pkg.main).toBe('lib/index.js');
+  it('exposes the desktop Main entry and keeps the legacy Host export during migration', () => {
+    expect(pkg.main).toBe('dist/desktop/main.cjs');
     expect(pkg.exports?.['.']?.default).toBe('./lib/index.js');
     expect(pkg.dsh?.bundle?.patch).toBe('./cordis.patch.yml');
   });

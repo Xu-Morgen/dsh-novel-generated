@@ -7,7 +7,7 @@
   "engines": {
     "node": ">=22"
   },
-  "main": "lib/index.js",
+  "main": "dist/desktop/main.cjs",
   "types": "lib/index.d.ts",
   "exports": {
     ".": {
@@ -35,9 +35,39 @@
       "immediately": false
     }
   },
+  "build": {
+    "appId": "com.novelcreationtool.desktop",
+    "productName": "Novel Creation Tool",
+    "electronVersion": "44.1.1",
+    "asar": true,
+    "directories": {
+      "output": "artifacts/desktop"
+    },
+    "files": [
+      "dist/desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-client.mjs && node scripts/build-desktop.mjs",
+    "build:legacy": "tsc -p tsconfig.build.json && node scripts/build-client.mjs",
     "build:client": "node scripts/build-client.mjs",
+    "build:desktop": "node scripts/build-desktop.mjs",
+    "dev:desktop": "pnpm run build:desktop && electron .",
+    "package:desktop": "pnpm run build:desktop && electron-builder --win nsis",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke:i1": "tsx scripts/smoke-i1.mjs",
@@ -410,6 +440,8 @@
     "smoke:i165": "node scripts/smoke-i165.mjs",
     "verify:i165": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i165",
     "verify:stage-32": "pnpm run verify:i165",
+    "smoke:i166": "node scripts/smoke-i166.mjs",
+    "verify:i166": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i166",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {
@@ -437,9 +469,13 @@
     "@deepseek-ai/dsh-credentials-local": "0.1.1-rc.2",
     "@deepseek-ai/dsh-llm-pi-ai": "0.1.1-rc.2",
     "@types/node": "^24.0.0",
-    "@types/react": "^18.2.0",
-    "esbuild": "^0.28.0",
-    "react": "^18.2.0",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "electron": "44.1.1",
+    "electron-builder": "26.0.6",
+    "esbuild": "0.28.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "tsx": "^4.20.0",
     "typescript": "^5.8.0",
     "vitest": "^4.0.0"

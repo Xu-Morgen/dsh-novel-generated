@@ -1,0 +1,41 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #16191f;
+  color: #edf0f5;
+}
+
+body {
+  margin: 0;
+  min-width: 960px;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 0%, #283241, #16191f 52%);
+}
+
+.desktop-placeholder {
+  box-sizing: border-box;
+  display: grid;
+  align-content: center;
+  min-height: 100vh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px;
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  color: #9eabc0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 48px;
+  font-weight: 600;
+}
+
+p:last-child {
+  color: #b9c2d0;
+  font-size: 18px;
+}
