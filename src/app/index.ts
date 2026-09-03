@@ -15,3 +15,4 @@ export type {
   ApplicationPorts,
   ApplicationServicePort,
 } from './ports.js';
+export type { DesktopPaths } from './paths.js';

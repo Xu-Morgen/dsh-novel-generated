@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
 import type { ApplicationPorts } from '../../app/ports.js';
+import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
 
 const DESKTOP_SMOKE = '1';
@@ -107,7 +108,9 @@ function createMainWindow(): BrowserWindow {
  */
 const applicationKernel = createApplicationKernel({
   composition: {
-    base: (ports) => {
+    base: async (ports) => {
+      const paths = await createDesktopPaths({ userDataRoot: app.getPath('userData') });
+      ports.provide('desktopPaths', paths);
       ports.registerDisposer(() => {
         if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
         mainWindow = null;
