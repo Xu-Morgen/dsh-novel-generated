@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 
-/** I166 单一 React root 占位；产品面板迁移属于 I173–I180。 */
+import { mountDesktopWorkbench } from './shell.js';
+import { createDesktopWorkbenchStore } from './store-adapter.js';
+
+/** I173 单一 React root；业务 IPC 与具体领域面板按 I174–I180 继续接入。 */
 const rootElement = document.getElementById('root');
 if (rootElement === null) throw new Error('desktop renderer root is missing');
 
@@ -13,12 +16,6 @@ document.documentElement.dataset.novelI166Probe = JSON.stringify({
   rootCount: document.querySelectorAll('#root').length,
 });
 
-const appView = React.createElement(
-  'main',
-  { className: 'desktop-placeholder', 'data-novel-desktop-root': 'true' },
-  React.createElement('p', { className: 'eyebrow' }, 'NOVEL CREATION TOOL'),
-  React.createElement('h1', null, '桌面创作器'),
-  React.createElement('p', null, `Electron 桌面骨架已启动 · Bridge v${bridgeVersion}`),
-);
-
-createRoot(rootElement).render(appView);
+const rendererRoot = createRoot(rootElement);
+const dispose = mountDesktopWorkbench(rendererRoot, createDesktopWorkbenchStore());
+window.addEventListener('unload', dispose, { once: true });

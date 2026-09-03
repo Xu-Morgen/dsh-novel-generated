@@ -70,6 +70,12 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((result) => {
       if (result && typeof result === 'object') writeSmokeMarker(`[I172] ipc-probe ${JSON.stringify(result)}`);
     }).catch(() => undefined), 'desktop smoke IPC probe');
+    ports.registerTask(window.webContents.executeJavaScript(
+      "new Promise((resolve) => setTimeout(() => resolve(JSON.stringify({ rootCount: document.querySelectorAll('#root').length, desktopRoots: document.querySelectorAll('[data-novel-desktop-root]').length, workspace: document.querySelector('[data-novel-workspace]')?.getAttribute('data-novel-workspace'), text: document.querySelector('[data-novel-workspace]')?.textContent })), 50))",
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I173] renderer-shell ${probe}`);
+    }).catch(() => undefined), 'desktop renderer shell probe');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",

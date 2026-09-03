@@ -3,39 +3,32 @@
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
   background: #16191f;
   color: #edf0f5;
+  --dsw-alias-bg-base: #181b21;
+  --dsw-alias-bg-layer-1: #20242c;
+  --dsw-alias-border-l1: #343a45;
+  --dsw-alias-border-l2: #4a5260;
+  --dsw-alias-interactive-bg-hover: #2a303a;
+  --dsw-alias-label-primary: #edf0f5;
+  --dsw-alias-label-secondary: #b9c2d0;
+  --dsw-alias-label-tertiary: #8f9bad;
+  --dsw-alias-state-error-primary: #ef766d;
+  --dsw-alias-state-warn-primary: #e6b85c;
+  --dsw-alias-state-success-primary: #65c18c;
 }
 
 body {
   margin: 0;
-  min-width: 960px;
+  min-width: 320px;
   min-height: 100vh;
   background: radial-gradient(circle at 20% 0%, #283241, #16191f 52%);
 }
 
-.desktop-placeholder {
-  box-sizing: border-box;
-  display: grid;
-  align-content: center;
+.desktop-shell {
   min-height: 100vh;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 48px;
 }
 
-.eyebrow {
-  margin: 0 0 16px;
-  color: #9eabc0;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-}
-
-h1 {
-  margin: 0;
-  font-size: 48px;
-  font-weight: 600;
-}
-
-p:last-child {
-  color: #b9c2d0;
-  font-size: 18px;
+.desktop-shell .nv-workbench {
+  width: 100vw;
+  max-width: 100vw;
+  border-left: 0;
 }
