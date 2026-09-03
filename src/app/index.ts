@@ -24,3 +24,19 @@ export type {
   MainCredentialResolver,
   SecureSecretStorage,
 } from './credentials.js';
+export { createIpcDispatcher, createIpcRegistry, IpcContractError } from './ipc-registry.js';
+export type {
+  IpcCodec,
+  IpcContractLock,
+  IpcErrorCode,
+  IpcErrorDetails,
+  IpcEnvelope,
+  IpcHandler,
+  IpcJsonObject,
+  IpcJsonValue,
+  IpcMethodContract,
+  IpcMethodDescriptor,
+  IpcParameterDescriptor,
+  IpcRegistry,
+  IpcSchemaContract,
+} from './ipc-registry.js';
