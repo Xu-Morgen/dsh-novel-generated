@@ -4,6 +4,7 @@ import type { Root } from 'react-dom/client';
 import { launchButton, workbenchView, type WorkbenchUi } from '../../client/presenter.js';
 import { scheduleFocus } from '../../client/focus.js';
 import { WORKBENCH_STYLES } from '../../client/styles.js';
+import type { OpsRuntime } from '../../client/ops/context.js';
 import type {
   WorkbenchActions,
   WorkbenchNamespaces,
@@ -17,6 +18,7 @@ import type { SourceImportFormat } from '../../client/source-import.js';
 import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
+import { createDesktopStructuredOps } from './structured-ops.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 
@@ -63,6 +65,15 @@ const PENDING_OPS = new Proxy(Object.create(null) as WorkbenchOps, {
   },
 });
 
+function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
+  return {
+    ...PENDING_NAMESPACES,
+    workspace: client.services.workspace,
+    knowledgeNamespace: client.services.knowledgeNamespace,
+    ruleStyleNamespace: client.services.ruleStyleNamespace,
+  };
+}
+
 function viewStates(state: WorkbenchState): WorkbenchViewStates {
   return {
     workflow: state.workflow,
@@ -100,7 +111,7 @@ function viewStates(state: WorkbenchState): WorkbenchViewStates {
  * I173 临时 UI adapter：只开放纯 Renderer 交互，业务命令显式保持未接线。
  * I174 会以 DesktopServiceBag 替换这些业务空操作；本迭代不会提前调用 IPC。
  */
-export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchActions): WorkbenchUi {
+export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow): WorkbenchUi {
   return {
     open: state.open,
     collapsed: state.collapsed,
@@ -127,18 +138,18 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
     activateCreationSettings: actions.activateCreationSettings,
     toggleSettings: actions.toggleSettings,
     saveLlmConfig: NOOP,
-    saveCreationSettings: NOOP,
-    openCreationFolder: NOOP,
-    selectProject: NOOP,
-    archiveProject: NOOP,
-    restoreProject: NOOP,
+    saveCreationSettings: () => workflow.saveSettings(state.creationSettingsDraft),
+    openCreationFolder: workflow.openProjectFolder,
+    selectProject: workflow.requestOpen,
+    archiveProject: workflow.archiveProject,
+    restoreProject: workflow.restoreProject,
     newProjectName: state.newProjectName,
     newProjectNameChange: actions.newProjectName,
     projectLoading: state.projectLoading,
-    createProject: NOOP,
-    requestBrowse: actions.browseProjects,
-    confirmLeave: NOOP,
-    cancelLeave: () => actions.showLeaveConfirm(false),
+    createProject: (input) => workflow.createBlankProject(input.name),
+    requestBrowse: workflow.requestBrowse,
+    confirmLeave: workflow.confirmLeave,
+    cancelLeave: workflow.cancelLeave,
     cancelBrowse: actions.cancelBrowse,
     uploadFile: NOOP,
     setSourceImportText: (text) => actions.sourceImportPatch({ text }),
@@ -231,6 +242,35 @@ function openedProjectView(state: WorkbenchState, actions: WorkbenchActions, wor
 }
 
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
+function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, settingsNamespace: DesktopIpcClient['services']['workbenchSettings']): React.ReactElement {
+  const creationSettings = {
+    view: state.creationSettingsView,
+    draft: state.creationSettingsDraft,
+    namespace: settingsNamespace,
+    mutate: actions.creationSettingsMutate,
+    save: ui.saveCreationSettings,
+    projectId: state.selectedProjectId,
+    openFolder: ui.openCreationFolder,
+  };
+  return React.createElement('section', { 'data-novel-project-ready': 'true' }, workbenchView(React, {
+    status: state.status,
+    ns: namespaces,
+    ui,
+    states: viewStates(state),
+    ops,
+    selectedProjectId: state.selectedProjectId,
+    selectedProjectName: state.selectedProjectName,
+    projects: state.projects,
+    archivedProjects: state.archivedProjects,
+    browsing: state.browsing,
+    leaveConfirm: state.leaveConfirm,
+    projectError: state.projectError,
+    upload: state.upload,
+    sourceImport: state.sourceImport,
+    creationSettings,
+  }) as React.ReactNode);
+}
+
 export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>; client: DesktopIpcClient }): React.ReactElement {
   const state = useDesktopStore(props.store, (snapshot) => snapshot);
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
@@ -239,7 +279,45 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     void workflow.start();
     return workflow.dispose;
   }, [workflow]);
-  const ui = createDesktopShellUi(state, props.store.actions);
+  const activeRef = React.useRef(true);
+  const activeOperationsRef = React.useRef(new Set<string>());
+  React.useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+      activeOperationsRef.current.clear();
+    };
+  }, []);
+  const projectId = state.selectedProjectId;
+  const runtime: OpsRuntime = {
+    snapshot: state,
+    act: props.store.actions,
+    projectId,
+    isActive: () => activeRef.current
+      && projectId !== undefined
+      && props.store.getSnapshot().selectedProjectId === projectId
+      && !props.store.getSnapshot().browsing,
+    beginOp: (key) => {
+      const scopedKey = projectId === undefined ? key : `${projectId}:${key}`;
+      if (!activeRef.current || projectId === undefined || activeOperationsRef.current.has(scopedKey)) return false;
+      activeOperationsRef.current.add(scopedKey);
+      return true;
+    },
+    endOp: (key) => { activeOperationsRef.current.delete(projectId === undefined ? key : `${projectId}:${key}`); },
+    queuePoll: { start: NOOP, stop: NOOP },
+  };
+  const namespaces = desktopNamespaces(props.client);
+  const ops = createDesktopStructuredOps(runtime, {
+    workspace: namespaces.workspace,
+    knowledgeNamespace: namespaces.knowledgeNamespace,
+    ruleStyleNamespace: namespaces.ruleStyleNamespace,
+  });
+  const ui = createDesktopShellUi(state, props.store.actions, workflow);
+  React.useEffect(() => {
+    if (state.status.status !== 'ready' || projectId === undefined || state.browsing) return;
+    ops.knowledge.refresh();
+    ops.ruleStyle.refresh();
+  }, [state.status.status, state.browsing, projectId]);
   const loading = workbenchView(React, {
         status: { status: 'loading' },
         ns: PENDING_NAMESPACES,
@@ -253,7 +331,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     : state.status.status !== 'ready'
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
-        ? openedProjectView(state, props.store.actions, workflow, props.client.services.workbenchSettings)
+        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.workbenchSettings)
         : projectDirectoryView(state, props.store.actions, workflow);
 
   return React.createElement(

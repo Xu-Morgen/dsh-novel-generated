@@ -99,6 +99,29 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I175] project-loop ${probe}`);
     }).catch(() => undefined), 'desktop project lifecycle smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i176-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: '结构化编辑冒烟作品' }], 'i176-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i176-open');
+        const [characters, worldview, outline, relationship, state, canon, knowledge, knowledgePending, ruleStyle] = await Promise.all([
+          invoke('novel-creation-tool/novelWorkspace/characterList', [projectId], 'i176-characters'),
+          invoke('novel-creation-tool/novelWorkspace/worldviewList', [projectId], 'i176-worldview'),
+          invoke('novel-creation-tool/novelWorkspace/outlineRead', [projectId], 'i176-outline'),
+          invoke('novel-creation-tool/novelWorkspace/relationshipRead', [projectId], 'i176-relationship'),
+          invoke('novel-creation-tool/novelWorkspace/stateSnapshots', [projectId], 'i176-state'),
+          invoke('novel-creation-tool/novelWorkspace/canonQuery', [projectId, undefined], 'i176-canon'),
+          invoke('novel-creation-tool/novelKnowledgeManager/list', [projectId], 'i176-knowledge'),
+          invoke('novel-creation-tool/novelKnowledgeManager/pending', [projectId], 'i176-knowledge-pending'),
+          invoke('novel-creation-tool/novelRuleStyleManager/list', [projectId], 'i176-rule-style'),
+        ]);
+        return JSON.stringify({ created, opened, characters, worldview, outline, relationship, state, canon, knowledge, knowledgePending, ruleStyle });
+      })()`,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I176] structured-loop ${probe}`);
+    }).catch(() => undefined), 'desktop structured editing smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",

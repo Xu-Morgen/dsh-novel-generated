@@ -4,6 +4,7 @@ import type { WorkbenchActions, WorkbenchState } from '../../client/store/types.
 import type { WorkbenchSettingsDraftShape, WorkbenchSettingsViewShape } from '../../client/workbench-settings.js';
 import type { DesktopServiceBag } from './desktop-ipc-client.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
+import { reloadProject } from '../../client/project-session.js';
 
 export const LAST_PROJECT_PREFERENCE = 'novel-creation-tool:last-project';
 
@@ -28,7 +29,7 @@ export interface DesktopProjectWorkflow {
 }
 
 interface ProjectShape { readonly id: string; readonly name: string }
-interface OpenShape { readonly project: ProjectShape }
+interface OpenShape { readonly project: ProjectShape; readonly layers?: { readonly outline?: 'ready' | 'empty' | 'uninitialized' | 'corrupt' } }
 
 function hasDirtyDrafts(state: WorkbenchState): boolean {
   return state.characterEditor.dirty
@@ -87,6 +88,18 @@ export function createDesktopProjectWorkflow(options: {
       store.actions.selectProject(result.project.id, result.project.name);
       store.actions.resetEditors();
       preference.setItem(LAST_PROJECT_PREFERENCE, result.project.id);
+      reloadProject(
+        services.workspace,
+        result.project.id,
+        store.actions,
+        (apply) => {
+          if (!active || store.getSnapshot().selectedProjectId !== result.project.id || store.getSnapshot().browsing) return;
+          apply(store.actions);
+        },
+        () => active && store.getSnapshot().selectedProjectId === result.project.id && !store.getSnapshot().browsing,
+        result.layers,
+        { includeChapters: false },
+      );
       return true;
     } catch {
       if (active) fail('作品打开失败：主进程未能验证该作品');

@@ -25,6 +25,15 @@ import type { ProjectSessionActions } from './store/types.js';
 export interface ProjectOpenLayers {
   readonly outline?: 'ready' | 'empty' | 'uninitialized' | 'corrupt';
 }
+
+/**
+ * Controls which already-owned project slices are loaded after `projectOpen`.
+ * The desktop migration uses the structured slice until I177 owns C5; the
+ * historical Client path keeps the default full reload behavior.
+ */
+export interface ProjectReloadOptions {
+  readonly includeChapters?: boolean;
+}
 export function reloadProject(
   workspace: WorkspaceNamespace,
   projectId: string,
@@ -32,6 +41,7 @@ export function reloadProject(
   dispatch: (fn: (a: ProjectSessionActions) => void) => void,
   active: () => boolean,
   layers?: ProjectOpenLayers,
+  options?: ProjectReloadOptions,
 ): void {
   actions.setCharacters('loading', []);
   actions.setWorldview('loading', []);
@@ -39,8 +49,10 @@ export function reloadProject(
   actions.setRelationship('loading', []);
   actions.setState('loading', []);
   actions.setCanon('loading', []);
-  actions.setChapters('loading', []);
-  void unwrap(workspace.chapterList(projectId)).then((list) => dispatch((x) => x.setChapters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setChapters('error', [], toUserMessage(cause))));
+  if (options?.includeChapters !== false) {
+    actions.setChapters('loading', []);
+    void unwrap(workspace.chapterList(projectId)).then((list) => dispatch((x) => x.setChapters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setChapters('error', [], toUserMessage(cause))));
+  }
   void unwrap(workspace.characterList(projectId)).then((list) => dispatch((x) => x.setCharacters('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setCharacters('error', [], toUserMessage(cause))));
   void unwrap(workspace.worldviewList(projectId)).then((list) => dispatch((x) => x.setWorldview('ready', list as unknown[])), (cause: Error) => dispatch((x) => x.setWorldview('error', [], toUserMessage(cause))));
   if (layers?.outline === 'uninitialized') {
