@@ -5,9 +5,9 @@
  * 19 个 mountRemote 调用、卸载时逐项清空、卸载时逐项释放。本模块把这份清单收敛为
  * **单一声明式数组**：
  *
- * - `RemoteServiceBag`：23 个可选 namespace 字段（从 shared/onboarding/settings/
+ * - `RemoteServiceBag`：31 个可选 namespace 字段（从 shared/onboarding/settings/
  *   workbench-settings 的类型单一来源导入）；mount 成功后写 `bag[key] = service`；
- * - registry 数组：19 项，每项含 contribution/serviceKey/label/bind/after/onError，
+ * - registry 数组：31 项，每项含 contribution/serviceKey/label/bind/after/onError，
  *   是 Remote 资源的唯一声明 site；
  * - 内部 `Set<TypertDisposer>`：bind 时收集 disposer，卸载器统一释放
  *   （等价旧 16 个 `if (xxxDisposer) void xxxDisposer()`，review v2.0 §3.5）。
@@ -22,28 +22,9 @@
 import type { TypertDisposer, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import { mountRemote, type MountContext, type RemoteMount } from './mount.js';
 import type {
-  BranchNamespace,
-  ImportExportNamespace,
-  KnowledgeNamespace,
-  LongDraftNamespace,
-  ProgressNamespace,
-  QueueNamespace,
-  ReviewNamespace,
-  ReviewRepairNamespace,
-  RuleStyleNamespace,
-  SearchNamespace,
-  SceneOutlineBindingNamespace,
-  StatisticsNamespace,
-  TimelineNamespace,
-  TextMutationNamespace,
-  TextDeletionNamespace,
-  OutlineReconciliationNamespace,
-  OutlineDetailGenerationNamespace,
-  ReferenceAuditNamespace,
-  ReferenceCorrectionNamespace,
   WorkspaceNamespace,
-  WritingNamespace,
 } from './shared.js';
+import type { ClientServiceBag } from './service-bag.js';
 import {
   branchRemoteContribution,
   importExportRemoteContribution,
@@ -64,59 +45,23 @@ import { referenceAuditRemoteContribution } from '../remote.js';
 import { referenceCorrectionRemoteContribution } from '../remote.js';
 import { longDraftRemoteContribution } from '../remote.js';
 import { outlineDetailGenerationRemoteContribution } from '../remote.js';
-import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution, type OnboardingAnalyzerNamespace, type OnboardingNamespace } from './onboarding.js';
+import { onboardingAnalyzerRemoteContribution, onboardingRemoteContribution } from './onboarding.js';
 import { importInterpretationRemoteContribution, importInterpretationAnalysisRemoteContribution, ruleStyleImportInitializationRemoteContribution } from '../remote.js';
-import type { ImportInterpretationNamespace, ImportInterpretationAnalysisNamespace, RuleStyleImportInitializationNamespace } from './remote-namespace.js';
 import { narrativeAdaptationRemoteContribution } from '../remote.js';
-import type { NarrativeAdaptationNamespace } from './remote-namespace.js';
 import { narrativeRevealRemoteContribution } from '../remote.js';
-import type { NarrativeRevealNamespace } from './remote-namespace.js';
 import { narrativeImportPlanRemoteContribution } from '../remote.js';
-import type { NarrativeImportPlanNamespace } from './remote-namespace.js';
-import { llmConfigRemoteContribution, type LlmConfigNamespace } from './settings.js';
-import { workbenchSettingsRemoteContribution, type WorkbenchSettingsNamespace } from './workbench-settings.js';
+import { llmConfigRemoteContribution } from './settings.js';
+import { workbenchSettingsRemoteContribution } from './workbench-settings.js';
 
 /**
  * 全部已挂载 Remote namespace 的 service bag（I90）。
  *
- * 字段与挂载清单一一对应（共 23 个；review v2.0 §3.5 所称「15 个 namespace」为
+ * 字段与挂载清单一一对应（共 31 个；review v2.0 §3.5 所称「15 个 namespace」为
  * 卡片笔误，I105/I106/I116/I120 按依赖新增）。挂载完成后写
  * `bag[key] = service`；失败/未挂载保持 undefined，消费方一律窄化读取
  * （controllers/ops 经 `() => bag.xxx` 函数延迟读取，避免闭包固化陈旧引用）。
  */
-export interface RemoteServiceBag {
-  workspace?: WorkspaceNamespace;
-  onboarding?: OnboardingNamespace;
-  analyzer?: OnboardingAnalyzerNamespace;
-  llmConfig?: LlmConfigNamespace;
-  workbenchSettings?: WorkbenchSettingsNamespace;
-  writing?: WritingNamespace;
-  reviewNamespace?: ReviewNamespace;
-  reviewRepairNamespace?: ReviewRepairNamespace;
-  queueNamespace?: QueueNamespace;
-  knowledgeNamespace?: KnowledgeNamespace;
-  ruleStyleNamespace?: RuleStyleNamespace;
-  progressNamespace?: ProgressNamespace;
-  importExportNamespace?: ImportExportNamespace;
-  branchNamespace?: BranchNamespace;
-  searchNamespace?: SearchNamespace;
-  statisticsNamespace?: StatisticsNamespace;
-  timelineNamespace?: TimelineNamespace;
-  sceneOutlineBinding?: SceneOutlineBindingNamespace;
-  textMutation?: TextMutationNamespace;
-  textDeletion?: TextDeletionNamespace;
-  outlineReconciliation?: OutlineReconciliationNamespace;
-  referenceAudit?: ReferenceAuditNamespace;
-  referenceCorrection?: ReferenceCorrectionNamespace;
-  longDraft?: LongDraftNamespace;
-  outlineDetailGeneration?: OutlineDetailGenerationNamespace;
-  importInterpretation?: ImportInterpretationNamespace;
-  importInterpretationAnalysis?: ImportInterpretationAnalysisNamespace;
-  ruleStyleImportInitialization?: RuleStyleImportInitializationNamespace;
-  narrativeAdaptation?: NarrativeAdaptationNamespace;
-  narrativeReveal?: NarrativeRevealNamespace;
-  narrativeImportPlan?: NarrativeImportPlanNamespace;
-}
+export type RemoteServiceBag = ClientServiceBag;
 
 /** workspace 特例钩子（client.ts 注入；registry 不持有 dispatch/store）。 */
 export interface RemoteMountHooks {

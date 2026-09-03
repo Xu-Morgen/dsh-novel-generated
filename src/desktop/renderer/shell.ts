@@ -14,6 +14,7 @@ import type {
 import type { WorkbenchViewId } from '../../client/nav.js';
 import type { WorkflowStageId } from '../../client/workflow.js';
 import type { SourceImportFormat } from '../../client/source-import.js';
+import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 
@@ -156,8 +157,9 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
 }
 
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
-export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions> }): React.ReactElement {
+export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>; client: DesktopIpcClient }): React.ReactElement {
   const state = useDesktopStore(props.store, (snapshot) => snapshot);
+  const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
   const ui = createDesktopShellUi(state, props.store.actions);
   const content = state.open
     ? workbenchView(React, {
@@ -174,7 +176,12 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     React.Fragment,
     null,
     React.createElement('style', { 'data-novel-workbench': 'desktop-styles' }, WORKBENCH_STYLES),
-    React.createElement('main', { className: 'desktop-shell', 'data-novel-desktop-root': 'true' }, content as React.ReactNode),
+    React.createElement('main', {
+      className: 'desktop-shell',
+      'data-novel-desktop-root': 'true',
+      'data-novel-connection-status': connection.status,
+      'data-novel-pending-requests': String(connection.pendingCount),
+    }, content as React.ReactNode),
   );
 }
 
@@ -188,13 +195,14 @@ function actionsOpen(actions: WorkbenchActions): () => void {
 /**
  * 把 store 与 React root 绑定到同一 disposer；重复调用 dispose 保持幂等。
  */
-export function mountDesktopWorkbench(root: Pick<Root, 'render' | 'unmount'>, store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>): () => void {
+export function mountDesktopWorkbench(root: Pick<Root, 'render' | 'unmount'>, store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>, client: DesktopIpcClient): () => void {
   let active = true;
-  root.render(React.createElement(DesktopWorkbenchShell, { store }));
+  root.render(React.createElement(DesktopWorkbenchShell, { store, client }));
   return () => {
     if (!active) return;
     active = false;
     root.unmount();
+    client.dispose();
     store.dispose();
   };
 }

@@ -174,7 +174,6 @@ export function createIpcRegistry<const Descriptors extends readonly IpcMethodDe
     async invoke(methodId, args, handler, context) {
       const descriptor = byId.get(methodId);
       if (descriptor === undefined) return failure(new IpcContractError('unknown-method', 'IPC method is not allowlisted', { methodId }));
-      if (handler === undefined) return failure(new IpcContractError('handler-unavailable', 'IPC method handler is unavailable', { methodId }));
 
       let parsedArgs: readonly unknown[];
       try {
@@ -182,6 +181,10 @@ export function createIpcRegistry<const Descriptors extends readonly IpcMethodDe
       } catch (cause) {
         return failure(cause);
       }
+      // The strict boundary validates caller-controlled bytes before consulting the
+      // handler table. An unbound migration seam must not turn malformed input into
+      // a weaker `handler-unavailable` result (design §0.1.2 / I174 negative E2E).
+      if (handler === undefined) return failure(new IpcContractError('handler-unavailable', 'IPC method handler is unavailable', { methodId }));
 
       let value: unknown;
       try {

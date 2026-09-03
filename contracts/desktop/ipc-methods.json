@@ -215,7 +215,8 @@
     "novel-creation-tool/novelRuleStyleImportInitialization/propose",
     "novel-creation-tool/novelRuleStyleImportInitialization/accept",
     "novel-creation-tool/novelRuleStyleImportInitialization/reject",
-    "novel-creation-tool/novelRuleStyleImportInitialization/cancel"
+    "novel-creation-tool/novelRuleStyleImportInitialization/cancel",
+    "novel-creation-tool/novelReviewRepair/propose"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6315,6 +6316,45 @@
       "result": {
         "typeSymbol": "novel-creation-tool#ruleStyleImportProjection",
         "schemaId": "novel-creation-tool#ruleStyleImportProjection@c1bf20cf"
+      }
+    },
+    "novel-creation-tool/novelReviewRepair/propose": {
+      "id": "novel-creation-tool/novelReviewRepair/propose",
+      "service": "novelReviewRepair",
+      "namespace": "novelReviewRepair",
+      "method": "propose",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#string",
+            "schemaId": "novel-creation-tool#string@b0aab5a3"
+          }
+        },
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#novelReviewRepair:input",
+            "schemaId": "novel-creation-tool#novelReviewRepair:input@7a5a36d1"
+          }
+        },
+        {
+          "name": "settings",
+          "wire": "settings",
+          "acceptsUndefined": true,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#generationSettings",
+            "schemaId": "novel-creation-tool#generationSettings@b964804f"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#novelReviewRepair:propose",
+        "schemaId": "novel-creation-tool#novelReviewRepair:propose@9edcdfbe"
       }
     }
   },
@@ -51944,6 +51984,220 @@
           "importSessionId",
           "sourceHash",
           "expectedFingerprint"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#novelReviewRepair:input@7a5a36d1": {
+      "typeSymbol": "novel-creation-tool#novelReviewRepair:input",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "readOnly": true,
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "instruction": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "issueId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#novelReviewRepair:propose@9edcdfbe": {
+      "typeSymbol": "novel-creation-tool#novelReviewRepair:propose",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "readOnly": true,
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issueId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "issueFingerprint": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "target": {
+            "readOnly": true,
+            "type": "object",
+            "properties": {
+              "chapterId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sceneId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "chapterId",
+              "sceneId",
+              "sourceHash"
+            ],
+            "additionalProperties": false
+          },
+          "anchor": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "end": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "quote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "start",
+              "end",
+              "quote",
+              "sourceHash"
+            ],
+            "additionalProperties": false
+          },
+          "lineage": {
+            "readOnly": true,
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "review-repair"
+              },
+              "issueId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "issueFingerprint": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "kind",
+              "issueId",
+              "issueFingerprint",
+              "sourceHash"
+            ],
+            "additionalProperties": false
+          },
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "intent": {
+                "type": "string",
+                "enum": [
+                  "generate",
+                  "continue",
+                  "scene-card",
+                  "rewrite"
+                ]
+              },
+              "target": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sourceHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "projectId"
+                ],
+                "additionalProperties": false
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "chunkCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "intent",
+              "target",
+              "prompt",
+              "text",
+              "chunkCount",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "projectId",
+          "issueId",
+          "issueFingerprint",
+          "target",
+          "lineage",
+          "candidate"
         ],
         "additionalProperties": false
       }

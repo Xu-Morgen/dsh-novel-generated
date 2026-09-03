@@ -71,7 +71,13 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
       if (result && typeof result === 'object') writeSmokeMarker(`[I172] ipc-probe ${JSON.stringify(result)}`);
     }).catch(() => undefined), 'desktop smoke IPC probe');
     ports.registerTask(window.webContents.executeJavaScript(
-      "new Promise((resolve) => setTimeout(() => resolve(JSON.stringify({ rootCount: document.querySelectorAll('#root').length, desktopRoots: document.querySelectorAll('[data-novel-desktop-root]').length, workspace: document.querySelector('[data-novel-workspace]')?.getAttribute('data-novel-workspace'), text: document.querySelector('[data-novel-workspace]')?.textContent })), 50))",
+      "window.novelDesktop.invoke('novel-creation-tool/novelReviewRepair/propose', [], 'i174-review-repair-negative').then((result) => { document.documentElement.dataset.novelI174Probe = JSON.stringify(result); return result; })",
+      true,
+    ).then((result) => {
+      if (result && typeof result === 'object') writeSmokeMarker(`[I174] review-repair-negative ${JSON.stringify(result)}`);
+    }).catch(() => undefined), 'desktop review repair strict IPC probe');
+    ports.registerTask(window.webContents.executeJavaScript(
+      "new Promise((resolve) => setTimeout(() => resolve(JSON.stringify({ rootCount: document.querySelectorAll('#root').length, desktopRoots: document.querySelectorAll('[data-novel-desktop-root]').length, connection: document.querySelector('[data-novel-desktop-root]')?.getAttribute('data-novel-connection-status'), workspace: document.querySelector('[data-novel-workspace]')?.getAttribute('data-novel-workspace'), text: document.querySelector('[data-novel-workspace]')?.textContent })), 50))",
       true,
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I173] renderer-shell ${probe}`);

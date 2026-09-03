@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { mountDesktopWorkbench } from './shell.js';
+import { createDesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopWorkbenchStore } from './store-adapter.js';
 
 /** I173 单一 React root；业务 IPC 与具体领域面板按 I174–I180 继续接入。 */
@@ -17,5 +18,5 @@ document.documentElement.dataset.novelI166Probe = JSON.stringify({
 });
 
 const rendererRoot = createRoot(rootElement);
-const dispose = mountDesktopWorkbench(rendererRoot, createDesktopWorkbenchStore());
+const dispose = mountDesktopWorkbench(rendererRoot, createDesktopWorkbenchStore(), createDesktopIpcClient(window.novelDesktop));
 window.addEventListener('unload', dispose, { once: true });

@@ -10,6 +10,7 @@ import {
   type IpcRegistry,
 } from '../app/ipc-registry.js';
 import { hostContribution } from '../host/remote/host-contribution.js';
+import { reviewRepairInvocations } from '../host/remote/review-repair.js';
 
 /**
  * Current migration adapter from the historical Remote declarations to the
@@ -21,10 +22,10 @@ import { hostContribution } from '../host/remote/host-contribution.js';
  * registry without importing individual Remote modules.
  */
 export const desktopIpcMethodDescriptors = Object.freeze(
-  hostContribution.invocations.map((descriptor) => adaptDescriptor(descriptor)),
+  [...hostContribution.invocations, ...reviewRepairInvocations].map((descriptor) => adaptDescriptor(descriptor)),
 );
 
-/** The sole canonical registry for the current 214 desktop invocation surface. */
+/** The sole canonical registry: the 214-method baseline plus I174's existing review-repair Client seam. */
 export const desktopIpcRegistry: IpcRegistry<readonly IpcMethodDescriptor[]> = createIpcRegistry(desktopIpcMethodDescriptors);
 
 function adaptDescriptor(descriptor: InvocationDescriptor): IpcMethodDescriptor {

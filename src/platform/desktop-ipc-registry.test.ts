@@ -8,11 +8,12 @@ import { desktopIpcMethodDescriptors, desktopIpcRegistry } from './desktop-ipc-r
 const lockPath = resolve(process.cwd(), 'contracts/desktop/ipc-methods.json');
 
 describe('desktop canonical IPC registry', () => {
-  it('covers the complete current 214 invocation surface exactly once', () => {
-    expect(desktopIpcMethodDescriptors).toHaveLength(214);
-    expect(desktopIpcRegistry.size).toBe(214);
-    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => descriptor.id)).size).toBe(214);
-    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => `${descriptor.namespace}/${descriptor.method}`)).size).toBe(214);
+  it('covers the 214-method baseline and the existing review-repair Client seam exactly once', () => {
+    expect(desktopIpcMethodDescriptors).toHaveLength(215);
+    expect(desktopIpcRegistry.size).toBe(215);
+    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => descriptor.id)).size).toBe(215);
+    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => `${descriptor.namespace}/${descriptor.method}`)).size).toBe(215);
+    expect(desktopIpcRegistry.get('novel-creation-tool/novelReviewRepair/propose')).toBeDefined();
     expect(desktopIpcMethodDescriptors.every((descriptor) => descriptor.id === `novel-creation-tool/${descriptor.service}/${descriptor.method}`)).toBe(true);
   });
 
@@ -21,6 +22,24 @@ describe('desktop canonical IPC registry', () => {
       expect(descriptor.result.mode, descriptor.id).toBe('strict');
       for (const parameter of descriptor.parameters) expect(parameter.codec.mode, `${descriptor.id}/${parameter.name}`).toBe('strict');
     }
+  });
+
+  it('strictly validates the additive review-repair transport registration', async () => {
+    const id = 'novel-creation-tool/novelReviewRepair/propose';
+    const validResult = {
+      projectId: 'p1', issueId: 'iss-1', issueFingerprint: 'iss-1',
+      target: { chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) },
+      anchor: { start: 0, end: 2, quote: '米拉', sourceHash: 'a'.repeat(64) },
+      lineage: { kind: 'review-repair', issueId: 'iss-1', issueFingerprint: 'iss-1', sourceHash: 'a'.repeat(64) },
+      candidate: { id: 'repair-1', intent: 'rewrite', target: { projectId: 'p1', chapterId: 'chapter-1', sceneId: 'scene-1', sourceHash: 'a'.repeat(64) }, prompt: '修复', text: '米拉抬起头。', chunkCount: 1, createdAt: '2026-09-03T00:00:00.000Z' },
+    };
+
+    await expect(desktopIpcRegistry.invoke(id, ['p1', { issueId: 'iss-1' }, undefined], async () => validResult))
+      .resolves.toEqual({ ok: true, value: validResult });
+    await expect(desktopIpcRegistry.invoke(id, ['p1', { issueId: '' }, undefined], async () => validResult))
+      .resolves.toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
+    await expect(desktopIpcRegistry.invoke(id, ['p1', { issueId: 'iss-1' }, undefined], async () => ({ ...validResult, issueFingerprint: 1 })))
+      .resolves.toMatchObject({ ok: false, error: { code: 'invalid-result' } });
   });
 
   it('matches the checked-in contract lock and supports a real registry consumer', async () => {
