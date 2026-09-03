@@ -18,6 +18,8 @@ export interface GenerationRequest {
 
 export interface LlmChunk {
   readonly text?: string;
+  /** Provider reasoning delta; it is never merged into candidate prose. */
+  readonly reasoning?: string;
   readonly done?: boolean;
 }
 
@@ -61,8 +63,9 @@ interface DshGenerateOptions {
 
 type DshStreamChunk =
   | { type: 'text-delta'; text: string }
+  | { type: 'reasoning-delta'; text: string }
   | { type: 'finish'; reason: { kind: string; failure?: { message?: string } } }
-  | { type: 'block-start' | 'reasoning-delta' | 'tool-call-delta' | 'block-end' | 'usage' };
+  | { type: 'block-start' | 'tool-call-delta' | 'block-end' | 'usage' };
 
 /**
  * Collect one streaming candidate through the injected Host LLM route.
@@ -129,6 +132,7 @@ export function asLlmBackend(value: unknown): LlmBackend | undefined {
       };
       for await (const chunk of llm.stream(options)) {
         if (chunk.type === 'text-delta') yield { text: chunk.text };
+        if (chunk.type === 'reasoning-delta') yield { reasoning: chunk.text };
         if (chunk.type === 'finish') {
           if (chunk.reason.kind === 'error' || chunk.reason.kind === 'aborted') {
             throw new Error(chunk.reason.failure?.message ?? `DSH LLM finished with ${chunk.reason.kind}`);

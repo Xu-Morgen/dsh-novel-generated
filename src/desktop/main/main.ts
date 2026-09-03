@@ -6,6 +6,7 @@ import { createCredentialStore } from '../../app/credentials.js';
 import type { ApplicationPorts } from '../../app/ports.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
+import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
 
 const DESKTOP_SMOKE = '1';
@@ -116,6 +117,7 @@ const applicationKernel = createApplicationKernel({
       const credentials = createCredentialStore(createElectronSecureStorage(paths.settingsFile('credentials.bin')));
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
+      ports.provide('createLlmBackend', (endpoint: string, providerId: string) => createOpenAICompatibleBackend({ endpoint, providerId, credentials: credentials.resolver }));
       ports.registerDisposer(() => {
         if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
         mainWindow = null;
