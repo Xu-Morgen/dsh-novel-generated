@@ -23,7 +23,7 @@ const rendererSources = [
   'src/client/ops/import-export.ts',
 ].map(read).join('\n');
 
-if (lock.descriptorIds.length !== 217 || !lock.descriptorIds.includes('novel-creation-tool/novelDesktopFiles/saveFile')) {
+if (lock.descriptorIds.length !== 223 || !lock.descriptorIds.includes('novel-creation-tool/novelDesktopFiles/saveFile')) {
   throw new Error('I180 canonical desktop lock is missing the Main-owned save seam');
 }
 for (const required of ['createDesktopAuthorWorkflowHandlers', 'createSearchService', 'createStatisticsService', 'createProgressInspirationService', 'createNovelPortabilityService', 'createDesktopFileHandlers', 'showSaveDialog', 'saveFile']) {

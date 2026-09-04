@@ -19,7 +19,7 @@ if (preloadSource.includes('exposeInMainWorld(\'ipcRenderer\'') || preloadSource
 if (!bridgeSource.includes('allowlist.has(methodId)') || bridgeSource.includes("from 'electron'") || bridgeSource.includes('from "electron"')) throw new Error('I172 bridge allowlist boundary is incomplete');
 if (!binderSource.includes('registry.invoke') || !binderSource.includes('removeHandler') || !binderSource.includes('AbortController') || !binderSource.includes('IPC_PROGRESS_CHANNEL')) throw new Error('I172 Main binder lifecycle/strict boundary is incomplete');
 if (mainSource.includes('ipcRenderer') || !mainSource.includes('bindElectronIpc')) throw new Error('I172 Main wiring is not a Main-owned binder');
-if (lock.descriptorIds.length !== 217 || (methodIdsSource.match(/novel-creation-tool\//g) ?? []).length !== 217) throw new Error('I172 preload allowlist is not derived from the canonical desktop registry');
+if (lock.descriptorIds.length !== 223 || (methodIdsSource.match(/novel-creation-tool\//g) ?? []).length !== 223) throw new Error('I172 preload allowlist is not derived from the canonical desktop registry');
 
 const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run', 'src/desktop/preload/bridge.test.ts', 'src/platform/electron-ipc-binder.test.ts'], {
   cwd: root,

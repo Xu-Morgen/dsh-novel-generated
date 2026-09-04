@@ -12,6 +12,15 @@ import {
 import { hostContribution } from '../host/remote/host-contribution.js';
 import { reviewRepairInvocations } from '../host/remote/review-repair.js';
 import { desktopSaveFileInvocation } from '../desktop/file-dialog-contract.js';
+import {
+  desktopAssistantAdjudicationResultSchema,
+  desktopAssistantContextResultSchema,
+  desktopAssistantInspireResultSchema,
+  desktopAssistantOpenResultSchema,
+  desktopAssistantStatusResponseSchema,
+  desktopAssistantCandidateSchema,
+  DESKTOP_ASSISTANT_METHOD_IDS,
+} from '../core/schema/desktop-assistant.js';
 
 /**
  * Current migration adapter from the historical Remote declarations to the
@@ -22,8 +31,62 @@ import { desktopSaveFileInvocation } from '../desktop/file-dialog-contract.js';
  * functions and reviewable JSON Schema contracts; I172 can bind the exported
  * registry without importing individual Remote modules.
  */
+const assistantCodec = <Output>(typeSymbol: string, schema: z.ZodType<Output>): IpcCodec<Output> => Object.freeze({
+  mode: 'strict' as const,
+  typeSymbol,
+  schema: z.toJSONSchema(schema) as IpcJsonValue,
+  parse: (value: unknown) => schema.parse(value),
+});
+
+const assistantParameter = <Output>(name: string, codec: IpcCodec<Output>, acceptsUndefined = false): IpcParameterDescriptor<Output> => Object.freeze({
+  name,
+  wire: name,
+  codec,
+  ...(acceptsUndefined ? { acceptsUndefined: true as const } : {}),
+});
+
+const assistantProjectId = assistantCodec('novel-creation-tool#desktopAssistant:projectId', z.string().min(1).max(64));
+const assistantCandidateId = assistantCodec('novel-creation-tool#desktopAssistant:candidateId', z.string().min(1).max(128));
+const assistantDecision = assistantCodec('novel-creation-tool#desktopAssistant:decision', z.enum(['accept', 'reject', 'rewrite']));
+const assistantOptionalId = assistantCodec('novel-creation-tool#desktopAssistant:optionalId', z.string().min(1).max(64));
+
+/** I181 strict additive IPC descriptors for the Main-owned assistant surface. */
+export const desktopAssistantInvocations = Object.freeze([
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.open, service: 'novelAssistant', namespace: 'novelAssistant', method: 'open',
+    parameters: [assistantParameter('projectId', assistantProjectId)], result: assistantCodec('novel-creation-tool#desktopAssistant:open', desktopAssistantOpenResultSchema),
+  },
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.status, service: 'novelAssistant', namespace: 'novelAssistant', method: 'status',
+    parameters: [assistantParameter('projectId', assistantProjectId, true)], result: assistantCodec('novel-creation-tool#desktopAssistant:status', desktopAssistantStatusResponseSchema),
+  },
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.context, service: 'novelAssistant', namespace: 'novelAssistant', method: 'context',
+    parameters: [assistantParameter('projectId', assistantProjectId)], result: assistantCodec('novel-creation-tool#desktopAssistant:context', desktopAssistantContextResultSchema),
+  },
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.continue, service: 'novelAssistant', namespace: 'novelAssistant', method: 'continue',
+    parameters: [assistantParameter('projectId', assistantProjectId), assistantParameter('chapterId', assistantOptionalId, true), assistantParameter('sceneId', assistantOptionalId, true)],
+    result: assistantCodec('novel-creation-tool#desktopAssistant:continue', desktopAssistantCandidateSchema),
+  },
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.adjudicate, service: 'novelAssistant', namespace: 'novelAssistant', method: 'adjudicate',
+    parameters: [assistantParameter('candidateId', assistantCandidateId), assistantParameter('decision', assistantDecision)],
+    result: assistantCodec('novel-creation-tool#desktopAssistant:adjudicate', desktopAssistantAdjudicationResultSchema),
+  },
+  {
+    id: DESKTOP_ASSISTANT_METHOD_IDS.inspire, service: 'novelAssistant', namespace: 'novelAssistant', method: 'inspire',
+    parameters: [assistantParameter('projectId', assistantProjectId)], result: assistantCodec('novel-creation-tool#desktopAssistant:inspire', desktopAssistantInspireResultSchema),
+  },
+] as const satisfies readonly IpcMethodDescriptor[]);
+
 export const desktopIpcMethodDescriptors = Object.freeze(
-  [...hostContribution.invocations, ...reviewRepairInvocations, desktopSaveFileInvocation].map((descriptor) => adaptDescriptor(descriptor)),
+  [
+    ...hostContribution.invocations.map((descriptor) => adaptDescriptor(descriptor)),
+    ...reviewRepairInvocations.map((descriptor) => adaptDescriptor(descriptor)),
+    adaptDescriptor(desktopSaveFileInvocation),
+    ...desktopAssistantInvocations,
+  ],
 );
 
 /** The sole canonical registry: historical baseline plus migrated desktop seams through I180. */

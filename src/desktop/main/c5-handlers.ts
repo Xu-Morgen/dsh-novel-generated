@@ -67,6 +67,8 @@ export interface DesktopC5HandlerDependencies {
 export interface DesktopC5Services {
   readonly resolveSettings: () => Promise<GenerationSettings>;
   readonly text: NovelTextServiceBundle;
+  /** I181: the same context owner used by desktop writing and assistant commands. */
+  readonly context: import('../../host/writing-context.js').NextSceneContextProvider;
   readonly binding: NovelSceneOutlineBindingService;
   readonly baseline: import('../../host/outline-generation-baseline-service.js').NovelOutlineGenerationBaselineService;
   readonly timeline: import('../../host/timeline-service.js').NovelTimelineService;
@@ -213,7 +215,7 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   };
   const upload = createHostUploadService(uploadDisposer ?? (() => undefined));
   const workspace = createWorkspaceEditorService({ characters, worldview, outline, relationship, state, canon, confirmation, projects, upload, text, textEdit });
-  const services: DesktopC5Services = Object.freeze({ resolveSettings, text, binding, baseline, timeline, textEdit, writing, candidate, consistency, knowledgeLeak, relationshipStyle, textDeletion, impact, reconciliationPlanner, reconciliation, finalizationPlanBuilder, finalization, branch, workspace });
+  const services: DesktopC5Services = Object.freeze({ resolveSettings, text, context: nextSceneContext, binding, baseline, timeline, textEdit, writing, candidate, consistency, knowledgeLeak, relationshipStyle, textDeletion, impact, reconciliationPlanner, reconciliation, finalizationPlanBuilder, finalization, branch, workspace });
   deps.onServices?.(services);
   const mutation = {
     async fingerprint(projectId: string) { await text.open(projectId); return { fingerprint: await text.projectFingerprint(projectId) }; },

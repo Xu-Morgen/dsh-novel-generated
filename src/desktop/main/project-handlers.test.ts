@@ -196,3 +196,44 @@ describe('I180 Main export and OS file handlers', () => {
     await expect(invoke(handlers, desktopSaveFileInvocation.id, [{ fileName: 'i180.json', content: '{}', unexpected: true }])).resolves.toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
   });
 });
+
+describe('I181 Main-owned desktop assistant', () => {
+  it('routes open/status/context/inspire through the shared Main composition', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i181-main-'));
+    roots.push(root);
+    const paths = await createDesktopPaths({ userDataRoot: root });
+    const llm = {
+      async *stream() {
+        yield { type: 'text-delta', text: JSON.stringify({ directions: [
+          { id: 'one', title: '方向一', premise: '守住秘密', changes: { outlineNote: '守住', progressNote: '推进' }, rationale: '稳妥' },
+          { id: 'two', title: '方向二', premise: '公开真相', changes: { outlineNote: '公开', progressNote: '转折' }, rationale: '激进' },
+        ] }) };
+      },
+    };
+    const handlers = createDesktopProjectHandlers(paths, () => {}, { llm });
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'i181', name: 'I181 助手' }]);
+
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/status', [undefined])).resolves.toMatchObject({ ok: true, value: { projects: [{ id: 'i181' }] } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/open', ['i181'])).resolves.toMatchObject({ ok: true, value: { project: { id: 'i181' } } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/status', ['i181'])).resolves.toMatchObject({ ok: true, value: { projectId: 'i181', scenes: 0 } });
+
+    const project = join(paths.libraryRoot, 'i181');
+    const outline = { id: 'outline', version: 1, structure: 'free', logline: '一场关于秘密的开端', themes: ['trust'], acts: [{ id: 'act-1', index: 0, title: '开场', goal: '开始', beats: [{ id: 'beat-1', title: '第一步', description: '开始故事', charactersInvolved: [], conflictType: 'internal', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] };
+    const style = { id: 'style-1', version: 1, name: '克制', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '准确', chapterFormat: '普通', dialogueConventions: '中文引号', forbidden: [] };
+    const rule = { id: 'rule-1', version: 1, scope: 'global', kind: 'genre', statement: '保持叙事一致。', priority: 1, immutable: true, examples: [], active: true };
+    await writeFile(join(project, 'outline.yaml'), `${JSON.stringify(outline)}\n`, 'utf8');
+    await writeFile(join(project, 'style.yaml'), `${JSON.stringify(style)}\n`, 'utf8');
+    await writeFile(join(project, 'rules', 'rule-1.yaml'), `${JSON.stringify(rule)}\n`, 'utf8');
+    await writeFile(join(project, 'knowledge.yaml'), '{"entries":[],"states":[{"characterId":"mira","knows":[]}]}\n', 'utf8');
+    await writeFile(join(project, 'outline-progress.yaml'), '{"outlineId":"outline","currentAct":"act-1","currentBeat":"beat-1","completedBeats":[],"deviations":[],"tensionLevel":0}\n', 'utf8');
+
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/context', ['i181'])).resolves.toMatchObject({ ok: true, value: { projectId: 'i181', navigation: { beatId: 'beat-1' }, currentCard: { id: 'agent-fallback-card' } } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/inspire', ['i181'])).resolves.toMatchObject({ ok: true, value: { directions: [{ id: 'one' }, { id: 'two' }] } });
+  });
+
+  it('fails unknown commands and incomplete continue targets without calling the writer', async () => {
+    const { handlers } = await fixture();
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/missing')).resolves.toMatchObject({ ok: false, error: { code: 'unknown-method' } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelAssistant/continue', ['demo', 'chapter-only', undefined])).resolves.toMatchObject({ ok: false, error: { code: 'handler-failed' } });
+  });
+});

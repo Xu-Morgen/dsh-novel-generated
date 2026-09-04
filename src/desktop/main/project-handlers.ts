@@ -21,6 +21,9 @@ import { createDesktopSourceImportHandlers } from './source-import-handlers.js';
 import { createDesktopAuthorWorkflowHandlers } from './author-workflow-handlers.js';
 import type { DesktopReviewQueueServices } from './review-queue-handlers.js';
 import { createDesktopFileHandlers } from './file-handlers.js';
+import { createInspirationService } from '../../host/inspiration-service.js';
+import { createNovelAgentService } from '../../host/novel-agent-service.js';
+import { createDesktopAssistantCommandRegistry } from './assistant-command-registry.js';
 
 export const DESKTOP_MANAGED_PATH = '[desktop-managed]';
 
@@ -111,6 +114,7 @@ export function createDesktopProjectHandlers(
     onServices: (services) => { reviewQueueServices = services; },
   });
   if (reviewQueueServices === undefined) throw new Error('Desktop review and queue services were not composed');
+  const inspiration = createInspirationService(options.llm, options.onDispose);
   const sourceImportHandlers = createDesktopSourceImportHandlers({
     c5: c5Services,
     paths,
@@ -144,7 +148,28 @@ export function createDesktopProjectHandlers(
     knowledge,
     rules,
     style,
+    inspiration,
   });
+  const assistant = createNovelAgentService({
+    project: projects,
+    characters,
+    worldview,
+    outline,
+    relationship,
+    state,
+    canon,
+    style,
+    rules,
+    knowledge,
+    text: c5Services.text,
+    writing: c5Services.writing,
+    inspiration,
+    confirmation,
+    context: c5Services.context,
+    resolveSettings: c5Services.resolveSettings,
+    workbenchSettings: settings,
+  });
+  const assistantHandlers = createDesktopAssistantCommandRegistry(assistant);
   const fileHandlers = createDesktopFileHandlers({ saveFile: options.saveFile });
 
   return new Map<string, IpcHandler>([
@@ -152,6 +177,7 @@ export function createDesktopProjectHandlers(
     ...reviewQueueHandlers,
     ...sourceImportHandlers,
     ...authorWorkflowHandlers,
+    ...assistantHandlers,
     ...fileHandlers,
     ['novel-creation-tool/novelWorkspace/viewModel', async () => workspaceViewModel()],
     ['novel-creation-tool/novelWorkspace/characterList', async (projectId) => characters.list(projectId as string)],

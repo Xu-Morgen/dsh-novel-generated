@@ -25,6 +25,8 @@ import { createDesktopFileDialog } from './file-dialog.js';
 import { createQueuePollController } from '../../client/queue-poll.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
+import { createDesktopAssistantClient, type DesktopAssistantClient } from './assistant-client.js';
+import { DesktopAssistantPanel } from './assistant-panel.js';
 
 const NOOP = (): void => {};
 const MEMORY_PREFERENCE = new Map<string, string>();
@@ -272,7 +274,7 @@ function openedProjectView(state: WorkbenchState, actions: WorkbenchActions, wor
 }
 
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
-function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, settingsNamespace: DesktopIpcClient['services']['workbenchSettings']): React.ReactElement {
+function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient): React.ReactElement {
   const creationSettings = {
     view: state.creationSettingsView,
     draft: state.creationSettingsDraft,
@@ -282,31 +284,35 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
     projectId: state.selectedProjectId,
     openFolder: ui.openCreationFolder,
   };
-  return React.createElement('section', { 'data-novel-project-ready': 'true' }, workbenchView(React, {
-    status: state.status,
-    ns: namespaces,
-    ui,
-    states: viewStates(state),
-    ops,
-    selectedProjectId: state.selectedProjectId,
-    selectedProjectName: state.selectedProjectName,
-    projects: state.projects,
-    archivedProjects: state.archivedProjects,
-    browsing: state.browsing,
-    leaveConfirm: state.leaveConfirm,
-    projectError: state.projectError,
-    upload: state.upload,
-    uploadResult: state.uploadResult,
-    sourceImport: state.sourceImport,
-    importInterpretationReview: state.importInterpretationReview,
-    creationSettings,
-  }) as React.ReactNode);
+  return React.createElement('section', { 'data-novel-project-ready': 'true' },
+    workbenchView(React, {
+      status: state.status,
+      ns: namespaces,
+      ui,
+      states: viewStates(state),
+      ops,
+      selectedProjectId: state.selectedProjectId,
+      selectedProjectName: state.selectedProjectName,
+      projects: state.projects,
+      archivedProjects: state.archivedProjects,
+      browsing: state.browsing,
+      leaveConfirm: state.leaveConfirm,
+      projectError: state.projectError,
+      upload: state.upload,
+      uploadResult: state.uploadResult,
+      sourceImport: state.sourceImport,
+      importInterpretationReview: state.importInterpretationReview,
+      creationSettings,
+    }) as React.ReactNode,
+    state.selectedProjectId === undefined ? null : React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId }),
+  );
 }
 
 export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>; client: DesktopIpcClient }): React.ReactElement {
   const state = useDesktopStore(props.store, (snapshot) => snapshot);
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
   const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore() }), [props.store, props.client]);
+  const assistant = React.useMemo(() => createDesktopAssistantClient(props.client), [props.client]);
   React.useEffect(() => {
     void workflow.start();
     return workflow.dispose;
@@ -473,7 +479,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     : state.status.status !== 'ready'
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
-        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.workbenchSettings)
+        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.workbenchSettings, assistant)
         : projectDirectoryView(state, props.store.actions, workflow, ui);
 
   return React.createElement(

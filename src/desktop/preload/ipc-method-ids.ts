@@ -216,5 +216,11 @@ export const IPC_METHOD_IDS = [
   "novel-creation-tool/novelRuleStyleImportInitialization/reject",
   "novel-creation-tool/novelRuleStyleImportInitialization/cancel",
   "novel-creation-tool/novelReviewRepair/propose",
-  "novel-creation-tool/novelDesktopFiles/saveFile"
+  "novel-creation-tool/novelDesktopFiles/saveFile",
+  "novel-creation-tool/novelAssistant/open",
+  "novel-creation-tool/novelAssistant/status",
+  "novel-creation-tool/novelAssistant/context",
+  "novel-creation-tool/novelAssistant/continue",
+  "novel-creation-tool/novelAssistant/adjudicate",
+  "novel-creation-tool/novelAssistant/inspire"
 ] as const;

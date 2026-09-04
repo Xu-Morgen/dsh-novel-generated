@@ -166,7 +166,7 @@ describe('I174 generated Renderer IPC client', () => {
       .map((match) => ({ key: match[1], namespace: match[2] }));
 
     expect(DESKTOP_CLIENT_SERVICES.map(({ key, namespace }) => ({ key, namespace }))).toEqual(historical);
-    expect(lock.descriptorIds).toHaveLength(217);
+    expect(lock.descriptorIds).toHaveLength(223);
     expect(DESKTOP_CLIENT_SERVICES.flatMap(({ methods }) => methods.map(({ methodId }) => methodId))
       .every((methodId) => lock.descriptorIds.includes(methodId))).toBe(true);
   });

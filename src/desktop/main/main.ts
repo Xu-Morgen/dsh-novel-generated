@@ -210,6 +210,26 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I180] author-flow-loop ${probe}`);
     }).catch(() => undefined), 'desktop author workflow smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i181-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: 'desktop assistant smoke' }], 'i181-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i181-open');
+        const provisioned = await invoke('novel-creation-tool/novelProbe/probe', [], 'i181-provision');
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        const listed = await invoke('novel-creation-tool/novelAssistant/status', [undefined], 'i181-list');
+        const assistantOpened = await invoke('novel-creation-tool/novelAssistant/open', [projectId], 'i181-assistant-open');
+        const status = await invoke('novel-creation-tool/novelAssistant/status', [projectId], 'i181-status');
+        const context = await invoke('novel-creation-tool/novelAssistant/context', [projectId], 'i181-context');
+        const invalid = await invoke('novel-creation-tool/novelAssistant/continue', [projectId, 'chapter-only', undefined], 'i181-invalid-continue');
+        const unknown = await invoke('novel-creation-tool/novelAssistant/missing', [], 'i181-unknown');
+        return JSON.stringify({ created, opened, provisioned, listed, openedAssistant: assistantOpened, status, context, invalid, unknown });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I181] assistant-loop ${probe}`);
+    }).catch(() => undefined), 'desktop assistant smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -317,15 +337,21 @@ const applicationKernel = createApplicationKernel({
       const ipcHandlers = new Map<string, IpcHandler>([
         ['novel-creation-tool/novelProbe/probe', async () => {
           if (isSmokeRun()) {
-            const smokeProject = join(paths.libraryRoot, 'i180-smoke');
-            try { await access(smokeProject); } catch { return { marker: 'I2-PROBE', ready: true }; }
             const outline = { id: 'outline', version: 1, structure: 'free', logline: 'A minimal smoke outline', themes: ['trust'], acts: [{ id: 'act-1', index: 0, title: 'Opening', goal: 'Begin', beats: [{ id: 'beat-1', title: 'First beat', description: 'Begin the story', charactersInvolved: [], conflictType: 'internal', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] };
+            const style = { id: 'style-1', version: 1, name: 'Quiet', person: 'third-limited', tense: 'past', povScope: 'single', tone: 'restrained', proseStyle: 'precise', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] };
+            const rule = { id: 'rule-1', version: 1, scope: 'global', kind: 'genre', statement: 'Keep the narrative coherent.', priority: 1, immutable: true, examples: [], active: true };
             const progress = { outlineId: 'outline', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 0 };
-            await Promise.all([
-              writeFile(join(smokeProject, 'outline.yaml'), `${JSON.stringify(outline)}\n`, 'utf8'),
-              writeFile(join(smokeProject, 'knowledge.yaml'), '{"entries":[],"states":[]}\n', 'utf8'),
-              writeFile(join(smokeProject, 'outline-progress.yaml'), `${JSON.stringify(progress)}\n`, 'utf8'),
-            ]);
+            for (const projectId of ['i180-smoke', 'i181-smoke']) {
+              const smokeProject = join(paths.libraryRoot, projectId);
+              try { await access(smokeProject); } catch { continue; }
+              await Promise.all([
+                writeFile(join(smokeProject, 'outline.yaml'), `${JSON.stringify(outline)}\n`, 'utf8'),
+                writeFile(join(smokeProject, 'style.yaml'), `${JSON.stringify(style)}\n`, 'utf8'),
+                writeFile(join(smokeProject, 'rules', 'rule-1.yaml'), `${JSON.stringify(rule)}\n`, 'utf8'),
+                writeFile(join(smokeProject, 'knowledge.yaml'), '{"entries":[],"states":[{"characterId":"mira","knows":[]}]}\n', 'utf8'),
+                writeFile(join(smokeProject, 'outline-progress.yaml'), `${JSON.stringify(progress)}\n`, 'utf8'),
+              ]);
+            }
           }
           return { marker: 'I2-PROBE', ready: true };
         }],

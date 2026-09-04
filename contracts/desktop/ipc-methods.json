@@ -218,7 +218,13 @@
     "novel-creation-tool/novelRuleStyleImportInitialization/reject",
     "novel-creation-tool/novelRuleStyleImportInitialization/cancel",
     "novel-creation-tool/novelReviewRepair/propose",
-    "novel-creation-tool/novelDesktopFiles/saveFile"
+    "novel-creation-tool/novelDesktopFiles/saveFile",
+    "novel-creation-tool/novelAssistant/open",
+    "novel-creation-tool/novelAssistant/status",
+    "novel-creation-tool/novelAssistant/context",
+    "novel-creation-tool/novelAssistant/continue",
+    "novel-creation-tool/novelAssistant/adjudicate",
+    "novel-creation-tool/novelAssistant/inspire"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6389,6 +6395,159 @@
       "result": {
         "typeSymbol": "novel-creation-tool#desktopSaveFileResult",
         "schemaId": "novel-creation-tool#desktopSaveFileResult@e3982a78"
+      }
+    },
+    "novel-creation-tool/novelAssistant/open": {
+      "id": "novel-creation-tool/novelAssistant/open",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "open",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+            "schemaId": "novel-creation-tool#desktopAssistant:projectId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:open",
+        "schemaId": "novel-creation-tool#desktopAssistant:open@9608d917"
+      }
+    },
+    "novel-creation-tool/novelAssistant/status": {
+      "id": "novel-creation-tool/novelAssistant/status",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "status",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": true,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+            "schemaId": "novel-creation-tool#desktopAssistant:projectId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:status",
+        "schemaId": "novel-creation-tool#desktopAssistant:status@a10385d4"
+      }
+    },
+    "novel-creation-tool/novelAssistant/context": {
+      "id": "novel-creation-tool/novelAssistant/context",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "context",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+            "schemaId": "novel-creation-tool#desktopAssistant:projectId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:context",
+        "schemaId": "novel-creation-tool#desktopAssistant:context@66fa6ac0"
+      }
+    },
+    "novel-creation-tool/novelAssistant/continue": {
+      "id": "novel-creation-tool/novelAssistant/continue",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "continue",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+            "schemaId": "novel-creation-tool#desktopAssistant:projectId@da8600d8"
+          }
+        },
+        {
+          "name": "chapterId",
+          "wire": "chapterId",
+          "acceptsUndefined": true,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:optionalId",
+            "schemaId": "novel-creation-tool#desktopAssistant:optionalId@da8600d8"
+          }
+        },
+        {
+          "name": "sceneId",
+          "wire": "sceneId",
+          "acceptsUndefined": true,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:optionalId",
+            "schemaId": "novel-creation-tool#desktopAssistant:optionalId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:continue",
+        "schemaId": "novel-creation-tool#desktopAssistant:continue@ebf4ed9a"
+      }
+    },
+    "novel-creation-tool/novelAssistant/adjudicate": {
+      "id": "novel-creation-tool/novelAssistant/adjudicate",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "adjudicate",
+      "parameters": [
+        {
+          "name": "candidateId",
+          "wire": "candidateId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:candidateId",
+            "schemaId": "novel-creation-tool#desktopAssistant:candidateId@f520dd5f"
+          }
+        },
+        {
+          "name": "decision",
+          "wire": "decision",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:decision",
+            "schemaId": "novel-creation-tool#desktopAssistant:decision@faea43db"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:adjudicate",
+        "schemaId": "novel-creation-tool#desktopAssistant:adjudicate@17341d19"
+      }
+    },
+    "novel-creation-tool/novelAssistant/inspire": {
+      "id": "novel-creation-tool/novelAssistant/inspire",
+      "service": "novelAssistant",
+      "namespace": "novelAssistant",
+      "method": "inspire",
+      "parameters": [
+        {
+          "name": "projectId",
+          "wire": "projectId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+            "schemaId": "novel-creation-tool#desktopAssistant:projectId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopAssistant:inspire",
+        "schemaId": "novel-creation-tool#desktopAssistant:inspire@5751427d"
       }
     }
   },
@@ -52358,6 +52517,886 @@
         "required": [
           "saved",
           "fileName"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopAssistant:projectId@da8600d8": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:projectId",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "novel-creation-tool#desktopAssistant:open@9608d917": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:open",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "layers": {
+            "type": "object",
+            "properties": {
+              "characters": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              },
+              "worldview": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              },
+              "outline": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              },
+              "relationship": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              },
+              "canon": {
+                "type": "string",
+                "enum": [
+                  "ready",
+                  "empty",
+                  "uninitialized",
+                  "corrupt"
+                ]
+              }
+            },
+            "required": [
+              "characters",
+              "worldview",
+              "outline",
+              "relationship",
+              "state",
+              "canon"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "project",
+          "layers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopAssistant:status@a10385d4": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:status",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "projects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "projects"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "layers": {
+                "type": "object",
+                "properties": {
+                  "characters": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  },
+                  "worldview": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  },
+                  "outline": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  },
+                  "relationship": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  },
+                  "canon": {
+                    "type": "string",
+                    "enum": [
+                      "ready",
+                      "empty",
+                      "uninitialized",
+                      "corrupt"
+                    ]
+                  }
+                },
+                "required": [
+                  "characters",
+                  "worldview",
+                  "outline",
+                  "relationship",
+                  "state",
+                  "canon"
+                ],
+                "additionalProperties": false
+              },
+              "characters": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "worldview": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "relationships": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "canonEvents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "scenes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "outlineReady": {
+                "type": "boolean"
+              },
+              "creation": {
+                "type": "object",
+                "properties": {
+                  "wordTarget": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "askWhenThin": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "wordTarget",
+                  "askWhenThin"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "projectId",
+              "layers",
+              "characters",
+              "worldview",
+              "relationships",
+              "canonEvents",
+              "scenes",
+              "outlineReady",
+              "creation"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "novel-creation-tool#desktopAssistant:context@66fa6ac0": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:context",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "navigation": {
+            "type": "object",
+            "properties": {
+              "actId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "beatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "prerequisites": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "prerequisitesMet": {
+                "type": "boolean"
+              },
+              "instruction": {
+                "type": "string"
+              },
+              "deviationIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              }
+            },
+            "required": [
+              "actId",
+              "beatId",
+              "title",
+              "description",
+              "prerequisites",
+              "prerequisitesMet",
+              "instruction",
+              "deviationIds"
+            ],
+            "additionalProperties": false
+          },
+          "currentCard": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pov": {
+                "type": "string",
+                "minLength": 1
+              },
+              "wordTarget": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "points": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "writing",
+                  "done"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "summary",
+              "pov",
+              "wordTarget",
+              "points",
+              "status"
+            ],
+            "additionalProperties": false
+          },
+          "recentScenes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "characters": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "worldview": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "canon": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "creation": {
+            "type": "object",
+            "properties": {
+              "wordTarget": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "askWhenThin": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "wordTarget",
+              "askWhenThin"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "projectId",
+          "navigation",
+          "currentCard",
+          "recentScenes",
+          "characters",
+          "worldview",
+          "canon",
+          "creation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopAssistant:optionalId@da8600d8": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:optionalId",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "novel-creation-tool#desktopAssistant:continue@ebf4ed9a": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:continue",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "intent": {
+            "type": "string",
+            "const": "continue"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "chapterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sceneId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "projectId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "candidateId",
+          "intent",
+          "text",
+          "target"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopAssistant:candidateId@f520dd5f": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:candidateId",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "novel-creation-tool#desktopAssistant:decision@faea43db": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:decision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": [
+          "accept",
+          "reject",
+          "rewrite"
+        ]
+      }
+    },
+    "novel-creation-tool#desktopAssistant:adjudicate@17341d19": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:adjudicate",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "rejected"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "status",
+              "candidateId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "rewritten"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "superseded": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "candidate": {
+                "type": "object",
+                "properties": {
+                  "candidateId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "intent": {
+                    "type": "string",
+                    "const": "continue"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target": {
+                    "type": "object",
+                    "properties": {
+                      "projectId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "chapterId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sceneId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "sourceHash": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "projectId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "candidateId",
+                  "intent",
+                  "text",
+                  "target"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "status",
+              "candidateId",
+              "superseded",
+              "candidate"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "generation-rejected"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "status",
+              "candidateId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "prewrite-rejected"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "status",
+              "candidateId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "pending-compensation"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "failedStage": {
+                "type": "string",
+                "enum": [
+                  "c2",
+                  "c1",
+                  "c3",
+                  "c4",
+                  "b2"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "candidateId",
+              "failedStage"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "const": "written"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "scene": {
+                "type": "object",
+                "properties": {
+                  "chapterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "sceneId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "chapterId",
+                  "sceneId",
+                  "index",
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "layers": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "c2",
+                    "c1",
+                    "c3",
+                    "c4",
+                    "b2"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "status",
+              "candidateId",
+              "scene",
+              "layers"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "novel-creation-tool#desktopAssistant:inspire@5751427d": {
+      "typeSymbol": "novel-creation-tool#desktopAssistant:inspire",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "directions": {
+            "minItems": 2,
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "premise": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "changes": {
+                  "type": "object",
+                  "properties": {
+                    "logline": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "themes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "outlineNote": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "progressNote": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "outlineNote",
+                    "progressNote"
+                  ],
+                  "additionalProperties": false
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "premise",
+                "changes",
+                "rationale"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "directions"
         ],
         "additionalProperties": false
       }

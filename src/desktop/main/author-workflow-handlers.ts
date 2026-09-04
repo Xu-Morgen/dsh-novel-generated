@@ -1,6 +1,5 @@
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
 import type { DesktopPaths } from '../../app/paths.js';
-import { createInspirationService } from '../../host/inspiration-service.js';
 import { createNovelPortabilityService } from '../../host/import-export-service.js';
 import { createManuscriptCompiler } from '../../host/manuscript-compiler.js';
 import { createProgressInspirationService } from '../../host/progress-inspiration-service.js';
@@ -10,6 +9,7 @@ import type { NovelCanonService } from '../../host/canon-service.js';
 import type { NovelCharacterService } from '../../host/character-service.js';
 import type { NovelConfirmationService } from '../../host/confirmation-service.js';
 import type { NovelKnowledgeService } from '../../host/knowledge-service.js';
+import type { NovelInspirationService } from '../../host/inspiration-service.js';
 import type { NovelOutlineService } from '../../host/outline-service.js';
 import type { NovelRelationshipService } from '../../host/relationship-service.js';
 import type { NovelRuleService } from '../../host/rule-service.js';
@@ -33,6 +33,8 @@ export interface DesktopAuthorWorkflowHandlerDependencies {
   readonly knowledge: NovelKnowledgeService;
   readonly rules: NovelRuleService;
   readonly style: NovelStyleService;
+  /** I181: shared with the Main-owned assistant; no second LLM service instance. */
+  readonly inspiration: NovelInspirationService;
 }
 
 function contextOf(value: unknown): IpcInvocationContext | undefined {
@@ -81,7 +83,7 @@ function tasksWireAdapter(service: NovelStatisticsService) {
 export function createDesktopAuthorWorkflowHandlers(
   deps: DesktopAuthorWorkflowHandlerDependencies,
 ): ReadonlyMap<string, IpcHandler> {
-  const inspiration = createInspirationService(deps.llm, deps.onDispose);
+  const inspiration = deps.inspiration;
   const progress = createProgressInspirationService({
     outline: deps.outline,
     confirmation: deps.confirmation,
