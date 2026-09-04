@@ -7,6 +7,9 @@ build/
 lib/
 *.tsbuildinfo
 
+# Local Windows release artifacts
+artifacts/desktop/
+
 # Environment / secrets (LLM API keys)
 .env
 .env.*
