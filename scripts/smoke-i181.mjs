@@ -30,7 +30,7 @@ const rendererSources = [
   'src/desktop/renderer/shell.ts',
 ].map(read).join('\n');
 
-if (lock.descriptorIds.length !== 223 || assistantIds.some((id) => !lock.descriptorIds.includes(id))) {
+if (lock.descriptorIds.length !== 226 || assistantIds.some((id) => !lock.descriptorIds.includes(id))) {
   throw new Error('I181 canonical desktop lock is missing the strict assistant descriptors');
 }
 for (const required of ['NovelAgentService', 'createDesktopAssistantCommandRegistry', 'createNovelAgentService', 'context: nextSceneContext', 'inspiration']) {

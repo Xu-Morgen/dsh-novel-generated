@@ -27,6 +27,8 @@ import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 import { createDesktopAssistantClient, type DesktopAssistantClient } from './assistant-client.js';
 import { DesktopAssistantPanel } from './assistant-panel.js';
+import { createDesktopMigrationClient } from './migration-client.js';
+import { DesktopMigrationPanel } from './migration-panel.js';
 
 const NOOP = (): void => {};
 const MEMORY_PREFERENCE = new Map<string, string>();
@@ -313,6 +315,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
   const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore() }), [props.store, props.client]);
   const assistant = React.useMemo(() => createDesktopAssistantClient(props.client), [props.client]);
+  const migration = React.useMemo(() => createDesktopMigrationClient(props.client), [props.client]);
   React.useEffect(() => {
     void workflow.start();
     return workflow.dispose;
@@ -493,7 +496,10 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       'data-novel-connection-status': connection.status,
       'data-novel-pending-requests': String(connection.pendingCount),
       'data-novel-last-progress-method': connection.progress?.methodId ?? '',
-    }, content as React.ReactNode),
+    },
+      content as React.ReactNode,
+      React.createElement(DesktopMigrationPanel, { client: migration }),
+    ),
   );
 }
 

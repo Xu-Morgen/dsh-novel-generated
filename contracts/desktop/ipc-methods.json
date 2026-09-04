@@ -224,7 +224,10 @@
     "novel-creation-tool/novelAssistant/context",
     "novel-creation-tool/novelAssistant/continue",
     "novel-creation-tool/novelAssistant/adjudicate",
-    "novel-creation-tool/novelAssistant/inspire"
+    "novel-creation-tool/novelAssistant/inspire",
+    "novel-creation-tool/novelMigration/preview",
+    "novel-creation-tool/novelMigration/execute",
+    "novel-creation-tool/novelMigration/rollback"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6548,6 +6551,59 @@
       "result": {
         "typeSymbol": "novel-creation-tool#desktopAssistant:inspire",
         "schemaId": "novel-creation-tool#desktopAssistant:inspire@5751427d"
+      }
+    },
+    "novel-creation-tool/novelMigration/preview": {
+      "id": "novel-creation-tool/novelMigration/preview",
+      "service": "novelMigration",
+      "namespace": "novelMigration",
+      "method": "preview",
+      "parameters": [],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopMigration:preview",
+        "schemaId": "novel-creation-tool#desktopMigration:preview@b559d1fc"
+      }
+    },
+    "novel-creation-tool/novelMigration/execute": {
+      "id": "novel-creation-tool/novelMigration/execute",
+      "service": "novelMigration",
+      "namespace": "novelMigration",
+      "method": "execute",
+      "parameters": [
+        {
+          "name": "operationId",
+          "wire": "operationId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopMigration:operationId",
+            "schemaId": "novel-creation-tool#desktopMigration:operationId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopMigration:execute",
+        "schemaId": "novel-creation-tool#desktopMigration:execute@87dfd3ce"
+      }
+    },
+    "novel-creation-tool/novelMigration/rollback": {
+      "id": "novel-creation-tool/novelMigration/rollback",
+      "service": "novelMigration",
+      "namespace": "novelMigration",
+      "method": "rollback",
+      "parameters": [
+        {
+          "name": "operationId",
+          "wire": "operationId",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopMigration:operationId",
+            "schemaId": "novel-creation-tool#desktopMigration:operationId@da8600d8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopMigration:rollback",
+        "schemaId": "novel-creation-tool#desktopMigration:rollback@c63afcf3"
       }
     }
   },
@@ -53397,6 +53453,368 @@
         },
         "required": [
           "directions"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopMigration:preview@b559d1fc": {
+      "typeSymbol": "novel-creation-tool#desktopMigration:preview",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "projects": {
+                "type": "string",
+                "enum": [
+                  "missing",
+                  "ready",
+                  "unsafe"
+                ]
+              },
+              "settings": {
+                "type": "string",
+                "enum": [
+                  "missing",
+                  "ready",
+                  "unsafe"
+                ]
+              },
+              "projectCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "invalidEntries": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "projects",
+              "settings",
+              "projectCount",
+              "invalidEntries"
+            ],
+            "additionalProperties": false
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ready",
+                    "corrupt",
+                    "conflict"
+                  ]
+                },
+                "fileCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sourceHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "issue": {
+                  "type": "string",
+                  "enum": [
+                    "missing-project-metadata",
+                    "invalid-project-metadata",
+                    "unsafe-source",
+                    "invalid-canonical-document",
+                    "destination-conflict",
+                    "source-changed"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "status",
+                "fileCount",
+                "bytes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "a2": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "absent",
+                      "ready",
+                      "corrupt",
+                      "conflict"
+                    ]
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sourceHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "issue": {
+                    "type": "string",
+                    "enum": [
+                      "missing-project-metadata",
+                      "invalid-project-metadata",
+                      "unsafe-source",
+                      "invalid-canonical-document",
+                      "destination-conflict",
+                      "source-changed"
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "bytes"
+                ],
+                "additionalProperties": false
+              },
+              "workbench": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "absent",
+                      "ready",
+                      "corrupt",
+                      "conflict"
+                    ]
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sourceHash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "issue": {
+                    "type": "string",
+                    "enum": [
+                      "missing-project-metadata",
+                      "invalid-project-metadata",
+                      "unsafe-source",
+                      "invalid-canonical-document",
+                      "destination-conflict",
+                      "source-changed"
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "bytes"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "a2",
+              "workbench"
+            ],
+            "additionalProperties": false
+          },
+          "backup": {
+            "type": "object",
+            "properties": {
+              "planned": {
+                "type": "boolean",
+                "const": true
+              }
+            },
+            "required": [
+              "planned"
+            ],
+            "additionalProperties": false
+          },
+          "canExecute": {
+            "type": "boolean"
+          },
+          "confirmation": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "status": {
+                    "type": "string",
+                    "const": "pending"
+                  }
+                },
+                "required": [
+                  "id",
+                  "status"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "operationId",
+          "sourceFingerprint",
+          "source",
+          "projects",
+          "settings",
+          "backup",
+          "canExecute",
+          "confirmation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopMigration:operationId@da8600d8": {
+      "typeSymbol": "novel-creation-tool#desktopMigration:operationId",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      }
+    },
+    "novel-creation-tool#desktopMigration:execute@87dfd3ce": {
+      "typeSymbol": "novel-creation-tool#desktopMigration:execute",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "status": {
+            "type": "string",
+            "const": "completed"
+          },
+          "sourceFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "projectsCopied": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "projectsSkipped": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "settingsCopied": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "settingsSkipped": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "backupManifestHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "operationId",
+          "status",
+          "sourceFingerprint",
+          "projectsCopied",
+          "projectsSkipped",
+          "settingsCopied",
+          "settingsSkipped",
+          "backupManifestHash"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopMigration:rollback@c63afcf3": {
+      "typeSymbol": "novel-creation-tool#desktopMigration:rollback",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "status": {
+            "type": "string",
+            "const": "rolled-back"
+          },
+          "projectsRemoved": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "settingsRemoved": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "operationId",
+          "status",
+          "projectsRemoved",
+          "settingsRemoved"
         ],
         "additionalProperties": false
       }

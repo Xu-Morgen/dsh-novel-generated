@@ -1,3 +1,5 @@
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { IpcHandler } from '../../app/ipc-registry.js';
 import type { DesktopPaths } from '../../app/paths.js';
 import { workspaceViewModel } from '../../host/remote/editor.js';
@@ -24,6 +26,8 @@ import { createDesktopFileHandlers } from './file-handlers.js';
 import { createInspirationService } from '../../host/inspiration-service.js';
 import { createNovelAgentService } from '../../host/novel-agent-service.js';
 import { createDesktopAssistantCommandRegistry } from './assistant-command-registry.js';
+import { createDesktopMigrationCommandRegistry } from './migration-command-registry.js';
+import { createDesktopMigrationService } from '../../host/desktop-migration-service.js';
 
 export const DESKTOP_MANAGED_PATH = '[desktop-managed]';
 
@@ -37,6 +41,12 @@ export interface DesktopProjectHandlerOptions {
   readonly selectDocxFile?: () => Promise<string | undefined>;
   /** I180 Main-owned save dialog; the selected path never crosses IPC. */
   readonly saveFile?: (fileName: string) => Promise<string | undefined>;
+  /** I182 test/smoke seam; production defaults to the fixed legacy DSH project root. */
+  readonly legacyProjectsRoot?: string;
+  /** I182 test/smoke seam; production defaults to the fixed legacy novel settings root. */
+  readonly legacySettingsRoot?: string;
+  /** I182 test/smoke seam; production stores durable migration backups below userData. */
+  readonly migrationBackupRoot?: string;
 }
 
 /**
@@ -74,6 +84,14 @@ export function createDesktopProjectHandlers(
     confirmation,
   });
   const settings = createWorkbenchSettingsService(paths.settingsRoot, paths.libraryRoot, openDirectory);
+  const migration = createDesktopMigrationService({
+    legacyProjectsRoot: options.legacyProjectsRoot ?? join(homedir(), '.dsh', 'novel-projects'),
+    legacySettingsRoot: options.legacySettingsRoot ?? join(homedir(), '.dsh', 'novel-settings'),
+    libraryRoot: paths.libraryRoot,
+    settingsRoot: paths.settingsRoot,
+    backupRoot: options.migrationBackupRoot ?? join(paths.userDataRoot, 'migration-backups'),
+  });
+  options.onDispose?.(migration.dispose);
 
   let c5Services: DesktopC5Services | undefined;
   let reviewQueueServices: DesktopReviewQueueServices | undefined;
@@ -170,6 +188,7 @@ export function createDesktopProjectHandlers(
     workbenchSettings: settings,
   });
   const assistantHandlers = createDesktopAssistantCommandRegistry(assistant);
+  const migrationHandlers = createDesktopMigrationCommandRegistry(migration);
   const fileHandlers = createDesktopFileHandlers({ saveFile: options.saveFile });
 
   return new Map<string, IpcHandler>([
@@ -178,6 +197,7 @@ export function createDesktopProjectHandlers(
     ...sourceImportHandlers,
     ...authorWorkflowHandlers,
     ...assistantHandlers,
+    ...migrationHandlers,
     ...fileHandlers,
     ['novel-creation-tool/novelWorkspace/viewModel', async () => workspaceViewModel()],
     ['novel-creation-tool/novelWorkspace/characterList', async (projectId) => characters.list(projectId as string)],

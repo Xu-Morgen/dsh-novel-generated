@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { access, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
@@ -31,6 +31,21 @@ function isSmokeRun(): boolean {
 
 function writeSmokeMarker(message: string): void {
   if (isSmokeRun()) process.stdout.write(`${message}\n`);
+}
+
+async function seedI182LegacySource(projectsRoot: string, settingsRoot: string): Promise<void> {
+  const projectRoot = join(projectsRoot, 'i182-legacy');
+  await mkdir(projectRoot, { recursive: true });
+  await mkdir(settingsRoot, { recursive: true });
+  await Promise.all(['rules', 'worldview', 'characters', 'relationships', 'state', 'knowledge', 'canon', 'text'].map((directory) => mkdir(join(projectRoot, directory), { recursive: true })));
+  await Promise.all([
+    writeFile(join(projectRoot, 'project.yaml'), '{"id":"i182-legacy","version":1,"name":"I182 旧库作品"}\n', 'utf8'),
+    writeFile(join(projectRoot, 'style.yaml'), '{}\n', 'utf8'),
+    writeFile(join(projectRoot, 'outline.yaml'), '{}\n', 'utf8'),
+    writeFile(join(settingsRoot, 'workbench-settings.yaml'), '{"version":1,"wordTarget":500,"askWhenThin":true}\n', 'utf8'),
+    // A raw credential is deliberately present only to prove the migration allowlist excludes it.
+    writeFile(join(settingsRoot, 'credentials.bin'), 'legacy-api-key-must-not-migrate\n', 'utf8'),
+  ]);
 }
 
 function focusMainWindow(): void {
@@ -230,6 +245,26 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I181] assistant-loop ${probe}`);
     }).catch(() => undefined), 'desktop assistant smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const preview = await invoke('novel-creation-tool/novelMigration/preview', [], 'i182-preview-1');
+        const operationId = preview?.value?.operationId;
+        const executed = operationId === undefined ? { ok: false } : await invoke('novel-creation-tool/novelMigration/execute', [operationId], 'i182-execute-1');
+        const repeated = operationId === undefined ? { ok: false } : await invoke('novel-creation-tool/novelMigration/execute', [operationId], 'i182-execute-repeat');
+        const rolledBack = operationId === undefined ? { ok: false } : await invoke('novel-creation-tool/novelMigration/rollback', [operationId], 'i182-rollback-1');
+        const previewAgain = await invoke('novel-creation-tool/novelMigration/preview', [], 'i182-preview-2');
+        const operationIdAgain = previewAgain?.value?.operationId;
+        const executedAgain = operationIdAgain === undefined ? { ok: false } : await invoke('novel-creation-tool/novelMigration/execute', [operationIdAgain], 'i182-execute-2');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', ['i182-legacy'], 'i182-open');
+        const exported = await invoke('novel-creation-tool/novelImportExport/exportText', ['i182-legacy', 'txt'], 'i182-export');
+        const sourceUnchanged = preview?.value?.sourceFingerprint === previewAgain?.value?.sourceFingerprint;
+        return JSON.stringify({ preview: preview?.ok, executed: executed?.ok, repeated: repeated?.ok, rolledBack: rolledBack?.ok, previewAgain: previewAgain?.ok, executedAgain: executedAgain?.ok, opened: opened?.ok, exported: exported?.ok, sourceUnchanged });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I182] migration-loop ${probe}`);
+    }).catch(() => undefined), 'desktop legacy migration smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -282,6 +317,9 @@ const applicationKernel = createApplicationKernel({
   composition: {
     base: async (ports) => {
       const paths = await createDesktopPaths({ userDataRoot: app.getPath('userData') });
+      const legacyProjectsRoot = isSmokeRun() ? join(paths.tempRoot, 'i182-legacy-projects') : undefined;
+      const legacySettingsRoot = isSmokeRun() ? join(paths.tempRoot, 'i182-legacy-settings') : undefined;
+      if (legacyProjectsRoot !== undefined && legacySettingsRoot !== undefined) await seedI182LegacySource(legacyProjectsRoot, legacySettingsRoot);
       ports.provide('desktopPaths', paths);
       const credentials = createCredentialStore(createElectronSecureStorage(paths.settingsFile('credentials.bin')));
       ports.provide('credentialStore', credentials.store);
@@ -375,6 +413,9 @@ const applicationKernel = createApplicationKernel({
             });
             return result.canceled ? undefined : result.filePath;
           },
+          legacyProjectsRoot,
+          legacySettingsRoot,
+          migrationBackupRoot: isSmokeRun() ? join(paths.userDataRoot, 'i182-migration-backups') : undefined,
         }),
       ]);
       const ipcBinder = bindElectronIpc({

@@ -17,10 +17,10 @@ if (!appRegistrySource.includes('parseArguments') || !appRegistrySource.includes
 if (!platformRegistrySource.includes('hostContribution') || !platformRegistrySource.includes('createIpcRegistry')) {
   throw new Error('I171 legacy-to-canonical registry adapter is incomplete');
 }
-if (lock.schemaVersion !== 1 || lock.namespace !== 'desktopIpc' || lock.descriptorIds.length !== 223 || Object.keys(lock.descriptors).length !== 223 || Object.keys(lock.schemas ?? {}).length === 0) {
+if (lock.schemaVersion !== 1 || lock.namespace !== 'desktopIpc' || lock.descriptorIds.length !== 226 || Object.keys(lock.descriptors).length !== 226 || Object.keys(lock.schemas ?? {}).length === 0) {
   throw new Error('I171 desktop IPC contract lock does not contain the 214-method baseline plus review repair');
 }
-if (new Set(lock.descriptorIds).size !== 223 || lock.descriptorIds.some((id) => lock.descriptors[id]?.id !== id)) {
+if (new Set(lock.descriptorIds).size !== 226 || lock.descriptorIds.some((id) => lock.descriptors[id]?.id !== id)) {
   throw new Error('I171 desktop IPC contract lock contains duplicate or mismatched ids');
 }
 

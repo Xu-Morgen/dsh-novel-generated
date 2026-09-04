@@ -29,6 +29,7 @@ describe('I173 desktop Renderer shell', () => {
     expect(markup).toContain('创作台');
     expect(markup).toContain('正在装载创作台');
     expect(markup).toContain('data-novel-workbench="desktop-styles"');
+    expect(markup).toContain('data-novel-migration=""');
     expect(markup).not.toContain('Electron 桌面骨架已启动');
   });
 
