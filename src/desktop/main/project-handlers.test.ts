@@ -90,3 +90,22 @@ describe('I175 Main project and settings handlers', () => {
     expect(await readFile(join(paths.libraryRoot, 'safe', 'project.yaml'), 'utf8')).toContain('安全书');
   });
 });
+
+describe('I178 Main review, repair, queue, and reference handlers', () => {
+  it('routes bounded projections and reports long-operation progress', async () => {
+    const { handlers } = await fixture();
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'i178', name: 'I178' }]);
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectOpen', ['i178']);
+    const progress: unknown[] = [];
+    const context = { signal: new AbortController().signal, reportProgress: (value: unknown) => progress.push(value) };
+    const review = await desktopIpcRegistry.invoke('novel-creation-tool/novelReview/scan', ['i178', undefined], handlers.get('novel-creation-tool/novelReview/scan'), context);
+    expect(review).toMatchObject({ ok: true, value: { projectId: 'i178', issues: [], summary: { total: 0 } } });
+    expect(progress).toEqual([{ phase: 'review.scan', status: 'running' }, { phase: 'review.scan', status: 'complete' }]);
+    expect(await invoke(handlers, 'novel-creation-tool/novelReview/records', ['i178'])).toEqual({ ok: true, value: [] });
+    expect(await invoke(handlers, 'novel-creation-tool/novelQueue/status', ['i178'])).toMatchObject({ ok: true, value: { projectId: 'i178', tasks: [] } });
+    expect(await invoke(handlers, 'novel-creation-tool/novelQueue/pause', ['i178'])).toMatchObject({ ok: true, value: { projectId: 'i178' } });
+    expect(await invoke(handlers, 'novel-creation-tool/novelReferenceAudit/list', ['i178', undefined])).toMatchObject({ ok: true, value: { records: [] } });
+    expect(await invoke(handlers, 'novel-creation-tool/novelReferenceCorrection/pending', ['i178'])).toEqual({ ok: true, value: [] });
+    expect(await invoke(handlers, 'novel-creation-tool/novelReview/adjudicate', ['i178', { decision: 'continue', issueIds: [] }])).toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
+  });
+});

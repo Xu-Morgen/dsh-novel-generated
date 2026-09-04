@@ -15,7 +15,8 @@ import { createKnowledgeManagerService } from '../../host/knowledge-manager-serv
 import { createRuleService } from '../../host/rule-service.js';
 import { createStyleService } from '../../host/style-service.js';
 import { createRuleStyleManagerService } from '../../host/rule-style-manager-service.js';
-import { createDesktopC5Handlers, type DesktopC5HandlerDependencies } from './c5-handlers.js';
+import { createDesktopC5Handlers, type DesktopC5HandlerDependencies, type DesktopC5Services } from './c5-handlers.js';
+import { createDesktopReviewQueueHandlers } from './review-queue-handlers.js';
 
 export const DESKTOP_MANAGED_PATH = '[desktop-managed]';
 
@@ -63,6 +64,7 @@ export function createDesktopProjectHandlers(
   });
   const settings = createWorkbenchSettingsService(paths.settingsRoot, paths.libraryRoot, openDirectory);
 
+  let c5Services: DesktopC5Services | undefined;
   const c5Handlers = createDesktopC5Handlers({
     paths,
     characters,
@@ -80,10 +82,28 @@ export function createDesktopProjectHandlers(
     llm: options.llm,
     resolveGenerationSettings: options.resolveGenerationSettings,
     onDispose: options.onDispose,
+    onServices: (services) => { c5Services = services; },
+  });
+  if (c5Services === undefined) throw new Error('Desktop C5 services were not composed');
+  const reviewQueueHandlers = createDesktopReviewQueueHandlers({
+    c5: c5Services,
+    paths,
+    llm: options.llm,
+    resolveGenerationSettings: options.resolveGenerationSettings,
+    onDispose: options.onDispose,
+    characters,
+    canon,
+    confirmation,
+    knowledge,
+    outline,
+    relationship,
+    rules,
+    style,
   });
 
   return new Map<string, IpcHandler>([
     ...c5Handlers,
+    ...reviewQueueHandlers,
     ['novel-creation-tool/novelWorkspace/viewModel', async () => workspaceViewModel()],
     ['novel-creation-tool/novelWorkspace/characterList', async (projectId) => characters.list(projectId as string)],
     ['novel-creation-tool/novelWorkspace/characterRead', async (projectId, characterId) => characters.read(projectId as string, characterId as string)],

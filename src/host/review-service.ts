@@ -127,6 +127,8 @@ export function createReviewService(deps: ReviewServiceDeps): NovelReviewService
     signal?: AbortSignal,
   ): Promise<readonly ReviewIssue[]> => {
     await deps.text.open(projectId);
+    const chapters = await deps.text.listChapters(projectId);
+    if (!chapters.some((chapter) => chapter.scenes.some((scene) => scene.content.trim().length > 0))) return Object.freeze([]);
     const resolved = settings ?? await deps.resolveSettings();
     const [rules, canonViews, relationships, styleSegment, styleForbidden, knowledge] = await Promise.all([
       deps.rules.listActive(projectId),
@@ -139,7 +141,6 @@ export function createReviewService(deps: ReviewServiceDeps): NovelReviewService
     // 探测器最小视图（与 I63 preview 装配同构，不复制 detector 内部）。
     const ruleInput = rules.map((view) => ({ id: view.rule.id, statement: view.rule.statement, immutable: view.rule.immutable, active: view.rule.active }));
     const canonInput = canonViews.map((event) => ({ id: event.id, summary: event.summary, detail: event.detail ?? '' }));
-    const chapters = await deps.text.listChapters(projectId);
     const controller = new AbortController();
     active.add(controller);
     const forwardAbort = () => controller.abort();

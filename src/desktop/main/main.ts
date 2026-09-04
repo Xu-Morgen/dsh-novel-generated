@@ -148,6 +148,25 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I177] c5-loop ${probe}`);
     }).catch(() => undefined), 'desktop C5 workbench smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i178-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: 'review queue smoke' }], 'i178-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i178-open');
+        const review = await invoke('novel-creation-tool/novelReview/scan', [projectId, undefined], 'i178-review');
+        const records = await invoke('novel-creation-tool/novelReview/records', [projectId], 'i178-records');
+        const queue = await invoke('novel-creation-tool/novelQueue/status', [projectId], 'i178-queue');
+        const paused = await invoke('novel-creation-tool/novelQueue/pause', [projectId], 'i178-pause');
+        const audit = await invoke('novel-creation-tool/novelReferenceAudit/list', [projectId, undefined], 'i178-audit');
+        const pending = await invoke('novel-creation-tool/novelReferenceCorrection/pending', [projectId], 'i178-pending');
+        const invalid = await invoke('novel-creation-tool/novelReview/adjudicate', [projectId, { decision: 'continue', issueIds: [] }], 'i178-invalid');
+        return JSON.stringify({ created, opened, review, records, queue, paused, audit, pending, invalid });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I178] review-queue-loop ${probe}`);
+    }).catch(() => undefined), 'desktop review queue smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",

@@ -19,6 +19,7 @@ import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
 import { createDesktopStructuredOps } from './structured-ops.js';
+import { createQueuePollController } from '../../client/queue-poll.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 
@@ -70,6 +71,9 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     ...PENDING_NAMESPACES,
     workspace: client.services.workspace,
     writing: client.services.writing,
+    reviewNamespace: client.services.reviewNamespace,
+    reviewRepairNamespace: client.services.reviewRepairNamespace,
+    queueNamespace: client.services.queueNamespace,
     knowledgeNamespace: client.services.knowledgeNamespace,
     ruleStyleNamespace: client.services.ruleStyleNamespace,
     branchNamespace: client.services.branchNamespace,
@@ -77,6 +81,8 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     textMutation: client.services.textMutation,
     textDeletion: client.services.textDeletion,
     outlineReconciliation: client.services.outlineReconciliation,
+    referenceAuditNamespace: client.services.referenceAudit,
+    referenceCorrectionNamespace: client.services.referenceCorrection,
   };
 }
 
@@ -294,6 +300,17 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       activeOperationsRef.current.clear();
     };
   }, []);
+  const queuePoll = React.useMemo(() => createQueuePollController({
+    isActive: () => activeRef.current
+      && props.store.getSnapshot().selectedProjectId !== undefined
+      && !props.store.getSnapshot().browsing,
+    projectId: () => props.store.getSnapshot().selectedProjectId,
+    queue: () => props.client.services.queueNamespace,
+    onStatus: (projection) => {
+      if (activeRef.current) props.store.actions.queuePatch({ status: 'ready', projection, acting: false, message: undefined });
+    },
+  }), [props.client, props.store]);
+  React.useEffect(() => () => queuePoll.stop(), [queuePoll]);
   const projectId = state.selectedProjectId;
   const runtime: OpsRuntime = {
     snapshot: state,
@@ -310,12 +327,15 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       return true;
     },
     endOp: (key) => { activeOperationsRef.current.delete(projectId === undefined ? key : `${projectId}:${key}`); },
-    queuePoll: { start: NOOP, stop: NOOP },
+    queuePoll,
     cancelMethod: (methodId) => { props.client.cancelMethod(methodId); },
   };
   const namespaces = desktopNamespaces(props.client);
   const ops = createDesktopStructuredOps(runtime, {
     workspace: namespaces.workspace,
+    reviewNamespace: namespaces.reviewNamespace,
+    reviewRepairNamespace: namespaces.reviewRepairNamespace,
+    queueNamespace: namespaces.queueNamespace,
     knowledgeNamespace: namespaces.knowledgeNamespace,
     ruleStyleNamespace: namespaces.ruleStyleNamespace,
     writing: namespaces.writing,
@@ -324,6 +344,8 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     sceneOutlineBinding: namespaces.sceneOutlineBinding,
     textDeletion: namespaces.textDeletion,
     outlineReconciliation: namespaces.outlineReconciliation,
+    referenceAuditNamespace: namespaces.referenceAuditNamespace,
+    referenceCorrectionNamespace: namespaces.referenceCorrectionNamespace,
   });
   const ui = createDesktopShellUi(state, props.store.actions, workflow);
   React.useEffect(() => {

@@ -4,11 +4,11 @@ import { resolveA2GenerationConfig, SettingsIndex } from '../../core/settings-in
 import { projectChapterList, toChapterReadResult, toSceneReadResult } from '../../core/text/projection.js';
 import type { GenerationSettings } from '../../llm/port/index.js';
 import { createBranchService } from '../../host/branch-service.js';
-import { createConsistencyDetectionService } from '../../host/consistency-detection-service.js';
+import { createConsistencyDetectionService, type NovelConsistencyDetectionService } from '../../host/consistency-detection-service.js';
 import { createFinalizationCoordinator, type NovelFinalizationCoordinator } from '../../host/finalization-coordinator.js';
 import { createFinalizationPlanBuilder, type NovelFinalizationPlanBuilder } from '../../host/finalization-plan-builder.js';
 import { createHostUploadService } from '../../host/upload-service.js';
-import { createKnowledgeLeakDetectionService } from '../../host/knowledge-leak-detection-service.js';
+import { createKnowledgeLeakDetectionService, type NovelKnowledgeLeakDetectionService } from '../../host/knowledge-leak-detection-service.js';
 import { createNextSceneContextBuilder } from '../../host/writing-context.js';
 import { createOutlineGenerationBaselineService } from '../../host/outline-generation-baseline-service.js';
 import { createOutlineReconciliationPlannerService, type NovelOutlineReconciliationPlannerService } from '../../host/outline-reconciliation-planner-service.js';
@@ -17,11 +17,12 @@ import { createSceneOutlineBindingService, type NovelSceneOutlineBindingService 
 import { createTextChangeImpactService } from '../../host/text-change-impact-service.js';
 import { createTextDeletionService, type NovelTextDeletionService } from '../../host/text-deletion-service.js';
 import { createTextEditService, type NovelTextEditService } from '../../host/text-edit-service.js';
-import { createTextService } from '../../host/text-service.js';
+import { createTextService, type NovelTextServiceBundle } from '../../host/text-service.js';
 import { createTimelineService } from '../../host/timeline-service.js';
 import { createWritingAdjudicationService, type NovelWritingAdjudicationService } from '../../host/writing-adjudication-service.js';
+import { createWritingCandidateService, type NovelWritingCandidateService } from '../../host/candidate-service.js';
 import { createWorkspaceEditorService, type WorkspaceEditorService } from '../../host/workspace-service.js';
-import { createRelationshipStyleDetectionService } from '../../host/relationship-style-detection-service.js';
+import { createRelationshipStyleDetectionService, type NovelRelationshipStyleDetectionService } from '../../host/relationship-style-detection-service.js';
 import { toChapterMutationView, toSceneMutationView } from '../../host/text-mutation-adapter.js';
 import type { NovelCanonService } from '../../host/canon-service.js';
 import type { NovelCharacterService } from '../../host/character-service.js';
@@ -54,6 +55,35 @@ export interface DesktopC5HandlerDependencies {
   readonly llm?: unknown;
   readonly resolveGenerationSettings?: () => Promise<GenerationSettings>;
   readonly onDispose?: (dispose: () => void) => void;
+  /** I178 reuses these Main-owned C5 services for review, repair, and queue. */
+  readonly onServices?: (services: DesktopC5Services) => void;
+}
+
+/**
+ * Main-owned C5 service bundle shared by every later desktop migration slice.
+ * A single bundle keeps TextRepository, binding, writing adjudication, and the
+ * candidate/recovery owners aligned (design §0.1.2, §14.9).
+ */
+export interface DesktopC5Services {
+  readonly resolveSettings: () => Promise<GenerationSettings>;
+  readonly text: NovelTextServiceBundle;
+  readonly binding: NovelSceneOutlineBindingService;
+  readonly baseline: import('../../host/outline-generation-baseline-service.js').NovelOutlineGenerationBaselineService;
+  readonly timeline: import('../../host/timeline-service.js').NovelTimelineService;
+  readonly textEdit: NovelTextEditService;
+  readonly writing: NovelWritingAdjudicationService;
+  readonly candidate: NovelWritingCandidateService;
+  readonly consistency: NovelConsistencyDetectionService;
+  readonly knowledgeLeak: NovelKnowledgeLeakDetectionService;
+  readonly relationshipStyle: NovelRelationshipStyleDetectionService;
+  readonly textDeletion: NovelTextDeletionService;
+  readonly impact: import('../../host/text-change-impact-service.js').NovelTextChangeImpactService;
+  readonly reconciliationPlanner: NovelOutlineReconciliationPlannerService;
+  readonly reconciliation: NovelOutlineReconciliationService;
+  readonly finalizationPlanBuilder: NovelFinalizationPlanBuilder;
+  readonly finalization: NovelFinalizationCoordinator;
+  readonly branch: import('../../host/branch-service.js').NovelBranchService;
+  readonly workspace: WorkspaceEditorService;
 }
 
 function contextOf(value: unknown): IpcInvocationContext | undefined {
@@ -144,6 +174,7 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
     resolveSettings,
     onDispose: deps.onDispose,
   });
+  const candidate = createWritingCandidateService({ llm: deps.llm, projectsRoot: paths.libraryRoot, onDispose: deps.onDispose });
   const textDeletion = createTextDeletionService({ text, binding, confirmation, writing });
   const impact = createTextChangeImpactService({ llm: deps.llm, text, outline, binding, baseline, onDispose: deps.onDispose });
   const reconciliationPlanner = createOutlineReconciliationPlannerService({ llm: deps.llm, text, outline, binding, baseline, onDispose: deps.onDispose });
@@ -182,6 +213,8 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   };
   const upload = createHostUploadService(uploadDisposer ?? (() => undefined));
   const workspace = createWorkspaceEditorService({ characters, worldview, outline, relationship, state, canon, confirmation, projects, upload, text, textEdit });
+  const services: DesktopC5Services = Object.freeze({ resolveSettings, text, binding, baseline, timeline, textEdit, writing, candidate, consistency, knowledgeLeak, relationshipStyle, textDeletion, impact, reconciliationPlanner, reconciliation, finalizationPlanBuilder, finalization, branch, workspace });
+  deps.onServices?.(services);
   const mutation = {
     async fingerprint(projectId: string) { await text.open(projectId); return { fingerprint: await text.projectFingerprint(projectId) }; },
     async chapterCreate(projectId: string, input: Parameters<typeof text.createChapterMutation>[1]) { await text.open(projectId); const result = await text.createChapterMutation(projectId, input); return { chapter: toChapterMutationView(result.chapter), fingerprint: result.fingerprint }; },

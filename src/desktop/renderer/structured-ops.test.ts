@@ -30,15 +30,20 @@ function ports(workspace: OpsPorts['workspace'], knowledgeNamespace: OpsPorts['k
     knowledgeNamespace,
     ruleStyleNamespace,
     writing: undefined,
+    reviewNamespace: undefined,
+    reviewRepairNamespace: undefined,
+    queueNamespace: undefined,
     branchNamespace: undefined,
     textMutation: undefined,
     sceneOutlineBinding: undefined,
     textDeletion: undefined,
     outlineReconciliation: undefined,
+    referenceAuditNamespace: undefined,
+    referenceCorrectionNamespace: undefined,
   };
 }
 
-describe('I177 desktop C5 and structured ops consumer', () => {
+describe('I178 desktop C5/review/queue structured ops consumer', () => {
   it('routes structured editing through the DesktopServiceBag ports', async () => {
     const store = createDesktopWorkbenchStore();
     store.actions.selectProject('alpha', 'Alpha');
@@ -115,6 +120,44 @@ describe('I177 desktop C5 and structured ops consumer', () => {
     expect(ops.canon).toBeDefined();
     expect(ops.knowledge).toBeDefined();
     expect(ops.ruleStyle).toBeDefined();
+    store.dispose();
+  });
+
+  it('routes review, queue, and reference actions through the migrated ports', async () => {
+    const store = createDesktopWorkbenchStore();
+    store.actions.selectProject('alpha', 'Alpha');
+    const reviewScan = vi.fn(async () => ok({ projectId: 'alpha', scannedAt: '2026-01-01T00:00:00.000Z', issues: [], summary: { total: 0, hard: 0, soft: 0, byCategory: {} } }));
+    const reviewRecords = vi.fn(async () => ok([]));
+    const queueStatus = vi.fn(async () => ok({ projectId: 'alpha', runState: 'idle' as const, config: { wordBudget: null, maxRetries: 1, stopOnSoftWarnings: true }, consumedUnits: 0, updatedAt: '2026-01-01T00:00:00.000Z', error: null, tasks: [] }));
+    const auditList = vi.fn(async () => ok({ records: [], nextCursor: null }));
+    const correctionPending = vi.fn(async () => ok([]));
+    const workspace = { chapterList: vi.fn(async () => ok([])), outlineBeatCards: vi.fn(async () => ok([])) } as unknown as OpsPorts['workspace'];
+    const reviewNamespace = { scan: reviewScan, records: reviewRecords } as unknown as OpsPorts['reviewNamespace'];
+    const queueNamespace = { status: queueStatus } as unknown as OpsPorts['queueNamespace'];
+    const referenceAuditNamespace = { list: auditList } as unknown as OpsPorts['referenceAuditNamespace'];
+    const referenceCorrectionNamespace = { pending: correctionPending } as unknown as OpsPorts['referenceCorrectionNamespace'];
+    const ops = createDesktopStructuredOps(runtime(store), {
+      ...ports(workspace, undefined, undefined),
+      reviewNamespace,
+      reviewRepairNamespace: undefined,
+      queueNamespace,
+      referenceAuditNamespace,
+      referenceCorrectionNamespace,
+    });
+
+    ops.review.scan();
+    ops.queue.refresh();
+    ops.referenceReview.refresh();
+    await vi.waitFor(() => {
+      expect(reviewScan).toHaveBeenCalledWith('alpha', undefined);
+      expect(reviewRecords).toHaveBeenCalledWith('alpha');
+      expect(queueStatus).toHaveBeenCalledWith('alpha');
+      expect(auditList).toHaveBeenCalledWith('alpha', {});
+      expect(correctionPending).toHaveBeenCalledWith('alpha');
+    });
+    expect(store.getSnapshot().review.status).toBe('ready');
+    expect(store.getSnapshot().queue.status).toBe('ready');
+    expect(store.getSnapshot().referenceReview.status).toBe('ready');
     store.dispose();
   });
 });

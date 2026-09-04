@@ -10,8 +10,8 @@ import { createWorldviewOps } from '../../client/ops/worldview.js';
 import { createWorkbenchOps } from '../../client/ops/index.js';
 import type { OpsPorts, OpsRuntime } from '../../client/ops/context.js';
 
-/** Ports owned by the I176/I177 structured and C5 editing slices. */
-export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace' | 'writing' | 'branchNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
+/** Ports owned by the I176–I178 structured, writing, review, and queue slices. */
+export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace' | 'writing' | 'reviewNamespace' | 'reviewRepairNamespace' | 'queueNamespace' | 'branchNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation' | 'referenceAuditNamespace' | 'referenceCorrectionNamespace'>;
 
 const EMPTY_PORTS: OpsPorts = {
   workspace: undefined,
@@ -41,20 +41,24 @@ const EMPTY_PORTS: OpsPorts = {
  *
  * The base composition supplies stable unavailable operations and router shape
  * for views that belong to later iterations. Only the nine structured panels
- * receive DesktopServiceBag ports here. I177 adds the C5 workbench, candidate,
- * branch, and finalization ports; review and queue remain unavailable until
- * their owning migration cards are complete.
+ * receive DesktopServiceBag ports here. I177 adds the C5 workbench and I178
+ * adds review/repair/reference/queue ports; later panels remain fail-closed.
  */
 export function createDesktopStructuredOps(runtime: OpsRuntime, ports: StructuredOpsPorts): WorkbenchOps {
   const unavailable = createWorkbenchOps(runtime, {
     ...EMPTY_PORTS,
     workspace: ports.workspace,
     writing: ports.writing,
+    reviewNamespace: ports.reviewNamespace,
+    reviewRepairNamespace: ports.reviewRepairNamespace,
+    queueNamespace: ports.queueNamespace,
     branchNamespace: ports.branchNamespace,
     textMutation: ports.textMutation,
     sceneOutlineBinding: ports.sceneOutlineBinding,
     textDeletion: ports.textDeletion,
     outlineReconciliation: ports.outlineReconciliation,
+    referenceAuditNamespace: ports.referenceAuditNamespace,
+    referenceCorrectionNamespace: ports.referenceCorrectionNamespace,
   });
   return {
     ...unavailable,

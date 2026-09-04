@@ -267,6 +267,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       const state = snapshot.review.repairSession;
       if (state.status === 'generating') {
         bumpRepairRunToken();
+        runtime.cancelMethod?.('novel-creation-tool/novelReviewRepair/propose');
         if (state.issueId !== undefined) endOp(`review:repair:${state.issueId}`);
         // Generation has no Host write; dropping its late result is a complete Client cancel.
         reviewPatch({ repairSession: freshReviewRepairSession() });
@@ -274,6 +275,7 @@ export function createReviewOps(runtime: OpsRuntime, port: ReviewPort): ReviewEd
       }
       if (state.status === 'rescanning' && state.candidate !== undefined) {
         bumpRepairRunToken();
+        runtime.cancelMethod?.('novel-creation-tool/novelReview/scan');
         endOp(`review:repair:rescan:${state.candidate.candidate.id}`);
         const session = cancelReviewRepairSession(state);
         reviewPatch({ status: 'ready', message: session.message, repairSession: session });

@@ -31,7 +31,7 @@ export interface NovelBookCompletionService {
   /** 结构完成门：不调用 LLM、不写任何领域文件。 */
   readiness(projectId: string, page?: BookReadinessPageInput): Promise<BookReadinessResult>;
   /** 在同一完成投影上运行既有审校 detector，并保留软警告裁决状态。 */
-  scan(projectId: string, page?: BookReadinessPageInput, settings?: unknown): Promise<BookReadinessResult>;
+  scan(projectId: string, page?: BookReadinessPageInput, settings?: unknown, signal?: AbortSignal): Promise<BookReadinessResult>;
 }
 
 interface BookCompletionDeps {
@@ -320,7 +320,7 @@ function finalize(
 }
 
 export function createBookCompletionService(deps: BookCompletionDeps): NovelBookCompletionService {
-  const compute = async (projectId: string, pageInput: BookReadinessPageInput | undefined, settings: unknown, withReview: boolean): Promise<BookReadinessResult> => {
+  const compute = async (projectId: string, pageInput: BookReadinessPageInput | undefined, settings: unknown, withReview: boolean, signal?: AbortSignal): Promise<BookReadinessResult> => {
     validateProjectId(projectId);
     const page = pageOf(pageInput);
     const snapshot = await readStructural(deps, projectId);
@@ -338,7 +338,7 @@ export function createBookCompletionService(deps: BookCompletionDeps): NovelBook
     }
     let review: BookReadinessResult['review'] = { status: 'not-run', total: 0, hard: 0, warning: 0 };
     if (withReview) {
-      const projection = await deps.review.scan(projectId, settings);
+      const projection = await deps.review.scan(projectId, settings, signal);
       const projected = reviewIssues(projection);
       for (const issue of projected) appendIssue(issues, issue);
       review = {
@@ -352,6 +352,6 @@ export function createBookCompletionService(deps: BookCompletionDeps): NovelBook
   };
   return Object.freeze({
     readiness: (projectId: string, page?: BookReadinessPageInput) => compute(projectId, page, undefined, false),
-    scan: (projectId: string, page?: BookReadinessPageInput, settings?: unknown) => compute(projectId, page, settings, true),
+    scan: (projectId: string, page?: BookReadinessPageInput, settings?: unknown, signal?: AbortSignal) => compute(projectId, page, settings, true, signal),
   });
 }
