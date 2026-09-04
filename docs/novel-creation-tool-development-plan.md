@@ -2,7 +2,7 @@
 
 > 版本：v4.0
 > 日期：2026-09-03
-> 状态：当前执行权威（**I1–I164 / Stage 0–31 已完成；I165 / Stage 32 已完成桌面版立项；I166–I186 为当前 Electron 迁移执行卡**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 状态：当前执行权威（**I1–I164 / Stage 0–31、I165 / Stage 32、I166–I186 / Stage 33–36 均已完成；Stage 36 已通过累积发布门**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v4.0（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.0（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -2033,9 +2033,9 @@ TDD Route:
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。
 
-v4.0 当前进度：**Stage 32 / I165 已完成；下一步为 I166。I166–I186 是当前 Electron 迁移执行卡。** v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v4.0 当前进度：**Stage 36 / I183–I186 已完成，Electron 桌面发布基线已冻结。** I166–I182 的运行时、Renderer、作者工作流、助手与旧库迁移基线均已通过对应独立验证；v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
 
-Stage 36 / I186 达成后还必须证明：
+Stage 36 / I186 达成证据：
 
 - Electron 是唯一生产宿主，Main/Preload/Renderer 权限边界和 single-instance 写 owner 成立；
 - 无 DSH 环境可 clean install、build、启动、升级、卸载/重装并完成十二步作者流程；

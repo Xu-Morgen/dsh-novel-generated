@@ -5,17 +5,17 @@
   "installer": {
     "file": "Novel-Creation-Tool-Setup-2.0.0.exe",
     "bytes": 115188918,
-    "sha512": "hfaKeJW1xxKW2RjAVDb5iYcXCKLPEJU+pSFttZEovb4FQ1dAVtHq/zmLKZIG4TwPySY5QGjF7T95WydgK3YoAw=="
+    "sha512": "OgIC3KPW/2awyH/E1WL7d2qeP+lLtmkKaSh6j2gH89medUb87VpXXztAtxykwzlHaqjYiIO9YkfSn2vWsvJdHg=="
   },
   "blockmap": {
     "file": "Novel-Creation-Tool-Setup-2.0.0.exe.blockmap",
-    "bytes": 120218,
-    "sha512": "zsC7WfhL9qrMy4zI7TSP8E5CsO51dU4/VR5vR1iYqFoAaL84QZfc6xYXYcCBZSItixLR978En/V9Mah8UMCYfw=="
+    "bytes": 120223,
+    "sha512": "XOja6ADgHl5OyMJfuk5AHb4biXBi3jQ+yVtryTqrYvfo8b+bGxhkbPXMlrVrBJpzJn13qFHipIjaYO3TNgSz1A=="
   },
   "updateMetadata": {
     "file": "latest.yml",
     "bytes": 367,
-    "sha512": "RET5faELioZ9XtunzDWplgTFU2fsXRUFDtPMzasH2jnobkxI1hzMFl8JI4uv+BCmGLUaYlsXJSS2IKLY9sBozA=="
+    "sha512": "TBnWUzRm4lkjO8r+2KlrrIS6wDBCcBD2xYcufCyccF0b7GroJSlwpfO9ITJiBG4gQGMxTMC2m7xnMUK4yVNIxA=="
   },
   "unpackedAsar": {
     "file": "win-unpacked/resources/app.asar",

@@ -1,0 +1,113 @@
+{
+  "iteration": "I186",
+  "stage": "Stage 36",
+  "platform": "win32",
+  "productFlow": {
+    "stepCount": 12,
+    "primaryEvidence": "I140 twelve-step fake-LLM Host/Remote/Client harness",
+    "sourceAwareEvidence": "I149 source-aware import converges on I140 steps 3-12",
+    "negativeMatrix": 8
+  },
+  "focusedSuites": "README twelve-step Host/Client product owners, source-aware import, desktop Renderer consumers, Main migration/assistant, IPC lock",
+  "priorGates": {
+    "i182Migration": true,
+    "i184InstallUpgradeUninstallReinstall": true,
+    "i185SecurityRecovery": true
+  },
+  "release": {
+    "ipc": {
+      "baseline": 214,
+      "current": 226,
+      "schemas": 305
+    },
+    "productionDependencies": [
+      "fflate",
+      "js-yaml",
+      "zod"
+    ],
+    "installer": {
+      "file": "Novel-Creation-Tool-Setup-2.0.0.exe",
+      "bytes": 115188918,
+      "sha512": "OgIC3KPW/2awyH/E1WL7d2qeP+lLtmkKaSh6j2gH89medUb87VpXXztAtxykwzlHaqjYiIO9YkfSn2vWsvJdHg=="
+    },
+    "appAsar": {
+      "bytes": 12031883,
+      "sha512": "0dkG/nZ2Pn2hIC9RYfU0x3syyU5IfCSFZv6Y+5G/+eWnL+unrN0JQ84VOygqO+ovVXIAnNXEc1lwzpr6ESNCYA==",
+      "dshFree": true
+    }
+  },
+  "packaged": {
+    "markers": [
+      "[I166] ready windows=1",
+      "[I166] renderer-probe",
+      "[I172] ipc-probe",
+      "[I173] renderer-shell",
+      "[I174] review-repair-negative",
+      "[I175] project-loop",
+      "[I176] structured-loop",
+      "[I177] c5-loop",
+      "[I178] review-queue-loop",
+      "[I179] source-import-loop",
+      "[I180] author-flow-loop",
+      "[I181] assistant-loop",
+      "[I182] migration-loop"
+    ],
+    "exitCode": 0,
+    "residualTemporaryFiles": [],
+    "performance": {
+      "markerElapsedMs": 934,
+      "exitElapsedMs": 4786,
+      "markerDeadlineMs": 25000,
+      "exitDeadlineMs": 15000
+    }
+  },
+  "releaseChecklist": [
+    {
+      "item": "Electron-only production host",
+      "status": "passed"
+    },
+    {
+      "item": "strict IPC lock and Main/Preload/Renderer boundary",
+      "status": "passed"
+    },
+    {
+      "item": "clean install, upgrade, uninstall retention, reinstall reopen",
+      "status": "passed"
+    },
+    {
+      "item": "legacy source preview, backup, rollback, and immutability",
+      "status": "passed"
+    },
+    {
+      "item": "crash/relaunch, journal recovery, single instance, and cleanup",
+      "status": "passed"
+    },
+    {
+      "item": "README twelve-step author flow without technical ids",
+      "status": "passed"
+    },
+    {
+      "item": "packaged artifact and update metadata checksum",
+      "status": "passed"
+    }
+  ],
+  "negativeMatrix": [
+    "no-DSH-production-dependency-or-asar",
+    "README-twelve-step-technical-id-free-author-path",
+    "214-invocation-baseline-plus-current-strict-IPC-lock",
+    "source-aware-import-converges-on-existing-workflow",
+    "migration-source-immutability-and-rollback",
+    "install-upgrade-uninstall-reinstall-source-retention",
+    "crash-relaunch-and-C5-journal-recovery",
+    "single-instance-and-renderer-privilege-boundary"
+  ],
+  "explicitNonGoals": [
+    "F1",
+    "F2",
+    "new-domain-feature",
+    "new-ipc-method",
+    "manual-demo-as-acceptance",
+    "gold-or-threshold-change",
+    "automatic-publishing-upload"
+  ]
+}
