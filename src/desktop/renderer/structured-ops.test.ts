@@ -29,10 +29,15 @@ function ports(workspace: OpsPorts['workspace'], knowledgeNamespace: OpsPorts['k
     workspace,
     knowledgeNamespace,
     ruleStyleNamespace,
+    progressNamespace: undefined,
+    importExportNamespace: undefined,
     writing: undefined,
     reviewNamespace: undefined,
     reviewRepairNamespace: undefined,
     queueNamespace: undefined,
+    searchNamespace: undefined,
+    statisticsNamespace: undefined,
+    timelineNamespace: undefined,
     branchNamespace: undefined,
     textMutation: undefined,
     sceneOutlineBinding: undefined,
@@ -40,6 +45,7 @@ function ports(workspace: OpsPorts['workspace'], knowledgeNamespace: OpsPorts['k
     outlineReconciliation: undefined,
     referenceAuditNamespace: undefined,
     referenceCorrectionNamespace: undefined,
+    outlineDetailGeneration: undefined,
   };
 }
 
@@ -158,6 +164,26 @@ describe('I178 desktop C5/review/queue structured ops consumer', () => {
     expect(store.getSnapshot().review.status).toBe('ready');
     expect(store.getSnapshot().queue.status).toBe('ready');
     expect(store.getSnapshot().referenceReview.status).toBe('ready');
+    store.dispose();
+  });
+
+  it('routes I180 export actions through the Main-owned save port', async () => {
+    const store = createDesktopWorkbenchStore();
+    store.actions.selectProject('alpha', 'Alpha');
+    const exportArchive = vi.fn(async () => ok({ fileName: 'alpha.json', mode: 'full', fileCount: 1, content: '{"project":"alpha"}' }));
+    const saveFile = { saveFile: vi.fn(async () => ({ saved: true, fileName: 'alpha.json' })) };
+    const ops = createDesktopStructuredOps(runtime(store), {
+      ...ports(undefined, undefined, undefined),
+      importExportNamespace: { exportArchive } as unknown as OpsPorts['importExportNamespace'],
+      saveFile,
+    });
+
+    ops.importExport.exportArchive();
+    await vi.waitFor(() => {
+      expect(exportArchive).toHaveBeenCalledWith('alpha', 'full-project');
+      expect(saveFile.saveFile).toHaveBeenCalledWith('alpha.json', '{"project":"alpha"}', 'application/json');
+    });
+    expect(store.getSnapshot().importExport.busy.exportArchive).toBe(false);
     store.dispose();
   });
 });

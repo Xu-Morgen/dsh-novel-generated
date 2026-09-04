@@ -27,6 +27,8 @@ export interface DesktopReviewQueueHandlerDependencies extends Pick<DesktopC5Han
   readonly relationship: NovelRelationshipService;
   readonly rules: NovelRuleService;
   readonly style: NovelStyleService;
+  /** I180 lets statistics consume the same Main queue owner as the queue panel. */
+  readonly onServices?: (services: DesktopReviewQueueServices) => void;
 }
 
 export interface DesktopReviewQueueServices {
@@ -111,6 +113,9 @@ export function createDesktopReviewQueueHandlers(deps: DesktopReviewQueueHandler
     audit: referenceAudit,
     onDispose: deps.onDispose,
   });
+
+  const services: DesktopReviewQueueServices = Object.freeze({ review, repair, bookCompletion, queue, referenceAudit, referenceCorrection });
+  deps.onServices?.(services);
 
   const map = new Map<string, IpcHandler>();
 

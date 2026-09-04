@@ -38,6 +38,8 @@ const logPath = join(tempRoot, 'electron.log');
 const electronBinary = process.platform === 'win32'
   ? resolve(root, 'node_modules/electron/dist/electron.exe')
   : resolve(root, 'node_modules/electron/dist/electron');
+const electronEnv = { ...process.env, NOVEL_DESKTOP_SMOKE: '1', NOVEL_DESKTOP_SMOKE_HOLD_MS: '1200' };
+delete electronEnv.ELECTRON_RUN_AS_NODE;
 let child;
 let passed = false;
 try {
@@ -50,7 +52,7 @@ try {
     root,
   ], {
     cwd: root,
-    env: { ...process.env, NOVEL_DESKTOP_SMOKE: '1', NOVEL_DESKTOP_SMOKE_HOLD_MS: '1200' },
+    env: electronEnv,
     stdio: ['ignore', fd, fd],
     windowsHide: true,
   });

@@ -217,7 +217,8 @@
     "novel-creation-tool/novelRuleStyleImportInitialization/accept",
     "novel-creation-tool/novelRuleStyleImportInitialization/reject",
     "novel-creation-tool/novelRuleStyleImportInitialization/cancel",
-    "novel-creation-tool/novelReviewRepair/propose"
+    "novel-creation-tool/novelReviewRepair/propose",
+    "novel-creation-tool/novelDesktopFiles/saveFile"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6367,6 +6368,27 @@
       "result": {
         "typeSymbol": "novel-creation-tool#novelReviewRepair:propose",
         "schemaId": "novel-creation-tool#novelReviewRepair:propose@9edcdfbe"
+      }
+    },
+    "novel-creation-tool/novelDesktopFiles/saveFile": {
+      "id": "novel-creation-tool/novelDesktopFiles/saveFile",
+      "service": "novelDesktopFiles",
+      "namespace": "novelDesktopFiles",
+      "method": "saveFile",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#desktopSaveFileInput",
+            "schemaId": "novel-creation-tool#desktopSaveFileInput@8ca34e84"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#desktopSaveFileResult",
+        "schemaId": "novel-creation-tool#desktopSaveFileResult@e3982a78"
       }
     }
   },
@@ -52286,6 +52308,56 @@
           "target",
           "lineage",
           "candidate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopSaveFileInput@8ca34e84": {
+      "typeSymbol": "novel-creation-tool#desktopSaveFileInput",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 67108864
+          },
+          "mimeType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "fileName",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#desktopSaveFileResult@e3982a78": {
+      "typeSymbol": "novel-creation-tool#desktopSaveFileResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "boolean"
+          },
+          "fileName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "saved",
+          "fileName"
         ],
         "additionalProperties": false
       }

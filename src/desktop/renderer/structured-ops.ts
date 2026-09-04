@@ -1,17 +1,10 @@
 import type { WorkbenchOps } from '../../client/store/types.js';
-import { createCanonOps } from '../../client/ops/canon.js';
-import { createCharactersOps } from '../../client/ops/characters.js';
-import { createKnowledgeOps } from '../../client/ops/knowledge.js';
-import { createOutlineOps } from '../../client/ops/outline.js';
-import { createRelationshipOps } from '../../client/ops/relationship.js';
-import { createRuleStyleOps } from '../../client/ops/rule-style.js';
-import { createStateOps } from '../../client/ops/state.js';
-import { createWorldviewOps } from '../../client/ops/worldview.js';
 import { createWorkbenchOps } from '../../client/ops/index.js';
 import type { OpsPorts, OpsRuntime } from '../../client/ops/context.js';
+import type { ImportExportSavePort } from '../../client/ops/import-export.js';
 
 /** Ports owned by the I176–I178 structured, writing, review, and queue slices. */
-export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace' | 'writing' | 'reviewNamespace' | 'reviewRepairNamespace' | 'queueNamespace' | 'branchNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation' | 'referenceAuditNamespace' | 'referenceCorrectionNamespace'>;
+export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace' | 'progressNamespace' | 'importExportNamespace' | 'writing' | 'reviewNamespace' | 'reviewRepairNamespace' | 'queueNamespace' | 'branchNamespace' | 'searchNamespace' | 'statisticsNamespace' | 'timelineNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation' | 'referenceAuditNamespace' | 'referenceCorrectionNamespace' | 'outlineDetailGeneration'> & { saveFile?: ImportExportSavePort };
 
 const EMPTY_PORTS: OpsPorts = {
   workspace: undefined,
@@ -45,30 +38,8 @@ const EMPTY_PORTS: OpsPorts = {
  * adds review/repair/reference/queue ports; later panels remain fail-closed.
  */
 export function createDesktopStructuredOps(runtime: OpsRuntime, ports: StructuredOpsPorts): WorkbenchOps {
-  const unavailable = createWorkbenchOps(runtime, {
+  return createWorkbenchOps(runtime, {
     ...EMPTY_PORTS,
-    workspace: ports.workspace,
-    writing: ports.writing,
-    reviewNamespace: ports.reviewNamespace,
-    reviewRepairNamespace: ports.reviewRepairNamespace,
-    queueNamespace: ports.queueNamespace,
-    branchNamespace: ports.branchNamespace,
-    textMutation: ports.textMutation,
-    sceneOutlineBinding: ports.sceneOutlineBinding,
-    textDeletion: ports.textDeletion,
-    outlineReconciliation: ports.outlineReconciliation,
-    referenceAuditNamespace: ports.referenceAuditNamespace,
-    referenceCorrectionNamespace: ports.referenceCorrectionNamespace,
+    ...ports,
   });
-  return {
-    ...unavailable,
-    characters: createCharactersOps(runtime, { workspace: ports.workspace }),
-    worldview: createWorldviewOps(runtime, { workspace: ports.workspace }),
-    outline: createOutlineOps(runtime, { workspace: ports.workspace }),
-    relationship: createRelationshipOps(runtime, { workspace: ports.workspace }),
-    state: createStateOps(runtime, { workspace: ports.workspace }),
-    canon: createCanonOps(runtime, { workspace: ports.workspace }),
-    knowledge: createKnowledgeOps(runtime, { workspace: ports.workspace, knowledgeNamespace: ports.knowledgeNamespace }),
-    ruleStyle: createRuleStyleOps(runtime, { ruleStyleNamespace: ports.ruleStyleNamespace }),
-  };
 }

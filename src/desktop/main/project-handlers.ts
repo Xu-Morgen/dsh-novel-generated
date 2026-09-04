@@ -18,6 +18,9 @@ import { createRuleStyleManagerService } from '../../host/rule-style-manager-ser
 import { createDesktopC5Handlers, type DesktopC5HandlerDependencies, type DesktopC5Services } from './c5-handlers.js';
 import { createDesktopReviewQueueHandlers } from './review-queue-handlers.js';
 import { createDesktopSourceImportHandlers } from './source-import-handlers.js';
+import { createDesktopAuthorWorkflowHandlers } from './author-workflow-handlers.js';
+import type { DesktopReviewQueueServices } from './review-queue-handlers.js';
+import { createDesktopFileHandlers } from './file-handlers.js';
 
 export const DESKTOP_MANAGED_PATH = '[desktop-managed]';
 
@@ -29,6 +32,8 @@ export interface DesktopProjectHandlerOptions {
   readonly onDispose?: DesktopC5HandlerDependencies['onDispose'];
   /** I179 Main-owned OS chooser; its selected path is consumed before IPC return. */
   readonly selectDocxFile?: () => Promise<string | undefined>;
+  /** I180 Main-owned save dialog; the selected path never crosses IPC. */
+  readonly saveFile?: (fileName: string) => Promise<string | undefined>;
 }
 
 /**
@@ -68,6 +73,7 @@ export function createDesktopProjectHandlers(
   const settings = createWorkbenchSettingsService(paths.settingsRoot, paths.libraryRoot, openDirectory);
 
   let c5Services: DesktopC5Services | undefined;
+  let reviewQueueServices: DesktopReviewQueueServices | undefined;
   const c5Handlers = createDesktopC5Handlers({
     paths,
     characters,
@@ -102,7 +108,9 @@ export function createDesktopProjectHandlers(
     relationship,
     rules,
     style,
+    onServices: (services) => { reviewQueueServices = services; },
   });
+  if (reviewQueueServices === undefined) throw new Error('Desktop review and queue services were not composed');
   const sourceImportHandlers = createDesktopSourceImportHandlers({
     c5: c5Services,
     paths,
@@ -121,11 +129,30 @@ export function createDesktopProjectHandlers(
     rules,
     style,
   });
+  const authorWorkflowHandlers = createDesktopAuthorWorkflowHandlers({
+    c5: c5Services,
+    reviewQueue: reviewQueueServices,
+    paths,
+    llm: options.llm,
+    onDispose: options.onDispose,
+    characters,
+    worldview,
+    outline,
+    relationship,
+    canon,
+    confirmation,
+    knowledge,
+    rules,
+    style,
+  });
+  const fileHandlers = createDesktopFileHandlers({ saveFile: options.saveFile });
 
   return new Map<string, IpcHandler>([
     ...c5Handlers,
     ...reviewQueueHandlers,
     ...sourceImportHandlers,
+    ...authorWorkflowHandlers,
+    ...fileHandlers,
     ['novel-creation-tool/novelWorkspace/viewModel', async () => workspaceViewModel()],
     ['novel-creation-tool/novelWorkspace/characterList', async (projectId) => characters.list(projectId as string)],
     ['novel-creation-tool/novelWorkspace/characterRead', async (projectId, characterId) => characters.read(projectId as string, characterId as string)],

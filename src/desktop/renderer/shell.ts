@@ -21,6 +21,7 @@ import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
 import { createDesktopStructuredOps } from './structured-ops.js';
+import { createDesktopFileDialog } from './file-dialog.js';
 import { createQueuePollController } from '../../client/queue-poll.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
@@ -78,8 +79,12 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     queueNamespace: client.services.queueNamespace,
     knowledgeNamespace: client.services.knowledgeNamespace,
     ruleStyleNamespace: client.services.ruleStyleNamespace,
+    progressNamespace: client.services.progressNamespace,
     importExportNamespace: client.services.importExportNamespace,
     branchNamespace: client.services.branchNamespace,
+    searchNamespace: client.services.searchNamespace,
+    statisticsNamespace: client.services.statisticsNamespace,
+    timelineNamespace: client.services.timelineNamespace,
     sceneOutlineBinding: client.services.sceneOutlineBinding,
     textMutation: client.services.textMutation,
     textDeletion: client.services.textDeletion,
@@ -418,6 +423,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     cancelMethod: (methodId) => { props.client.cancelMethod(methodId); },
   };
   const namespaces = desktopNamespaces(props.client);
+  const fileDialog = React.useMemo(() => createDesktopFileDialog(props.client), [props.client]);
   const ops = createDesktopStructuredOps(runtime, {
     workspace: namespaces.workspace,
     reviewNamespace: namespaces.reviewNamespace,
@@ -425,21 +431,35 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     queueNamespace: namespaces.queueNamespace,
     knowledgeNamespace: namespaces.knowledgeNamespace,
     ruleStyleNamespace: namespaces.ruleStyleNamespace,
+    progressNamespace: namespaces.progressNamespace,
+    importExportNamespace: namespaces.importExportNamespace,
     writing: namespaces.writing,
     branchNamespace: namespaces.branchNamespace,
+    searchNamespace: namespaces.searchNamespace,
+    statisticsNamespace: namespaces.statisticsNamespace,
+    timelineNamespace: namespaces.timelineNamespace,
     textMutation: namespaces.textMutation,
     sceneOutlineBinding: namespaces.sceneOutlineBinding,
     textDeletion: namespaces.textDeletion,
     outlineReconciliation: namespaces.outlineReconciliation,
     referenceAuditNamespace: namespaces.referenceAuditNamespace,
     referenceCorrectionNamespace: namespaces.referenceCorrectionNamespace,
+    outlineDetailGeneration: namespaces.outlineDetailGeneration,
+    saveFile: fileDialog,
   });
   const ui = createDesktopShellUi(state, props.store.actions, workflow, sourceControllers);
   React.useEffect(() => {
     if (state.status.status !== 'ready' || projectId === undefined || state.browsing) return;
     ops.knowledge.refresh();
     ops.ruleStyle.refresh();
-  }, [state.status.status, state.browsing, projectId]);
+    if (state.activeView === 'progress') ops.progress.refresh();
+    if (state.activeView === 'search') ops.search.refreshStats();
+    if (state.activeView === 'statistics') {
+      ops.statistics.refreshStats();
+      ops.statistics.refreshOverview();
+    }
+    if (state.activeView === 'timeline') ops.timeline.refresh();
+  }, [state.status.status, state.browsing, state.activeView, projectId]);
   const loading = workbenchView(React, {
         status: { status: 'loading' },
         ns: PENDING_NAMESPACES,

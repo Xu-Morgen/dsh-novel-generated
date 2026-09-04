@@ -1,6 +1,7 @@
 import type { BranchNamespace, ImportExportNamespace, KnowledgeNamespace, ProgressNamespace, QueueNamespace, ReviewNamespace, ReviewRepairNamespace, RuleStyleNamespace, SearchNamespace, StatisticsNamespace, TimelineNamespace, WorkspaceNamespace, WritingNamespace, SceneOutlineBindingNamespace, TextMutationNamespace, TextDeletionNamespace, OutlineReconciliationNamespace, ReferenceAuditNamespace, ReferenceCorrectionNamespace, OutlineDetailGenerationNamespace } from '../shared.js';
 import type { QueuePollHandle } from '../queue-poll.js';
 import type { WorkbenchActions, WorkbenchState } from '../store/types.js';
+import type { ImportExportSavePort } from './import-export.js';
 
 /**
  * I82 逐层编辑动作（ops）共享运行时（架构审查 §5.1 / §9 #5 拆分：makeOps 1300 行
@@ -34,6 +35,7 @@ export interface OpsRuntime {
 
 /** 各域窄 port 的命名空间包；ops 工厂只 Pick 自己声明的键（I101 OpsContext 窄化）。 */
 export interface OpsPorts {
+  saveFile?: ImportExportSavePort;
   workspace: WorkspaceNamespace | undefined;
   writing: WritingNamespace | undefined;
   reviewNamespace: ReviewNamespace | undefined;

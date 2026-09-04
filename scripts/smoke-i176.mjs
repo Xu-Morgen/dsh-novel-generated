@@ -22,7 +22,7 @@ const desktopSources = [
   'src/desktop/renderer/structured-ops.ts',
 ].map(read).join('\n');
 
-for (const required of ['includeChapters: false', 'createDesktopStructuredOps', 'knowledgeNamespace', 'ruleStyleNamespace', 'structuredProjectView']) {
+for (const required of ['includeChapters', 'createDesktopStructuredOps', 'knowledgeNamespace', 'ruleStyleNamespace', 'structuredProjectView']) {
   if (!sources.includes(required)) throw new Error(`I176 structured migration seam missing: ${required}`);
 }
 if (desktopSources.includes('chapterList(projectId)')) throw new Error('I176 desktop structured loader must not request C5 chapters');

@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { access, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
@@ -186,6 +187,29 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I179] source-import-loop ${probe}`);
     }).catch(() => undefined), 'desktop source import smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i180-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: 'author workflow smoke' }], 'i180-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i180-open');
+        const provisioned = await invoke('novel-creation-tool/novelProbe/probe', [], 'i180-provision');
+        const outline = await invoke('novel-creation-tool/novelWorkspace/outlineRead', [projectId], 'i180-outline');
+        const progress = await invoke('novel-creation-tool/novelOutlineProgress/projection', [projectId], 'i180-progress');
+        const search = await invoke('novel-creation-tool/novelSearch/build', [projectId], 'i180-search-build');
+        const searchStats = await invoke('novel-creation-tool/novelSearch/stats', [projectId], 'i180-search-stats');
+        const statistics = await invoke('novel-creation-tool/novelStatistics/rebuild', [projectId], 'i180-statistics-rebuild');
+        const overview = await invoke('novel-creation-tool/novelStatistics/overview', [projectId], 'i180-statistics-overview');
+        const timeline = await invoke('novel-creation-tool/novelTimeline/read', [projectId], 'i180-timeline');
+        const archive = await invoke('novel-creation-tool/novelImportExport/exportArchive', [projectId, 'full-project'], 'i180-archive');
+        const text = await invoke('novel-creation-tool/novelImportExport/exportText', [projectId, 'txt'], 'i180-text');
+        const compile = await invoke('novel-creation-tool/novelImportExport/compileManuscript', [projectId, { format: 'txt' }], 'i180-compile-negative');
+        return JSON.stringify({ created, opened, provisioned, outline, progress, search, searchStats, statistics, overview, timeline, archive: archive?.ok, text: text?.ok, compile });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I180] author-flow-loop ${probe}`);
+    }).catch(() => undefined), 'desktop author workflow smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -291,7 +315,20 @@ const applicationKernel = createApplicationKernel({
       }, 'Electron application listeners');
 
       const ipcHandlers = new Map<string, IpcHandler>([
-        ['novel-creation-tool/novelProbe/probe', async () => ({ marker: 'I2-PROBE', ready: true })],
+        ['novel-creation-tool/novelProbe/probe', async () => {
+          if (isSmokeRun()) {
+            const smokeProject = join(paths.libraryRoot, 'i180-smoke');
+            try { await access(smokeProject); } catch { return { marker: 'I2-PROBE', ready: true }; }
+            const outline = { id: 'outline', version: 1, structure: 'free', logline: 'A minimal smoke outline', themes: ['trust'], acts: [{ id: 'act-1', index: 0, title: 'Opening', goal: 'Begin', beats: [{ id: 'beat-1', title: 'First beat', description: 'Begin the story', charactersInvolved: [], conflictType: 'internal', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] };
+            const progress = { outlineId: 'outline', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 0 };
+            await Promise.all([
+              writeFile(join(smokeProject, 'outline.yaml'), `${JSON.stringify(outline)}\n`, 'utf8'),
+              writeFile(join(smokeProject, 'knowledge.yaml'), '{"entries":[],"states":[]}\n', 'utf8'),
+              writeFile(join(smokeProject, 'outline-progress.yaml'), `${JSON.stringify(progress)}\n`, 'utf8'),
+            ]);
+          }
+          return { marker: 'I2-PROBE', ready: true };
+        }],
         ...createDesktopProjectHandlers(paths, (directory) => { void shell.openPath(directory); }, {
           llm,
           onDispose: (dispose) => { ports.registerDisposer(dispose, 'desktop C5 services'); },
@@ -302,6 +339,15 @@ const applicationKernel = createApplicationKernel({
               filters: [{ name: 'Word document', extensions: ['docx'] }],
             });
             return result.canceled ? undefined : result.filePaths[0];
+          },
+          saveFile: async (fileName) => {
+            if (mainWindow === null || mainWindow.isDestroyed()) return undefined;
+            const result = await dialog.showSaveDialog(mainWindow, {
+              defaultPath: fileName,
+              properties: ['showOverwriteConfirmation'],
+              filters: [{ name: 'Novel export', extensions: ['json', 'txt', 'md'] }],
+            });
+            return result.canceled ? undefined : result.filePath;
           },
         }),
       ]);

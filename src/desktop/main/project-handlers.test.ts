@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
+import { desktopSaveFileInvocation } from '../file-dialog-contract.js';
 import { createDesktopProjectHandlers, DESKTOP_MANAGED_PATH, type DesktopProjectHandlerOptions } from './project-handlers.js';
 
 const roots: string[] = [];
@@ -154,5 +155,44 @@ describe('I179 Main source import handlers', () => {
 
     selectedPath = invalidPath;
     expect(await invoke(handlers, 'novel-creation-tool/novelWorkspace/selectDocx')).toMatchObject({ ok: false, error: { code: 'handler-failed' } });
+  });
+});
+
+describe('I180 Main export and OS file handlers', () => {
+  it('routes progress, search, statistics, timeline, export, and manuscript consumers through Main owners', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i180-flow-'));
+    roots.push(root);
+    const paths = await createDesktopPaths({ userDataRoot: root });
+    const handlers = createDesktopProjectHandlers(paths, () => {});
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'i180flow', name: 'I180 flow' }]);
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectOpen', ['i180flow']);
+    const project = join(paths.libraryRoot, 'i180flow');
+    const outline = { id: 'outline', version: 1, structure: 'free', logline: 'A minimal flow', themes: ['trust'], acts: [{ id: 'act-1', index: 0, title: 'Opening', goal: 'Begin', beats: [{ id: 'beat-1', title: 'First beat', description: 'Begin the story', charactersInvolved: [], conflictType: 'internal', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] };
+    await writeFile(join(project, 'outline.yaml'), `${JSON.stringify(outline)}\n`, 'utf8');
+    await writeFile(join(project, 'knowledge.yaml'), '{"entries":[],"states":[]}\n', 'utf8');
+    await writeFile(join(project, 'outline-progress.yaml'), '{"outlineId":"outline","currentAct":"act-1","currentBeat":"beat-1","completedBeats":[],"deviations":[],"tensionLevel":0}\n', 'utf8');
+
+    await expect(invoke(handlers, 'novel-creation-tool/novelOutlineProgress/projection', ['i180flow'])).resolves.toMatchObject({ ok: true, value: { currentBeat: 'beat-1' } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelSearch/build', ['i180flow'])).resolves.toMatchObject({ ok: true, value: { indexExists: true } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelStatistics/rebuild', ['i180flow'])).resolves.toMatchObject({ ok: true, value: { indexExists: true } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelTimeline/read', ['i180flow'])).resolves.toEqual({ ok: true, value: null });
+    await expect(invoke(handlers, 'novel-creation-tool/novelImportExport/exportText', ['i180flow', 'txt'])).resolves.toMatchObject({ ok: true, value: { format: 'txt' } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelImportExport/compileManuscript', ['i180flow', { format: 'txt' }])).resolves.toMatchObject({ ok: false, error: { code: 'handler-failed' } });
+  });
+
+  it('writes through the Main-selected destination without exposing a path and handles cancel/invalid input', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i180-main-'));
+    roots.push(root);
+    const paths = await createDesktopPaths({ userDataRoot: root });
+    const target = join(root, 'saved-export.json');
+    const handlers = createDesktopProjectHandlers(paths, () => {}, { saveFile: async () => target });
+    const saved = await invoke(handlers, desktopSaveFileInvocation.id, [{ fileName: 'i180.json', content: '{"ok":true}', mimeType: 'application/json' }]);
+    expect(saved).toEqual({ ok: true, value: { saved: true, fileName: 'saved-export.json' } });
+    expect(await readFile(target, 'utf8')).toBe('{"ok":true}');
+    expect(JSON.stringify(saved)).not.toContain(root);
+
+    const cancelledHandlers = createDesktopProjectHandlers(paths, () => {}, { saveFile: async () => undefined });
+    await expect(invoke(cancelledHandlers, desktopSaveFileInvocation.id, [{ fileName: 'cancel.json', content: '{}' }])).resolves.toEqual({ ok: true, value: { saved: false, fileName: 'cancel.json' } });
+    await expect(invoke(handlers, desktopSaveFileInvocation.id, [{ fileName: 'i180.json', content: '{}', unexpected: true }])).resolves.toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
   });
 });

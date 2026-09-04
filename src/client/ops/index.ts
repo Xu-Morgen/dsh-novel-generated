@@ -45,7 +45,7 @@ export function createWorkbenchOps(runtime: OpsRuntime, ports: OpsPorts): Workbe
   const knowledge = createKnowledgeOps(runtime, { workspace: ports.workspace, knowledgeNamespace: ports.knowledgeNamespace });
   const ruleStyle = createRuleStyleOps(runtime, { ruleStyleNamespace: ports.ruleStyleNamespace });
   const progress = createProgressOps(runtime, { progressNamespace: ports.progressNamespace });
-  const importExport = createImportExportOps(runtime, { importExportNamespace: ports.importExportNamespace });
+  const importExport = createImportExportOps(runtime, { importExportNamespace: ports.importExportNamespace, saveFile: ports.saveFile });
   const statistics = createStatisticsOps(runtime, { statisticsNamespace: ports.statisticsNamespace });
   const timeline = createTimelineOps(runtime, { timelineNamespace: ports.timelineNamespace });
   const referenceReview = createReferenceReviewOps(runtime, { referenceAuditNamespace: ports.referenceAuditNamespace, referenceCorrectionNamespace: ports.referenceCorrectionNamespace });

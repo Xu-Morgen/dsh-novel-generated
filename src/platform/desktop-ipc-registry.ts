@@ -11,6 +11,7 @@ import {
 } from '../app/ipc-registry.js';
 import { hostContribution } from '../host/remote/host-contribution.js';
 import { reviewRepairInvocations } from '../host/remote/review-repair.js';
+import { desktopSaveFileInvocation } from '../desktop/file-dialog-contract.js';
 
 /**
  * Current migration adapter from the historical Remote declarations to the
@@ -22,10 +23,10 @@ import { reviewRepairInvocations } from '../host/remote/review-repair.js';
  * registry without importing individual Remote modules.
  */
 export const desktopIpcMethodDescriptors = Object.freeze(
-  [...hostContribution.invocations, ...reviewRepairInvocations].map((descriptor) => adaptDescriptor(descriptor)),
+  [...hostContribution.invocations, ...reviewRepairInvocations, desktopSaveFileInvocation].map((descriptor) => adaptDescriptor(descriptor)),
 );
 
-/** The sole canonical registry: the historical baseline plus review-repair and I179 source-import seams. */
+/** The sole canonical registry: historical baseline plus migrated desktop seams through I180. */
 export const desktopIpcRegistry: IpcRegistry<readonly IpcMethodDescriptor[]> = createIpcRegistry(desktopIpcMethodDescriptors);
 
 function adaptDescriptor(descriptor: InvocationDescriptor): IpcMethodDescriptor {

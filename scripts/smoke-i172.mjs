@@ -19,7 +19,7 @@ if (preloadSource.includes('exposeInMainWorld(\'ipcRenderer\'') || preloadSource
 if (!bridgeSource.includes('allowlist.has(methodId)') || bridgeSource.includes("from 'electron'") || bridgeSource.includes('from "electron"')) throw new Error('I172 bridge allowlist boundary is incomplete');
 if (!binderSource.includes('registry.invoke') || !binderSource.includes('removeHandler') || !binderSource.includes('AbortController') || !binderSource.includes('IPC_PROGRESS_CHANNEL')) throw new Error('I172 Main binder lifecycle/strict boundary is incomplete');
 if (mainSource.includes('ipcRenderer') || !mainSource.includes('bindElectronIpc')) throw new Error('I172 Main wiring is not a Main-owned binder');
-if (lock.descriptorIds.length !== 216 || (methodIdsSource.match(/novel-creation-tool\//g) ?? []).length !== 216) throw new Error('I172 preload allowlist is not derived from the canonical desktop registry');
+if (lock.descriptorIds.length !== 217 || (methodIdsSource.match(/novel-creation-tool\//g) ?? []).length !== 217) throw new Error('I172 preload allowlist is not derived from the canonical desktop registry');
 
 const focused = spawnCaptured('pnpm', ['exec', 'vitest', 'run', 'src/desktop/preload/bridge.test.ts', 'src/platform/electron-ipc-binder.test.ts'], {
   cwd: root,
@@ -33,13 +33,15 @@ const logPath = join(tempRoot, 'electron.log');
 const electronBinary = process.platform === 'win32'
   ? resolve(root, 'node_modules/electron/dist/electron.exe')
   : resolve(root, 'node_modules/electron/dist/electron');
+const electronEnv = { ...process.env, NOVEL_DESKTOP_SMOKE: '1', NOVEL_DESKTOP_SMOKE_HOLD_MS: '1200' };
+delete electronEnv.ELECTRON_RUN_AS_NODE;
 let child;
 let passed = false;
 try {
   const fd = openSync(logPath, 'w');
   child = spawn(electronBinary, ['--headless', '--disable-gpu', '--disable-dev-shm-usage', `--user-data-dir=${join(tempRoot, 'user-data')}`, root], {
     cwd: root,
-    env: { ...process.env, NOVEL_DESKTOP_SMOKE: '1', NOVEL_DESKTOP_SMOKE_HOLD_MS: '1200' },
+    env: electronEnv,
     stdio: ['ignore', fd, fd],
     windowsHide: true,
   });
