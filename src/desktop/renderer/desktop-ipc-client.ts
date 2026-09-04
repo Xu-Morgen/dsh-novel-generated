@@ -37,6 +37,7 @@ export interface DesktopIpcClient {
   subscribe(listener: () => void): () => void;
   invoke(methodId: string, args: readonly unknown[]): Promise<IpcEnvelope<unknown>>;
   cancel(requestId: string): Promise<IpcEnvelope<unknown>>;
+  cancelMethod(methodId: string): void;
   consume<T>(request: PromiseLike<ConsumableResult<T>>, apply: (value: T) => void): Promise<boolean>;
   dispose(): void;
 }
@@ -165,6 +166,12 @@ export function createDesktopIpcClient(bridge: DesktopBridge): DesktopIpcClient 
       const envelope = normalizeEnvelope(await bridge.cancel(requestId));
       projectError(envelope);
       return envelope;
+    },
+    cancelMethod(methodId: string) {
+      if (!active) return;
+      for (const [requestId, requestMethodId] of inFlight) {
+        if (requestMethodId === methodId) void bridge.cancel(requestId).catch(() => undefined);
+      }
     },
     async consume<T>(request: PromiseLike<ConsumableResult<T>>, apply: (value: T) => void): Promise<boolean> {
       let result: ConsumableResult<T>;

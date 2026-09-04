@@ -81,6 +81,13 @@ describe('framework-neutral strict IPC registry', () => {
     expect(registry.parseArguments(optional.id, [undefined])).toEqual([undefined]);
     expect(() => registry.parseArguments(optional.id, [])).toThrow(/argument count/);
 
+    const optionalString: IpcMethodDescriptor = {
+      id: 'novel-creation-tool/test/optional-string', service: 'test', namespace: 'test', method: 'optional-string',
+      parameters: [{ name: 'value', wire: 'value', acceptsUndefined: true, codec: inputCodec }], result: resultCodec,
+    };
+    const optionalStringRegistry = createIpcRegistry([optionalString] as const);
+    expect(optionalStringRegistry.parseArguments(optionalString.id, [undefined])).toEqual([undefined]);
+
     expect(() => createIpcRegistry([method, method])).toThrow(/duplicate IPC method id/);
     expect(() => createIpcRegistry([method, { ...method, id: 'novel-creation-tool/test/other', method: 'other' }])).not.toThrow();
     expect(() => createIpcRegistry([method, { ...method, id: 'novel-creation-tool/other/accept', namespace: 'test' }])).toThrow(/duplicate IPC namespace\/method/);

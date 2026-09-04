@@ -28,6 +28,8 @@ export interface OpsRuntime {
   beginOp(key: string): boolean;
   endOp(key: string): void;
   queuePoll: QueuePollHandle;
+  /** Cancel all transport requests for a method when a UI run is stopped. */
+  cancelMethod?(methodId: string): void;
 }
 
 /** 各域窄 port 的命名空间包；ops 工厂只 Pick 自己声明的键（I101 OpsContext 窄化）。 */

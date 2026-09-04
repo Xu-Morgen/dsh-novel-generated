@@ -24,11 +24,21 @@ function runtime(store: ReturnType<typeof createDesktopWorkbenchStore>): OpsRunt
   };
 }
 
-function ports(workspace: OpsPorts['workspace'], knowledgeNamespace: OpsPorts['knowledgeNamespace'], ruleStyleNamespace: OpsPorts['ruleStyleNamespace']): Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace'> {
-  return { workspace, knowledgeNamespace, ruleStyleNamespace };
+function ports(workspace: OpsPorts['workspace'], knowledgeNamespace: OpsPorts['knowledgeNamespace'], ruleStyleNamespace: OpsPorts['ruleStyleNamespace']): Parameters<typeof createDesktopStructuredOps>[1] {
+  return {
+    workspace,
+    knowledgeNamespace,
+    ruleStyleNamespace,
+    writing: undefined,
+    branchNamespace: undefined,
+    textMutation: undefined,
+    sceneOutlineBinding: undefined,
+    textDeletion: undefined,
+    outlineReconciliation: undefined,
+  };
 }
 
-describe('I176 desktop structured ops consumer', () => {
+describe('I177 desktop C5 and structured ops consumer', () => {
   it('routes structured editing through the DesktopServiceBag ports', async () => {
     const store = createDesktopWorkbenchStore();
     store.actions.selectProject('alpha', 'Alpha');
@@ -66,9 +76,29 @@ describe('I176 desktop structured ops consumer', () => {
     expect(store.getSnapshot().knowledge.status).toBe('ready');
     expect(store.getSnapshot().ruleStyle.status).toBe('ready');
 
-    // C5 is intentionally still outside I176: its base port is unavailable.
+    // C5 remains fail-closed when its owner ports are absent.
     ops.chapters.retryChapter();
     expect(chapterList).not.toHaveBeenCalled();
+    store.dispose();
+  });
+
+  it('routes chapter navigation through the migrated C5 workspace port', async () => {
+    const store = createDesktopWorkbenchStore();
+    store.actions.selectProject('alpha', 'Alpha');
+    const chapterRead = vi.fn(async () => ok({ id: 'chapter-1', index: 1, title: 'First', pov: 'hero', status: 'draft' as const, scenes: [] }));
+    const workspace = {
+      chapterList: vi.fn(async () => ok([])),
+      chapterRead,
+      sceneRead: vi.fn(async () => ok({})),
+    } as unknown as OpsPorts['workspace'];
+    const ops = createDesktopStructuredOps(runtime(store), ports(workspace, undefined, undefined));
+
+    ops.chapters.selectChapter('chapter-1');
+    await vi.waitFor(() => {
+      expect(chapterRead).toHaveBeenCalledWith('alpha', 'chapter-1');
+      expect(store.getSnapshot().chapters.selectedChapterId).toBe('chapter-1');
+      expect(store.getSnapshot().chapters.chapter.read?.id).toBe('chapter-1');
+    });
     store.dispose();
   });
 

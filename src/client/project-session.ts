@@ -28,8 +28,8 @@ export interface ProjectOpenLayers {
 
 /**
  * Controls which already-owned project slices are loaded after `projectOpen`.
- * The desktop migration uses the structured slice until I177 owns C5; the
- * historical Client path keeps the default full reload behavior.
+ * Desktop I177 explicitly enables the same C5 chapter-tree reload as the
+ * historical Client path; callers may still disable it for a staged owner.
  */
 export interface ProjectReloadOptions {
   readonly includeChapters?: boolean;

@@ -98,7 +98,7 @@ export function createDesktopProjectWorkflow(options: {
         },
         () => active && store.getSnapshot().selectedProjectId === result.project.id && !store.getSnapshot().browsing,
         result.layers,
-        { includeChapters: false },
+        { includeChapters: true },
       );
       return true;
     } catch {

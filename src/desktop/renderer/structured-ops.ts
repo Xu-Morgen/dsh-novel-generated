@@ -10,8 +10,8 @@ import { createWorldviewOps } from '../../client/ops/worldview.js';
 import { createWorkbenchOps } from '../../client/ops/index.js';
 import type { OpsPorts, OpsRuntime } from '../../client/ops/context.js';
 
-/** Ports owned by the I176 structured editing slice. */
-export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace'>;
+/** Ports owned by the I176/I177 structured and C5 editing slices. */
+export type StructuredOpsPorts = Pick<OpsPorts, 'workspace' | 'knowledgeNamespace' | 'ruleStyleNamespace' | 'writing' | 'branchNamespace' | 'textMutation' | 'sceneOutlineBinding' | 'textDeletion' | 'outlineReconciliation'>;
 
 const EMPTY_PORTS: OpsPorts = {
   workspace: undefined,
@@ -41,11 +41,21 @@ const EMPTY_PORTS: OpsPorts = {
  *
  * The base composition supplies stable unavailable operations and router shape
  * for views that belong to later iterations. Only the nine structured panels
- * receive DesktopServiceBag ports here, so C5, review, and queue cannot make a
- * remote call before their owning migration cards are complete.
+ * receive DesktopServiceBag ports here. I177 adds the C5 workbench, candidate,
+ * branch, and finalization ports; review and queue remain unavailable until
+ * their owning migration cards are complete.
  */
 export function createDesktopStructuredOps(runtime: OpsRuntime, ports: StructuredOpsPorts): WorkbenchOps {
-  const unavailable = createWorkbenchOps(runtime, EMPTY_PORTS);
+  const unavailable = createWorkbenchOps(runtime, {
+    ...EMPTY_PORTS,
+    workspace: ports.workspace,
+    writing: ports.writing,
+    branchNamespace: ports.branchNamespace,
+    textMutation: ports.textMutation,
+    sceneOutlineBinding: ports.sceneOutlineBinding,
+    textDeletion: ports.textDeletion,
+    outlineReconciliation: ports.outlineReconciliation,
+  });
   return {
     ...unavailable,
     characters: createCharactersOps(runtime, { workspace: ports.workspace }),

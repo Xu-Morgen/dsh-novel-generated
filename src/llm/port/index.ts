@@ -24,7 +24,10 @@ export interface LlmChunk {
 }
 
 /** Internal novel-domain stream seam; all DSH adaptation belongs in `asLlmBackend`. */
+export const LLM_BACKEND_MARKER = Symbol.for('novel-creation-tool/LlmBackend');
+
 export interface LlmBackend {
+  readonly [LLM_BACKEND_MARKER]?: true;
   stream(request: GenerationRequest): AsyncIterable<LlmChunk | string>;
 }
 
@@ -104,6 +107,7 @@ export async function collectCandidate(
  */
 export function asLlmBackend(value: unknown): LlmBackend | undefined {
   if (!value || typeof value !== 'object' || typeof (value as { stream?: unknown }).stream !== 'function') return undefined;
+  if ((value as { readonly [LLM_BACKEND_MARKER]?: unknown })[LLM_BACKEND_MARKER] === true) return value as LlmBackend;
   const llm = value as DshLlmService;
   return Object.freeze({
     async *stream(request: GenerationRequest): AsyncIterable<LlmChunk> {

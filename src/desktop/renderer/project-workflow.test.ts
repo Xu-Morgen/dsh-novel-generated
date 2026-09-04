@@ -53,7 +53,7 @@ describe('I175 Renderer project workflow', () => {
     expect(first.opened).toEqual(['alpha']);
     expect(first.store.getSnapshot().selectedProjectId).toBe('alpha');
     await vi.waitFor(() => expect(first.store.getSnapshot().characters.list).toEqual([{ id: 'hero', name: 'Hero' }]));
-    expect(first.chapterLoads).toEqual([]);
+    expect(first.chapterLoads).toEqual(['alpha']);
 
     const stale = fixture('missing');
     await stale.workflow.start();

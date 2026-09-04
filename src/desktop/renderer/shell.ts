@@ -69,8 +69,14 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
   return {
     ...PENDING_NAMESPACES,
     workspace: client.services.workspace,
+    writing: client.services.writing,
     knowledgeNamespace: client.services.knowledgeNamespace,
     ruleStyleNamespace: client.services.ruleStyleNamespace,
+    branchNamespace: client.services.branchNamespace,
+    sceneOutlineBinding: client.services.sceneOutlineBinding,
+    textMutation: client.services.textMutation,
+    textDeletion: client.services.textDeletion,
+    outlineReconciliation: client.services.outlineReconciliation,
   };
 }
 
@@ -305,12 +311,19 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     },
     endOp: (key) => { activeOperationsRef.current.delete(projectId === undefined ? key : `${projectId}:${key}`); },
     queuePoll: { start: NOOP, stop: NOOP },
+    cancelMethod: (methodId) => { props.client.cancelMethod(methodId); },
   };
   const namespaces = desktopNamespaces(props.client);
   const ops = createDesktopStructuredOps(runtime, {
     workspace: namespaces.workspace,
     knowledgeNamespace: namespaces.knowledgeNamespace,
     ruleStyleNamespace: namespaces.ruleStyleNamespace,
+    writing: namespaces.writing,
+    branchNamespace: namespaces.branchNamespace,
+    textMutation: namespaces.textMutation,
+    sceneOutlineBinding: namespaces.sceneOutlineBinding,
+    textDeletion: namespaces.textDeletion,
+    outlineReconciliation: namespaces.outlineReconciliation,
   });
   const ui = createDesktopShellUi(state, props.store.actions, workflow);
   React.useEffect(() => {
@@ -344,6 +357,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       'data-novel-workspace': state.status.status,
       'data-novel-connection-status': connection.status,
       'data-novel-pending-requests': String(connection.pendingCount),
+      'data-novel-last-progress-method': connection.progress?.methodId ?? '',
     }, content as React.ReactNode),
   );
 }

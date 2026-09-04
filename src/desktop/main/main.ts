@@ -8,6 +8,8 @@ import type { ApplicationPorts } from '../../app/ports.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
 import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
+import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
+import { createLlmConfigService } from '../../host/llm-config-service.js';
 import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
@@ -122,6 +124,30 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I176] structured-loop ${probe}`);
     }).catch(() => undefined), 'desktop structured editing smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i177-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: 'C5 workbench smoke' }], 'i177-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i177-open');
+        const initial = await invoke('novel-creation-tool/novelText/fingerprint', [projectId], 'i177-fingerprint-1');
+        const initialHash = initial?.value?.fingerprint;
+        const chapter = await invoke('novel-creation-tool/novelText/chapterCreate', [projectId, { id: 'chapter-1', index: 1, title: 'First chapter', pov: 'hero', status: 'draft', expectedFingerprint: initialHash }], 'i177-chapter');
+        const afterChapter = await invoke('novel-creation-tool/novelText/fingerprint', [projectId], 'i177-fingerprint-2');
+        const scene = await invoke('novel-creation-tool/novelText/sceneCreate', [projectId, { chapterId: 'chapter-1', index: 0, scene: { id: 'scene-1', content: 'abc', summary: 'Opening', beats: [], canonEvents: [], notes: '' }, expectedFingerprint: afterChapter?.value?.fingerprint }], 'i177-scene');
+        const chapters = await invoke('novel-creation-tool/novelWorkspace/chapterList', [projectId], 'i177-list');
+        const read = await invoke('novel-creation-tool/novelWorkspace/sceneRead', [projectId, 'chapter-1', 'scene-1'], 'i177-read');
+        const edited = await invoke('novel-creation-tool/novelWorkspace/sceneEdit', [projectId, 'chapter-1', 'scene-1', { start: 0, end: 3 }, 'xyz', undefined], 'i177-edit');
+        const branch = await invoke('novel-creation-tool/novelBranches/save', [projectId, 'chapter-1', 'scene-1', 'before-final'], 'i177-branch');
+        const branchRead = await invoke('novel-creation-tool/novelBranches/read', [projectId, 'chapter-1', 'scene-1', branch?.value?.branches?.[0]?.id], 'i177-branch-read');
+        const binding = await invoke('novel-creation-tool/novelSceneOutlineBinding/read', [projectId], 'i177-binding');
+        const invalid = await invoke('novel-creation-tool/novelWorkspace/sceneEdit', [projectId, 'chapter-1', 'scene-1', { start: 3, end: 1 }, 'bad', undefined], 'i177-invalid-range');
+        return JSON.stringify({ created, opened, chapter, scene, chapters, read, edited, branch, branchRead, binding, invalid });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I177] c5-loop ${probe}`);
+    }).catch(() => undefined), 'desktop C5 workbench smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -179,6 +205,19 @@ const applicationKernel = createApplicationKernel({
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
       ports.provide('createLlmBackend', (endpoint: string, providerId: string) => createOpenAICompatibleBackend({ endpoint, providerId, credentials: credentials.resolver }));
+      const llmConfig = createLlmConfigService({
+        describe: async (ref) => ({ ...await credentials.store.describe(ref), writable: true }),
+        set: (ref, secret) => credentials.store.set(ref, secret),
+      }, undefined, paths.settingsRoot);
+      const llm: LlmBackend = {
+        [LLM_BACKEND_MARKER]: true,
+        async *stream(request) {
+          const config = await llmConfig.load();
+          if (config.baseUrl === '') throw new Error('LLM endpoint is not configured');
+          const backend = createOpenAICompatibleBackend({ endpoint: config.baseUrl, providerId: config.providerId, credentials: credentials.resolver });
+          yield* backend.stream(request);
+        },
+      };
       ports.registerDisposer(() => {
         if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
         mainWindow = null;
@@ -215,7 +254,10 @@ const applicationKernel = createApplicationKernel({
 
       const ipcHandlers = new Map<string, IpcHandler>([
         ['novel-creation-tool/novelProbe/probe', async () => ({ marker: 'I2-PROBE', ready: true })],
-        ...createDesktopProjectHandlers(paths, (directory) => { void shell.openPath(directory); }),
+        ...createDesktopProjectHandlers(paths, (directory) => { void shell.openPath(directory); }, {
+          llm,
+          onDispose: (dispose) => { ports.registerDisposer(dispose, 'desktop C5 services'); },
+        }),
       ]);
       const ipcBinder = bindElectronIpc({
         ipcMain,

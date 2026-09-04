@@ -1,5 +1,5 @@
 import type { MainCredentialResolver } from '../app/credentials.js';
-import { resolveGenerationSettings, type GenerationRequest, type LlmBackend, type LlmChunk } from '../llm/port/index.js';
+import { LLM_BACKEND_MARKER, resolveGenerationSettings, type GenerationRequest, type LlmBackend, type LlmChunk } from '../llm/port/index.js';
 
 export type OpenAICompatibleErrorCode =
   | 'invalid-config'
@@ -40,6 +40,7 @@ export interface OpenAICompatibleBackendOptions {
  * receives text/reasoning/done deltas and stable errors, never the key.
  */
 export class OpenAICompatibleBackend implements LlmBackend {
+  readonly [LLM_BACKEND_MARKER] = true as const;
   private readonly endpoint: string;
   private readonly providerId: string;
   private readonly credentials: MainCredentialResolver;

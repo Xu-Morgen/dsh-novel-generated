@@ -275,6 +275,7 @@ function parseArguments(descriptor: IpcMethodDescriptor, args: readonly unknown[
     if (value === undefined && parameter.acceptsUndefined !== true) {
       throw new IpcContractError('invalid-arguments', 'IPC argument is invalid', { methodId: descriptor.id, parameter: parameter.name });
     }
+    if (value === undefined && parameter.acceptsUndefined === true) return undefined;
     try {
       assertSerializable(value, 'argument');
       const parsed = parameter.codec.parse(value);

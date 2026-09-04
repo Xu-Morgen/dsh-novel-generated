@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -44,6 +45,39 @@ describe('I175 Main project and settings handlers', () => {
     expect(await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectArchiveList')).toMatchObject({ ok: true, value: [{ id: 'archived' }] });
     await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectRestore', ['archived']);
     expect(await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectOpen', ['archived'])).toMatchObject({ ok: true, value: { project: { id: 'archived' } } });
+  });
+
+  it('routes C5 text editing and branches through Main-owned consumers', async () => {
+    const { handlers } = await fixture();
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'c5', name: 'C5' }]);
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectOpen', ['c5']);
+    const initialState = await invoke(handlers, 'novel-creation-tool/novelWorkspace/stateSnapshots', ['c5']);
+    const initialFingerprint = await invoke(handlers, 'novel-creation-tool/novelText/fingerprint', ['c5']);
+    const expectedFingerprint = (initialFingerprint as { ok: true; value: { fingerprint: string } }).value.fingerprint;
+    await expect(invoke(handlers, 'novel-creation-tool/novelText/chapterCreate', ['c5', {
+      id: 'chapter-1', index: 1, title: '第一章', pov: 'hero', status: 'draft', expectedFingerprint,
+    }])).resolves.toMatchObject({ ok: true, value: { chapter: { id: 'chapter-1', sceneCount: 0 } } });
+    const afterChapter = await invoke(handlers, 'novel-creation-tool/novelText/fingerprint', ['c5']);
+    const sceneFingerprint = (afterChapter as { ok: true; value: { fingerprint: string } }).value.fingerprint;
+    await expect(invoke(handlers, 'novel-creation-tool/novelText/sceneCreate', ['c5', {
+      chapterId: 'chapter-1', index: 0,
+      scene: { id: 'scene-1', content: 'abc', summary: '开场', beats: [], canonEvents: [], notes: '' },
+      expectedFingerprint: sceneFingerprint,
+    }])).resolves.toMatchObject({ ok: true, value: { chapterId: 'chapter-1', scene: { id: 'scene-1' } } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelWorkspace/chapterList', ['c5'])).resolves.toMatchObject({
+      ok: true, value: [{ id: 'chapter-1', sceneCount: 1 }],
+    });
+    await expect(invoke(handlers, 'novel-creation-tool/novelWorkspace/sceneEdit', [
+      'c5', 'chapter-1', 'scene-1', { start: 0, end: 3 }, 'xyz', createHash('sha256').update('abc').digest('hex'),
+    ])).resolves.toMatchObject({ ok: true, value: { scene: { id: 'scene-1', content: 'xyz' } } });
+    const branchSave = await invoke(handlers, 'novel-creation-tool/novelBranches/save', ['c5', 'chapter-1', 'scene-1', 'before-final']);
+    expect(branchSave).toMatchObject({ ok: true, value: { content: 'xyz' } });
+    const branchId = (branchSave as { ok: true; value: { branches: Array<{ id: string }> } }).value.branches[0].id;
+    await expect(invoke(handlers, 'novel-creation-tool/novelBranches/chooseFresh', [
+      'c5', 'chapter-1', 'scene-1', branchId, createHash('sha256').update('xyz').digest('hex'),
+    ])).resolves.toMatchObject({ ok: true, value: { content: 'xyz' } });
+    const finalState = await invoke(handlers, 'novel-creation-tool/novelWorkspace/stateSnapshots', ['c5']);
+    expect(finalState).toEqual(initialState);
   });
 
   it('opens a controlled Main path but returns only the locked opaque path marker', async () => {

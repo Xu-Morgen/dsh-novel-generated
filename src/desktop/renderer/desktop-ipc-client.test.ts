@@ -128,6 +128,20 @@ describe('I174 generated Renderer IPC client', () => {
     expect(client.getSnapshot()).toEqual({ status: 'closed', pendingCount: 0 });
   });
 
+  it('cancels every in-flight request for a stopped generation method', async () => {
+    const controls = fakeBridge((_methodId, _args, requestId) => {
+      controls.invokes.push({ methodId: _methodId, args: _args, requestId });
+      return new Promise(() => undefined);
+    });
+    const client = createDesktopIpcClient(controls.bridge);
+    void client.services.writing.propose('alpha', { intent: 'continue' }, undefined);
+    void client.services.writing.proposeAt('alpha', { intent: 'continue', chapterId: 'c1', sceneId: 's1' }, undefined);
+
+    client.cancelMethod('novel-creation-tool/novelWriting/propose');
+    expect(controls.cancels).toEqual(['desktop:1']);
+    client.dispose();
+  });
+
   it('projects transport failures without exposing the rejected cause', async () => {
     const controls = fakeBridge(async () => { throw new Error('secret endpoint and key'); });
     const client = createDesktopIpcClient(controls.bridge);

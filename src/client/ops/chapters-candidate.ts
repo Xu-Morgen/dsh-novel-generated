@@ -186,6 +186,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     const session = snapshot.chapters.polish;
     if (session.status !== 'running') return;
     bumpPolishRunToken();
+    runtime.cancelMethod?.('novel-creation-tool/novelWriting/propose');
     polishPatch(stopPolishSession(session));
     candidatePatch({ ui: { kind: 'idle' } });
     workflowPatchForRevision({ status: 'cancelled', message: '章节润色已停止，未启动后续场景。' }, snapshot.chapters.navigationRevision);
