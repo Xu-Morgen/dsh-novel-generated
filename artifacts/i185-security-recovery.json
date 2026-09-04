@@ -1,0 +1,37 @@
+{
+  "iteration": "I185",
+  "platform": "win32",
+  "security": {
+    "browserWindow": "contextIsolation+sandbox+noNodeIntegration",
+    "navigation": "external-navigation+new-window+webview blocked",
+    "csp": "local scripts, no network connect/frame/object, no unsafe-eval",
+    "rendererForbiddenCapabilities": [
+      "node",
+      "electron",
+      "ipcRenderer",
+      "provider client",
+      "secret",
+      "network fetch"
+    ]
+  },
+  "faultInjection": {
+    "childTerminated": true,
+    "preparedJournalObserved": true,
+    "recoveredSourceHash": "0374ee3779a6862ba09472ac5209049c5847f34804bebacce735b413a84b8363",
+    "residualTemporaryFiles": []
+  },
+  "packaged": {
+    "singleInstance": {
+      "firstBooted": true,
+      "secondExited": true,
+      "secondFocusedFirst": true
+    },
+    "crashRelaunch": {
+      "crashTerminated": true,
+      "relaunchBooted": true,
+      "relaunchExitCode": 0,
+      "kernelStartFailure": false
+    },
+    "residualTemporaryFiles": []
+  }
+}

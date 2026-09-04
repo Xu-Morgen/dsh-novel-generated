@@ -459,6 +459,8 @@
     "verify:i183": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i183",
     "smoke:i184": "node scripts/smoke-i184.mjs",
     "verify:i184": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run package:desktop && pnpm run smoke:i184",
+    "smoke:i185": "node scripts/smoke-i185.mjs",
+    "verify:i185": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run package:desktop && pnpm run smoke:i185",
     "verify:stage-34": "pnpm run verify:i173 && pnpm run verify:i174 && pnpm run verify:i175 && pnpm run verify:i176 && pnpm run verify:i177 && pnpm run verify:i178 && pnpm run verify:i179 && pnpm run verify:i180",
     "verify:stage-35": "pnpm run verify:i181 && pnpm run verify:i182",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
