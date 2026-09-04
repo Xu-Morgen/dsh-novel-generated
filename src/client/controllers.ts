@@ -21,7 +21,7 @@
 import type { WorkbenchActions } from './store/types.js';
 import { reloadProject, type ProjectOpenLayers } from './project-session.js';
 import { toUserMessage } from './presentation.js';
-import { projectIdForUpload, uploadDocx } from './upload.js';
+import { projectIdForUpload, selectDocx, uploadDocx } from './upload.js';
 import {
   ANALYSIS_POLL_INTERVAL_MS,
   adjudicateOne,
@@ -491,11 +491,15 @@ export interface UploadControllerDeps extends ControllerBaseDeps {
   startSourceReview(projectId: string, source: { sourceHash: string; text: string; chunks: readonly unknown[] }): void;
   /** 目录层上传 → 从 DOCX 新建独立作品。 */
   createProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
+  /** I179 Desktop uses Main's OS chooser; the historical Client mount keeps File input mode. */
+  readonly useMainFileDialog?: boolean;
+  /** Desktop keeps the newly opened import target visible for semantic review. */
+  readonly keepProjectOpenAfterImport?: boolean;
 }
 
 export interface UploadController {
   /** 一次受控上传链；作品内入口必须先通过 N-7 空作品门。 */
-  uploadFile(file: File, browsing: boolean, currentProjectEligible: boolean): void;
+  uploadFile(file: File | undefined, browsing: boolean, currentProjectEligible: boolean): void;
 }
 
 /**
@@ -504,7 +508,7 @@ export interface UploadController {
  * sourceHash/text/chunks 交给同一来源语义审阅，产品 Client 不再启动旧六层分析。
  */
 export function createUploadController(deps: UploadControllerDeps): UploadController {
-  const uploadFile = (file: File, browsing: boolean, currentProjectEligible: boolean): void => {
+  const uploadFile = (file: File | undefined, browsing: boolean, currentProjectEligible: boolean): void => {
     const target = deps.workspace();
     if (!target || !deps.isActive()) return;
     if (deps.currentProjectId() !== undefined && !browsing && !currentProjectEligible) {
@@ -513,9 +517,18 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
     }
     // I59 防重复上传（R12-6）：一次 Remote 上传链进行中忽略再次选择文件。
     if (!deps.beginOp('upload')) return;
-    void uploadDocx(target, file, (progress) => deps.dispatch((x) => x.uploadProgress(progress))).then(
+    const upload = deps.useMainFileDialog === true
+      ? selectDocx(target, (progress) => deps.dispatch((x) => x.uploadProgress(progress)))
+      : file === undefined
+        ? Promise.resolve(undefined)
+        : uploadDocx(target, file, (progress) => deps.dispatch((x) => x.uploadProgress(progress)));
+    void upload.then(
       (result) => {
         deps.endOp('upload');
+        if (result === undefined) {
+          deps.dispatch((x) => x.uploadSettled(undefined));
+          return;
+        }
         const { uploadId, ...uploadResult } = result;
         deps.dispatch((x) => { x.uploadSettled(uploadResult); x.uploadProgress({ phase: 'done' }); });
         const projectId = deps.currentProjectId();
@@ -533,7 +546,7 @@ export function createUploadController(deps: UploadControllerDeps): UploadContro
           if (openedId !== undefined) {
             deps.startSourceReview(openedId, { sourceHash: result.sourceHash, text: result.text, chunks: result.chunks });
             // 来源审阅保持在目录层；确认后由 source-aware workflow 决定后续路径。
-            deps.dispatch((actions) => actions.browseProjects());
+            if (deps.keepProjectOpenAfterImport !== true) deps.dispatch((actions) => actions.browseProjects());
           }
         });
       },

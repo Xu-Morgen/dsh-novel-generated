@@ -2,6 +2,7 @@ import type { El, WorkspaceNamespace } from './shared.js';
 import { slug, unwrap } from './shared.js';
 import { toUserMessage } from './presentation.js';
 import { sha256Hex } from './sha256.js';
+import type { SelectedDocxResult } from '../core/schema/upload.js';
 
 /**
  * I51 受控 DOCX 上传 UI 助销器（design §14.7.2 / N-3 / R11-2）。
@@ -82,6 +83,23 @@ export async function uploadDocx(workspace: WorkspaceNamespace, file: File, repo
     report({ phase: 'error', message: toUserMessage(error, '文件上传未完成，请重试。') });
     throw error;
   }
+}
+
+/**
+ * I179 Desktop path: ask Main to open the OS chooser and consume the opaque
+ * finalized result. Renderer deliberately has no FileReader or path access on
+ * this path; the legacy `uploadDocx` helper remains for the historical Client
+ * mount until its host is retired.
+ */
+export async function selectDocx(workspace: WorkspaceNamespace, report: (progress: UploadProgress) => void): Promise<UploadedDocx | undefined> {
+  report({ phase: 'reading' });
+  const selected = await unwrap(workspace.selectDocx()) as SelectedDocxResult;
+  if (selected === null) {
+    report({ phase: 'idle' });
+    return undefined;
+  }
+  report({ phase: 'done' });
+  return selected;
 }
 
 /**

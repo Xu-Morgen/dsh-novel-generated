@@ -42,6 +42,7 @@
     "novel-creation-tool/novelWorkspace/uploadChunk",
     "novel-creation-tool/novelWorkspace/uploadFinalize",
     "novel-creation-tool/novelWorkspace/uploadCancel",
+    "novel-creation-tool/novelWorkspace/selectDocx",
     "novel-creation-tool/novelOnboarding/adjudicate",
     "novel-creation-tool/novelOnboarding/acceptedLayers",
     "novel-creation-tool/novelOnboarding/finalApply",
@@ -1413,6 +1414,17 @@
       "result": {
         "typeSymbol": "novel-creation-tool#uploadCancel:result",
         "schemaId": "novel-creation-tool#uploadCancel:result@b17d2ced"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/selectDocx": {
+      "id": "novel-creation-tool/novelWorkspace/selectDocx",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "selectDocx",
+      "parameters": [],
+      "result": {
+        "typeSymbol": "novel-creation-tool#selectDocx:result",
+        "schemaId": "novel-creation-tool#selectDocx:result@f998a27f"
       }
     },
     "novel-creation-tool/novelOnboarding/adjudicate": {
@@ -11113,6 +11125,82 @@
           "ok"
         ],
         "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#selectDocx:result@f998a27f": {
+      "typeSymbol": "novel-creation-tool#selectDocx:result",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "fileName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "^[^/\\\\\\u0000]+$"
+              },
+              "text": {
+                "type": "string"
+              },
+              "chunks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "startOffset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endOffset": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "text",
+                    "startOffset",
+                    "endOffset"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "uploadId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "sourceHash",
+              "fileName",
+              "text",
+              "chunks",
+              "uploadId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     },
     "novel-creation-tool#onboardingAdjudicateInput@45a381fe": {

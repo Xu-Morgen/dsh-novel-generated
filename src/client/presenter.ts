@@ -68,7 +68,9 @@ export interface WorkbenchUi {
   confirmLeave(): void;
   cancelLeave(): void;
   cancelBrowse(): void;
-  uploadFile(file: File): void;
+  uploadFile(file?: File): void;
+  /** I179 Desktop uses Main's native file chooser instead of Renderer FileReader. */
+  uploadUsesMainDialog?: boolean;
   setSourceImportText(text: string): void;
   setSourceImportFormat(format: SourceImportFormat): void;
   submitSourceText(): void;
@@ -182,7 +184,7 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
       dispatch((x) => x.showLeaveConfirm(false));
     },
     cancelBrowse() { project.cancelBrowse(); },
-    uploadFile(file: File) { upload.uploadFile(file, s.browsing, sourceImportGate(s).status === 'ready'); },
+    uploadFile(file?: File) { upload.uploadFile(file, s.browsing, sourceImportGate(s).status === 'ready'); },
     setSourceImportText(text: string) { actions.sourceImportPatch({ text, status: 'idle', error: undefined }); },
     setSourceImportFormat(format: SourceImportFormat) { actions.sourceImportPatch({ format, status: 'idle', error: undefined }); },
     submitSourceText() { sourceImport.normalizeText({ text: s.sourceImport.text, format: s.sourceImport.format }, sourceImportGate(s)); },
@@ -333,6 +335,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     setFormat: ui.setSourceImportFormat,
     submitText: ui.submitSourceText,
     uploadFile: ui.uploadFile,
+    mainDialog: ui.uploadUsesMainDialog,
   });
   const importReview = importInterpretationReview === undefined ? null : sourceInterpretationReview(h, importInterpretationReview, {
     begin: (source) => ui.beginImportInterpretation(source),
@@ -430,7 +433,9 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
               ),
               h('label', { className: 'nv-upload', 'data-novel-upload': '' },
                 h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, uploadStatusLabel(upload)),
-                h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
+                ui.uploadUsesMainDialog
+                  ? h('button', { type: 'button', className: 'nv-btn', disabled: upload?.phase === 'reading' || upload?.phase === 'uploading' || upload?.phase === 'finalizing', 'data-novel-upload-main-dialog': '', onClick: () => ui.uploadFile() }, '选择 DOCX 文件')
+                  : h('input', { type: 'file', accept: '.docx', 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) ui.uploadFile(file); } }),
               ),
               uploadResult ? h('div', { className: 'nv-upload__result', 'data-novel-upload-result-wrap': '' },
                 h('p', { 'data-novel-upload-result': '', role: 'status', 'aria-live': 'polite' }, `已提取「${uploadResult.fileName}」：${uploadResult.chunks.length} 个文本块`),

@@ -40,6 +40,7 @@ export const IPC_METHOD_IDS = [
   "novel-creation-tool/novelWorkspace/uploadChunk",
   "novel-creation-tool/novelWorkspace/uploadFinalize",
   "novel-creation-tool/novelWorkspace/uploadCancel",
+  "novel-creation-tool/novelWorkspace/selectDocx",
   "novel-creation-tool/novelOnboarding/adjudicate",
   "novel-creation-tool/novelOnboarding/acceptedLayers",
   "novel-creation-tool/novelOnboarding/finalApply",

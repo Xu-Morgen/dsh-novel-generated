@@ -50,14 +50,14 @@ function fakeBridge(invoke?: DesktopBridge['invoke']): FakeBridgeControls {
 }
 
 describe('I174 generated Renderer IPC client', () => {
-  it('derives all 31 historical service keys and all 206 consumed methods from one registry', async () => {
+  it('derives all 31 service keys and all canonical consumed methods from one registry', async () => {
     const controls = fakeBridge();
     const client = createDesktopIpcClient(controls.bridge);
     const calls: Array<Promise<unknown>> = [];
 
     expect(DESKTOP_CLIENT_SERVICES).toHaveLength(31);
     expect(new Set(DESKTOP_CLIENT_SERVICES.map(({ key }) => key)).size).toBe(31);
-    expect(DESKTOP_CLIENT_SERVICES.reduce((count, service) => count + service.methods.length, 0)).toBe(206);
+    expect(DESKTOP_CLIENT_SERVICES.reduce((count, service) => count + service.methods.length, 0)).toBe(207);
     expect(Object.keys(client.services).sort()).toEqual(DESKTOP_CLIENT_SERVICES.map(({ key }) => key).sort());
 
     for (const service of DESKTOP_CLIENT_SERVICES) {
@@ -166,7 +166,7 @@ describe('I174 generated Renderer IPC client', () => {
       .map((match) => ({ key: match[1], namespace: match[2] }));
 
     expect(DESKTOP_CLIENT_SERVICES.map(({ key, namespace }) => ({ key, namespace }))).toEqual(historical);
-    expect(lock.descriptorIds).toHaveLength(215);
+    expect(lock.descriptorIds).toHaveLength(216);
     expect(DESKTOP_CLIENT_SERVICES.flatMap(({ methods }) => methods.map(({ methodId }) => methodId))
       .every((methodId) => lock.descriptorIds.includes(methodId))).toBe(true);
   });

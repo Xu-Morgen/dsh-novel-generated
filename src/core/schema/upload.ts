@@ -58,3 +58,13 @@ export const uploadFinalizeResultSchema = z.object({
   chunks: z.array(docxTextChunkSchema),
 }).strict();
 export type UploadFinalizeResult = z.infer<typeof uploadFinalizeResultSchema>;
+
+/**
+ * I179 Main-owned file chooser result. The upload id is an opaque capability
+ * for the completed Host upload; the selected path and raw bytes never cross
+ * the Electron IPC boundary (design §0.1.2 / §14.32.3).
+ */
+export const selectedDocxResultSchema = uploadFinalizeResultSchema.extend({
+  uploadId: z.string().min(1).max(128),
+}).strict().nullable();
+export type SelectedDocxResult = z.infer<typeof selectedDocxResultSchema>;

@@ -159,6 +159,10 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "uploadCancel",
         "methodId": "novel-creation-tool/novelWorkspace/uploadCancel"
+      },
+      {
+        "method": "selectDocx",
+        "methodId": "novel-creation-tool/novelWorkspace/selectDocx"
       }
     ]
   },

@@ -113,7 +113,9 @@ export interface SourceImportPresenterProps {
   readonly setText: (value: string) => void;
   readonly setFormat: (value: SourceImportFormat) => void;
   readonly submitText: () => void;
-  readonly uploadFile: (file: File) => void;
+  readonly uploadFile: (file?: File) => void;
+  /** I179 Desktop delegates selection to Main's native dialog. */
+  readonly mainDialog?: boolean;
 }
 
 /** Pure author-facing entry shared by workflow import and legacy route. */
@@ -124,7 +126,9 @@ export function sourceImportPresenter(h: El, props: SourceImportPresenterProps):
     h('p', { className: 'nv-settings__hint', role: props.gate.status === 'blocked' ? 'alert' : 'status', 'data-novel-source-import-guidance': '' }, props.gate.message),
     h('label', { className: 'nv-upload', 'data-novel-source-import-docx': '' },
       h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, props.uploadLabel),
-      h('input', { type: 'file', accept: '.docx', disabled: blocked || props.uploadBusy, 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) props.uploadFile(file); } }),
+      props.mainDialog === true
+        ? h('button', { type: 'button', className: 'nv-btn', disabled: blocked || props.uploadBusy, 'data-novel-upload-main-dialog': '', onClick: () => props.uploadFile() }, '选择 DOCX 文件')
+        : h('input', { type: 'file', accept: '.docx', disabled: blocked || props.uploadBusy, 'data-novel-upload-input': '', onChange: (event: { target: { files: FileList | null } }) => { const file = event.target.files?.[0]; if (file) props.uploadFile(file); } }),
     ),
     h('label', { className: 'nv-field' },
       h('span', { className: 'nv-field__label' }, '文本格式'),

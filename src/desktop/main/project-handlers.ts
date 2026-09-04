@@ -17,6 +17,7 @@ import { createStyleService } from '../../host/style-service.js';
 import { createRuleStyleManagerService } from '../../host/rule-style-manager-service.js';
 import { createDesktopC5Handlers, type DesktopC5HandlerDependencies, type DesktopC5Services } from './c5-handlers.js';
 import { createDesktopReviewQueueHandlers } from './review-queue-handlers.js';
+import { createDesktopSourceImportHandlers } from './source-import-handlers.js';
 
 export const DESKTOP_MANAGED_PATH = '[desktop-managed]';
 
@@ -26,6 +27,8 @@ export interface DesktopProjectHandlerOptions {
   readonly llm?: unknown;
   readonly resolveGenerationSettings?: DesktopC5HandlerDependencies['resolveGenerationSettings'];
   readonly onDispose?: DesktopC5HandlerDependencies['onDispose'];
+  /** I179 Main-owned OS chooser; its selected path is consumed before IPC return. */
+  readonly selectDocxFile?: () => Promise<string | undefined>;
 }
 
 /**
@@ -100,10 +103,29 @@ export function createDesktopProjectHandlers(
     rules,
     style,
   });
+  const sourceImportHandlers = createDesktopSourceImportHandlers({
+    c5: c5Services,
+    paths,
+    llm: options.llm,
+    resolveGenerationSettings: options.resolveGenerationSettings,
+    onDispose: options.onDispose,
+    selectDocxFile: options.selectDocxFile,
+    characters,
+    worldview,
+    outline,
+    relationship,
+    state,
+    canon,
+    confirmation,
+    knowledge,
+    rules,
+    style,
+  });
 
   return new Map<string, IpcHandler>([
     ...c5Handlers,
     ...reviewQueueHandlers,
+    ...sourceImportHandlers,
     ['novel-creation-tool/novelWorkspace/viewModel', async () => workspaceViewModel()],
     ['novel-creation-tool/novelWorkspace/characterList', async (projectId) => characters.list(projectId as string)],
     ['novel-creation-tool/novelWorkspace/characterRead', async (projectId, characterId) => characters.read(projectId as string, characterId as string)],

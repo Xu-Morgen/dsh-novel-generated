@@ -14,7 +14,9 @@ import type {
 } from '../../client/store/types.js';
 import type { WorkbenchViewId } from '../../client/nav.js';
 import type { WorkflowStageId } from '../../client/workflow.js';
-import type { SourceImportFormat } from '../../client/source-import.js';
+import { createSourceImportController, sourceImportGate, type SourceImportController, type SourceImportFormat } from '../../client/source-import.js';
+import { createImportInterpretationController, paragraphsFromHostChunks, type ImportInterpretationController } from '../../client/import-interpretation-review.js';
+import { createDesktopUploadController, type DesktopUploadController } from './upload-controller.js';
 import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
@@ -76,6 +78,7 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     queueNamespace: client.services.queueNamespace,
     knowledgeNamespace: client.services.knowledgeNamespace,
     ruleStyleNamespace: client.services.ruleStyleNamespace,
+    importExportNamespace: client.services.importExportNamespace,
     branchNamespace: client.services.branchNamespace,
     sceneOutlineBinding: client.services.sceneOutlineBinding,
     textMutation: client.services.textMutation,
@@ -83,6 +86,8 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     outlineReconciliation: client.services.outlineReconciliation,
     referenceAuditNamespace: client.services.referenceAudit,
     referenceCorrectionNamespace: client.services.referenceCorrection,
+    importInterpretation: client.services.importInterpretation,
+    importInterpretationAnalysis: client.services.importInterpretationAnalysis,
   };
 }
 
@@ -123,7 +128,13 @@ function viewStates(state: WorkbenchState): WorkbenchViewStates {
  * I173 临时 UI adapter：只开放纯 Renderer 交互，业务命令显式保持未接线。
  * I174 会以 DesktopServiceBag 替换这些业务空操作；本迭代不会提前调用 IPC。
  */
-export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow): WorkbenchUi {
+interface DesktopShellControllers {
+  readonly upload: DesktopUploadController;
+  readonly sourceImport: SourceImportController;
+  readonly importInterpretation: ImportInterpretationController;
+}
+
+export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, controllers?: DesktopShellControllers): WorkbenchUi {
   return {
     open: state.open,
     collapsed: state.collapsed,
@@ -163,27 +174,28 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
     confirmLeave: workflow.confirmLeave,
     cancelLeave: workflow.cancelLeave,
     cancelBrowse: actions.cancelBrowse,
-    uploadFile: NOOP,
+    uploadUsesMainDialog: controllers !== undefined,
+    uploadFile: (file?: File) => controllers?.upload.uploadFile(file, state.browsing, sourceImportGate(state).status === 'ready') ?? NOOP(),
     setSourceImportText: (text) => actions.sourceImportPatch({ text }),
     setSourceImportFormat: (format: SourceImportFormat) => actions.sourceImportPatch({ format }),
-    submitSourceText: NOOP,
-    beginImportInterpretation: NOOP,
-    retryImportInterpretation: NOOP,
-    cancelImportInterpretation: NOOP,
-    confirmImportInterpretation: NOOP,
-    setImportSourceRole: NOOP,
-    setImportTreatment: NOOP,
-    setImportNarrativeIntent: NOOP,
-    setImportParagraphRole: NOOP,
-    setImportParagraphDecision: NOOP,
-    splitImportParagraph: NOOP,
-    mergeImportParagraphWithNext: NOOP,
-    setRuleStyleImportRulesDraft: NOOP,
-    setRuleStyleImportStyleDraft: NOOP,
-    retryRuleStyleImportInitialization: NOOP,
-    proposeRuleStyleImportInitialization: NOOP,
-    acceptRuleStyleImportInitialization: NOOP,
-    rejectRuleStyleImportInitialization: NOOP,
+    submitSourceText: () => controllers?.sourceImport.normalizeText({ text: state.sourceImport.text, format: state.sourceImport.format }, sourceImportGate(state)) ?? NOOP(),
+    beginImportInterpretation: (source) => controllers?.importInterpretation.begin(source) ?? NOOP(),
+    retryImportInterpretation: () => controllers?.importInterpretation.retry() ?? NOOP(),
+    cancelImportInterpretation: () => controllers?.importInterpretation.cancel() ?? NOOP(),
+    confirmImportInterpretation: () => controllers?.importInterpretation.confirm() ?? NOOP(),
+    setImportSourceRole: (role) => controllers?.importInterpretation.setSourceRole(role) ?? NOOP(),
+    setImportTreatment: (treatment) => controllers?.importInterpretation.setTreatment(treatment) ?? NOOP(),
+    setImportNarrativeIntent: (intent) => controllers?.importInterpretation.setNarrativeIntent(intent) ?? NOOP(),
+    setImportParagraphRole: (paragraphId, role) => controllers?.importInterpretation.setParagraphRole(paragraphId, role) ?? NOOP(),
+    setImportParagraphDecision: (paragraphId, decision) => controllers?.importInterpretation.setParagraphDecision(paragraphId, decision) ?? NOOP(),
+    splitImportParagraph: (paragraphId, offset) => controllers?.importInterpretation.splitParagraph(paragraphId, offset) ?? NOOP(),
+    mergeImportParagraphWithNext: (paragraphId) => controllers?.importInterpretation.mergeParagraphWithNext(paragraphId) ?? NOOP(),
+    setRuleStyleImportRulesDraft: (value) => controllers?.importInterpretation.setRuleStyleRulesDraft(value) ?? NOOP(),
+    setRuleStyleImportStyleDraft: (value) => controllers?.importInterpretation.setRuleStyleStyleDraft(value) ?? NOOP(),
+    retryRuleStyleImportInitialization: () => controllers?.importInterpretation.retryRuleStyleInitialization() ?? NOOP(),
+    proposeRuleStyleImportInitialization: () => controllers?.importInterpretation.proposeRuleStyleInitialization() ?? NOOP(),
+    acceptRuleStyleImportInitialization: () => controllers?.importInterpretation.acceptRuleStyleInitialization() ?? NOOP(),
+    rejectRuleStyleImportInitialization: () => controllers?.importInterpretation.rejectRuleStyleInitialization() ?? NOOP(),
   };
 }
 
@@ -191,7 +203,7 @@ function preferenceStore(): ProjectPreferenceStore {
   return typeof window === 'undefined' ? FALLBACK_PREFERENCE : window.localStorage;
 }
 
-function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow): React.ReactElement {
+function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, ui: WorkbenchUi): React.ReactElement {
   return React.createElement('section', { className: 'nv-workbench__state nv-workbench__state--chooser', 'data-novel-project-chooser': '' },
     React.createElement('header', { className: 'nv-workbench__brand' },
       React.createElement('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
@@ -202,6 +214,7 @@ function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, 
       : null,
     state.projectError ? React.createElement('p', { role: 'alert', 'data-novel-project-error': '' }, state.projectError) : null,
     React.createElement('section', { className: 'nv-workbench__new-project', 'data-novel-project-create-section': '' },
+      React.createElement('button', { type: 'button', disabled: state.projectLoading || state.upload.phase === 'reading' || state.upload.phase === 'uploading' || state.upload.phase === 'finalizing', 'data-novel-upload-main-dialog': '', onClick: () => ui.uploadFile() }, 'Select DOCX import'),
       React.createElement('h3', null, '新建小说作品'),
       React.createElement('input', {
         type: 'text',
@@ -278,7 +291,9 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
     leaveConfirm: state.leaveConfirm,
     projectError: state.projectError,
     upload: state.upload,
+    uploadResult: state.uploadResult,
     sourceImport: state.sourceImport,
+    importInterpretationReview: state.importInterpretationReview,
     creationSettings,
   }) as React.ReactNode);
 }
@@ -300,6 +315,78 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       activeOperationsRef.current.clear();
     };
   }, []);
+  const sourceControllers = React.useMemo(() => {
+    const operations = new Set<string>();
+    const dispatch = (fn: (actions: WorkbenchActions) => void): void => {
+      if (activeRef.current) fn(props.store.actions);
+    };
+    const beginOp = (key: string): boolean => {
+      if (!activeRef.current || operations.has(key)) return false;
+      operations.add(key);
+      return true;
+    };
+    const endOp = (key: string): void => { operations.delete(key); };
+    const currentProjectId = (): string | undefined => props.store.getSnapshot().selectedProjectId;
+    const isActive = (): boolean => activeRef.current;
+    let importInterpretation: ImportInterpretationController;
+    const startSourceReview = (projectId: string, source: { sourceHash: string; text: string; chunks: readonly unknown[] }): void => {
+      if (currentProjectId() !== projectId) return;
+      try {
+        importInterpretation.begin({ sourceHash: source.sourceHash, text: source.text, paragraphs: paragraphsFromHostChunks(source.chunks) });
+      } catch {
+        importInterpretation.begin({ sourceHash: source.sourceHash, text: source.text, paragraphs: [] });
+      }
+      props.store.actions.activateOnboarding();
+    };
+    importInterpretation = createImportInterpretationController({
+      analysis: () => props.client.services.importInterpretationAnalysis,
+      session: () => props.client.services.importInterpretation,
+      initialization: () => props.client.services.ruleStyleImportInitialization,
+      currentProjectId,
+      isActive,
+      beginOp,
+      endOp,
+      dispatch,
+      onConfirmed: () => {
+        if (!activeRef.current) return;
+        props.store.actions.workflowStage('outline');
+        props.store.actions.activateView('workflow');
+      },
+    });
+    const sourceImport = createSourceImportController({
+      normalizer: () => props.client.services.importExportNamespace,
+      currentProjectId,
+      isActive,
+      beginOp,
+      endOp,
+      dispatch,
+      startSourceReview: (source) => {
+        if (currentProjectId() === undefined) return;
+        importInterpretation.begin(source);
+        props.store.actions.activateOnboarding();
+      },
+    });
+    const upload = createDesktopUploadController({
+      workspace: () => props.client.services.workspace,
+      currentProjectId,
+      isActive,
+      beginOp,
+      endOp,
+      dispatch,
+      startSourceReview,
+      createProject: (input, onOpened) => workflow.createImportedProject(input, onOpened),
+    });
+    return Object.freeze({
+      upload,
+      sourceImport,
+      importInterpretation,
+      dispose: () => {
+        operations.clear();
+        importInterpretation.dispose();
+      },
+    });
+  }, [props.client, props.store, workflow]);
+  React.useEffect(() => () => sourceControllers.dispose(), [sourceControllers]);
   const queuePoll = React.useMemo(() => createQueuePollController({
     isActive: () => activeRef.current
       && props.store.getSnapshot().selectedProjectId !== undefined
@@ -347,7 +434,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     referenceAuditNamespace: namespaces.referenceAuditNamespace,
     referenceCorrectionNamespace: namespaces.referenceCorrectionNamespace,
   });
-  const ui = createDesktopShellUi(state, props.store.actions, workflow);
+  const ui = createDesktopShellUi(state, props.store.actions, workflow, sourceControllers);
   React.useEffect(() => {
     if (state.status.status !== 'ready' || projectId === undefined || state.browsing) return;
     ops.knowledge.refresh();
@@ -367,7 +454,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
         ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.workbenchSettings)
-        : projectDirectoryView(state, props.store.actions, workflow);
+        : projectDirectoryView(state, props.store.actions, workflow, ui);
 
   return React.createElement(
     React.Fragment,

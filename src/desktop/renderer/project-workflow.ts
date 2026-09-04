@@ -17,6 +17,8 @@ export interface ProjectPreferenceStore {
 export interface DesktopProjectWorkflow {
   start(): Promise<void>;
   createBlankProject(name: string): void;
+  /** I179 creates and opens the dedicated empty import target before review starts. */
+  createImportedProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
   requestOpen(projectId: string): void;
   requestBrowse(): void;
   confirmLeave(): void;
@@ -153,6 +155,19 @@ export function createDesktopProjectWorkflow(options: {
           await openVerified(project.id);
         } catch {
           fail('作品创建失败');
+        }
+      });
+    },
+    createImportedProject(input, onOpened) {
+      runOnce(`create:import:${input.projectId}`, async () => {
+        store.actions.createProject(input);
+        try {
+          const project = await unwrap(services.workspace.projectCreate(input)) as ProjectShape;
+          if (!active) return;
+          await refreshCatalog();
+          if (await openVerified(project.id)) onOpened?.();
+        } catch {
+          fail('瀵煎叆浣滃搧鍒涘缓澶辫触');
         }
       });
     },

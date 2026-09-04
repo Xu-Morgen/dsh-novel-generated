@@ -25,7 +25,7 @@ export const desktopIpcMethodDescriptors = Object.freeze(
   [...hostContribution.invocations, ...reviewRepairInvocations].map((descriptor) => adaptDescriptor(descriptor)),
 );
 
-/** The sole canonical registry: the 214-method baseline plus I174's existing review-repair Client seam. */
+/** The sole canonical registry: the historical baseline plus review-repair and I179 source-import seams. */
 export const desktopIpcRegistry: IpcRegistry<readonly IpcMethodDescriptor[]> = createIpcRegistry(desktopIpcMethodDescriptors);
 
 function adaptDescriptor(descriptor: InvocationDescriptor): IpcMethodDescriptor {

@@ -2,9 +2,11 @@ import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DesktopWorkbenchShell, mountDesktopWorkbench } from './shell.js';
+import { DesktopWorkbenchShell, createDesktopShellUi, mountDesktopWorkbench } from './shell.js';
 import { createDesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopWorkbenchStore } from './store-adapter.js';
+import type { DesktopProjectWorkflow } from './project-workflow.js';
+import type { ImportInterpretationController } from '../../client/import-interpretation-review.js';
 
 function createClient() {
   return createDesktopIpcClient({
@@ -28,6 +30,34 @@ describe('I173 desktop Renderer shell', () => {
     expect(markup).toContain('正在装载创作台');
     expect(markup).toContain('data-novel-workbench="desktop-styles"');
     expect(markup).not.toContain('Electron 桌面骨架已启动');
+  });
+
+  it('routes the desktop source entry to Main-dialog controllers', () => {
+    const store = createDesktopWorkbenchStore();
+    const uploadFile = vi.fn();
+    const normalizeText = vi.fn();
+    const importInterpretation = Object.fromEntries([
+      'begin', 'retry', 'cancel', 'confirm', 'setSourceRole', 'setTreatment', 'setNarrativeIntent',
+      'setParagraphRole', 'setParagraphDecision', 'splitParagraph', 'mergeParagraphWithNext',
+      'setRuleStyleRulesDraft', 'setRuleStyleStyleDraft', 'retryRuleStyleInitialization',
+      'proposeRuleStyleInitialization', 'acceptRuleStyleInitialization', 'rejectRuleStyleInitialization', 'dispose',
+    ].map((name) => [name, vi.fn()])) as unknown as ImportInterpretationController;
+    const workflow = {
+      saveSettings: vi.fn(), openProjectFolder: vi.fn(), requestOpen: vi.fn(), requestBrowse: vi.fn(), confirmLeave: vi.fn(),
+      cancelLeave: vi.fn(), archiveProject: vi.fn(), restoreProject: vi.fn(), createBlankProject: vi.fn(), createImportedProject: vi.fn(),
+      start: vi.fn(), dispose: vi.fn(),
+    } as unknown as DesktopProjectWorkflow;
+    const ui = createDesktopShellUi(store.getSnapshot(), store.actions, workflow, {
+      upload: { uploadFile },
+      sourceImport: { normalizeText },
+      importInterpretation,
+    });
+
+    expect(ui.uploadUsesMainDialog).toBe(true);
+    ui.uploadFile();
+    ui.submitSourceText();
+    expect(uploadFile).toHaveBeenCalledWith(undefined, false, false);
+    expect(normalizeText).toHaveBeenCalledTimes(1);
   });
 
   it('binds root and store to one idempotent unmount disposer', () => {

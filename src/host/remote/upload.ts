@@ -5,6 +5,7 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
 import {
   uploadChunkResultSchema,
   uploadFinalizeResultSchema,
+  selectedDocxResultSchema,
   uploadStartInputSchema,
   uploadStartResultSchema,
 } from '../../core/schema/upload.js';
@@ -22,6 +23,8 @@ export const uploadStartInvocation = uploadInvocation('uploadStart', [param('inp
 export const uploadChunkInvocation = uploadInvocation('uploadChunk', [param('uploadId', stringCodec), param('index', numberCodec), param('base64', stringCodec)], uploadChunkResultSchema);
 export const uploadFinalizeInvocation = uploadInvocation('uploadFinalize', [param('uploadId', stringCodec)], uploadFinalizeResultSchema);
 export const uploadCancelInvocation = uploadInvocation('uploadCancel', [param('uploadId', stringCodec)], z.object({ ok: z.literal(true) }));
-export const uploadInvocations = [uploadStartInvocation, uploadChunkInvocation, uploadFinalizeInvocation, uploadCancelInvocation] as const;
+/** I179: the OS chooser and raw file read remain Main-owned; Renderer receives only finalized source evidence. */
+export const uploadSelectDocxInvocation = uploadInvocation('selectDocx', [], selectedDocxResultSchema);
+export const uploadInvocations = [uploadStartInvocation, uploadChunkInvocation, uploadFinalizeInvocation, uploadCancelInvocation, uploadSelectDocxInvocation] as const;
 // I91：不标注 `: TypertRemoteContribution` —— 保留 descriptor 元素类型供 Client 派生 namespace。
 export const uploadRemoteContribution = remoteContribution('novel-creation-tool', uploadInvocations);

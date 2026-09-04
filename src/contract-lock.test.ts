@@ -26,6 +26,7 @@ import { reviewRepairInvocations } from './host/remote/review-repair.js';
 import { outlineGenerationScopeInvocations } from './host/remote/outline-generation-scope.js';
 import { outlineDetailGenerationAppendInvocation, outlineDetailGenerationInvocations, outlineDetailGenerationSelectInvocation } from './host/remote/outline-detail-generation.js';
 import { compileManuscriptInvocation, normalizeImportSourceInvocation } from './host/remote/import-export.js';
+import { uploadSelectDocxInvocation } from './host/remote/upload.js';
 import { projectArchiveInvocation, projectArchiveListInvocation, projectRestoreInvocation } from './host/remote/project-lifecycle.js';
 import { importInterpretationInvocations } from './host/remote/import-interpretation.js';
 import { importInterpretationAnalysisInvocations } from './host/remote/import-interpretation-analysis.js';
@@ -78,6 +79,7 @@ const i133DescriptorIds = new Set(outlineGenerationScopeInvocations.map((descrip
 const i150DescriptorIds = new Set([outlineDetailGenerationAppendInvocation.id, outlineDetailGenerationSelectInvocation.id]);
 const i155DescriptorIds = new Set([projectArchiveListInvocation.id, projectArchiveInvocation.id, projectRestoreInvocation.id]);
 const i159DescriptorIds = new Set([normalizeImportSourceInvocation.id]);
+const i179DescriptorIds = new Set([uploadSelectDocxInvocation.id]);
 const i134DescriptorIds = new Set(outlineDetailGenerationInvocations.filter((descriptor) => !i150DescriptorIds.has(descriptor.id)).map((descriptor) => descriptor.id));
 const i135DescriptorIds = new Set([
   writingAdoptDraftInvocation.id,
@@ -101,7 +103,7 @@ const postStage18DescriptorIds = new Set([
   ...ruleStyleImportInitializationInvocations,
 ].map((descriptor) => descriptor.id));
 const stage18Descriptors = [
-  ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id) && !i159DescriptorIds.has(descriptor.id)),
+  ...hostContribution.invocations.filter((descriptor) => !postStage18DescriptorIds.has(descriptor.id) && !i105DescriptorIds.has(descriptor.id) && !i108DescriptorIds.has(descriptor.id) && !i110DescriptorIds.has(descriptor.id) && !i111DescriptorIds.has(descriptor.id) && !i112DescriptorIds.has(descriptor.id) && !i113DescriptorIds.has(descriptor.id) && !i114DescriptorIds.has(descriptor.id) && !i116DescriptorIds.has(descriptor.id) && !i118DescriptorIds.has(descriptor.id) && !i119DescriptorIds.has(descriptor.id) && !i120DescriptorIds.has(descriptor.id) && !i130DescriptorIds.has(descriptor.id) && !i131DescriptorIds.has(descriptor.id) && !i133DescriptorIds.has(descriptor.id) && !i134DescriptorIds.has(descriptor.id) && !i135DescriptorIds.has(descriptor.id) && !i136DescriptorIds.has(descriptor.id) && !i137DescriptorIds.has(descriptor.id) && !i138DescriptorIds.has(descriptor.id) && !i150DescriptorIds.has(descriptor.id) && !i155DescriptorIds.has(descriptor.id) && !i159DescriptorIds.has(descriptor.id) && !i179DescriptorIds.has(descriptor.id)),
   ...sceneOutlineBindingInvocations,
   writingProposeAtInvocation,
   queueStartAtInvocation,

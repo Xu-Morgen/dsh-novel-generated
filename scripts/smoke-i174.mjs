@@ -12,7 +12,7 @@ const registrySource = read('src/desktop/renderer/ipc-client-registry.ts');
 const clientSource = read('src/desktop/renderer/desktop-ipc-client.ts');
 const rendererSource = [clientSource, read('src/desktop/renderer/shell.ts'), read('src/desktop/renderer/main.ts')].join('\n');
 
-if (lock.descriptorIds.length !== 215 || !lock.descriptorIds.includes('novel-creation-tool/novelReviewRepair/propose')) {
+if (lock.descriptorIds.length !== 216 || !lock.descriptorIds.includes('novel-creation-tool/novelReviewRepair/propose')) {
   throw new Error('I174 canonical registry must contain the 214-method baseline plus the existing review-repair seam');
 }
 if ((registrySource.match(/"key":/g) ?? []).length !== 31 || (registrySource.match(/"methodId":/g) ?? []).length !== 206) {

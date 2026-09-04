@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
@@ -167,6 +167,25 @@ function installSmokeProbe(window: BrowserWindow, ports: ApplicationPorts): void
     ).then((probe) => {
       if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I178] review-queue-loop ${probe}`);
     }).catch(() => undefined), 'desktop review queue smoke');
+    ports.registerTask(window.webContents.executeJavaScript(
+      `(async () => {
+        const invoke = (method, args, requestId) => window.novelDesktop.invoke(method, args, requestId);
+        const projectId = 'i179-smoke';
+        const created = await invoke('novel-creation-tool/novelWorkspace/projectCreate', [{ projectId, name: 'source import smoke' }], 'i179-create');
+        const opened = await invoke('novel-creation-tool/novelWorkspace/projectOpen', [projectId], 'i179-open');
+        const normalized = await invoke('novel-creation-tool/novelImportExport/normalizeSource', [projectId, { fileName: 'pasted.txt', format: 'txt', text: 'idea\\n\\nplan' }], 'i179-normalize');
+        const sourceHash = normalized?.value?.sourceHash;
+        const session = await invoke('novel-creation-tool/novelImportInterpretation/create', [{ projectId, sourceHash, intent: { sourceRole: 'idea', treatment: 'expand-outline' }, paragraphDecisions: [{ paragraphId: 'paragraph-0001', decision: 'pending', summary: 'awaiting author review' }] }], 'i179-session');
+        const importSessionId = session?.value?.importSessionId;
+        const read = await invoke('novel-creation-tool/novelImportInterpretation/read', [{ projectId, importSessionId, sourceHash }], 'i179-read');
+        const discarded = await invoke('novel-creation-tool/novelImportInterpretation/discard', [{ projectId, importSessionId, sourceHash }], 'i179-discard');
+        const invalid = await invoke('novel-creation-tool/novelImportInterpretation/read', [{ projectId: 'other-project', importSessionId, sourceHash }], 'i179-invalid');
+        return JSON.stringify({ created, opened, normalized, session, read, discarded, invalid });
+      })()` ,
+      true,
+    ).then((probe) => {
+      if (typeof probe === 'string' && probe.length > 0) writeSmokeMarker(`[I179] source-import-loop ${probe}`);
+    }).catch(() => undefined), 'desktop source import smoke');
     writeSmokeMarker(`[I166] ready windows=${BrowserWindow.getAllWindows().length}`);
     void window.webContents.executeJavaScript(
       "window.open('https://invalid.novel-creation-tool.test/'); location.href = 'https://invalid.novel-creation-tool.test/';",
@@ -276,6 +295,14 @@ const applicationKernel = createApplicationKernel({
         ...createDesktopProjectHandlers(paths, (directory) => { void shell.openPath(directory); }, {
           llm,
           onDispose: (dispose) => { ports.registerDisposer(dispose, 'desktop C5 services'); },
+          selectDocxFile: async () => {
+            if (mainWindow === null || mainWindow.isDestroyed()) return undefined;
+            const result = await dialog.showOpenDialog(mainWindow, {
+              properties: ['openFile'],
+              filters: [{ name: 'Word document', extensions: ['docx'] }],
+            });
+            return result.canceled ? undefined : result.filePaths[0];
+          },
         }),
       ]);
       const ipcBinder = bindElectronIpc({

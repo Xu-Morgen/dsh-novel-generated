@@ -1,22 +1,23 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { strToU8, zipSync } from 'fflate';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
-import { createDesktopProjectHandlers, DESKTOP_MANAGED_PATH } from './project-handlers.js';
+import { createDesktopProjectHandlers, DESKTOP_MANAGED_PATH, type DesktopProjectHandlerOptions } from './project-handlers.js';
 
 const roots: string[] = [];
 afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))); });
 
-async function fixture() {
+async function fixture(options: DesktopProjectHandlerOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), 'novel-i175-main-'));
   roots.push(root);
   const paths = await createDesktopPaths({ userDataRoot: root });
   const opened: string[] = [];
-  return { paths, opened, handlers: createDesktopProjectHandlers(paths, (directory) => opened.push(directory)) };
+  return { paths, opened, handlers: createDesktopProjectHandlers(paths, (directory) => opened.push(directory), options) };
 }
 
 async function invoke(handlers: ReadonlyMap<string, (...args: readonly unknown[]) => unknown>, methodId: string, args: readonly unknown[] = []) {
@@ -107,5 +108,51 @@ describe('I178 Main review, repair, queue, and reference handlers', () => {
     expect(await invoke(handlers, 'novel-creation-tool/novelReferenceAudit/list', ['i178', undefined])).toMatchObject({ ok: true, value: { records: [] } });
     expect(await invoke(handlers, 'novel-creation-tool/novelReferenceCorrection/pending', ['i178'])).toEqual({ ok: true, value: [] });
     expect(await invoke(handlers, 'novel-creation-tool/novelReview/adjudicate', ['i178', { decision: 'continue', issueIds: [] }])).toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
+  });
+});
+
+describe('I179 Main source import handlers', () => {
+  it('keeps native file access in Main and routes normalized source review by strict identity', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i179-main-'));
+    roots.push(root);
+    const paths = await createDesktopPaths({ userDataRoot: root });
+    const sourcePath = join(root, 'source.docx');
+    const invalidPath = join(root, 'source.txt');
+    const documentXml = '<w:document><w:body><w:p><w:r><w:t>idea text</w:t></w:r></w:p><w:p><w:r><w:t>second line</w:t></w:r></w:p></w:body></w:document>';
+    await writeFile(sourcePath, Buffer.from(zipSync({
+      'word/document.xml': strToU8(documentXml),
+      '[Content_Types].xml': strToU8('<Types/>'),
+    })));
+    await writeFile(invalidPath, 'not a docx');
+    let selectedPath = sourcePath;
+    const handlers = createDesktopProjectHandlers(paths, () => {}, { selectDocxFile: async () => selectedPath });
+    await expect(invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'i179', name: 'I179' }])).resolves.toMatchObject({ ok: true });
+
+    expect(await invoke(handlers, 'novel-creation-tool/novelWorkspace/selectDocx', [{ unexpected: true }])).toMatchObject({ ok: false, error: { code: 'invalid-arguments' } });
+    const selected = await invoke(handlers, 'novel-creation-tool/novelWorkspace/selectDocx');
+    expect(selected).toMatchObject({ ok: true, value: { fileName: 'source.docx', text: 'idea text\n\nsecond line', chunks: [{ index: 0 }] } });
+    expect(JSON.stringify(selected)).not.toContain(sourcePath);
+    const selectedValue = (selected as { ok: true; value: Record<string, unknown> }).value;
+    expect(selectedValue).not.toHaveProperty('c3');
+    expect(selectedValue).not.toHaveProperty('c4');
+    expect(selectedValue).not.toHaveProperty('pov');
+
+    const normalized = await invoke(handlers, 'novel-creation-tool/novelImportExport/normalizeSource', ['i179', { fileName: 'notes.txt', format: 'txt', text: '  idea\n\n  plan  ' }]);
+    expect(normalized).toMatchObject({ ok: true, value: { projectId: 'i179', fileName: 'notes.txt', chunks: [{ index: 0 }] } });
+    expect((normalized as { ok: true; value: { text: string } }).value.text).toContain('idea');
+    expect((normalized as { ok: true; value: { text: string } }).value.text).toContain('plan');
+    const sourceHash = (normalized as { ok: true; value: { sourceHash: string } }).value.sourceHash;
+    const paragraphDecisions = [{ paragraphId: 'paragraph-0001', decision: 'pending', summary: 'awaiting author review' }];
+    const created = await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/create', [{
+      projectId: 'i179', sourceHash, intent: { sourceRole: 'idea', treatment: 'expand-outline' }, paragraphDecisions,
+    }]);
+    expect(created).toMatchObject({ ok: true, value: { projectId: 'i179', sourceHash, status: 'draft' } });
+    const importSessionId = (created as { ok: true; value: { importSessionId: string } }).value.importSessionId;
+    expect(await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/read', [{ projectId: 'i179', importSessionId, sourceHash }])).toMatchObject({ ok: true, value: { status: 'draft' } });
+    expect(await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/read', [{ projectId: 'other', importSessionId, sourceHash }])).toMatchObject({ ok: false, error: { code: 'handler-failed' } });
+    expect(await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/discard', [{ projectId: 'i179', importSessionId, sourceHash }])).toMatchObject({ ok: true, value: { status: 'discarded' } });
+
+    selectedPath = invalidPath;
+    expect(await invoke(handlers, 'novel-creation-tool/novelWorkspace/selectDocx')).toMatchObject({ ok: false, error: { code: 'handler-failed' } });
   });
 });
