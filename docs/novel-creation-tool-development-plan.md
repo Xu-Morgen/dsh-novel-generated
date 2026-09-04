@@ -1,22 +1,22 @@
 # AI 长篇小说创作器 — 开发计划（Electron 桌面版）
 
-> 版本：v4.0
-> 日期：2026-09-03
-> 状态：当前执行权威（**I1–I164 / Stage 0–31、I165 / Stage 32、I166–I186 / Stage 33–36 均已完成；Stage 36 已通过累积发布门**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
-> 配套设计文档：`docs/novel-creation-tool-design.md` v4.0（本计划是它的执行层）
-> 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.0（需求 ID、验收、迭代覆盖）
+> 版本：v4.1
+> 日期：2026-09-04
+> 状态：当前执行权威（**I1–I186 / Stage 0–36 均已完成；I187 / Stage 37 是当前架构基线修订迭代**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 配套设计文档：`docs/novel-creation-tool-design.md` v4.1（本计划是它的执行层）
+> 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
 
 ---
 
-## 0. 文档头、历史基线与 v4.0 supersession
+## 0. 文档头、历史基线与 v4.1 supersession
 
 ### 0.1 本版变更
 
-- 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）仍只作 provenance；v4.0 Electron 路线不恢复浏览器直连 LLM、Renderer 文件 I/O 或旧编号。
-- 本项目在 `desktop` 分支的当前唯一身份是 **Electron 本地桌面应用**；Main/Preload/Renderer、strict IPC 与 Main-owned 数据/LLM/凭据为不可修改宿主基线（见设计 §0.1）。
+- 历史 v1.x（v1.1–v1.4，I1a–I28b2，独立 Node/Vite 应用路线）仍只作 provenance；v4.1 Electron 路线不恢复浏览器直连 LLM、Renderer 作品文件 I/O 或旧编号。
+- 本项目在 `desktop` 分支的当前唯一身份是 **Electron 本地桌面应用**；Main/Preload/多 Renderer、strict IPC、Main-owned 作品数据/LLM 执行与 Renderer-owned 明文 provider profiles 为不可修改宿主基线（见设计 §0.1）。
 - I1–I150 已完成：Stage 15、Stage 16、Stage 17、Stage 18、Stage 19 与 I150 的独立提交、验证、smoke 产物和当前源码均存在；I140 已把 README 十二步主流程收口为产品级 E2E，I149 已把来源感知路由与 Stage 19 产品 E2E 收口为当前代码基线，I150 已修复范围细纲生成接线。不得再将 I106–I150 标为待执行，也不得把后置 F1/F2 回填或伪装成已完成迭代的历史范围。
-- I1–I164 与 Stage 0–31 均已完成并作为迁移来源保持可追溯；I165 完成 v4.0 权威切换和执行计划。I166–I186 按运行时地基→IPC→Renderer→数据→退役→发布顺序执行。
+- I1–I186 与 Stage 0–36 均已完成并保持可追溯；I187 原子修订 v4.1 权威与执行合同，只立项多 Renderer/Renderer 明文 profiles，不实现运行时。
 - v2.5（2026-08-28）曾把 review v2.0 中级以上问题立项为 Stage 17 / I86–I102，并把 R18 顺延为旧 I103–I112 大卡；该历史只保留 provenance。
 - v2.7（2026-08-29）：同步 Stage 17 已完成事实；将 R18 十个产品 epic 拆为 **Stage 18 / I103–I128**。I103 先修 Remote 返回合同基线；I104–I128 按依赖顺序交付 R18。既有 invocation 保持向后兼容，允许经 strict schema、contract lock、返回类型耦合与真实 binder E2E 的 additive Remote；13 层叙事模型与 §0.1 宿主基线不变。每迭代一个任务、一个 verify、一个 smoke 产物与一个干净 commit。
 - v2.7 范围修订（2026-08-31）：按本地单用户运行边界重写 I106，删除 durable deletion saga/journal/audit、reservation 与 recovery barrier；收缩当时编号 I118（v2.8 现 I122）的章节润色为不持久化的逐场景会话编排。多叙事真相层写回统一要求同一 Host 请求内实时且幂等；派生 mirror/index 继续使用既有 outbox/可重建合同。
@@ -36,6 +36,7 @@
 - v3.4 作者入口与表现层收口（2026-09-02）：I158 已完成；新增 Stage 28 / R30（I159–I161）。I159 统一来源导入入口，I160 退役作者手填技术 ID，I161 以中文标签、结构化表单和全量术语门收口作者界面。三卡只改变 Client 产品入口/投影及必要的 Host-owned 文本规范化 seam，不改领域 Schema、既有 invocation、LLM prompt/样本、I11 或 F1/F2。
 - v3.7 自定义 DeepSeek 能力声明修订（2026-09-03）：溯源确认提交 `0073524` 引入 reasoning 参数、I85 升级的 rc.2 能力前置校验未由真实 `llm-pi-ai` 消费者覆盖；新增并完成 Stage 31 / R33（I164），在既有 provider 模型项补 `off/low/high/max` 能力声明并补真实宿主负向/正向门，不改 Remote、A2、凭据或模型 prompt。
 - v4.0 Electron 桌面版立项（2026-09-03）：新增 Stage 32–36 / I165–I186。I165 只切换权威与冻结迁移卡；I166–I172 建立桌面运行时、Kernel、路径、凭据、LLM 与 IPC 安全地基；I173–I180 迁移 Renderer 和作者流程；I181–I182 迁移 Agent/旧库；I183–I186 删除生产 DSH 并完成安装、安全、恢复与产品 E2E。
+- v4.1 多 Renderer 与 Renderer 明文凭据修订（2026-09-04）：新增 Stage 37 / I187。该卡经用户明确授权修改宪法级基线：允许多个受管 Renderer shell 和 Renderer 明文多 profile 存储；Main 仍唯一执行 LLM，secret 仅作为 strict IPC 输入。I187 不修改运行时代码，后续实现必须另立连续迭代。
 
 ### 0.2 Goal
 
@@ -44,10 +45,10 @@
 ### 0.3 Architecture（简述）
 
 - 唯一运行宿主与发布形态：Electron 本地桌面应用。
-- Main 创建唯一 `ApplicationKernel`，拥有作品文件 I/O、凭据、`LlmBackend`、持久化/索引、领域 Services、任务、导入导出和业务校验。
-- Preload 只发布 strict、版本化 `novelDesktop` bridge；Renderer 只拥有 React UI 和瞬态状态。
+- Main 创建唯一 `ApplicationKernel`，拥有作品文件 I/O、`LlmBackend`、持久化/索引、领域 Services、任务、导入导出和业务校验，并管理多窗口注册表。
+- Preload 只发布 strict、版本化 bridge；每个 Renderer 拥有独立 React UI/交互状态，可共享 Renderer-owned 明文 provider profiles。
 - 所有副作用归属 `DesktopLifecycle`，窗口关闭、应用退出和升级重启后必须完整 dispose。
-- 小说内部扩展点统一称为 **Extension**，不是 Electron 外层插件，不得创建第二窗口/进程 owner。
+- 小说内部扩展点统一称为 **Extension**，不是 Electron 外层插件，不得自行创建未登记窗口/进程 owner。
 
 ### 0.4 Tech Stack
 
@@ -57,18 +58,18 @@
 | 语言 | TypeScript strict，ESM | 13 层 schema 需类型约束 |
 | 包管理 | pnpm + 提交锁文件 | 可复现桌面构建 |
 | 桌面框架 | Electron + I166 选定的构建/打包器 | 设计 §0.1.1 |
-| 生产组成 | Main + sandboxed Preload + Renderer；无本地 Web server | 设计 §0.1.1 |
+| 生产组成 | Main + 每窗 sandboxed Preload + 一个或多个受管 Renderer；无本地 Web server | 设计 §0.1.1 |
 | Host 构建 | Main/ApplicationKernel ESM bundle + native Node 能力 | 设计 §0.1.3 |
-| Client 构建 | React Renderer + 单一 HTML/root + preload 类型声明 | 设计 §0.1.3 |
+| Client 构建 | 多 Renderer entry/shell；每窗单一 HTML/root + preload 类型声明 | 设计 §0.1.3 |
 | IPC | canonical strict registry + contextBridge，参数/结果双向校验 | R34-7/R34-8 |
-| LLM | Main `LlmBackend` + `CredentialStore`，Renderer 禁止直连 | 设计 §0.1.2 |
+| LLM | Main `LlmBackend` 执行；Renderer 明文多 profile 供参且禁止直连 | 设计 §0.1.2 / R35 |
 | 存储 | 文件式 YAML（设定/状态）+ jsonl（正史）+ Markdown（正文）；SQLite 仅重建索引 | 设计 §10 |
 | 测试 | Vitest + jsdom + 消费者夹具 + held-out 样本 | 设计 §0.1.3 / 需求 §0.3 |
 
 ### 0.5 Desktop composition 合同（本计划唯一执行入口）
 
 - `ApplicationKernel` 是领域组合的唯一 owner；Main 启动一次、退出 dispose 一次。
-- `novelDesktop` 是 Renderer 唯一系统能力入口；Main handler 与 Renderer client 从同一 strict registry 派生。
+- 每个 Renderer 的 preload bridge 是其唯一系统能力入口；Main handler 与各 Renderer client 从同一 strict registry 按窗口用途裁剪派生。
 - 开发/测试/生产共用 Main/Preload/Renderer entry graph；生产包不得依赖 DSH、localhost server 或远端 UI。
 - 迁移期间旧 `src/index.ts`、`src/client.ts` 和 Typert descriptors 只作等价来源；I183 后不得进入生产构建图。
 
@@ -84,7 +85,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I186）
+### 0.7 全局执行纪律（贯穿 I1–I187）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -97,7 +98,8 @@ TDD Route:
 9. 阶段收尾跑全量 `pnpm test` + 本阶段全部 held-out 回归 + `pnpm run verify:stage-N`。
 10. 重构/修复迭代（I75–I84、I86–I102）叠加纪律：以「重构/修复前后领域行为等价 + 缺陷消除」为完成条件（既有全量测试 + 相关 stage 回归 + LLM 样本阈值不变 + 本迭代专属负向扫描断言）；只消除复制与接线债务，禁止夹带新功能或改变公开契约（I100 公开命名统一属独立迁移迭代，必须带兼容期与退役文档）；结构性拆分一次一个切片（见 §16；Stage 17 立项输入与修复专属纪律见 §18）。
 11. 宿主兼容升级（I85）叠加纪律是历史完成条件；不得用它覆盖 v4.0 Electron 基线。
-12. Electron 迁移（I166–I186）叠加纪律：一次只替换一个 owner/seam；先建立消费者夹具再退役旧 DSH adapter；Renderer 禁止 Node/文件/secret/provider；I183 前允许迁移期旧源存在，I183 后禁止生产双路径。
+12. Electron 迁移（I166–I186）叠加纪律作为 v4.0 历史完成条件保留。
+13. v4.1 后续实现纪律：Renderer 仍禁止 Node、作品文件 I/O 和 provider client；允许明文 secret 与命名 profiles。任何 secret-bearing IPC 必须标记敏感输入并证明结果、错误、进度、日志、作品、导出和诊断零回显；每个窗口必须登记用途、独立 preload allowlist 和 lifecycle disposer。
 
 ---
 
@@ -2029,11 +2031,21 @@ TDD Route:
 - **验收**：typecheck、全量 test/build、全部相关 held-out、214 IPC lock、Main/Renderer E2E、安装升级、旧库迁移、异常恢复全绿；生产零 DSH/Cordis；作者完成十二步无需技术 ID。
 - **验证**：`pnpm run verify:i186`；`pnpm run verify:stage-36`。
 
-## 38. 当前完成线
+## 38. Stage 37：多 Renderer 与 Renderer 明文凭据架构治理（R35，I187）
+
+### I187：宪法级多 Renderer 与 Renderer 明文多 profile 基线修订
+
+- **目标**：经用户明确授权，原子同步设计、需求、计划与 `AGENTS.md`，以 v4.1/D35 取代 v4.0 的“唯一 Renderer”和“长期凭据只进 Main CredentialStore”限制；冻结多窗口、Renderer 明文 profile、Main-only LLM 与 secret redaction 的后续实现边界。
+- **明确不做**：不修改 Main/Preload/Renderer 运行时代码，不创建窗口、不迁移现有 CredentialStore 数据、不新增 IPC method、不改变 LLM provider/prompt/schema/样本，不重打或重新标记 I186 安装包。
+- **交付物**：四份 v4.1 权威文件；D35、R35、Stage 37/I187；多窗口/明文密钥风险接受声明；后续实现停止线；`scripts/smoke-i187.mjs` 文档一致性与负向陈旧基线扫描。
+- **验收**：四份权威文件版本、当前迭代和术语一致；明确每窗一个 React root、Main 窗口注册表、Renderer 多 profile 明文持久化/切换、secret 仅作 IPC 请求输入、Main-only provider 调用及结果/log/作品/导出/诊断零 secret；旧单 Renderer/CredentialStore-only 只能出现在明确 v4.0 历史上下文；明确 I186 包尚不符合 v4.1 且运行时实现必须另立后续卡。
+- **验证**：`pnpm run verify:i187`；`pnpm run verify:stage-37`。
+
+## 39. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。
 
-v4.0 当前进度：**Stage 36 / I183–I186 已完成，Electron 桌面发布基线已冻结。** I166–I182 的运行时、Renderer、作者工作流、助手与旧库迁移基线均已通过对应独立验证；v3.2 原 I151–I162 仍为后置 F1/F2 provenance，其旧标签不占用当前编号，也不得依原身份执行。
+v4.1 当前进度：**Stage 36 / I183–I186 已完成；Stage 37 / I187 是当前治理迭代。** I187 只把多 Renderer 与 Renderer 明文多 profile 写入权威基线，不修改运行时。I186 安装包仍是 v4.0 legacy baseline；后续实现卡及 packaged-app E2E 完成前，不得标记为 v4.1 conformant。v3.2 原 I151–I162 仍为后置 F1/F2 provenance。
 
 Stage 36 / I186 达成证据：
 
@@ -2043,7 +2055,15 @@ Stage 36 / I186 达成证据：
 - 作品格式、13 层真相、ConfirmationGate、幂等/写回顺序、样本/gold/阈值与 I1–I164 领域行为保持；
 - 旧 `~/.dsh` 库只经显式预览/备份/验证迁移，源数据不变，卸载不删除作品；
 - 214 个调用面由单一 strict IPC registry 覆盖，参数/结果双向校验且无调用方 fallback；
-- Renderer 无 Node、文件、secret、provider client 或任意 IPC 能力；全部长期副作用随 DesktopLifecycle 回收。
+- Renderer 无 Node、作品文件、provider client 或任意 IPC 能力；其 v4.0 发布包仍不持有 secret；全部长期副作用随 DesktopLifecycle 回收。
+
+I187 治理完成时还必须证明：
+
+- 设计 D35/§14.33、需求 R35/H0、计划 Stage 37/I187 与 `AGENTS.md` v4.1 使用同一基线；
+- 多 Renderer 是同一 Electron Host 内由 Main 登记和回收的多 BrowserWindow，每窗恰好一个 React root，不恢复 Web/PWA 或双宿主；
+- Renderer 可明文持久化并切换多套 provider profiles，Main CredentialStore 不再是唯一 owner；
+- LLM 仍只由 Main 调用，secret 仅允许进入 strict IPC 请求，不得进入结果、错误、进度、日志、作品、导出或诊断；
+- 文档明确接受 Renderer/XSS/DevTools/同账户读取风险，并明确运行时尚未实现、I186 包尚不符合 v4.1。
 
 I74 完成时还必须证明：
 
@@ -2129,12 +2149,13 @@ F1/F2 的结构化来源、共享 UoW 与正文保真验收仍保留在后置卡
 
 ---
 
-## 39. Risks 与 Retirement
+## 40. Risks 与 Retirement
 
 - **Electron 双主路径风险**：迁移期间旧 DSH 代码只能作为等价来源和隔离夹具；不得让 Electron 与 DSH 同时成为发布入口。I183 必须 delete-first 清除生产依赖、入口和 bundle 残留。
-- **IPC 攻击面风险**：214 个调用不能逐个临时手写；必须由 canonical registry 派生 handler/client，Main 双向校验，preload 只暴露 allowlist，Renderer 不得获得任意 channel。
-- **Renderer 越权风险**：`nodeIntegration:false`、`contextIsolation:true`、`sandbox:true`、CSP、navigation/new-window guard 是阻断门；任何文件、路径、secret 或 provider client 进入 Renderer 均失败。
-- **凭据迁移风险**：旧 DSH API Key 不自动读取或迁移；作者需在桌面安全存储重新配置。禁止为便利增加明文配置或 secret 回显。
+- **IPC 攻击面风险**：调用不能逐个临时手写；必须由 canonical registry 派生 handler/client，Main 双向校验，preload 只暴露按窗口用途裁剪的 allowlist。secret-bearing 请求扩大了攻击面，必须统一 redaction，Renderer 不得获得任意 channel。
+- **Renderer 越权风险**：`nodeIntegration:false`、`contextIsolation:true`、`sandbox:true`、CSP、navigation/new-window guard 仍是阻断门；作品文件、路径、provider client 或未授权 profile 进入 Renderer 均失败。明文 secret 是 v4.1 明确允许且接受风险的例外。
+- **明文凭据风险**：Renderer compromise、XSS、DevTools、同 OS 账户、本地存储读取与内存检查都可能暴露密钥。产品必须如实提示，不得描述为安全存储；secret 回显到 IPC 结果、日志、作品、导出或诊断仍是发布阻断项。
+- **基线先于实现风险**：I187 只修改治理合同，现有单窗口/CredentialStore 代码和 I186 安装包不会因此自动符合 v4.1。必须另立后续连续实现卡并完成真实 packaged-app E2E 后才能更新发布声明。
 - **作品迁移风险**：I182 只能复制并验证旧库，不能移动/删除源；冲突和中途失败不得切换活动根。安装升级/卸载同样不得删除作品 source of truth。
 - **生命周期风险**：Cordis Fiber 退役后，DesktopLifecycle 必须显式拥有 IPC handlers、窗口监听、timer、任务、临时文件和 LLM AbortController；关闭/重启后的残留会造成双写或泄密。
 - **打包环境差异风险**：开发 dev server 成功不能替代 packaged app；每阶段至少运行相应 production bundle smoke，Stage 36 必须使用真实 Windows 安装包。
