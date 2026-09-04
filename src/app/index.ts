@@ -16,6 +16,8 @@ export type {
   ApplicationServicePort,
 } from './ports.js';
 export type { DesktopPaths } from './paths.js';
+export { workspaceViewModel } from './workspace-view-model.js';
+export type { WorkspaceViewModel } from './workspace-view-model.js';
 export { createCredentialStore } from './credentials.js';
 export type {
   CredentialDescription,

@@ -1,5 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-import { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, type WorkspaceViewModel } from '../remote.js';
+import type { WorkspaceViewModel } from '../app/workspace-view-model.js';
 // I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
 // 消除手写 `Promise<unknown>` 接口，方法签名变更在 Client 消费处即报编译错
 // （review v2.0 §3.1 / 计划 §18 I91）。
@@ -170,5 +170,4 @@ export function slug(name: string): string {
 }
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
-export type { WorkspaceViewModel } from '../remote.js';
-export { workspaceRemoteContribution, writingRemoteContribution, reviewRemoteContribution, queueRemoteContribution, knowledgeRemoteContribution, ruleStyleRemoteContribution, progressRemoteContribution, importExportRemoteContribution, branchRemoteContribution, searchRemoteContribution, statisticsRemoteContribution, timelineRemoteContribution, outlineReconciliationRemoteContribution } from '../remote.js';
+export type { WorkspaceViewModel } from '../app/workspace-view-model.js';

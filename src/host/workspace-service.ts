@@ -21,7 +21,7 @@ import type { CanonCorrectionInput } from '../core/schema/canon.js';
 import type { ConfirmationRecord } from '../core/schema/confirm.js';
 import type { ChapterListItem, ChapterReadResult, SceneReadResult } from '../core/text/projection.js';
 import { projectChapterList, toChapterReadResult, toSceneReadResult } from '../core/text/projection.js';
-import { workspaceViewModel, type WorkspaceViewModel } from './remote/editor.js';
+import { workspaceViewModel, type WorkspaceViewModel } from '../app/workspace-view-model.js';
 
 export interface WorkspaceEditorService {
   viewModel(): WorkspaceViewModel;

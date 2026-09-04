@@ -1,107 +1,48 @@
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-/**
- * I2 public-contract lock (design §0.1.3 I2, §0.1.4; H0-8, H0-9, H0-10).
- *
- * These assertions lock the exact public out-of-tree contract an ordinary DSH
- * plugin may rely on, and fail closed when it is absent:
- *
- *   - Client bundling: `dsh.client` manifest + `./client` export + the
- *     `@deepseek-ai/dsh-client-*`/typert packages pinned at 0.1.1-rc.2 (I85).
- *   - Negative scan: no dynamic RPC (`harness.handle`/`host.call`), no internal
- *     builder (`clientBundle`), no standalone UI (`createRoot`, HTML, vite), and
- *     no browser-side LLM/file/secret imports in any source file.
- */
+/** I183 locks the production Electron graph while leaving old source testable as history. */
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (path: string): string => readFileSync(resolve(root, path), 'utf8');
-const pkg = JSON.parse(read('package.json'));
+const pkg = JSON.parse(read('package.json')) as Record<string, any>;
 const lock = read('pnpm-lock.yaml');
 
-/** The public DSH family contract this probe references, pinned exactly (I85: 0.1.1-rc.2). */
-const PINNED_DSH_PACKAGES = [
-  '@deepseek-ai/dsh-client-ui-slots',
-  '@deepseek-ai/dsh-typert-protocol',
-  '@deepseek-ai/dsh-typert-registry',
+const productionSources = [
+  'src/desktop/main/main.ts',
+  'src/desktop/preload/preload.ts',
+  'src/desktop/renderer/main.ts',
+  'src/desktop/renderer/shell.ts',
+  'src/platform/desktop-ipc-registry.ts',
 ];
 
-/** Symbols that would mean I2 left the public out-of-tree contract (H0-9/H0-10). */
-const FORBIDDEN: Array<{ name: string; re: RegExp }> = [
-  { name: 'dynamic RPC harness.handle', re: /harness\.handle/ },
-  { name: 'dynamic RPC host.call', re: /host\.call/ },
-  { name: 'internal builder clientBundle', re: /clientBundle/ },
-  { name: 'standalone React mount createRoot', re: /createRoot\s*\(/ },
-  { name: 'standalone HTML document', re: /<html[\s>]/i },
-  { name: 'standalone Vite app', re: /from\s+['"]vite['"]/ },
-  { name: 'browser direct LLM (openai)', re: /from\s+['"]openai['"]/ },
-  { name: 'browser direct LLM (anthropic)', re: /from\s+['"]@anthropic-ai\/sdk['"]/ },
-  { name: 'browser node builtin import', re: /from\s+['"]node:/ },
-  { name: 'browser fetch network', re: /\bfetch\s*\(/ },
-];
-
-const sourceFiles = [
-  'src/index.ts',
-  'src/client.ts',
-  'src/remote.ts',
-  'src/client/shared.ts',
-  'src/client/upload.ts',
-];
-
-describe('I2 client manifest contract', () => {
-  it('declares the public dsh.client web bundle', () => {
-    expect(pkg.dsh?.client?.platform).toBe('web');
-    expect(pkg.dsh?.client).toHaveProperty('inject');
-    expect(pkg.dsh?.client).toHaveProperty('immediately');
+describe('I183 desktop production contract', () => {
+  it('has no DSH manifest surface or production dependency', () => {
+    expect(pkg.main).toBe('dist/desktop/main.cjs');
+    expect(pkg.exports).toBeUndefined();
+    expect(pkg.dsh).toBeUndefined();
+    expect(Object.keys(pkg.dependencies ?? {}).some((name) => /@deepseek-ai|cordis|typert|slot/i.test(name))).toBe(false);
+    const importer = lock.slice(lock.indexOf('dependencies:'), lock.indexOf('devDependencies:'));
+    expect(importer).not.toMatch(/@deepseek-ai\/(?:cordis|dsh-)/);
   });
 
-  it('exposes the ./client subpath as the browser half', () => {
-    expect(pkg.exports?.['./client']?.default).toBe('./lib/client.js');
-    expect(pkg.files?.some((entry: unknown) => entry === 'lib' || entry === 'lib/' || entry === 'lib/client.js')).toBe(true);
+  it('keeps DSH/Cordis/Slot/Typert/ModuleLoader/ctx.llm out of production sources', () => {
+    const forbidden = /@deepseek-ai|ModuleLoader|ctx\.llm|from ['"]\.\.\/remote\.js['"]|from ['"].*host\/remote/;
+    for (const path of productionSources) expect(read(path), path).not.toMatch(forbidden);
   });
 
-  it('pins the referenced public DSH client/typert packages at 0.1.1-rc.2', () => {
-    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-    for (const name of PINNED_DSH_PACKAGES) {
-      expect(deps[name]).toBe('0.1.1-rc.2');
-    }
-  });
-
-  it('lockfile locks the exact 0.1.1-rc.2 resolutions', () => {
-    for (const name of PINNED_DSH_PACKAGES) {
-      expect(lock).toContain(`${name}@0.1.1-rc.2`);
-    }
+  it('keeps the retired client wrapper outside the build entry', () => {
+    expect(read('scripts/build-desktop.mjs')).toContain("source('src/desktop/renderer/main.ts')");
+    expect(read('scripts/build-desktop.mjs')).not.toContain('src/client.ts');
+    expect(read('package.json')).not.toContain('build:legacy');
+    expect(read('package.json')).not.toContain('build:client');
   });
 });
 
-describe('I2 negative scan (fail closed on out-of-contract symbols)', () => {
-  it('no dynamic RPC, internal builder, standalone UI, or browser LLM/file/secret in source', () => {
-    for (const file of sourceFiles) {
-      const content = read(file);
-      for (const { name, re } of FORBIDDEN) {
-        expect(content, `${file} must not contain ${name}`).not.toMatch(re);
-      }
-    }
-  });
-
-  it('client entry uses the public __ModuleLoader__ handoff contract', () => {
-    // The build wraps src/client.ts into window.__ModuleLoader__.load; the
-    // source itself must reference the public slot key it registers into.
+describe('historical client source checks', () => {
+  it('retains the old source as a non-production regression fixture', () => {
     expect(read('src/client.ts')).toContain('shell.overlay');
-  });
-
-  it('I51 client upload transports bytes without ZIP/XML parsing or Node fs', () => {
-    // The DOCX file selector only ships restricted bytes to the Host temp area;
-    // the Client must not own a ZIP/XML parser or any Node filesystem surface
-    // (design §14.7.2 / D18, requirement R11-2 / N-3).
-    const upload = read('src/client/upload.ts');
-    expect(upload).not.toMatch(/from\s+['"]fflate['"]/);
-    expect(upload).not.toMatch(/from\s+['"]node:/);
-    expect(upload).not.toMatch(/unzip|inflate|zipSync|UnzipInf/);
-    expect(upload).not.toMatch(/DOMParser/);
-    expect(upload).not.toMatch(/from\s+['"]node:fs['"]/);
-    expect(upload).not.toMatch(/createWriteStream|createReadStream/);
   });
 });

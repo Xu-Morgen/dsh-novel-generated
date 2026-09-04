@@ -38,7 +38,9 @@ import {
   timelineRemoteContribution,
   workspaceRemoteContribution,
   writingRemoteContribution,
-} from './shared.js';
+  llmConfigRemoteContribution,
+  workbenchSettingsRemoteContribution,
+} from '../remote.js';
 import { reviewRepairRemoteContribution, sceneOutlineBindingRemoteContribution, textDeletionRemoteContribution, textMutationRemoteContribution } from '../remote.js';
 import { outlineReconciliationRemoteContribution } from '../remote.js';
 import { referenceAuditRemoteContribution } from '../remote.js';
@@ -50,8 +52,6 @@ import { importInterpretationRemoteContribution, importInterpretationAnalysisRem
 import { narrativeAdaptationRemoteContribution } from '../remote.js';
 import { narrativeRevealRemoteContribution } from '../remote.js';
 import { narrativeImportPlanRemoteContribution } from '../remote.js';
-import { llmConfigRemoteContribution } from './settings.js';
-import { workbenchSettingsRemoteContribution } from './workbench-settings.js';
 
 /**
  * 全部已挂载 Remote namespace 的 service bag（I90）。

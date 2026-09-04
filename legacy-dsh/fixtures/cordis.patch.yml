@@ -1,0 +1,5 @@
+# Historical DSH bundle patch fixture. The Electron release does not consume
+# this file.
+- insert:
+    - id: novel-creation-tool
+      name: novel-creation-tool

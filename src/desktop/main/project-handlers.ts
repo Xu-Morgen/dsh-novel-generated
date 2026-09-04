@@ -2,7 +2,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { IpcHandler } from '../../app/ipc-registry.js';
 import type { DesktopPaths } from '../../app/paths.js';
-import { workspaceViewModel } from '../../host/remote/editor.js';
+import { workspaceViewModel } from '../../app/workspace-view-model.js';
 import { createCanonService } from '../../host/canon-service.js';
 import { createCharacterService } from '../../host/character-service.js';
 import { createConfirmationService } from '../../host/confirmation-service.js';

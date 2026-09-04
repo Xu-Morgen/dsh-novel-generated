@@ -1,8 +1,7 @@
 import type { El } from './shared.js';
 import { saveButtonLabel } from './save-status.js';
 import type { NamespaceOf } from './remote-namespace.js';
-import { workbenchSettingsRemoteContribution } from '../remote.js';
-export { workbenchSettingsRemoteContribution };
+import type { workbenchSettingsRemoteContribution } from '../remote.js';
 
 /**
  * 创作台通用设置页（额外页面）：每次续写的目标字数，以及当用户提供的内容不足以

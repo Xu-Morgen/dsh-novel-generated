@@ -1,8 +1,7 @@
 import type { El } from './shared.js';
 import { saveButtonLabel } from './save-status.js';
 import type { NamespaceOf } from './remote-namespace.js';
-import { llmConfigRemoteContribution } from '../remote.js';
-export { llmConfigRemoteContribution };
+import type { llmConfigRemoteContribution } from '../remote.js';
 
 /**
  * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并保存到本地

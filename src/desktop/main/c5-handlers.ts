@@ -23,7 +23,7 @@ import { createWritingAdjudicationService, type NovelWritingAdjudicationService 
 import { createWritingCandidateService, type NovelWritingCandidateService } from '../../host/candidate-service.js';
 import { createWorkspaceEditorService, type WorkspaceEditorService } from '../../host/workspace-service.js';
 import { createRelationshipStyleDetectionService, type NovelRelationshipStyleDetectionService } from '../../host/relationship-style-detection-service.js';
-import { toChapterMutationView, toSceneMutationView } from '../../host/text-mutation-adapter.js';
+import { toChapterMutationView, toSceneMutationView } from '../../core/text/mutation-projection.js';
 import type { NovelCanonService } from '../../host/canon-service.js';
 import type { NovelCharacterService } from '../../host/character-service.js';
 import type { NovelConfirmationService } from '../../host/confirmation-service.js';

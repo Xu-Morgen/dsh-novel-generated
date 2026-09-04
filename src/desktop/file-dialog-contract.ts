@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { strictCodec } from '../host/remote/common.js';
-import { param, remoteInvocation } from '../host/remote/shared.js';
 
 /** Main-owned export payload. The path is deliberately absent from this contract. */
 export const desktopSaveFileInputSchema = z.object({
@@ -15,7 +13,7 @@ export const desktopSaveFileResultSchema = z.object({
   fileName: z.string().min(1).max(255),
 }).strict();
 
-/** I180 additive desktop-only OS save seam. */
-export const desktopSaveFileInvocation = remoteInvocation('novelDesktopFiles', 'saveFile', [
-  param('input', strictCodec('novel-creation-tool#desktopSaveFileInput', desktopSaveFileInputSchema)),
-], strictCodec('novel-creation-tool#desktopSaveFileResult', desktopSaveFileResultSchema));
+/** I180 additive desktop-only OS save seam; its id is the canonical IPC key. */
+export const desktopSaveFileInvocation = Object.freeze({
+  id: 'novel-creation-tool/novelDesktopFiles/saveFile',
+} as const);

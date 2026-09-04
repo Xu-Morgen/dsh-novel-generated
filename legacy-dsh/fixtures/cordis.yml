@@ -1,0 +1,4 @@
+# Historical Loader smoke composition. It is intentionally outside the
+# production Electron package and is not an installation or discovery entry.
+- id: novel-creation-tool
+  name: ./lib/index.js

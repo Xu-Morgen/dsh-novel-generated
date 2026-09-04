@@ -10,7 +10,7 @@ import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
 import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
 import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
-import { createLlmConfigService } from '../../host/llm-config-service.js';
+import { createLlmConfigService } from './llm-config-service.js';
 import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
@@ -325,10 +325,7 @@ const applicationKernel = createApplicationKernel({
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
       ports.provide('createLlmBackend', (endpoint: string, providerId: string) => createOpenAICompatibleBackend({ endpoint, providerId, credentials: credentials.resolver }));
-      const llmConfig = createLlmConfigService({
-        describe: async (ref) => ({ ...await credentials.store.describe(ref), writable: true }),
-        set: (ref, secret) => credentials.store.set(ref, secret),
-      }, undefined, paths.settingsRoot);
+      const llmConfig = createLlmConfigService(credentials.store, paths.settingsRoot);
       const llm: LlmBackend = {
         [LLM_BACKEND_MARKER]: true,
         async *stream(request) {
