@@ -1,0 +1,29 @@
+{
+  "immutable": true,
+  "threshold": 1,
+  "dev": ["full-nested", "social-conflict", "invented-detail"],
+  "heldOut": ["existing-protagonist", "invented-protagonist", "invented-foreshadowing"],
+  "cases": [
+    {"id":"full-nested","mutation":"none","accepted":true},
+    {"id":"social-conflict","mutation":"social","accepted":false},
+    {"id":"invented-detail","mutation":"experience-conclusion","accepted":false},
+    {"id":"existing-protagonist","mutation":"existing","accepted":true},
+    {"id":"invented-protagonist","mutation":"provisionalName","accepted":false},
+    {"id":"invented-foreshadowing","mutation":"observedAt-paidAt","accepted":false}
+  ],
+  "input": {
+    "projectId":"book","importSessionId":"import-test","sourceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sourceRole":"background-material","treatment":"adapt-pov",
+    "narrativeIntent":{"pov":"limited","protagonistCandidateId":"new-investigator","initialKnown":[],"revealPacing":"balanced"},
+    "evidence":[{"paragraphId":"paragraph-0001","role":"world-truth","text":"调查者看到旧门上的新脚印。"}]
+  },
+  "output": {
+    "confidence":"high","evidenceParagraphIds":["paragraph-0001"],
+    "outline":{"id":"outline-test","structure":"three-act","logline":"调查者追踪脚印线索。","themes":["信任"],
+      "acts":[{"id":"act-one","index":0,"title":"调查开始","goal":"核对线索","beats":[{"id":"beat-one","title":"询问证人","description":"调查者核对互相矛盾的证词。","charactersInvolved":["new-investigator"],"conflictType":"relational","prerequisites":[],"optional":false,"detailBeats":[{"id":"detail-one","title":"脚印","summary":"调查者辨认脚印并询问证人。","pov":"new-investigator","wordTarget":800,"points":["发现矛盾"],"status":"planned"}]}]}],
+      "foreshadowing":[{"id":"hint-one","hint":"门边的脚印","payoff":"证人曾经到访","status":"unplanted","knownBy":[]}],
+      "endings":[{"id":"ending-one","title":"证词核实","conditions":["找到证人"],"description":"调查者核对到访记录。"}]},
+    "protagonistCandidate":{"id":"new-investigator","name":"林舟","premise":"追查脚印的受邀调查者。"},
+    "rationale":"先调查可见线索，再核实证词。"
+  }
+}

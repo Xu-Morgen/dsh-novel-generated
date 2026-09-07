@@ -4,8 +4,10 @@ import { startUiTestProvider } from './ui-test-provider.mjs';
 export const sourceText = Object.values(ONBOARDING_PROMPT_EXAMPLE.evidence).map(e=>e.quote).join('\n\n') + '\n\n北港没有魔法，任何调查都需要可核对的线索。灯塔下藏着半张海图，这个秘密将在调查后揭示。';
 const readLine = (prompt,label) => JSON.parse(prompt.split('\n').find(line=>line.startsWith(label)).slice(label.length));
 /** Fixed model-boundary fixture, separate from frozen sample/gold and application callbacks. */
-export function startSourceTestProvider() {
+export function startSourceTestProvider(override) {
   return startUiTestProvider(prompt => {
+    const overridden = override?.(prompt);
+    if (overridden !== undefined) return overridden;
     const result = (kind,value) => ({kind,output:JSON.stringify(value)});
     if(prompt.includes('你是来源解释分类器')) {
       const paragraphs=readLine(prompt,'Host 段落（按 index 阅读）：');

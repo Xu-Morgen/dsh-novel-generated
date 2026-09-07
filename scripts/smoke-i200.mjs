@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { uiInvoke } from './ui-test-provider.mjs';
+import { startSourceTestProvider, sourceText } from './ui-source-test-provider.mjs';
+
+let invalid = true;
+const provider = await startSourceTestProvider(prompt => invalid && prompt.includes('POV 叙事化候选生成器')
+  ? { kind: 'invalid-adaptation', output: JSON.stringify({ confidence: 'high', evidenceParagraphIds: ['paragraph-0001'], outline: { invalid: 'test-only-private-model-text' }, protagonistCandidate: { provisionalName: '调查者' }, rationale: '调查' }) } : undefined);
+const app = await launchUiElectron('i200');
+const invoke = (method, ...args) => uiInvoke(app, method, ...args);
+const select = (selector, value) => app.evaluate(`(() => { const e=document.querySelector(${JSON.stringify(selector)}); e.value=${JSON.stringify(value)}; e.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+try {
+  await app.fill('[data-novel-project-name-input]', '视角大纲格式验证');
+  await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-next-action]")', 'project');
+  const id = (await invoke('novelWorkspace/projectList'))[0].id;
+  await invoke('novelLlmConfig/save', { baseUrl: provider.endpoint, model: 'ui-deterministic', apiKey: 'test-only-not-a-real-key', maxTokens: 32768, thinking: 'disabled', reasoningEffort: 'low' });
+  await app.click('[data-novel-workflow-next-action]');
+  await app.fill('[data-novel-source-import-text]', sourceText);
+  await app.click('[data-novel-source-import-submit]');
+  await app.waitFor('!!document.querySelector("[data-novel-import-interpretation-status=succeeded]")', 'source');
+  await select('[data-novel-import-interpretation-source-role]', 'background-material');
+  await select('[data-novel-import-interpretation-treatment]', 'adapt-pov');
+  const paragraphs = await app.evaluate('[...document.querySelectorAll("[data-novel-import-interpretation-accept]")].map(e=>e.getAttribute("data-novel-import-interpretation-accept"))');
+  for (const p of paragraphs) await app.click(`[data-novel-import-interpretation-accept="${p}"]`);
+  await app.click('[data-novel-import-interpretation-confirm]');
+  await app.waitFor('!!document.querySelector("[data-novel-rule-style-import-status=succeeded]")', 'rules');
+  await app.click('[data-novel-rule-style-import-propose]');
+  await app.waitFor('!!document.querySelector("[data-novel-rule-style-import-status=proposed]")', 'rules proposal');
+  await app.click('[data-novel-rule-style-import-accept]');
+  await app.waitFor('!!document.querySelector("[data-novel-rule-style-import-status=applied]")', 'rules accepted');
+  await app.click('[data-novel-source-plan-generate]');
+  await app.waitFor('document.querySelector("[data-novel-source-plan-error]")?.textContent.includes("输出格式不符合要求")', 'safe validation failure');
+  const panelText = await app.evaluate('document.querySelector("[data-novel-source-plan]").textContent');
+  assert.ok(panelText.includes('本次生成未完成'));
+  assert.ok(!panelText.includes('正在安排读者体验'));
+  assert.ok(!panelText.includes('test-only-private-model-text'));
+  assert.equal(provider.calls.filter(call => call.kind === 'reveal').length, 0);
+  assert.equal((await invoke('novelWorkspace/characterList', id)).length, 0);
+  await app.screenshot('invalid-output');
+  invalid = false;
+  await app.click('[data-novel-source-plan-generate]');
+  await app.waitFor('!!document.querySelector("[data-novel-source-plan=pending]")', 'manual retry succeeds');
+  assert.equal((await invoke('novelWorkspace/characterList', id)).length, 0);
+  assert.equal(provider.calls.filter(call => call.kind === 'reveal').length, 1);
+  await writeFile(join(app.evidence, 'validation.json'), JSON.stringify({ iteration: 'I200', strictFailure: true, stoppedWaiting: true, noRevealOnFailure: true, zeroStoryWrites: true, manualRetry: true, privateErrorEcho: false }, null, 2));
+  process.stdout.write('I200 Electron: invalid adaptation diagnosed, waiting ended, reveal blocked, manual retry succeeds with zero story writes\n');
+} finally { await app.close(); await provider.close(); }

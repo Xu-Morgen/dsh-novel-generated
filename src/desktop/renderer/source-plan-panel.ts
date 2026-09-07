@@ -8,7 +8,7 @@ import { analysisPanel, onboardingReview } from '../../client/onboarding-panels.
 import type { OnboardingState } from '../../client/onboarding-types.js';
 import { structuredEditor } from '../../client/structured-editor.js';
 import { unwrap, type El } from '../../client/shared.js';
-import { toUserMessage } from '../../client/presentation.js';
+import { rawError, toUserMessage } from '../../client/presentation.js';
 import type { NarrativeImportPlan, NarrativeImportPlanIdentity } from '../../core/schema/narrative-import-plan.js';
 import type { NarrativeAdaptationIdentity } from '../../core/schema/narrative-adaptation.js';
 import type { NarrativeRevealIdentity } from '../../core/schema/narrative-reveal.js';
@@ -99,7 +99,12 @@ export function useSourcePlanPanel(props: {
     lock.current = true; setBusy(true); setGenerating(kind === 'generation'); setError('');
     const turn = generation.current;
     try { await operation(); }
-    catch (cause) { if (isCurrent() && turn === generation.current) setError(toUserMessage(cause, '操作未完成，请检查后重试。')); }
+    catch (cause) { if (isCurrent() && turn === generation.current) {
+      // unwrap appends transport metadata; it must not turn safe Chinese errors into a generic fallback.
+      const message = rawError(cause).replace(/ \[code=[\w-]+; method=[^\]]+\]$/, '');
+      setError(toUserMessage(message, '操作未完成，请检查后重试。'));
+      if (kind === 'generation') setMessage('本次生成未完成，尚未写入故事资料。');
+    } }
     finally { if (isCurrent() && turn === generation.current) { lock.current = false; setBusy(false); setGenerating(false); } }
   };
   const generate = (): void => { void run(async () => {
@@ -113,27 +118,28 @@ export function useSourcePlanPanel(props: {
     const evidence = review.paragraphs.filter(p => p.decision !== 'rejected').map(p => { const role = p.selectedRole ?? p.suggestedRole; if (!role) throw new Error('来源段落缺少已确认分类。'); return { paragraphId: p.paragraphId, role, text: p.text }; });
     if (confirmed.intent.treatment !== 'adapt-pov' || !confirmed.intent.narrativeIntent || confirmed.intent.sourceRole === 'existing-prose' || confirmed.intent.sourceRole === 'synopsis') throw new Error('当前来源不属于视角重构路径。');
     const input = { ...identity, sourceRole: confirmed.intent.sourceRole, treatment: 'adapt-pov' as const, narrativeIntent: confirmed.intent.narrativeIntent, evidence };
-    const poll = async (status: () => Promise<string>): Promise<void> => {
-      for (;;) { assertCurrent(); const value = await status(); if (value === 'succeeded') return;
-        if (value === 'failed' || value === 'cancelled') throw new Error('生成失败或已取消，请重试。');
+    const poll = async (status: () => Promise<string>, result: () => Promise<unknown>, label: string): Promise<void> => {
+      for (;;) { assertCurrent(); const value = await status(); assertCurrent(); if (value === 'succeeded') return;
+        if (value === 'failed') { await result(); assertCurrent(); throw new Error(`${label}生成失败，请重试。`); }
+        if (value === 'cancelled') throw new Error(`${label}生成已取消。`);
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     };
     setMessage('正在分析角色、世界观、关系与起始状态…');
     const foundationId = await unwrap(services.analyzer.begin({ projectId, sourceHash: review.sourceHash, text: evidence.map(p=>p.text).join('\n\n') }, undefined));
     await registerCancel(() => unwrap(services.analyzer.cancel(foundationId.onboardingSessionId)));
-    await poll(() => unwrap(services.analyzer.status(foundationId.onboardingSessionId)));
+    await poll(() => unwrap(services.analyzer.status(foundationId.onboardingSessionId)), () => unwrap(services.analyzer.result(foundationId.onboardingSessionId)), '故事资料');
     const foundation = await unwrap(services.analyzer.result(foundationId.onboardingSessionId)); assertCurrent();
     setMessage('正在安排读者体验与视角大纲…');
     const adaptationId: NarrativeAdaptationIdentity = await unwrap(services.narrativeAdaptation.begin(input, undefined));
     await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(adaptationId)));
-    await poll(async () => (await unwrap(services.narrativeAdaptation.status(adaptationId))).status);
+    await poll(async () => (await unwrap(services.narrativeAdaptation.status(adaptationId))).status, () => unwrap(services.narrativeAdaptation.result(adaptationId)), '读者体验大纲');
     const outline = (await unwrap(services.narrativeAdaptation.result(adaptationId))).candidate; assertCurrent();
     setMessage('正在安排秘密与揭示时机…');
     const characterIds = [...new Set([...foundation.layers.characters.candidates.map(c=>c.id), ...(outline.protagonistCandidate ? [outline.protagonistCandidate.id] : [])])];
     const revealId: NarrativeRevealIdentity = await unwrap(services.narrativeReveal.begin({ ...input, b5CandidateId: outline.candidateId, characterIds, b5Anchors: outline.outline.acts.flatMap(act=>act.beats.map(beat=>({id:beat.id,actId:act.id,beatId:beat.id,label:beat.title}))) }, undefined));
     await registerCancel(() => unwrap(services.narrativeReveal.cancel(revealId)));
-    await poll(async () => (await unwrap(services.narrativeReveal.status(revealId))).status);
+    await poll(async () => (await unwrap(services.narrativeReveal.status(revealId))).status, () => unwrap(services.narrativeReveal.result(revealId)), '秘密揭示计划');
     const knowledge = (await unwrap(services.narrativeReveal.result(revealId))).candidate; assertCurrent();
     // §14.15: no source paragraph has author-confirmed public-at-start visibility here.
     // The old analyzer's B5/C4 output therefore cannot enter this plan.

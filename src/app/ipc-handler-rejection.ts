@@ -4,6 +4,7 @@ const messages = Object.freeze({
   'empty-project-required': 'Rule/style import initialization requires a new empty project',
   'empty-rules-required': 'Rule/style import initialization requires empty B1',
   'empty-style-required': 'Rule/style import initialization requires empty B4',
+  'narrative-output-invalid': '读者体验大纲已返回，但输出格式不符合要求，未进入秘密揭示步骤，也未写入故事资料。请重试生成。',
 });
 type Reason = keyof typeof messages;
 const reasons = new WeakMap<object, Reason>();

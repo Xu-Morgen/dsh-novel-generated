@@ -1,5 +1,6 @@
 import { ensureImportedProgress } from './import-progress.js';
-import { ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
+import { IpcHandlerRejection, ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
+import { NarrativeAdaptationFormatError } from '../../llm/analyze/narrative-adaptation.js';
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
@@ -252,7 +253,14 @@ export function createDesktopSourceImportHandlers(
   });
   map.set('novel-creation-tool/novelNarrativeAdaptation/status', (input) => adaptation.status(input as Parameters<typeof adaptation.status>[0]));
   map.set('novel-creation-tool/novelNarrativeAdaptation/cancel', (input) => adaptation.cancel(input as Parameters<typeof adaptation.cancel>[0]));
-  map.set('novel-creation-tool/novelNarrativeAdaptation/result', (input) => adaptation.result(input as Parameters<typeof adaptation.result>[0]));
+  map.set('novel-creation-tool/novelNarrativeAdaptation/result', (input) => {
+    try { return adaptation.result(input as Parameters<typeof adaptation.result>[0]); }
+    catch (cause) {
+      // I200: fixed diagnostic only; Zod messages may contain model text or secrets.
+      if (cause instanceof NarrativeAdaptationFormatError) throw new IpcHandlerRejection('narrative-output-invalid');
+      throw cause;
+    }
+  });
 
   map.set('novel-creation-tool/novelNarrativeReveal/begin', async (input, settings, context) => {
     const invocation = contextOf(context);
