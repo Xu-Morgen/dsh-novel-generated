@@ -12,6 +12,57 @@ import type { SourceInterpretationOutput } from '../core/schema/import-interpret
 import { ONBOARDING_STYLES } from './styles/onboarding.js';
 import type { WorkbenchActions } from './store/types.js';
 
+describe('I198 initialization startup failure', () => {
+  it.each([
+    ['Rule/style initialization is only allowed for the first controlled import', false],
+    ['Rule/style import initialization requires empty B4', false],
+    ['Temporary startup failure', true],
+  ])('ends waiting and preserves the Host rejection: %s', async (message, retryable) => {
+    let state: ImportInterpretationReviewState | undefined;
+    let begins = 0;
+    let creates = 0;
+    let confirms = 0;
+    let deferFailure = false;
+    let rejectLate: ((error: Error) => void) | undefined;
+    const controller = createImportInterpretationController({
+      analysis: () => ({ begin: async () => ({}), status: async () => ({ status: 'succeeded' }), result: async () => ({ output }) }) as never,
+      session: () => ({ create: async () => ({ importSessionId: `session-${++creates}` }), confirm: async () => { confirms += 1; } }) as never,
+      initialization: () => ({ begin: async () => {
+        begins += 1;
+        if (deferFailure) return new Promise((_resolve, reject) => { rejectLate = reject; });
+        throw new Error(message);
+      } }) as never,
+      currentProjectId: () => 'book', isActive: () => true, beginOp: () => true, endOp: () => {},
+      dispatch: (apply) => apply({ importInterpretationReview: (value: ImportInterpretationReviewState | undefined) => { state = value; } } as WorkbenchActions),
+      onConfirmed: () => {},
+    });
+    const flush = async () => { for (let i = 0; i < 25; i += 1) await Promise.resolve(); };
+    controller.begin({ sourceHash: 'a'.repeat(64), text: '幕后资料', paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '幕后资料', startOffset: 0, endOffset: 4 }] });
+    await flush();
+    controller.setSourceRole('idea'); controller.setTreatment('expand-outline');
+    controller.setParagraphDecision('paragraph-0001', 'accepted');
+    controller.confirm(); await flush();
+    expect(state).toMatchObject({ confirmed: true, ruleStyleBusy: false, ruleStyleStartFailure: { retryable }, technicalError: message });
+    const tree = sourceInterpretationReview(h, { ...state!, ruleStyleStream: { phase: 'checking-config', receivedCharacters: 0, latestText: '' } }, controller);
+    expect(JSON.stringify(tree)).not.toContain('等待模型返回首个内容片段');
+    expect(collect(tree).some(node => node.props?.['data-novel-rule-style-import-retry'] !== undefined)).toBe(retryable);
+    if (retryable) {
+      controller.retryRuleStyleInitialization(); controller.retryRuleStyleInitialization();
+      await flush();
+      expect(begins).toBe(2); expect(creates).toBe(1); expect(confirms).toBe(1);
+      deferFailure = true;
+      controller.retryRuleStyleInitialization();
+      controller.begin({ sourceHash: 'b'.repeat(64), text: '新资料', paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: '新资料', startOffset: 0, endOffset: 3 }] });
+      rejectLate!(new Error('Late startup rejection'));
+      await flush();
+      expect(state).toMatchObject({ importSessionId: 'session-2', analysisStatus: 'succeeded' });
+      expect(state?.ruleStyleStartFailure).toBeUndefined();
+      expect(state?.technicalError).toBeUndefined();
+    }
+    controller.dispose();
+  });
+});
+
 type Node = { tag: string; props: Record<string, unknown> | null; children: unknown[] };
 const h = (tag: string, props: Record<string, unknown> | null | undefined, ...children: unknown[]): Node => ({ tag, props: props ?? null, children });
 function collect(node: unknown, tag?: string): Node[] {

@@ -2169,6 +2169,16 @@ TDD Route:
 - **验证**：`pnpm run verify:i197`；`pnpm run verify:stage-41`。
 - **状态**：已完成；`verify:stage-41`（含 `verify:i197`）exit 0，230 文件 / 1195 测试，开发版及打包版真实 Electron 验收通过，见 `docs/ui/i197-dod.md`。下一可用迭代 I198，不自动执行。
 
+## Stage 42：初始化启动失败恢复（I198）
+
+### I198：规则与文风启动失败的真实状态与诊断
+
+- **目标 / canonical owner**：Client 来源审阅 controller 与规则文风面板停止失败后的假等待，解释 Host 前置条件拒绝，支持暂时错误原地重试。
+- **交付物 / 验收**：见 `docs/ui/i198-dod.md`；失败无等待、同 session 重试、重复调用与迟到响应负测、合法首次导入消费者回归及 smoke。
+- **兼容 / 明确不做**：设计 §14.18.2 首次导入与空作品保护、Main owner、IPC、I11、prompt/schema/样本不变，不改用户作品数据。
+- **验证**：`pnpm run verify:i198`；`pnpm run verify:stage-42`。
+- **状态**：已完成；阶段门 exit 0，230 文件 / 1198 测试、构建、消费者 smoke、真实 Electron 与既有样本回归通过。下一可用迭代 I199。
+
 ## 39. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。

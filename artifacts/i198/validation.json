@@ -1,0 +1,11 @@
+{
+  "iteration": "I198",
+  "passed": true,
+  "evidence": "artifacts/i198/tests.json",
+  "scope": [
+    "startup rejection",
+    "same-session retry",
+    "duplicate begin guard",
+    "first-import Main consumer"
+  ]
+}

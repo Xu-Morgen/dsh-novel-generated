@@ -50,6 +50,8 @@ export interface ImportInterpretationReviewState {
   readonly ruleStyleInitialization?: RuleStyleImportProjection;
   /** Desktop-only live projection from the active IPC request; never persisted as narrative state. */
   readonly ruleStyleStream?: RuleStyleStreamView;
+  /** Startup rejection is presentation state, never a fabricated Host checkpoint (§14.18.2). */
+  readonly ruleStyleStartFailure?: { readonly message: string; readonly retryable: boolean };
   readonly ruleStyleRulesDraft?: string;
   readonly ruleStyleStyleDraft?: string;
   readonly ruleStyleBusy?: boolean;
@@ -402,6 +404,11 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
   const initialization = state.ruleStyleInitialization;
   if (!state.confirmed && initialization === undefined) return null;
   const stream = state.ruleStyleStream;
+  if (state.ruleStyleStartFailure !== undefined) return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '' },
+    h('h4', null, '规则与文风初稿'),
+    h('p', { role: 'status' }, state.ruleStyleStartFailure.message),
+    state.ruleStyleStartFailure.retryable ? h('button', { type: 'button', className: 'nv-btn', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-retry': '', onClick: () => ops.retryRuleStyleInitialization?.() }, '重试同一初始化任务') : null,
+  );
   const streamPhaseLabel = stream?.phase === 'checking-config' ? '正在检查 AI 配置'
     : stream?.phase === 'connecting' ? '正在连接 AI 服务'
       : stream?.phase === 'reasoning' ? 'AI 正在推理'
@@ -659,11 +666,25 @@ export function createImportInterpretationController(deps: ImportInterpretationC
     }, (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '规则与文风初始化状态不可用。') }));
   };
   const startRuleStyle = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
+    if (current?.ruleStyleBusy) return;
+    const matches = (): boolean => active() && current?.projectId === identity.projectId && current.importSessionId === identity.importSessionId && current.sourceHash === identity.sourceHash;
+    const failed = (error: unknown): void => {
+      if (!matches()) return;
+      const detail = rawError(error);
+      const blocked = detail.includes('only allowed for the first controlled import')
+        ? '此作品此前已确认过导入，自动规则与文风初稿仅在首次导入时生成。请在“规则与文风”面板手工设置。'
+        : /requires (a new empty project|empty B1|empty B4)/.test(detail)
+          ? '此作品已有内容或规则与文风，无法自动初始化。请在“规则与文风”面板查看和编辑。'
+          : undefined;
+      const message = blocked ?? toUserMessage(error, '首次导入规则与文风初始化未启动，请重试。');
+      patch({ ruleStyleBusy: false, ruleStyleStream: undefined, ruleStyleStartFailure: { message, retryable: blocked === undefined }, error: message, technicalError: detail });
+    };
     const target = deps.initialization();
-    if (!active() || target === undefined) { patch({ error: '规则与文风初始化服务暂时不可用。' }); return; }
+    if (!matches()) return;
+    if (target === undefined) { failed(new Error('规则与文风初始化服务暂时不可用。')); return; }
     clearRuleStylePoll();
-    patch({ ruleStyleBusy: true });
-    void unwrap(target.begin(identity, undefined)).then((started) => { if (active()) { patchRuleStyle(started); pollRuleStyle(identity); } }, (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '首次导入规则与文风初始化未启动。') }));
+    patch({ ruleStyleBusy: true, ruleStyleStartFailure: undefined, ruleStyleStream: undefined, error: undefined, technicalError: undefined });
+    void unwrap(target.begin(identity, undefined)).then((started) => { if (matches()) { patchRuleStyle(started); pollRuleStyle(identity); } }, failed);
   };
 
   const begin = (source: { sourceHash: string; text: string; paragraphs: readonly ImportInterpretationParagraph[] }): void => {
