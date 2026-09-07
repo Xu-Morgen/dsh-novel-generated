@@ -1,16 +1,11 @@
-/**
- * I83 styles 分区 · chapters：C5 正文（只读三栏 / 正文编辑 / 版本分支）与
-通用编辑器/按钮控件（I60/I61/I70）。
- * I83 由 scripts/.split-styles.mjs 从单一 WORKBENCH_STYLES 模板字符串按键切出；
- * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
- * 由 styles.ts 组合器按原顺序拼接。
+/** I191 / design §14.34: C5 single navigation tree, prose, edit and version presentation.
+ * Shared buttons/fields remain exclusively in controls.ts; styles.ts composes this section.
  */
 export const CHAPTERS_STYLES = `
-/* I60 C5 章节/场景只读导航（design §5.12 / R13-1）：三栏章节树 → 场景列表 →
-   正文。列面板固定宽度、正文弹性；窄屏整体纵向堆叠（见下方断点查询）。 */
+/* Current-chapter scenes share the navigation column; prose takes the remaining space. */
 .nv-chapters {
   display: grid;
-  grid-template-columns: 220px 220px minmax(0, 1fr);
+  grid-template-columns: minmax(180px, 224px) minmax(0, 1fr);
   gap: calc(var(--nv-grid) * 2);
   align-items: start;
   min-height: 0;
@@ -71,10 +66,11 @@ export const CHAPTERS_STYLES = `
 }
 
 .nv-chapters__pane {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: calc(var(--nv-grid) * 0.75);
-  max-height: 62vh;
+  max-height: 70vh;
   overflow-y: auto;
   padding-right: calc(var(--nv-grid) * 0.5);
 }
@@ -106,7 +102,14 @@ export const CHAPTERS_STYLES = `
   line-height: 1.7;
 }
 
+.nv-chapters__chapter-node { min-width: 0; }
+.nv-chapters__scenes { padding: 8px 0 8px 12px; margin: 4px 0 12px 8px; border-left: 2px solid var(--nv-line); display: grid; gap: 6px; }
+.nv-chapters__scenes > h3 { font-size: 13px; color: var(--nv-ink-dim); }
+.nv-chapters__tools, .nv-chapters__finalization-tools { border-block: 1px solid var(--nv-line); padding: 12px 0; }
+.nv-chapters__tools > summary, .nv-chapters__finalization-tools > summary { cursor: pointer; color: var(--nv-ink-dim); }
+.nv-chapters__pane--body { padding: clamp(12px, 2vw, 28px); background: var(--nv-paper-raised); border: 1px solid var(--nv-line); border-radius: 12px; }
 .nv-chapters__prose {
+  max-width: 46em;
   display: flex;
   flex-direction: column;
   gap: calc(var(--nv-grid) * 1.25);
@@ -115,7 +118,7 @@ export const CHAPTERS_STYLES = `
 .nv-chapters__paragraph {
   margin: 0;
   font-family: var(--nv-serif);
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1.9;
   color: var(--nv-ink);
 }
@@ -150,9 +153,9 @@ export const CHAPTERS_STYLES = `
 
 .nv-chapters__editor-input {
   font-family: var(--nv-serif);
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1.9;
-  min-height: 240px;
+  min-height: 52vh;
   resize: vertical;
 }
 

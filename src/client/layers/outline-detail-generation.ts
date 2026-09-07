@@ -85,7 +85,7 @@ function candidateItem(h: El, item: OutlineDetailGenerationCandidate['items'][nu
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-regenerate': item.detailBeatId, disabled: acting || item.origin === 'generated', onClick: () => ops.regenerate(item.detailBeatId) }, '重新生成'),
       item.origin === 'generated'
-        ? h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-keep': item.detailBeatId, 'aria-pressed': item.choice !== 'skip', disabled: acting, onClick: () => ops.select(item.detailBeatId, item.choice === 'skip') }, item.choice === 'skip' ? '保留到当前节' : '不保留')
+        ? h('button', { type: 'button', className: 'nv-btn nv-btn--choice', 'data-novel-outline-detail-keep': item.detailBeatId, 'aria-pressed': item.choice !== 'skip', disabled: acting, onClick: () => ops.select(item.detailBeatId, item.choice === 'skip') }, item.choice === 'skip' ? '保留到当前节' : '不保留')
         : h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-skip': item.detailBeatId, disabled: acting, onClick: () => ops.skip(item.detailBeatId) }, '跳过此卡'),
     ),
     h('small', { className: 'nv-panel__hint' }, `选择：${CHOICE_LABELS[item.choice]}`),
@@ -113,7 +113,7 @@ export function outlineDetailGenerationPanel(h: El, view: OutlineDetailGeneratio
         h('h2', { className: 'nv-panel__title' }, '范围细纲候选'),
         h('p', { className: 'nv-panel__hint' }, '可补齐所选范围的缺失卡，也可按本次要求为当前已保存节追加新卡；确认前不会改写大纲。'),
       ),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-generate': '', disabled: fillDisabled, onClick: ops.generate }, acting ? '处理中…' : '补齐范围缺失卡'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-outline-detail-generate': '', disabled: fillDisabled, onClick: ops.generate }, acting ? '处理中…' : '补齐所选范围的细纲卡'),
     ),
     h('div', { className: 'nv-outline-detail-generation__scope', 'data-novel-outline-detail-scope': '' },
       h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '生成范围'), h('select', { className: 'nv-field__input', value: state.scopeKind, onChange: (event: { target: { value: string } }) => ops.setScopeKind(event.target.value as OutlineDetailGenerationLayerState['scopeKind']) }, Object.entries(OUTLINE_GENERATION_SCOPE_LABELS).map(([kind, label]) => h('option', { key: kind, value: kind }, label)))),
@@ -124,7 +124,7 @@ export function outlineDetailGenerationPanel(h: El, view: OutlineDetailGeneratio
         h('span', { className: 'nv-field__label' }, '本次生成要求'),
         h('textarea', { className: 'nv-field__input', rows: 3, maxLength: 2000, value: state.guidance, placeholder: '例如：增加一张主角发现线索的调查场景，但暂不揭示幕后真相。', onChange: (event: { target: { value: string } }) => ops.setGuidance(event.target.value) }),
       ),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-append-generate': view.selectedBeat?.id ?? '', disabled: appendDisabled, onClick: ops.append }, acting ? '处理中…' : '为当前节生成新候选'),
+      h('button', { type: 'button', className: candidate === undefined && !view.outlineDirty ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-outline-detail-append-generate': view.selectedBeat?.id ?? '', disabled: appendDisabled, onClick: ops.append }, acting ? '处理中…' : '为当前节追加细纲候选'),
       h('p', { className: 'nv-panel__hint' }, view.selectedBeat === undefined ? '请先在上方大纲中选择一节。' : `追加目标：${view.selectedBeat.label}`),
     ),
     view.outlineDirty ? h('p', { className: 'nv-editor__error', role: 'alert', 'data-novel-outline-detail-dirty': '' }, '大纲有未保存修改，请先保存大纲再生成。') : null,
@@ -133,13 +133,13 @@ export function outlineDetailGenerationPanel(h: El, view: OutlineDetailGeneratio
       h('p', { className: 'nv-panel__hint' }, `范围内 ${candidate.items.length} 张卡，其中 ${candidate.generatedDetailBeatCount} 张为补缺候选。${candidate.rationale}`),
       candidate.items.map((item) => candidateItem(h, item, ops, acting, appendMode, view.characterOptions ?? [])),
       h('div', { className: 'nv-editor__actions nv-outline-detail-generation__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-propose': candidate.candidateId, disabled: acting, onClick: ops.propose }, '提交确认'),
+        h('button', { type: 'button', className: state.proposalId === undefined && !view.outlineDirty ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-outline-detail-propose': candidate.candidateId, disabled: acting, onClick: ops.propose }, '审阅细纲应用范围'),
         h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-cancel': candidate.candidateId, disabled: acting, onClick: ops.cancel }, '取消候选'),
       ),
       state.proposalId === undefined ? null : h('div', { className: 'nv-outline-detail-generation__gate', 'data-novel-outline-detail-proposal': state.proposalId },
-        h('p', { className: 'nv-panel__hint' }, '候选已进入确认门；确认后才会应用授权范围。'),
+        h('p', { className: 'nv-panel__hint' }, '请核对上方保留和不保留的卡片。确认后，将按本次审阅范围更新大纲。'),
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-outline-detail-accept': state.proposalId, disabled: acting, onClick: ops.accept }, '确认并应用'),
-        h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-reject': state.proposalId, disabled: acting, onClick: ops.reject }, '拒绝候选'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', 'data-novel-outline-detail-reject': state.proposalId, disabled: acting, onClick: ops.reject }, '不采用候选'),
       ),
     ),
   );

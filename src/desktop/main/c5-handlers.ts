@@ -1,5 +1,7 @@
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
 import type { DesktopPaths } from '../../app/paths.js';
+import { createOutlineGenerationScopeService } from '../../host/outline-generation-scope-service.js';
+import { createOutlineDetailGenerationService } from '../../host/outline-detail-generation-service.js';
 import { resolveA2GenerationConfig, SettingsIndex } from '../../core/settings-index/index.js';
 import { projectChapterList, toChapterReadResult, toSceneReadResult } from '../../core/text/projection.js';
 import type { GenerationSettings } from '../../llm/port/index.js';
@@ -119,6 +121,8 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   const resolveSettings = deps.resolveGenerationSettings ?? (async () => resolveA2GenerationConfig(await new SettingsIndex(paths.settingsRoot).load()).settings);
   const text = createTextService(paths.libraryRoot);
   const binding = createSceneOutlineBindingService(text, outline, paths.libraryRoot);
+  const outlineScope = createOutlineGenerationScopeService({ text, outline, binding });
+  const detailGeneration = createOutlineDetailGenerationService({ llm: deps.llm, scope: outlineScope, outline, confirmation, onDispose: deps.onDispose });
   const baseline = createOutlineGenerationBaselineService({ text, outline, binding }, paths.libraryRoot);
   const timeline = createTimelineService(outline, paths.libraryRoot);
   const textEdit = createTextEditService({
@@ -226,11 +230,35 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
     async reorder(projectId: string, input: Parameters<typeof text.reorderProject>[1]) { await text.open(projectId); const result = await text.reorderProject(projectId, input); return { chapters: result.chapters.map(toChapterMutationView), fingerprint: result.fingerprint }; },
   };
   const openText = (projectId: string): Promise<void> => text.open(projectId);
-  const openWriting = (projectId: string): Promise<void> => writing.open(projectId);
+  const openWriting = async (projectId: string): Promise<void> => {
+    // I191: writing preview consumes B1/B4/C3 even when their editor pages have
+    // never been opened. Project readiness only opens the six lifecycle owners.
+    await Promise.all([rules.open(projectId), style.open(projectId), knowledge.open(projectId)]);
+    await writing.open(projectId);
+  };
   const openBranch = (projectId: string): Promise<void> => branch.open(projectId);
   const writingSettings = async (settings: unknown): Promise<GenerationSettings> => settings === undefined ? resolveSettings() : settings as GenerationSettings;
 
   const map = new Map<string, IpcHandler>();
+  // I191: these canonical methods were allowlisted but had no desktop adapter.
+  // Reuse the B5/I11 owners; no alternate generation or confirmation path.
+  map.set('novel-creation-tool/novelOutlineGenerationScope/resolve', async (projectId, input) => {
+    await openText(projectId as string);
+    return outlineScope.resolve(projectId as string, input as Parameters<typeof outlineScope.resolve>[1]);
+  });
+  for (const method of ['generate', 'append', 'regenerate'] as const) {
+    map.set(`novel-creation-tool/novelOutlineDetailGeneration/${method}`, async (projectId, input, settings, context) => {
+      const invocation = contextOf(context);
+      await openText(projectId as string);
+      return withProgress(invocation, `outlineDetailGeneration.${method}`, async () => detailGeneration[method](projectId as string, input, await writingSettings(settings), invocation?.signal));
+    });
+  }
+  for (const method of ['read', 'accept', 'reject', 'cancel'] as const) {
+    map.set(`novel-creation-tool/novelOutlineDetailGeneration/${method}`, (projectId, input) => detailGeneration[method](projectId as string, input as string));
+  }
+  for (const method of ['edit', 'skip', 'select', 'propose'] as const) {
+    map.set(`novel-creation-tool/novelOutlineDetailGeneration/${method}`, (projectId, input) => detailGeneration[method](projectId as string, input));
+  }
   map.set('novel-creation-tool/novelWorkspace/chapterList', (projectId) => workspace.chapterList(projectId as string));
   map.set('novel-creation-tool/novelWorkspace/chapterRead', (projectId, chapterId) => workspace.chapterRead(projectId as string, chapterId as string));
   map.set('novel-creation-tool/novelWorkspace/sceneRead', (projectId, chapterId, sceneId) => workspace.sceneRead(projectId as string, chapterId as string, sceneId as string));
@@ -251,7 +279,7 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   map.set('novel-creation-tool/novelText/sceneUpdate', (projectId, input) => mutation.sceneUpdate(projectId as string, input as Parameters<typeof text.updateSceneMutation>[1]));
   map.set('novel-creation-tool/novelText/reorder', (projectId, input) => mutation.reorder(projectId as string, input as Parameters<typeof text.reorderProject>[1]));
 
-  map.set('novel-creation-tool/novelBranches/list', async (projectId, chapterId, sceneId) => { await openBranch(projectId as string); return branch.listBranches(projectId as string, chapterId as string, sceneId as string); });
+  map.set('novel-creation-tool/novelBranches/list', async (projectId, chapterId, sceneId) => { await openBranch(projectId as string); return { branches: await branch.listBranches(projectId as string, chapterId as string, sceneId as string) }; });
   map.set('novel-creation-tool/novelBranches/read', async (projectId, chapterId, sceneId, branchId) => { await openBranch(projectId as string); return branch.readBranch(projectId as string, chapterId as string, sceneId as string, branchId as string); });
   map.set('novel-creation-tool/novelBranches/save', async (projectId, chapterId, sceneId, label) => { await openBranch(projectId as string); return branch.saveBranch(projectId as string, chapterId as string, sceneId as string, label as string); });
   map.set('novel-creation-tool/novelBranches/choose', async (projectId, chapterId, sceneId, branchId) => { await openBranch(projectId as string); return branch.chooseBranch(projectId as string, chapterId as string, sceneId as string, branchId as string); });

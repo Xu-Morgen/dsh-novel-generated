@@ -2087,9 +2087,11 @@ TDD Route:
 
 ### I191：UI-D 大纲、正文、候选、版本与定稿
 
+完成：`verify:i191` 通过（224 文件 / 1175 测试，19 项真实 Electron 检查）。修复缺失细纲 adapter、写作读依赖和 branch list 合同接线；复用既有 owner 与 strict IPC。截图与验证见 `artifacts/desktop/ui/i191/`。
+
 - **目标**：合并章节场景导航、正文优先、互斥模式和候选定稿操作层次。
 - **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
-- **交付物 / canonical owner**：outline/detail、chapters/scene-editor/candidate/branch/styles；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **交付物 / canonical owner**：outline/detail、chapters/scene-editor/candidate/branch/styles；允许 desktop shell/c5-handlers 的最小既有服务接线修复、scene-editor ops 脏文本导航修复，须附消费者/strict IPC 验证；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
 - **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
 - **验收 / 消费者夹具**：细纲至草稿至定稿、保存失败输入保留、删除影响、陈旧计划拒绝；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
 - **验证**：`pnpm run verify:i191` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。

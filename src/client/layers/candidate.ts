@@ -47,9 +47,10 @@ export function freshCandidatePanel(): CandidatePanelState {
 export function candidatePanel(h: El, projectId: string, writing: WritingNamespace | undefined, state: CandidatePanelState, ops: ChaptersEditOps, characterOptions: readonly EntityOption[] = []): unknown {
   const available = writing !== undefined && projectId !== undefined;
   const disabled = !available || state.ui.kind === 'proposing' || state.ui.kind === 'acting';
+  const reviewing = state.ui.kind === 'ready' || state.ui.kind === 'acting';
   const proposeEntry = h('div', { className: 'nv-candidate__entry', 'data-novel-candidate-entry': '' },
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-propose-continue': '', disabled, onClick: () => ops.proposeWriting('continue') }, '续写下一场景'),
+      h('button', { type: 'button', className: !reviewing && state.rewritePrompt.trim() === '' ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-candidate-propose-continue': '', disabled, onClick: () => ops.proposeWriting('continue') }, '续写下一场景'),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-propose-scene-card': '', disabled, onClick: () => ops.proposeWriting('scene-card') }, '按场景卡写作'),
     ),
     h('label', { className: 'nv-field nv-candidate__rewrite' },
@@ -63,7 +64,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
         placeholder: '描述希望改写的方向（如：更有悬念、缩短、切换人称）',
         onChange: (event: { target: { value: string } }) => ops.rewritePromptChange(event.target.value),
       }),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-propose-rewrite': '', disabled: disabled || state.rewritePrompt.trim() === '', onClick: () => ops.proposeRewrite() }, '发起重写候选'),
+      h('button', { type: 'button', className: !reviewing && state.rewritePrompt.trim() !== '' ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-candidate-propose-rewrite': '', disabled: disabled || state.rewritePrompt.trim() === '', onClick: () => ops.proposeRewrite() }, '生成重写候选'),
     ),
   );
   if (!available) {
@@ -141,8 +142,8 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
       traceBlock,
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-candidate-accept': '', 'data-novel-candidate-adopt-draft': '', disabled: acting !== undefined, onClick: () => ops.adoptDraftCandidate() }, acting === 'adopt' ? '正在接受为草稿…' : '接受为草稿'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-reject': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('reject') }, acting === 'reject' ? '正在拒绝…' : '拒绝'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-rewrite': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('rewrite') }, acting === 'rewrite' ? '正在重写…' : '重写'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-reject': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('reject') }, acting === 'reject' ? '正在拒绝…' : '不采用此候选'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-rewrite': '', disabled: acting !== undefined, onClick: () => ops.adjudicateCandidate('rewrite') }, acting === 'rewrite' ? '正在重写…' : '重新生成候选'),
       ),
     );
   } else if (ui.kind === 'done') {
@@ -150,12 +151,12 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
   } else {
     body = h('div', { className: 'nv-candidate__error', 'data-novel-candidate-error': '', role: 'alert', 'aria-live': 'assertive' },
       h('p', null, toUserMessage(ui.message)),
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-dismiss': '', onClick: () => ops.dismissCandidate() }, '关闭'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-candidate-dismiss': '', onClick: () => ops.dismissCandidate() }, '收起错误'),
     );
   }
   return h('section', { className: 'nv-candidate', 'data-novel-candidate-panel': '', 'data-novel-candidate-state': ui.kind },
     h('h3', { className: 'nv-editor__title' }, '写作候选'),
-    proposeEntry,
+    reviewing ? h('details', { className: 'nv-candidate__other-actions' }, h('summary', null, '其他生成方式'), proposeEntry) : proposeEntry,
     body,
   );
 }

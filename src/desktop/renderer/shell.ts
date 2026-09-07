@@ -96,6 +96,7 @@ function desktopNamespaces(client: DesktopIpcClient): WorkbenchNamespaces {
     textMutation: client.services.textMutation,
     textDeletion: client.services.textDeletion,
     outlineReconciliation: client.services.outlineReconciliation,
+    outlineDetailGeneration: client.services.outlineDetailGeneration,
     referenceAuditNamespace: client.services.referenceAudit,
     referenceCorrectionNamespace: client.services.referenceCorrection,
     importInterpretation: client.services.importInterpretation,

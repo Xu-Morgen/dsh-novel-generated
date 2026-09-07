@@ -137,7 +137,7 @@ export function branchPanel(h: El, projectId: string, branches: BranchNamespace 
             'data-novel-branch-save': '',
             disabled: state.acting || state.labelDraft.trim() === '',
             onClick: () => ops.branchSave(),
-          }, state.acting ? '处理中…' : '存档'),
+          }, state.acting ? '处理中…' : '保存当前版本'),
         ),
       ),
       state.message === undefined ? null : h('p', { className: 'nv-branch__hint nv-branch__message', 'data-novel-branch-message': '', role: 'status', 'aria-live': 'polite' }, state.message),

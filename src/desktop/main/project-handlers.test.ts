@@ -72,6 +72,7 @@ describe('I175 Main project and settings handlers', () => {
     await expect(invoke(handlers, 'novel-creation-tool/novelWorkspace/sceneEdit', [
       'c5', 'chapter-1', 'scene-1', { start: 0, end: 3 }, 'xyz', createHash('sha256').update('abc').digest('hex'),
     ])).resolves.toMatchObject({ ok: true, value: { scene: { id: 'scene-1', content: 'xyz' } } });
+    await expect(invoke(handlers, 'novel-creation-tool/novelBranches/list', ['c5', 'chapter-1', 'scene-1'])).resolves.toMatchObject({ ok: true, value: { branches: [] } });
     const branchSave = await invoke(handlers, 'novel-creation-tool/novelBranches/save', ['c5', 'chapter-1', 'scene-1', 'before-final']);
     expect(branchSave).toMatchObject({ ok: true, value: { content: 'xyz' } });
     const branchId = (branchSave as { ok: true; value: { branches: Array<{ id: string }> } }).value.branches[0].id;

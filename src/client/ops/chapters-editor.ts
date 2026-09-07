@@ -1,3 +1,4 @@
+import { scheduleFocus } from '../focus.js';
 import { unwrap } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
 import { sha256Hex } from '../sha256.js';
@@ -41,10 +42,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, toUserMessage(cause)); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
   };
 
-  const selectChapter = (chapterId: string): void => {
-    // I61 脏文本保护：草稿未保存时先弹离开确认，把切换推迟到裁决后。
-    const editor = snapshot.chapters.editor;
-    if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId } }); return; }
+  const loadChapter = (chapterId: string): void => {
     const target = workspace;
     if (!target || projectId === undefined) return;
     if (!beginOp(`chapters:chapter:${chapterId}`)) return;
@@ -60,11 +58,20 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, toUserMessage(cause)); });
   };
 
+  const selectChapter = (chapterId: string): void => {
+    if (snapshot.chapters.editor.dirty) {
+      editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId } });
+      scheduleFocus('[data-novel-scene-leave-cancel]');
+      return;
+    }
+    loadChapter(chapterId);
+  };
+
   const selectScene = (sceneId: string): void => {
     const chapterId = snapshot.chapters.selectedChapterId;
     if (chapterId === undefined) return;
     const editor = snapshot.chapters.editor;
-    if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); return; }
+    if (editor.dirty) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId } }); scheduleFocus('[data-novel-scene-leave-cancel]'); return; }
     loadScene(sceneId, chapterId);
   };
 
@@ -158,7 +165,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     editorPatch({ leaveConfirm: false, pendingNavigation: undefined, dirty: false, saveMessage: '', error: '' });
     if (pending !== undefined) {
       if (pending.sceneId !== undefined && pending.chapterId === snapshot.chapters.selectedChapterId) loadScene(pending.sceneId, pending.chapterId, pending.anchor);
-      else selectChapter(pending.chapterId);
+      else loadChapter(pending.chapterId);
     }
   };
 
@@ -184,11 +191,11 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     acceptReparse,
     rejectReparse,
     discardDraft,
-    cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); },
+    cancelLeave() { editorPatch({ leaveConfirm: false, pendingNavigation: undefined }); scheduleFocus('[data-novel-scene-text]'); },
     // I71 搜索结果跳转（R14-6）：打开指定章节/场景（脏文本保护复用离开确认）。
     openScene(chapterId, sceneId, anchor) {
       const editor = snapshot.chapters.editor;
-      if (editor.dirty && !editor.leaveConfirm) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId, anchor } }); return; }
+      if (editor.dirty) { editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId, anchor } }); scheduleFocus('[data-novel-scene-leave-cancel]'); return; }
       const target = workspace;
       if (!target || projectId === undefined) return;
       if (!beginOp(`chapters:jump:${chapterId}`)) return;

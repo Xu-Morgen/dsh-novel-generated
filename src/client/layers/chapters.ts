@@ -13,6 +13,7 @@ import { freshSceneEditor, sceneEditorPanel, type SceneEditorState } from './sce
 import { freshWritingWorkflow, type WritingWorkflowState } from '../writing-workflow.js';
 import { freshPolishSession, type PolishSessionState } from '../polish-session.js';
 import type { PolishMode } from '../../core/candidate/index.js';
+import { scheduleFocus } from '../focus.js';
 import { entitySelect, type EntityOption } from '../entity-selectors.js';
 
 export interface ChaptersEntityChoices {
@@ -264,7 +265,7 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
   );
 }
 
-function finalizationPanel(h: El, state: FinalizationPanelState, workflow: WritingWorkflowState, ops: ChaptersEditOps): unknown {
+function finalizationPanel(h: El, state: FinalizationPanelState, workflow: WritingWorkflowState, ops: ChaptersEditOps, primary = true): unknown {
   const plan = state.plan;
   const busy = state.status === 'loading' || state.status === 'proposing' || state.status === 'applying';
   const canPrepare = workflow.candidateId !== undefined && workflow.sourceHash !== undefined && !busy;
@@ -290,7 +291,7 @@ function finalizationPanel(h: El, state: FinalizationPanelState, workflow: Writi
           h('p', { className: 'nv-chapters__item-meta' }, item.rationale),
           h('div', { className: 'nv-editor__actions', 'data-novel-finalization-choices': item.detailBeatId },
             (['keep', 'ai', 'manual', 'pending'] as const).map((option) => h('button', {
-              key: option, type: 'button', className: 'nv-btn' + (choice === option ? ' is-active' : ''),
+              key: option, type: 'button', className: 'nv-btn nv-btn--choice' + (choice === option ? ' is-active' : ''),
               'data-novel-finalization-choice': option, 'aria-pressed': choice === option,
               disabled: busy || state.proposalId !== undefined,
               onClick: () => ops.finalizationChoice(item.detailBeatId, option),
@@ -304,16 +305,16 @@ function finalizationPanel(h: El, state: FinalizationPanelState, workflow: Writi
     ) : null;
   let actions: unknown;
   if (state.status === 'idle' || state.status === 'error' || state.status === 'stale') {
-    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-prepare': '', disabled: !canPrepare, onClick: () => ops.prepareFinalization() }, '分析最终正文');
+    actions = h('button', { type: 'button', className: primary ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-finalization-prepare': '', disabled: !canPrepare, onClick: () => ops.prepareFinalization() }, '分析最终正文');
   } else if (state.status === 'ready') {
-    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-propose': '', disabled: plan === undefined, onClick: () => ops.proposeFinalization() }, '提交一次确认');
+    actions = h('button', { type: 'button', className: primary ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-finalization-propose': '', disabled: plan === undefined, onClick: () => ops.proposeFinalization() }, '审阅同步范围');
   } else if (state.status === 'pending') {
     actions = h('div', { className: 'nv-editor__actions', 'data-novel-finalization-pending': '' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-accept': '', onClick: () => ops.acceptFinalization() }, '确认并同步定稿'),
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-finalization-reject': '', onClick: () => ops.rejectFinalization() }, '拒绝本次定稿'),
+      h('button', { type: 'button', className: primary ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-finalization-accept': '', onClick: () => ops.acceptFinalization() }, '确认并同步定稿'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-finalization-reject': '', onClick: () => ops.rejectFinalization() }, '取消本次定稿'),
     );
   } else if (state.status === 'partial-failure') {
-    actions = h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-finalization-retry': '', onClick: () => ops.acceptFinalization() }, '重试同步定稿');
+    actions = h('button', { type: 'button', className: primary ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-finalization-retry': '', onClick: () => ops.acceptFinalization() }, '重试同步定稿');
   } else if (state.status === 'done' || state.status === 'needs-target') {
     actions = h('p', { className: 'nv-chapters__item-meta', 'data-novel-finalization-complete': '' }, state.status === 'needs-target' ? '当前正文已定稿，请选择或创建下一张细纲卡后继续。' : '当前正文已定稿，并已同步可安全推进的后续状态。');
   } else {
@@ -358,7 +359,7 @@ function polishSessionPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditO
       session.mode === undefined ? null : h('span', { className: 'nv-chapters__item-meta', 'data-novel-polish-mode': session.mode }, `模式：${session.mode}`),
     ),
     h('div', { className: 'nv-editor__actions' },
-      canStart ? ['language', 'condense', 'expand'].map((mode) => h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-start': mode, onClick: () => ops.startPolish(mode as PolishMode) }, mode === 'language' ? '语言润色' : mode === 'condense' ? '压缩精简' : '扩写细节')) : null,
+      canStart ? ['language', 'condense', 'expand'].map((mode) => h('button', { type: 'button', className: 'nv-btn', 'data-novel-polish-start': mode, onClick: () => ops.startPolish(mode as PolishMode) }, mode === 'language' ? '语言润色' : mode === 'condense' ? '压缩精简' : '扩写细节')) : null,
       canNext ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-polish-next': '', onClick: () => ops.nextPolishScene() }, '启动下一场景') : null,
       session.status === 'running' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-polish-stop': '', onClick: () => ops.stopPolish() }, '停止') : null,
       session.status !== 'running' && (session.status === 'stopped' || session.status === 'error' || session.status === 'completed')
@@ -394,7 +395,10 @@ function chapterModeTabs(h: El, state: ChaptersLayerState, ops: ChaptersEditOps)
     else return;
     event.preventDefault();
     const selected = CHAPTER_MODE_ITEMS[next];
-    if (selected !== undefined) ops.setMode(selected.id);
+    if (selected !== undefined) {
+      ops.setMode(selected.id);
+      scheduleFocus(`[data-novel-chapter-mode="${selected.id}"]`);
+    }
   };
   return h('div', { className: 'nv-chapters__modes', role: 'tablist', 'aria-label': '章节操作模式', 'data-novel-chapter-modes': '' },
     CHAPTER_MODE_ITEMS.map((item, index) => {
@@ -427,7 +431,11 @@ function modePanel(h: El, projectId: string, writing: WritingNamespace | undefin
     : state.mode === 'candidate'
       ? candidatePanel(h, projectId, writing, state.candidate, ops, choices.characters)
       : state.mode === 'versions'
-        ? versionsPanel(h, projectId, branches, state.branches, ops)
+        ? h('div', null, versionsPanel(h, projectId, branches, state.branches, ops),
+          state.selectedSceneId === undefined ? null : h('details', { 'data-novel-scene-version-tools': '', onToggle: (event: { currentTarget: { open: boolean } }) => { if (event.currentTarget.open) ops.branchesLoad(); } },
+            h('summary', null, '当前场景命名存档'),
+            h('p', { className: 'nv-branch__hint' }, '存档使用已保存的正文；未保存的编辑请先回正文模式保存。'),
+            branchPanel(h, projectId, branches, state.branches, ops)))
         : managementPanel(h, state, ops, choices);
   return h('div', {
     id: 'novel-chapters-mode-panel',
@@ -454,6 +462,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
   const reconciliation = management.reconciliation;
   return h('div', { className: 'nv-chapters__management', 'data-novel-chapter-management': '', 'data-novel-management-state': management.status },
     h('h3', { className: 'nv-editor__title' }, '章节管理'),
+    management.message ? h('p', { className: management.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', role: management.status === 'error' ? 'alert' : 'status', 'data-novel-management-message': '' }, management.message, management.status === 'error' ? ' 输入已保留；可刷新管理状态后重试。' : '') : null,
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-create': '', onClick: () => ops.createChapter() }, '新建章节'),
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-management-refresh': '', onClick: () => ops.refreshManagement() }, '刷新管理状态'),
@@ -461,7 +470,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
     managementInput(h, '章节标题', management.chapterDraft.title, (value) => ops.chapterDraft({ title: value }), 'chapter-title'),
     entitySelect(h, '视角角色', management.chapterDraft.pov, choices.characters, (value) => ops.chapterDraft({ pov: value }), 'chapter-pov'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-update': '', onClick: () => ops.updateChapter() }, '保存章节元数据'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-update': '', onClick: () => ops.updateChapter() }, '保存章节信息'),
       state.selectedChapterId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-reorder-up': '', onClick: () => ops.reorder('up') }, '章节上移') : null,
       state.selectedChapterId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-reorder-down': '', onClick: () => ops.reorder('down') }, '章节下移') : null,
     ),
@@ -473,7 +482,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
       managementInput(h, '场景摘要', management.sceneDraft.summary, (value) => ops.sceneDraft({ summary: value }), 'scene-summary'),
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-create': '', onClick: () => ops.createScene() }, '新建场景'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-update': '', onClick: () => ops.updateScene() }, '保存场景元数据'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-update': '', onClick: () => ops.updateScene() }, '保存场景信息'),
         selectedScene !== undefined ? h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-scene-delete': selectedScene.id, onClick: () => ops.chooseDeleteTarget({ kind: 'scene', chapterId: chapter.id, sceneId: selectedScene.id }) }, '删除当前场景') : null,
       ),
     ) : null,
@@ -481,9 +490,9 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
       h('h4', { className: 'nv-editor__title' }, '场景—细纲绑定'),
       entitySelect(h, '细纲目标', management.bindingDetailBeatId, choices.detailBeats, (value) => ops.managementPatch({ bindingDetailBeatId: value }), 'binding-target'),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-save': '', onClick: () => ops.bindingSave() }, '绑定'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-rebind': '', onClick: () => ops.bindingRebind() }, '改绑'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-unbind': '', onClick: () => ops.bindingUnbind() }, '解除绑定'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-save': '', onClick: () => ops.bindingSave() }, '绑定细纲'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-rebind': '', onClick: () => ops.bindingRebind() }, '更换细纲绑定'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-unbind': '', onClick: () => ops.bindingUnbind() }, '解除细纲绑定'),
       ),
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-binding-state': management.binding?.status ?? 'idle' }, `手动绑定 ${management.binding?.manual.length ?? 0} 条；有效映射 ${management.binding?.effective.length ?? 0} 条`),
     ),
@@ -491,14 +500,19 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
     h('div', { className: 'nv-chapters__deletion', 'data-novel-deletion': '', 'data-novel-deletion-state': deletion.status },
       h('h4', { className: 'nv-editor__title' }, '受控删除'),
       deletion.impact !== undefined ? h('p', { className: 'nv-chapters__item-meta', 'data-novel-deletion-impact': '' }, `影响：${deletion.impact.sceneCount} 个场景，${deletion.impact.proseCharacters} 字，${deletion.impact.branchCount} 个分支；绑定 ${deletion.impact.bindings.length} 条`) : null,
+      deletion.impact?.blockers.length ? h('ul', { className: 'nv-error', role: 'alert', 'data-novel-deletion-blockers': '' }, deletion.impact.blockers.map((blocker) => h('li', { key: blocker }, {
+        'last-scene-landing': '不能删除作品最后一个场景。请先创建另一个场景，保留正文落点。',
+        'active-queue': '这个范围内有活动队列，请先取消相关任务。',
+        'active-candidate': '这个范围内有未处理候选，请先明确拒绝相关候选。',
+      }[blocker]))) : null,
       deletion.impact !== undefined && deletion.impact.activeQueue.length > 0 ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-cancel-queue': '', onClick: () => ops.cancelDeleteQueue() }, `取消活动队列（${deletion.impact.activeQueue.length}）`) : null,
       deletion.impact !== undefined && deletion.impact.activeCandidates.length > 0 ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject-candidates': '', onClick: () => ops.rejectDeleteCandidates() }, `拒绝活动候选（${deletion.impact.activeCandidates.length}）`) : null,
       deletion.message !== undefined ? h('p', { className: 'nv-error', 'data-novel-deletion-message': '' }, deletion.message) : null,
-      deletion.status === 'ready' ? h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-deletion-propose': '', onClick: () => ops.proposeDelete() }, '提交删除确认') : null,
+      deletion.status === 'ready' ? h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-deletion-propose': '', onClick: () => ops.proposeDelete() }, '审阅删除影响') : null,
       deletion.status === 'blocked' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-refresh': '', onClick: () => ops.refreshDeleteImpact() }, '刷新阻塞原因') : null,
       deletion.status === 'pending' ? h('div', { className: 'nv-editor__actions', 'data-novel-deletion-pending': '' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-deletion-apply': '', onClick: () => ops.applyDelete() }, '确认并删除'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject': '', onClick: () => ops.rejectDelete() }, '拒绝'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-deletion-reject': '', onClick: () => ops.rejectDelete() }, '取消删除'),
       ) : null,
     ),
   );
@@ -510,10 +524,10 @@ function reconciliationPanel(h: El, state: ChapterManagementState['reconciliatio
     h('h4', { className: 'nv-editor__title' }, '正文变化与细纲调和'),
     entitySelect(h, '调和计划', state.planId, planOptions, (value) => ops.reconciliationPlanId(value), 'reconciliation-plan'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-read': '', onClick: () => ops.reconciliationRead() }, '读取影响计划'),
-      state.proposalId === undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-propose': '', onClick: () => ops.reconciliationPropose(), disabled: plan === undefined }, '提交一次确认') : null,
-      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-accept': '', onClick: () => ops.reconciliationAccept() }, '接受已确认方案') : null,
-      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-reject': '', onClick: () => ops.reconciliationReject() }, '拒绝方案') : null,
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-read': '', onClick: () => ops.reconciliationRead() }, '查看调整影响'),
+      state.proposalId === undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-propose': '', onClick: () => ops.reconciliationPropose(), disabled: plan === undefined }, '审阅同步范围') : null,
+      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-accept': '', onClick: () => ops.reconciliationAccept() }, '确认应用调整方案') : null,
+      state.proposalId !== undefined ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-reconciliation-reject': '', onClick: () => ops.reconciliationReject() }, '不采用调整方案') : null,
     ),
     plan === undefined ? h('p', { className: 'nv-chapters__empty', 'data-novel-reconciliation-empty': '' }, '读取影响计划后，在此逐卡选择。') : h('div', { 'data-novel-reconciliation-plan': plan.planId },
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-reconciliation-summary': '' }, `影响类型：${plan.reportClassification}；受影响细纲：${plan.items.length} 张；版本 ${plan.revision}`),
@@ -525,12 +539,12 @@ function reconciliationPanel(h: El, state: ChapterManagementState['reconciliatio
           h('p', { className: 'nv-chapters__item-meta' }, `证据：${item.evidence.map((evidence) => evidence.afterQuote).join('；')}`),
           h('div', { className: 'nv-editor__actions', 'data-novel-reconciliation-choices': item.detailBeatId },
             (['keep', 'ai', 'manual', 'pending'] as const).map((option) => h('button', {
-              key: option, type: 'button', className: 'nv-btn' + (choice === option ? ' is-active' : ''),
+              key: option, type: 'button', className: 'nv-btn nv-btn--choice' + (choice === option ? ' is-active' : ''),
               'data-novel-reconciliation-choice': option, 'aria-pressed': choice === option,
               onClick: () => ops.reconciliationChoice(item.detailBeatId, option),
             }, option === 'keep' ? '保留' : option === 'ai' ? '采用 AI' : option === 'manual' ? '手动编辑' : '待定')),
           ),
-          h('button', { type: 'button', className: 'nv-btn nv-btn--link', 'data-novel-reconciliation-evidence': item.detailBeatId, onClick: () => undefined }, '定位正文证据'),
+          h('p', { className: 'nv-chapters__item-meta', 'data-novel-reconciliation-evidence': item.detailBeatId }, '正文证据见本卡上方引用。'),
           choice === 'manual' ? h('div', { className: 'nv-chapters__reconciliation-manual', 'data-novel-reconciliation-manual': item.detailBeatId },
             managementInput(h, '手动标题', manual.title, (value) => ops.reconciliationManualPatch(item.detailBeatId, { title: value }), 'reconciliation-manual-title'),
             managementInput(h, '手动摘要', manual.summary, (value) => ops.reconciliationManualPatch(item.detailBeatId, { summary: value }), 'reconciliation-manual-summary'),
@@ -577,27 +591,13 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
       );
     body = h('div', { className: 'nv-chapters__writing-body', 'data-novel-writing-body': '' },
       sceneBody,
-      state.mode === 'writing' ? finalizationPanel(h, state.management.finalization, state.workflow, ops) : null,
+      state.mode === 'writing' ? h('details', { className: 'nv-chapters__finalization-tools', open: state.management.finalization.status !== 'idle' || state.workflow.status === 'saved', 'data-novel-finalization-tools': '' }, h('summary', null, '定稿与故事同步'), finalizationPanel(h, state.management.finalization, state.workflow, ops, !state.editor.dirty)) : null,
     );
   } else {
     body = h('p', { className: 'nv-chapters__empty' }, '选择左侧章节与场景后阅读正文。');
   }
-  return h('section', { className: 'nv-chapters', 'data-novel-chapters-panel': '', 'data-novel-chapters-state': 'ready' },
-    h('div', { className: 'nv-chapters__pane', 'data-novel-chapter-tree': '' },
-      h('h3', { className: 'nv-editor__title' }, '章节'),
-      state.list.length === 0
-        ? h('p', { className: 'nv-chapters__empty', 'data-novel-chapters-empty': '' }, '尚无章节：正文由写作能力生成后在此阅读。')
-        : state.list.map((item) => h('button', {
-          key: item.id, type: 'button',
-          className: 'nv-editor__item' + (state.selectedChapterId === item.id ? ' is-active' : ''),
-          'data-novel-chapter-item': item.id,
-          onClick: () => ops.selectChapter(item.id),
-        },
-          h('span', { className: 'nv-chapters__item-title' }, `第 ${item.index} 章 · ${item.title}`),
-          h('span', { className: 'nv-chapters__item-meta' }, `视角 ${choices.characters.find((option) => option.id === item.pov)?.label ?? (item.pov === '' ? '未指定' : '引用已缺失')} · ${item.sceneCount} 个场景`),
-        )),
-    ),
-    h('div', { className: 'nv-chapters__pane', 'data-novel-chapter-scenes': '' },
+  // I191: preserve lazy reads and anchors while nesting scenes under the selected chapter.
+  const sceneNavigation = h('div', { className: 'nv-chapters__scenes', 'data-novel-chapter-scenes': '' },
       h('h3', { className: 'nv-editor__title' }, '场景'),
       state.chapter.status === 'error'
         ? errorBlock(h, state.chapter.message ?? '章节读取失败', () => ops.retryChapter(), '重试章节')
@@ -610,17 +610,33 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
               : scenes.map((scene) => h('button', {
                 key: scene.id, type: 'button',
                 className: 'nv-editor__item' + (state.selectedSceneId === scene.id ? ' is-active' : ''),
-                'data-novel-scene-item': scene.id,
+                'data-novel-scene-item': scene.id, 'aria-current': state.selectedSceneId === scene.id ? 'true' : undefined,
                 onClick: () => ops.selectScene(scene.id),
               },
                 h('span', { className: 'nv-chapters__item-title' }, `场景 ${scene.index + 1}`),
                 scene.summary === '' ? null : h('span', { className: 'nv-chapters__item-summary' }, scene.summary),
               )),
+    );
+  return h('section', { className: 'nv-chapters', 'data-novel-chapters-panel': '', 'data-novel-chapters-state': 'ready' },
+    h('div', { className: 'nv-chapters__pane', 'data-novel-chapter-tree': '' },
+      h('h3', { className: 'nv-editor__title' }, '章节与场景'),
+      state.list.length === 0
+        ? h('p', { className: 'nv-chapters__empty', 'data-novel-chapters-empty': '' }, '尚无章节。可在素材模式新建章节，或在候选模式开始写作。')
+        : state.list.map((item) => h('div', { key: item.id, className: 'nv-chapters__chapter-node' }, h('button', {
+          key: item.id, type: 'button',
+          className: 'nv-editor__item' + (state.selectedChapterId === item.id ? ' is-active' : ''),
+          'data-novel-chapter-item': item.id, 'aria-expanded': state.selectedChapterId === item.id,
+          onClick: () => ops.selectChapter(item.id),
+        },
+          h('span', { className: 'nv-chapters__item-title' }, `第 ${item.index} 章 · ${item.title}`),
+          h('span', { className: 'nv-chapters__item-meta' }, `视角 ${choices.characters.find((option) => option.id === item.pov)?.label ?? (item.pov === '' ? '未指定' : '引用已缺失')} · ${item.sceneCount} 个场景`),
+        ), state.selectedChapterId === item.id ? sceneNavigation : null)),
+      state.selectedChapterId === undefined ? sceneNavigation : null,
     ),
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '', ...(state.editor.focusAnchor === undefined ? {} : { 'data-novel-scene-anchor-start': String(state.editor.focusAnchor.start), 'data-novel-scene-anchor-end': String(state.editor.focusAnchor.end), 'data-novel-scene-anchor-quote': state.editor.focusAnchor.quote }) },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
       writingWorkflowPanel(h, state.workflow),
-      polishSessionPanel(h, state, ops),
+      h('details', { className: 'nv-chapters__tools', open: state.polish.status === 'running', 'data-novel-polish-tools': '' }, h('summary', null, '章节润色工具'), polishSessionPanel(h, state, ops)),
       chapterModeTabs(h, state, ops),
       modePanel(h, projectId, writing, branches, state, ops, body, choices),
     ),

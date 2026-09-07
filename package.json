@@ -29,7 +29,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -476,7 +478,9 @@
     "smoke:i190": "node scripts/smoke-i190.mjs",
     "verify:i190": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i190",
     "verify:stage-38": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i187 && pnpm run smoke:i188 && pnpm run smoke:i189 && pnpm run smoke:i190 && pnpm run smoke:i191 && pnpm run smoke:i192 && pnpm run package:desktop && pnpm run smoke:i193 && pnpm run smoke:samples && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151",
-    "update:contracts": "tsx scripts/update-contract-locks.ts"
+    "update:contracts": "tsx scripts/update-contract-locks.ts",
+    "smoke:i191": "node scripts/smoke-i191.mjs",
+    "verify:i191": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i191"
   },
   "dependencies": {
     "fflate": "^0.8.3",

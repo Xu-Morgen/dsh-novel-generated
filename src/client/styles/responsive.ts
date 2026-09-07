@@ -50,14 +50,13 @@ export const RESPONSIVE_STYLES = `
     flex-direction: column;
   }
 
-  /* I60：正文三栏窄屏纵向堆叠（同一 Slot/Fiber，无不可达内容）。 */
+  /* I191：单树导航在窄屏占有限高度，正文继续获得空间。 */
   .nv-chapters {
     grid-template-columns: 1fr;
   }
 
-  .nv-chapters__pane {
-    max-height: none;
-  }
+  .nv-chapters__pane { max-height: 28vh; }
+  .nv-chapters__pane--body { max-height: none; }
 
   /* I107：模式 tab 保持单行可横向访问，不把操作模式挤成不可达的多行。 */
   .nv-chapters__modes {

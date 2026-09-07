@@ -514,6 +514,11 @@ describe('I61 C5 正文编辑与可选 reparse (R13-2)', () => {
     await flush();
     expect(collect(render(), 'div').some((node) => node.props?.['data-novel-scene-leave'] !== undefined)).toBe(true);
     expect(sceneReads).toBe(readsBefore);
+    // I191：再次点击导航不能充当放弃决定。
+    (collect(render(), 'button').find((node) => node.props?.['data-novel-scene-item'] === 'scene-2')?.props?.onClick as () => void)();
+    await flush();
+    expect(sceneReads).toBe(readsBefore);
+    expect(sceneTextarea(render())?.props?.value).toBe('prefix DIRTY suffix');
     // 取消 → 停留当前场景。
     (collect(render(), 'button').find((node) => node.props?.['data-novel-scene-leave-cancel'] !== undefined)?.props?.onClick as () => void)();
     await flush();

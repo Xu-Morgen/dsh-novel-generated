@@ -84,7 +84,7 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
     rangeHint = h('p', { className: 'nv-chapters__editor-range', 'data-novel-scene-range': 'none' }, '未检测到修改。');
   } else {
     rangeHint = h('p', { className: 'nv-chapters__editor-range', 'data-novel-scene-range': 'single' },
-      `检测到 1 处修改：第 ${diff.range.start + 1}–${diff.range.end} 字符（范围外保持不变）。`);
+      diff.range.start === diff.range.end ? `将在第 ${diff.range.start} 字之后插入 ${diff.replacement.length} 字。` : `检测到 1 处修改：第 ${diff.range.start + 1}–${diff.range.end} 字符（范围外保持不变）。`);
   }
   let reparsePanel: unknown;
   if (state.reparse.kind === 'idle') {
@@ -104,8 +104,8 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
                 `${change.layer}：${change.kind} ${change.entityType}/${change.entityId}（${change.changedFields.join('、')}）`))),
         ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-reparse-accept': '', disabled: state.reparse.preview === undefined, onClick: () => ops.acceptReparse() }, '确认重解析'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-reparse-reject': '', onClick: () => ops.rejectReparse() }, '拒绝'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-reparse-accept': '', disabled: state.reparse.preview === undefined, onClick: () => ops.acceptReparse() }, '确认应用解析结果'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-reparse-reject': '', onClick: () => ops.rejectReparse() }, '不采用解析结果'),
       ),
     );
   } else if (state.reparse.kind === 'accepting') {
@@ -124,8 +124,8 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
     ? h('div', { className: 'nv-chapters__leave', 'data-novel-scene-leave': '', role: 'alertdialog', 'aria-label': '放弃未保存的正文修改' },
       h('p', { className: 'nv-chapters__leave-hint', 'data-novel-scene-leave-hint': '' }, '有未保存的正文修改，放弃将丢失这些修改。'),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-discard': '', onClick: () => ops.discardDraft() }, '放弃并离开'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-leave-cancel': '', onClick: () => ops.cancelLeave() }, '取消'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-scene-discard': '', onClick: () => ops.discardDraft() }, '放弃修改并离开'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-scene-leave-cancel': '', onClick: () => ops.cancelLeave() }, '继续编辑'),
       ),
     )
     : null;
@@ -145,18 +145,18 @@ export function sceneEditorPanel(h: El, state: SceneEditorState, ops: ChaptersEd
     h('div', { className: 'nv-editor__actions' },
       h('button', {
         type: 'button',
-        className: 'nv-btn',
+        className: locked ? 'nv-btn' : 'nv-btn nv-btn--primary',
         'data-novel-scene-save': '',
         disabled: !canSave,
         onClick: () => ops.save(false),
-      }, saveButtonLabel(state.saving, '保存修改')),
+      }, saveButtonLabel(state.saving, '保存正文')),
       h('button', {
         type: 'button',
-        className: 'nv-btn nv-btn--primary',
+        className: 'nv-btn',
         'data-novel-scene-save-reparse': '',
         disabled: !canSave,
         onClick: () => ops.save(true),
-      }, saveButtonLabel(state.saving, '保存并重解析')),
+      }, saveButtonLabel(state.saving, '保存并分析故事变化')),
     ),
     renderSaveStatus(h, saveStatusLine(state.saving, state.saveMessage, state.error), 'scene'),
     reparsePanel,

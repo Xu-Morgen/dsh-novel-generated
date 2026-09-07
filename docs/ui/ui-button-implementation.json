@@ -283,9 +283,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-014",
@@ -299,9 +308,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "branch.chosen || state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-015",
@@ -315,9 +333,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-016",
@@ -331,9 +357,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-017",
@@ -347,9 +381,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting || state.labelDraft.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-018",
@@ -363,9 +405,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-019",
@@ -379,9 +430,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-020",
@@ -395,9 +454,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-021",
@@ -411,9 +479,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-022",
@@ -427,9 +503,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "branch.chosen || state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-023",
@@ -443,9 +528,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/branch.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-024",
@@ -459,9 +552,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-025",
@@ -475,9 +576,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-026",
@@ -491,9 +601,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "disabled || state.rewritePrompt.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-027",
@@ -507,9 +625,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting !== undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-028",
@@ -523,9 +649,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting !== undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-029",
@@ -539,9 +673,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting !== undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-030",
@@ -555,9 +698,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/candidate.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-031",
@@ -619,9 +770,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters-shared.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-035",
@@ -635,9 +794,17 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || state.proposalId !== undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-036",
@@ -651,9 +818,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!canPrepare",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-037",
@@ -667,9 +842,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "plan === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-038",
@@ -683,9 +866,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-039",
@@ -699,9 +890,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-040",
@@ -715,9 +915,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-041",
@@ -731,9 +940,17 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-042",
@@ -747,9 +964,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-043",
@@ -763,9 +989,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-044",
@@ -779,9 +1014,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-045",
@@ -795,9 +1039,17 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-046",
@@ -811,9 +1063,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-047",
@@ -827,9 +1087,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-048",
@@ -843,9 +1111,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-049",
@@ -859,9 +1135,18 @@
       "place": "对象行 / 字段旁",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-050",
@@ -875,9 +1160,18 @@
       "place": "对象行 / 字段旁",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-051",
@@ -891,9 +1185,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-052",
@@ -907,9 +1210,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-053",
@@ -923,9 +1234,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-054",
@@ -939,9 +1258,17 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-055",
@@ -955,9 +1282,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-056",
@@ -971,9 +1307,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-057",
@@ -987,9 +1332,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-058",
@@ -1003,9 +1357,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-059",
@@ -1019,9 +1382,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-060",
@@ -1035,9 +1406,17 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-061",
@@ -1051,9 +1430,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-062",
@@ -1067,9 +1454,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-063",
@@ -1083,9 +1479,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-064",
@@ -1099,9 +1503,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-065",
@@ -1115,9 +1528,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "plan === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-066",
@@ -1131,9 +1553,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-067",
@@ -1147,9 +1578,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-068",
@@ -1163,9 +1603,18 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-069",
@@ -1179,9 +1628,18 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "decision": "原按钮 onClick 为 no-op。退役假定位按钮，保留 data-novel-reconciliation-evidence 为引用提示文本；证据正文仍在同卡展示。"
     },
     {
       "id": "BTN-070",
@@ -1195,9 +1653,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.proposalId === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-071",
@@ -1211,9 +1678,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.proposalId === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-072",
@@ -1227,9 +1703,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-073",
@@ -1243,9 +1727,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-074",
@@ -1259,9 +1751,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/chapters.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-075",
@@ -1563,9 +2063,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting || item.origin === 'generated'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-094",
@@ -1579,9 +2088,17 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-095",
@@ -1595,9 +2112,18 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-096",
@@ -1611,9 +2137,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "fillDisabled",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-097",
@@ -1627,9 +2162,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "appendDisabled",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-098",
@@ -1643,9 +2186,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-099",
@@ -1659,9 +2210,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-100",
@@ -1675,9 +2235,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-101",
@@ -1691,9 +2259,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline-detail-generation.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-102",
@@ -1707,9 +2284,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-103",
@@ -1723,9 +2308,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-104",
@@ -1739,9 +2333,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-105",
@@ -1755,9 +2358,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!editor.dirty || editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-106",
@@ -1771,9 +2382,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-107",
@@ -1787,9 +2407,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-108",
@@ -1803,9 +2431,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-109",
@@ -1819,9 +2456,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-110",
@@ -1835,9 +2480,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-111",
@@ -1851,9 +2505,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/outline.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-112",
@@ -2635,9 +3298,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.reparse.preview === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-161",
@@ -2651,9 +3323,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-162",
@@ -2667,9 +3348,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191",
+      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-163",
@@ -2683,9 +3373,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-164",
@@ -2699,9 +3397,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!canSave",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-165",
@@ -2715,9 +3421,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!canSave",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/scene-editor.ts",
+        "src/client/styles/chapters.ts",
+        "src/desktop/main/c5-handlers.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i191.mjs; artifacts/desktop/ui/i191/validation.json",
+        "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
+      ],
+      "iteration": "I191"
     },
     {
       "id": "BTN-166",
