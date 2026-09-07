@@ -17,3 +17,5 @@ Canonical owner：Client ImportInterpretationController 与规则文风初稿面
 证据：`artifacts/i198/validation.json`、`artifacts/i198/tests.json`、`artifacts/i198-verification.log`；Electron 证据沿用 `artifacts/desktop/ui/i197/validation.json`。状态：验收通过。
 
 交接：刚完成 I198 启动失败真实显示与同 session 恢复；下一可用迭代 I199，不自动执行。无新增公开合同。历史首次导入已确认但未初始化的补偿策略需独立设计，列 backlog；本次保留 §14.18.2 保护。
+
+后续发现：I198 启动拒绝测试直接模拟服务异常，未覆盖 registry 将原因替换为通用 handler-failed 的路径。因此已知拒绝说明在真实 IPC 中不可达；由 I199 补齐安全消息传递和真实 Electron 拒绝回归，见 `i199-dod.md`。

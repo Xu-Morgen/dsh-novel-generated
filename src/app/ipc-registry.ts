@@ -12,6 +12,8 @@
  * rejected value or the underlying exception.
  */
 
+import { ipcHandlerRejectionMessage } from './ipc-handler-rejection.js';
+
 export type IpcJsonValue =
   | null
   | boolean
@@ -189,8 +191,8 @@ export function createIpcRegistry<const Descriptors extends readonly IpcMethodDe
       let value: unknown;
       try {
         value = context === undefined ? await handler(...parsedArgs) : await handler(...parsedArgs, context);
-      } catch {
-        return failure(new IpcContractError('handler-failed', 'IPC method handler failed', { methodId }));
+      } catch (cause) {
+        return failure(new IpcContractError('handler-failed', ipcHandlerRejectionMessage(cause) ?? 'IPC method handler failed', { methodId }));
       }
 
       try {
