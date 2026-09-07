@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createImportInterpretationParagraphs } from '../core/schema/import-interpretation-analysis.js';
+import { createImportInterpretationParagraphs, MAX_IMPORT_SOURCE_CHARACTERS } from '../core/schema/import-interpretation-analysis.js';
 import { mergeImportParagraphWithNext, splitImportParagraph } from './import-segmentation.js';
 
 const sourceText = '幕后真相。\n\n作者指令。😀';
@@ -34,5 +34,18 @@ describe('I162 来源片段作者分段', () => {
       { paragraphId: 'paragraph-0001', index: 0, text: '甲', startOffset: 0, endOffset: 1 },
       { paragraphId: 'paragraph-0002', index: 1, text: '乙', startOffset: 2, endOffset: 3 },
     ], 'paragraph-0001')).toThrow('未投影文字');
+  });
+
+  it('允许把超过旧 20000 字符上限的剧情计划合并为一个来源片段', () => {
+    const left = '甲'.repeat(15_000);
+    const right = '乙'.repeat(15_000);
+    const longPlan = `${left}\n${right}`;
+    const paragraphs = createImportInterpretationParagraphs(longPlan);
+
+    expect(paragraphs).toHaveLength(2);
+    expect(mergeImportParagraphWithNext(longPlan, paragraphs, 'paragraph-0001')).toEqual([
+      { paragraphId: 'paragraph-0001', index: 0, text: longPlan, startOffset: 0, endOffset: longPlan.length },
+    ]);
+    expect(() => createImportInterpretationParagraphs('剧'.repeat(MAX_IMPORT_SOURCE_CHARACTERS + 1))).toThrow();
   });
 });

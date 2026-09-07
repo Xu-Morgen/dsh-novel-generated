@@ -125,9 +125,16 @@ export function unwrap<T>(promise: Promise<T> | undefined): Promise<UnwrapValue<
   return promise.then((raw) => {
     const result: unknown = raw;
     if (result !== null && typeof result === 'object' && 'ok' in result) {
-      const envelope = result as { ok?: boolean; value?: unknown; error?: { message?: string } };
+      const envelope = result as { ok?: boolean; value?: unknown; error?: { code?: string; message?: string; details?: Record<string, unknown> } };
       if (envelope.ok === true) return envelope.value as UnwrapValue<T>;
-      throw new Error(envelope.error?.message ?? '创作服务调用失败');
+      const message = envelope.error?.message ?? '创作服务调用失败';
+      const code = envelope.error?.code;
+      const methodId = envelope.error?.details?.methodId;
+      const diagnostics = [
+        typeof code === 'string' && code.length > 0 ? `code=${code}` : undefined,
+        typeof methodId === 'string' && methodId.length > 0 ? `method=${methodId}` : undefined,
+      ].filter((value): value is string => value !== undefined);
+      throw new Error(diagnostics.length === 0 ? message : `${message} [${diagnostics.join('; ')}]`);
     }
     return result as UnwrapValue<T>;
   });

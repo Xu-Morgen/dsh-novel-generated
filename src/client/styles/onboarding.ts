@@ -405,11 +405,49 @@ export const ONBOARDING_STYLES = `
 .nv-import-review__paragraph-action { flex-wrap: wrap; }
 .nv-import-review__evidence-text { color: var(--nv-ink-faint); }
 .nv-import-review__actions { margin-top: calc(var(--nv-grid) * 0.5); }
+.nv-import-review__rule-style { min-width: 0; }
+.nv-import-review__llm-stream {
+  display: flex;
+  align-items: center;
+  gap: var(--nv-grid);
+  min-width: 0;
+  margin-top: calc(var(--nv-grid) * 0.5);
+  padding: calc(var(--nv-grid) * 0.625) calc(var(--nv-grid) * 0.75);
+  border: 1px solid color-mix(in srgb, var(--nv-accent) 45%, var(--nv-line));
+  border-radius: calc(var(--nv-grid) * 0.5);
+  background: color-mix(in srgb, var(--nv-accent) 6%, var(--nv-paper-raised));
+  font: 12px/1.5 var(--nv-sans);
+}
+.nv-import-review__llm-stream-phase { flex: 0 0 auto; color: var(--nv-accent); }
+.nv-import-review__llm-stream-latest {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--nv-ink-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nv-llm-stream-window {
+  position: fixed;
+  z-index: 80;
+  right: calc(var(--nv-grid) * 2);
+  bottom: calc(var(--nv-grid) * 2);
+  width: min(520px, calc(100vw - var(--nv-grid) * 4));
+  padding: var(--nv-grid);
+  border: 1px solid color-mix(in srgb, var(--nv-accent) 55%, var(--nv-line));
+  border-radius: calc(var(--nv-grid) * 0.75);
+  background: var(--nv-paper-raised);
+  box-shadow: 0 12px 36px color-mix(in srgb, var(--nv-ink) 24%, transparent);
+  font: 12px/1.5 var(--nv-sans);
+}
+.nv-llm-stream-window__phase { display: block; color: var(--nv-accent); }
+.nv-llm-stream-window__content { margin: calc(var(--nv-grid) * 0.5) 0 0; overflow: hidden; color: var(--nv-ink); text-overflow: ellipsis; white-space: nowrap; }
 
 @media (max-width: 560px) {
   .nv-import-review { padding: var(--nv-grid); }
   .nv-import-review__intent { grid-template-columns: minmax(0, 1fr); }
   .nv-import-review__intent .nv-field:first-of-type { grid-column: auto; }
   .nv-import-review__actions .nv-btn { flex: 1 1 100%; }
+  .nv-import-review__llm-stream { align-items: flex-start; flex-direction: column; gap: calc(var(--nv-grid) * 0.25); }
+  .nv-import-review__llm-stream-latest { width: 100%; }
 }
 `;

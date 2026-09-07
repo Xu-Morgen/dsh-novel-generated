@@ -20,6 +20,7 @@ import {
   type RuleStyleImportProposeInput,
 } from '../core/schema/rule-style-import-initialization.js';
 import { analyzeRuleStyleImport } from '../llm/analyze/rule-style-import-initialization.js';
+import type { RuleStyleImportStreamProgress } from '../llm/analyze/rule-style-import-initialization.js';
 import { asLlmBackend, type GenerationSettings, type LlmBackend } from '../llm/port/index.js';
 import type { NovelConfirmationService } from './confirmation-service.js';
 import type { NovelImportInterpretationAnalysisService } from './import-interpretation-analysis-service.js';
@@ -41,7 +42,8 @@ export interface RuleStyleImportInitializationDeps {
 
 /** I151 Host owner for the first-import one-shot task and its I11 lineage. */
 export interface RuleStyleImportInitializationService {
-  begin(input: RuleStyleImportIdentity, settings: GenerationSettings): Promise<RuleStyleImportProjection>;
+  begin(input: RuleStyleImportIdentity, settings: GenerationSettings, options?: RuleStyleImportBeginOptions): Promise<RuleStyleImportProjection>;
+  configurationFailure(input: RuleStyleImportIdentity, message: string): Promise<RuleStyleImportProjection>;
   status(input: RuleStyleImportIdentity): Promise<RuleStyleImportProjection>;
   result(input: RuleStyleImportIdentity): Promise<RuleStyleImportProjection>;
   propose(input: RuleStyleImportProposeInput): Promise<RuleStyleImportProjection>;
@@ -49,6 +51,11 @@ export interface RuleStyleImportInitializationService {
   reject(input: RuleStyleImportDecisionInput): Promise<RuleStyleImportProjection>;
   cancel(input: RuleStyleImportIdentity): Promise<RuleStyleImportProjection>;
   dispose(): void;
+}
+
+export interface RuleStyleImportBeginOptions {
+  readonly waitForCompletion?: boolean;
+  readonly onProgress?: (progress: RuleStyleImportStreamProgress) => void;
 }
 
 function canonical(value: unknown): string {
@@ -86,6 +93,7 @@ export function createRuleStyleImportInitializationService(
   const root = projectsRoot ?? join(homedir(), '.dsh', 'novel-projects');
   const tails = new Map<string, Promise<unknown>>();
   const controllers = new Map<string, AbortController>();
+  const jobs = new Map<string, Promise<void>>();
   let disposed = false;
   const ensureActive = (): void => { if (disposed) throw new Error('Rule/style import initialization service is disposed'); };
   const pathFor = (projectId: string): string => join(projectDirectory(root, projectId), RULE_STYLE_IMPORT_CHECKPOINT_FILE);
@@ -123,14 +131,15 @@ export function createRuleStyleImportInitializationService(
     if ((await deps.rules.list(projectId)).length > 0) throw new Error('Rule/style import initialization requires empty B1');
     if (await deps.style.isInitialized(projectId)) throw new Error('Rule/style import initialization requires empty B4');
   };
-  const launch = (checkpoint: RuleStyleImportCheckpoint, settings: GenerationSettings): void => {
-    if (controllers.has(checkpoint.projectId)) return;
+  const launch = (checkpoint: RuleStyleImportCheckpoint, settings: GenerationSettings, onProgress?: RuleStyleImportBeginOptions['onProgress']): Promise<void> => {
+    const activeJob = jobs.get(checkpoint.projectId);
+    if (activeJob !== undefined) return activeJob;
     const controller = new AbortController();
     controllers.set(checkpoint.projectId, controller);
-    void (async () => {
+    const job = (async () => {
       try {
         await serialize(checkpoint.projectId, async () => { await persist({ ...checkpoint, status: 'running', error: undefined, updatedAt: now() }); });
-        const candidate = await analyzeRuleStyleImport(backend, { sourceText: checkpoint.sourceText, intent: checkpoint.intent }, settings, controller.signal);
+        const candidate = await analyzeRuleStyleImport(backend, { sourceText: checkpoint.sourceText, intent: checkpoint.intent }, settings, controller.signal, onProgress);
         await serialize(checkpoint.projectId, async () => {
           const current = await requireCheckpoint(checkpoint);
           if (current.status === 'cancelled') return;
@@ -142,19 +151,23 @@ export function createRuleStyleImportInitializationService(
           await persist({ ...current, status: controller.signal.aborted ? 'cancelled' : 'failed', error: controller.signal.aborted ? 'Rule/style import initialization cancelled' : (error instanceof Error ? error.message : 'Rule/style import initialization failed'), updatedAt: now() });
         }).catch(() => undefined);
         if (!controller.signal.aborted) onBackgroundError(error, checkpoint.importSessionId);
-      } finally { controllers.delete(checkpoint.projectId); }
+      } finally { controllers.delete(checkpoint.projectId); jobs.delete(checkpoint.projectId); }
     })();
+    jobs.set(checkpoint.projectId, job);
+    return job;
   };
   const service: RuleStyleImportInitializationService = {
-    begin(rawInput, settings) {
+    async begin(rawInput, settings, options) {
       ensureActive();
       const identity = ruleStyleImportIdentitySchema.parse(rawInput);
-      return serialize(identity.projectId, async () => {
+      let job: Promise<void> | undefined;
+      const initial = await serialize(identity.projectId, async () => {
         ensureActive();
         const existing = await readCheckpoint(identity.projectId);
         if (existing !== undefined) {
           assertIdentity(existing, identity);
-          if ((existing.status === 'failed' || existing.status === 'cancelled') && !controllers.has(identity.projectId)) launch(existing, settings);
+          if (['queued', 'running', 'failed', 'cancelled'].includes(existing.status) && !controllers.has(identity.projectId)) job = launch(existing, settings, options?.onProgress);
+          else job = jobs.get(identity.projectId);
           return projection(existing);
         }
         const session = await deps.sessions.firstConfirmed(identity);
@@ -162,8 +175,27 @@ export function createRuleStyleImportInitializationService(
         const sourceText = deps.analysis.source(identity);
         const createdAt = now();
         const checkpoint = await persist({ ...identity, sourceText, intent: session.intent, status: 'queued', createdAt, updatedAt: createdAt });
-        launch(checkpoint, settings);
+        job = launch(checkpoint, settings, options?.onProgress);
         return projection(checkpoint);
+      });
+      if (options?.waitForCompletion !== true || job === undefined) return initial;
+      await job;
+      return projection(await requireCheckpoint(identity));
+    },
+    configurationFailure(rawInput, message) {
+      ensureActive();
+      const identity = ruleStyleImportIdentitySchema.parse(rawInput);
+      return serialize(identity.projectId, async () => {
+        const existing = await readCheckpoint(identity.projectId);
+        if (existing !== undefined) {
+          assertIdentity(existing, identity);
+          if (!['queued', 'running', 'failed', 'cancelled'].includes(existing.status)) return projection(existing);
+          return projection(await persist({ ...existing, status: 'failed', error: message, updatedAt: now() }));
+        }
+        const session = await deps.sessions.firstConfirmed(identity);
+        await ensureEmpty(identity.projectId);
+        const createdAt = now();
+        return projection(await persist({ ...identity, sourceText: deps.analysis.source(identity), intent: session.intent, status: 'failed', error: message, createdAt, updatedAt: createdAt }));
       });
     },
     status(rawInput) {
@@ -259,7 +291,7 @@ export function createRuleStyleImportInitializationService(
         return projection(await persist({ ...current, status: 'cancelled', error: 'Rule/style import initialization cancelled', updatedAt: now() }));
       });
     },
-    dispose() { if (disposed) return; disposed = true; for (const controller of controllers.values()) controller.abort(); controllers.clear(); tails.clear(); },
+    dispose() { if (disposed) return; disposed = true; for (const controller of controllers.values()) controller.abort(); controllers.clear(); jobs.clear(); tails.clear(); },
   };
   onDispose?.(() => service.dispose());
   return Object.freeze(service);

@@ -2,11 +2,12 @@ import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { DesktopWorkbenchShell, createDesktopShellUi, mountDesktopWorkbench } from './shell.js';
+import { DesktopLlmStreamWindow, DesktopWorkbenchShell, createDesktopShellUi, desktopRuleStyleStream, mountDesktopWorkbench } from './shell.js';
 import { createDesktopIpcClient } from './desktop-ipc-client.js';
 import { createDesktopWorkbenchStore } from './store-adapter.js';
 import type { DesktopProjectWorkflow } from './project-workflow.js';
 import type { ImportInterpretationController } from '../../client/import-interpretation-review.js';
+import type { SettingsController } from '../../client/controllers.js';
 
 function createClient() {
   return createDesktopIpcClient({
@@ -18,6 +19,32 @@ function createClient() {
 }
 
 describe('I173 desktop Renderer shell', () => {
+  it('accepts only bounded rule/style stream progress from the canonical begin method', () => {
+    expect(desktopRuleStyleStream({
+      requestId: 'desktop:4',
+      methodId: 'novel-creation-tool/novelRuleStyleImportInitialization/begin',
+      value: { phase: 'ruleStyleImportInitialization.begin', status: 'running', streamPhase: 'generating', receivedCharacters: 42, latestText: '{"rules":[' },
+    })).toEqual({ phase: 'generating', receivedCharacters: 42, latestText: '{"rules":[' });
+    expect(desktopRuleStyleStream({
+      requestId: 'desktop:5', methodId: 'another-method', value: { streamPhase: 'generating', receivedCharacters: 42, latestText: 'ignored' },
+    })).toBeUndefined();
+    expect(desktopRuleStyleStream({
+      requestId: 'desktop:6', methodId: 'novel-creation-tool/novelRuleStyleImportInitialization/begin', value: { streamPhase: 'generating', receivedCharacters: 42, latestText: 'x'.repeat(241) },
+    })).toBeUndefined();
+
+    const active = renderToStaticMarkup(React.createElement(DesktopLlmStreamWindow, { progress: {
+      requestId: 'desktop:7', methodId: 'novel-creation-tool/novelRuleStyleImportInitialization/begin',
+      value: { status: 'running', streamPhase: 'generating', receivedCharacters: 42, latestText: '{"rules":[' },
+    } }));
+    expect(active).toContain('data-novel-llm-stream-window="generating"');
+    expect(active).toContain('流式接收中 · 42 字');
+    const completed = renderToStaticMarkup(React.createElement(DesktopLlmStreamWindow, { progress: {
+      requestId: 'desktop:7', methodId: 'novel-creation-tool/novelRuleStyleImportInitialization/begin',
+      value: { phase: 'ruleStyleImportInitialization.begin', status: 'complete' },
+    } }));
+    expect(completed).toBe('');
+  });
+
   it('mounts the existing Chinese workbench presenter inside the single desktop shell', () => {
     const store = createDesktopWorkbenchStore();
     const client = createClient();
@@ -43,6 +70,9 @@ describe('I173 desktop Renderer shell', () => {
       'setRuleStyleRulesDraft', 'setRuleStyleStyleDraft', 'retryRuleStyleInitialization',
       'proposeRuleStyleInitialization', 'acceptRuleStyleInitialization', 'rejectRuleStyleInitialization', 'dispose',
     ].map((name) => [name, vi.fn()])) as unknown as ImportInterpretationController;
+    const settings = Object.fromEntries([
+      'ensureLlmConfigLoaded', 'saveLlmConfig', 'ensureCreationSettingsLoaded', 'saveCreationSettings', 'openProjectFolder',
+    ].map((name) => [name, vi.fn()])) as unknown as SettingsController;
     const workflow = {
       saveSettings: vi.fn(), openProjectFolder: vi.fn(), requestOpen: vi.fn(), requestBrowse: vi.fn(), confirmLeave: vi.fn(),
       cancelLeave: vi.fn(), archiveProject: vi.fn(), restoreProject: vi.fn(), createBlankProject: vi.fn(), createImportedProject: vi.fn(),
@@ -52,6 +82,7 @@ describe('I173 desktop Renderer shell', () => {
       upload: { uploadFile },
       sourceImport: { normalizeText },
       importInterpretation,
+      settings,
     });
 
     expect(ui.uploadUsesMainDialog).toBe(true);
@@ -59,6 +90,53 @@ describe('I173 desktop Renderer shell', () => {
     ui.submitSourceText();
     expect(uploadFile).toHaveBeenCalledWith(undefined, false, false);
     expect(normalizeText).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads, renders, and saves AI settings through the desktop settings controller', () => {
+    const store = createDesktopWorkbenchStore();
+    const workflow = {
+      saveSettings: vi.fn(), openProjectFolder: vi.fn(), requestOpen: vi.fn(), requestBrowse: vi.fn(), confirmLeave: vi.fn(),
+      cancelLeave: vi.fn(), archiveProject: vi.fn(), restoreProject: vi.fn(), createBlankProject: vi.fn(), createImportedProject: vi.fn(),
+      start: vi.fn(), dispose: vi.fn(),
+    } as unknown as DesktopProjectWorkflow;
+    const settings = Object.fromEntries([
+      'ensureLlmConfigLoaded', 'saveLlmConfig', 'ensureCreationSettingsLoaded', 'saveCreationSettings', 'openProjectFolder',
+    ].map((name) => [name, vi.fn()])) as unknown as SettingsController;
+    const controllers = {
+      upload: { uploadFile: vi.fn() },
+      sourceImport: { normalizeText: vi.fn() },
+      importInterpretation: { dispose: vi.fn() } as unknown as ImportInterpretationController,
+      settings,
+    };
+
+    createDesktopShellUi(store.getSnapshot(), store.actions, workflow, controllers).activateView('settings');
+    expect(store.getSnapshot().activeView).toBe('settings');
+    expect(settings.ensureLlmConfigLoaded).toHaveBeenCalledWith(true);
+
+    store.actions.settingsLoaded({
+      providerId: 'custom', baseUrl: 'https://example.test/v1', model: 'novel-model', hasKey: true,
+      maxTokens: 32768, thinking: 'enabled', reasoningEffort: 'high',
+    });
+    createDesktopShellUi(store.getSnapshot(), store.actions, workflow, controllers).saveLlmConfig();
+    expect(settings.saveLlmConfig).toHaveBeenCalledWith(store.getSnapshot().settingsDraft, true);
+  });
+
+  it('routes workflow stage actions to the matching page and keeps direct page navigation in sync', () => {
+    const store = createDesktopWorkbenchStore();
+    const workflow = {
+      saveSettings: vi.fn(), openProjectFolder: vi.fn(), requestOpen: vi.fn(), requestBrowse: vi.fn(), confirmLeave: vi.fn(),
+      cancelLeave: vi.fn(), archiveProject: vi.fn(), restoreProject: vi.fn(), createBlankProject: vi.fn(), createImportedProject: vi.fn(),
+      start: vi.fn(), dispose: vi.fn(),
+    } as unknown as DesktopProjectWorkflow;
+    store.actions.selectProject('book', '测试作品');
+
+    createDesktopShellUi(store.getSnapshot(), store.actions, workflow).openWorkflowStage('import');
+    expect(store.getSnapshot().workflow.stage).toBe('import');
+    expect(store.getSnapshot().activeView).toBe('onboarding');
+
+    createDesktopShellUi(store.getSnapshot(), store.actions, workflow).activateView('outline');
+    expect(store.getSnapshot().workflow.stage).toBe('outline');
+    expect(store.getSnapshot().activeView).toBe('outline');
   });
 
   it('binds root and store to one idempotent unmount disposer', () => {

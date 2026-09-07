@@ -224,4 +224,22 @@ describe('I144 来源语义审阅投影', () => {
     expect(collect(tree, 'button').some((node) => node.props?.['data-novel-rule-style-import-propose'] !== undefined)).toBe(true);
     expect(JSON.stringify(tree)).not.toContain('regenerate');
   });
+
+  it('shows the active LLM phase and one bounded line of latest streamed output', () => {
+    const tree = sourceInterpretationReview(h, reviewedState({
+      confirmed: true,
+      importSessionId: 'import-first',
+      ruleStyleInitialization: undefined,
+      ruleStyleStream: { phase: 'generating', receivedCharacters: 128, latestText: '{"rules":[{"id":"rule-one"}]' },
+    }), {
+      begin: () => undefined, cancel: () => undefined, confirm: () => undefined,
+      setSourceRole: () => undefined, setTreatment: () => undefined, setNarrativeIntent: () => undefined,
+      setParagraphRole: () => undefined, setParagraphDecision: () => undefined,
+      splitParagraph: () => undefined, mergeParagraphWithNext: () => undefined,
+    });
+    const stream = collect(tree).find((node) => node.props?.['data-novel-rule-style-stream'] === 'generating');
+    expect(JSON.stringify(stream)).toContain('AI 正在流式生成 · 已接收 128 字');
+    expect(JSON.stringify(stream)).toContain('{\\"rules\\"');
+    expect(ONBOARDING_STYLES).toContain('text-overflow: ellipsis');
+  });
 });

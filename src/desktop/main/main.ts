@@ -10,7 +10,7 @@ import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
 import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
 import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
-import { createLlmConfigService } from './llm-config-service.js';
+import { createDesktopLlmConfigHandlers, createLlmConfigService } from './llm-config-service.js';
 import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
 import { DESKTOP_WEB_PREFERENCES, isAllowedRendererNavigation } from './security.js';
@@ -370,6 +370,7 @@ const applicationKernel = createApplicationKernel({
       }, 'Electron application listeners');
 
       const ipcHandlers = new Map<string, IpcHandler>([
+        ...createDesktopLlmConfigHandlers(llmConfig),
         ['novel-creation-tool/novelProbe/probe', async () => {
           if (isSmokeRun()) {
             const outline = { id: 'outline', version: 1, structure: 'free', logline: 'A minimal smoke outline', themes: ['trust'], acts: [{ id: 'act-1', index: 0, title: 'Opening', goal: 'Begin', beats: [{ id: 'beat-1', title: 'First beat', description: 'Begin the story', charactersInvolved: [], conflictType: 'internal', prerequisites: [], optional: false, detailBeats: [] }] }], foreshadowing: [], endings: [] };

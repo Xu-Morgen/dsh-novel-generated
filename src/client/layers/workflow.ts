@@ -33,7 +33,7 @@ export function workflowPanel(h: El, props: WorkflowPanelProps): unknown {
       h('h4', { className: 'nv-workflow__source-title' }, '来源进入创作流程'),
       h('p', { className: 'nv-settings__hint', role: 'status', 'aria-live': 'polite', 'data-novel-workflow-source-message': '' }, source.message),
       source.unresolvedParagraphIds.length === 0 ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-workflow-source-unresolved': '' }, `尚有 ${source.unresolvedParagraphIds.length} 段来源待裁决。`),
-      h('button', { type: 'button', className: 'nv-btn', disabled: source.nextStage === 'import' && source.route === 'awaiting-source-confirmation', 'data-novel-workflow-source-next': source.nextStage, onClick: () => props.openStage(source.nextStage) }, source.nextStage === 'detail' ? '进入细纲步骤' : source.nextStage === 'outline' ? '进入大纲步骤' : '返回来源确认'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-workflow-source-next': source.nextStage, onClick: () => props.openStage(source.nextStage) }, source.nextStage === 'detail' ? '进入细纲步骤' : source.nextStage === 'outline' ? '进入大纲步骤' : '返回来源确认'),
     ),
     h('ol', { className: 'nv-workflow__stages', 'data-novel-workflow-stages': '' },
       WORKFLOW_STAGES.map((stage) => {

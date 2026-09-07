@@ -34,15 +34,22 @@ describe('I151 RuleStyleImportInitializationService', () => {
       const rules = createRuleService(root); const style = createStyleService(root); const confirmation = createConfirmationService(root);
       await Promise.all([rules.open('demo'), style.open('demo'), confirmation.open('demo')]);
       let calls = 0;
+      const streamPhases: string[] = [];
       const llm = { async *stream() { calls += 1; yield { type: 'text-delta' as const, text: JSON.stringify(candidate) }; yield { type: 'finish' as const, reason: { kind: 'stop' } }; } };
       const sessions = { firstConfirmed: async () => ({ ...identity, intent, paragraphDecisions: [], status: 'confirmed' as const, createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }) };
       const analysis = { source: () => '规范化首次导入文本' };
       const service = createRuleStyleImportInitializationService(llm, root, {
         sessions: sessions as never, analysis: analysis as never, confirmation, rules, style, isProjectEmpty: async () => true,
       });
-      await Promise.all([service.begin(identity, settings), service.begin(identity, settings)]);
+      const configFailure = await service.configurationFailure(identity, 'AI configuration is incomplete');
+      expect(configFailure).toMatchObject({ status: 'failed', error: 'AI configuration is incomplete' });
+      await Promise.all([
+        service.begin(identity, settings, { waitForCompletion: true, onProgress: (progress) => streamPhases.push(progress.phase) }),
+        service.begin(identity, settings),
+      ]);
       const generated = await waitFor(service, 'succeeded');
       expect(calls).toBe(1);
+      expect(streamPhases).toEqual(expect.arrayContaining(['connecting', 'generating', 'validating']));
       expect(await rules.list('demo')).toEqual([]);
       await expect(style.read('demo')).rejects.toThrow(/Invalid style/);
       const proposed = await service.propose({ ...identity, expectedFingerprint: generated.candidateFingerprint!, candidate: generated.candidate! });

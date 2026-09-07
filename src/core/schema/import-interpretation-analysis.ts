@@ -12,11 +12,18 @@ export const sourceParagraphRoleSchema = z.enum([
 ]);
 export type SourceParagraphRole = z.infer<typeof sourceParagraphRoleSchema>;
 
+/**
+ * Import normalization already caps one complete source at 2 MiB. A single
+ * author-selected segment may therefore span that complete source; applying a
+ * smaller per-segment limit makes lossless merge fail for long plot plans.
+ */
+export const MAX_IMPORT_SOURCE_CHARACTERS = 2 * 1024 * 1024;
+
 /** Host-owned normalized paragraph and UTF-16 range; the model never supplies the range. */
 export const importInterpretationParagraphSchema = z.object({
   paragraphId: z.string().trim().min(1).max(200),
   index: z.number().int().nonnegative(),
-  text: z.string().trim().min(1).max(20_000),
+  text: z.string().trim().min(1).max(MAX_IMPORT_SOURCE_CHARACTERS),
   startOffset: z.number().int().nonnegative(),
   endOffset: z.number().int().positive(),
 }).strict();
@@ -28,6 +35,10 @@ export const importInterpretationInputSchema = z.object({
   sourceHash: z.string().regex(/^[0-9a-f]{64}$/),
   paragraphs: z.array(importInterpretationParagraphSchema).min(1).max(200),
 }).strict().superRefine((input, context) => {
+  const sourceCharacters = input.paragraphs.reduce((total, paragraph) => total + paragraph.text.length, 0);
+  if (sourceCharacters > MAX_IMPORT_SOURCE_CHARACTERS) {
+    context.addIssue({ code: 'custom', path: ['paragraphs'], message: 'Combined source text exceeds the 2 MiB import limit' });
+  }
   const ids = new Set<string>();
   let previousEnd = -1;
   input.paragraphs.forEach((paragraph, position) => {
@@ -91,7 +102,7 @@ export type ImportInterpretationAnalysisResult = z.infer<typeof importInterpreta
 
 /** Deterministically derive paragraph ids/ranges before any LLM call. */
 export function createImportInterpretationParagraphs(rawText: string): ImportInterpretationParagraph[] {
-  const text = z.string().min(1).max(2 * 1024 * 1024).parse(rawText).normalize('NFC');
+  const text = z.string().min(1).max(MAX_IMPORT_SOURCE_CHARACTERS).parse(rawText).normalize('NFC');
   const paragraphs: ImportInterpretationParagraph[] = [];
   let cursor = 0;
   for (const rawLine of text.split('\n')) {

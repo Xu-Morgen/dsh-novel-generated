@@ -63,7 +63,7 @@
                       "text": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 20000
+                        "maxLength": 2097152
                       },
                       "startOffset": {
                         "type": "integer",

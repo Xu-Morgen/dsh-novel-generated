@@ -70,12 +70,21 @@ describe('I149 source-aware workflow route', () => {
     expect(unresolved.unresolvedParagraphIds).toEqual(['paragraph-0001']);
     expect(unresolved.nextStage).toBe('import');
 
+    const stages: string[] = [];
+    const h = ((tag: string, props: Record<string, unknown> | null, ...children: unknown[]) => ({ tag, props, children })) as El;
+    const panel = workflowPanel(h, { state: { projectId: 'ashen-codex', stage: 'import' }, projectName: '灰烬圣典', openStage: (stage) => stages.push(stage), sourceAware: unresolved }) as { children: unknown[] };
+    const source = panel.children.find((child) => (child as { props?: Record<string, unknown> } | null)?.props?.['data-novel-workflow-source-route'] === 'awaiting-source-confirmation') as { children: unknown[] } | undefined;
+    const returnAction = source?.children.find((child) => (child as { props?: Record<string, unknown> } | null)?.props?.['data-novel-workflow-source-next'] === 'import') as { props: { disabled?: boolean; onClick: () => void } } | undefined;
+    expect(returnAction?.props.disabled).not.toBe(true);
+    returnAction?.props.onClick();
+    expect(stages).toEqual(['import']);
+
     for (const planStatus of ['pending', 'stale', 'partial-failure', 'pending-recovery', 'rejected'] as const) {
-      const stages: string[] = [];
-      const blocked = routeSourceAwareWorkflow({ review: review('hybrid', 'adapt-pov'), planStatus }, (stage) => stages.push(stage));
+      const routedStages: string[] = [];
+      const blocked = routeSourceAwareWorkflow({ review: review('hybrid', 'adapt-pov'), planStatus }, (stage) => routedStages.push(stage));
       expect(blocked.canProceedToDetail).toBe(false);
       expect(blocked.nextStage).toBe('outline');
-      expect(stages).toEqual(['outline']);
+      expect(routedStages).toEqual(['outline']);
     }
   });
 

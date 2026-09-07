@@ -11,6 +11,20 @@ export interface RuleStyleImportAnalysisInput {
   readonly intent: ImportInterpretationIntent;
 }
 
+/** Bounded, author-visible activity projection; reasoning text is deliberately excluded. */
+export interface RuleStyleImportStreamProgress {
+  readonly phase: 'connecting' | 'reasoning' | 'generating' | 'validating';
+  readonly receivedCharacters: number;
+  readonly latestText: string;
+}
+
+const STREAM_PREVIEW_CHARACTERS = 240;
+
+function latestStreamText(text: string): string {
+  const singleLine = text.replace(/\s+/g, ' ').trim();
+  return singleLine.length <= STREAM_PREVIEW_CHARACTERS ? singleLine : `…${singleLine.slice(-(STREAM_PREVIEW_CHARACTERS - 1))}`;
+}
+
 export const RULE_STYLE_IMPORT_PROMPT_EXAMPLE = '{"rules":[{"id":"rule-tide-clock","scope":"global","kind":"magic","statement":"潮汐钟每天只能倒转一次。","priority":80,"immutable":false,"examples":[],"active":true}],"style":{"id":"style-imported","name":"导入文风","person":"third-limited","tense":"past","povScope":"single","tone":"克制、悬疑","proseStyle":"紧贴焦点角色感知","chapterFormat":"按调查节点分章","dialogueConventions":"对白简洁，潜台词优先","forbidden":["提前揭示幕后答案"]}}';
 
 /** Parse the only model-owned I151 envelope and force every generated rule editable. */
@@ -24,12 +38,32 @@ export async function analyzeRuleStyleImport(
   input: RuleStyleImportAnalysisInput,
   settings: GenerationSettings,
   signal?: AbortSignal,
+  onProgress?: (progress: RuleStyleImportStreamProgress) => void,
 ): Promise<RuleStyleImportCandidate> {
-  const candidate = await collectCandidate(backend, {
+  let receivedCharacters = 0;
+  let latestText = '';
+  onProgress?.({ phase: 'connecting', receivedCharacters, latestText });
+  const observedBackend: LlmBackend | undefined = backend === undefined ? undefined : {
+    async *stream(request) {
+      for await (const chunk of backend.stream(request)) {
+        const text = typeof chunk === 'string' ? chunk : chunk.text ?? '';
+        if (text.length > 0) {
+          receivedCharacters += text.length;
+          latestText = latestStreamText(`${latestText}${text}`);
+          onProgress?.({ phase: 'generating', receivedCharacters, latestText });
+        } else if (typeof chunk !== 'string' && chunk.reasoning !== undefined) {
+          onProgress?.({ phase: 'reasoning', receivedCharacters, latestText });
+        }
+        yield chunk;
+      }
+    },
+  };
+  const candidate = await collectCandidate(observedBackend, {
     prompt: buildRuleStyleImportPrompt(input),
     settings: resolveGenerationSettings(settings),
     signal,
   });
+  onProgress?.({ phase: 'validating', receivedCharacters, latestText });
   return structuredClone(parseRuleStyleImportCandidate(candidate.text));
 }
 

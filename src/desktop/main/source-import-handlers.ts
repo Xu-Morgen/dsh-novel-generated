@@ -189,7 +189,20 @@ export function createDesktopSourceImportHandlers(
 
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/begin', async (input, settings, context) => {
     const invocation = contextOf(context);
-    return withProgress(invocation, 'ruleStyleImportInitialization.begin', async () => initialization.begin(input as Parameters<typeof initialization.begin>[0], settings === undefined ? await resolveSettings() : settings as GenerationSettings));
+    const identity = input as Parameters<typeof initialization.begin>[0];
+    invocation?.reportProgress({ phase: 'ruleStyleImportInitialization.begin', status: 'running', streamPhase: 'checking-config', receivedCharacters: 0, latestText: '' });
+    let generationSettings: GenerationSettings;
+    try {
+      generationSettings = settings === undefined ? await resolveSettings() : settings as GenerationSettings;
+    } catch {
+      const message = 'AI 配置不可用。请在“AI 设置”中填写服务地址、模型名称和 API Key 后重试。';
+      invocation?.reportProgress({ phase: 'ruleStyleImportInitialization.begin', status: 'failed', streamPhase: 'checking-config', receivedCharacters: 0, latestText: message });
+      return initialization.configurationFailure(identity, message);
+    }
+    return withProgress(invocation, 'ruleStyleImportInitialization.begin', async () => initialization.begin(identity, generationSettings, {
+      waitForCompletion: invocation !== undefined,
+      onProgress: (progress) => invocation?.reportProgress({ phase: 'ruleStyleImportInitialization.begin', status: 'running', streamPhase: progress.phase, receivedCharacters: progress.receivedCharacters, latestText: progress.latestText }),
+    }));
   });
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/status', (input) => initialization.status(input as Parameters<typeof initialization.status>[0]));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/result', (input) => initialization.result(input as Parameters<typeof initialization.result>[0]));

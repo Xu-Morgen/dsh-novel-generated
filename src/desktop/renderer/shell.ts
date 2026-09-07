@@ -13,16 +13,19 @@ import type {
   WorkbenchViewStates,
 } from '../../client/store/types.js';
 import type { WorkbenchViewId } from '../../client/nav.js';
-import type { WorkflowStageId } from '../../client/workflow.js';
+import { workflowStageForView, workflowStageOf, writeWorkflowResume, type WorkflowStageId } from '../../client/workflow.js';
 import { createSourceImportController, sourceImportGate, type SourceImportController, type SourceImportFormat } from '../../client/source-import.js';
 import { createImportInterpretationController, paragraphsFromHostChunks, type ImportInterpretationController } from '../../client/import-interpretation-review.js';
+import type { ImportInterpretationReviewState, RuleStyleStreamView } from '../../client/import-interpretation-review.js';
 import { createDesktopUploadController, type DesktopUploadController } from './upload-controller.js';
 import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
+import type { DesktopClientSnapshot } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
 import { createDesktopStructuredOps } from './structured-ops.js';
 import { createDesktopFileDialog } from './file-dialog.js';
 import { createQueuePollController } from '../../client/queue-poll.js';
+import { createSettingsController, type SettingsController } from '../../client/controllers.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { useDesktopStore } from './store-adapter.js';
 import { createDesktopAssistantClient, type DesktopAssistantClient } from './assistant-client.js';
@@ -133,6 +136,37 @@ function viewStates(state: WorkbenchState): WorkbenchViewStates {
   };
 }
 
+const RULE_STYLE_BEGIN_METHOD = 'novel-creation-tool/novelRuleStyleImportInitialization/begin';
+
+/** Narrow and validate the live desktop progress event before it enters the presenter. */
+export function desktopRuleStyleStream(progress: DesktopClientSnapshot['progress']): RuleStyleStreamView | undefined {
+  if (progress?.methodId !== RULE_STYLE_BEGIN_METHOD || progress.value === null || typeof progress.value !== 'object' || Array.isArray(progress.value)) return undefined;
+  const value = progress.value as Record<string, unknown>;
+  const phases: readonly RuleStyleStreamView['phase'][] = ['checking-config', 'connecting', 'reasoning', 'generating', 'validating'];
+  if (value.status !== 'running') return undefined;
+  if (typeof value.streamPhase !== 'string' || !phases.includes(value.streamPhase as RuleStyleStreamView['phase'])) return undefined;
+  if (typeof value.receivedCharacters !== 'number' || !Number.isSafeInteger(value.receivedCharacters) || value.receivedCharacters < 0) return undefined;
+  if (typeof value.latestText !== 'string' || value.latestText.length > 240) return undefined;
+  return { phase: value.streamPhase as RuleStyleStreamView['phase'], receivedCharacters: value.receivedCharacters, latestText: value.latestText };
+}
+
+/** Single in-app stream window; terminal progress makes this component return null automatically. */
+export function DesktopLlmStreamWindow(props: { progress?: DesktopClientSnapshot['progress'] }): React.ReactElement | null {
+  const stream = desktopRuleStyleStream(props.progress);
+  if (stream === undefined) return null;
+  const phase = stream.phase === 'checking-config' ? '检查 AI 配置'
+    : stream.phase === 'connecting' ? '连接 AI 服务'
+      : stream.phase === 'reasoning' ? 'AI 正在推理'
+        : stream.phase === 'generating' ? `流式接收中 · ${stream.receivedCharacters} 字`
+          : '校验生成结果';
+  return React.createElement('aside', {
+    className: 'nv-llm-stream-window', role: 'dialog', 'aria-label': 'AI 流式传输', 'aria-live': 'polite',
+    'data-novel-llm-stream-window': stream.phase,
+  },
+  React.createElement('strong', { className: 'nv-llm-stream-window__phase' }, phase),
+  React.createElement('p', { className: 'nv-llm-stream-window__content', title: stream.latestText || '等待模型返回首个内容片段' }, stream.latestText || '等待模型返回首个内容片段…'));
+}
+
 /**
  * I173 临时 UI adapter：只开放纯 Renderer 交互，业务命令显式保持未接线。
  * I174 会以 DesktopServiceBag 替换这些业务空操作；本迭代不会提前调用 IPC。
@@ -141,9 +175,19 @@ interface DesktopShellControllers {
   readonly upload: DesktopUploadController;
   readonly sourceImport: SourceImportController;
   readonly importInterpretation: ImportInterpretationController;
+  readonly settings: SettingsController;
 }
 
 export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, controllers?: DesktopShellControllers): WorkbenchUi {
+  const persistWorkflowStage = (stage: WorkflowStageId): void => {
+    if (state.selectedProjectId === undefined) return;
+    writeWorkflowResume({
+      projectId: state.selectedProjectId,
+      stage,
+      ...(state.workflow.chapterId ?? state.chapters.selectedChapterId ? { chapterId: state.workflow.chapterId ?? state.chapters.selectedChapterId } : {}),
+      ...(state.workflow.sceneId ?? state.chapters.selectedSceneId ? { sceneId: state.workflow.sceneId ?? state.chapters.selectedSceneId } : {}),
+    });
+  };
   return {
     open: state.open,
     collapsed: state.collapsed,
@@ -164,12 +208,25 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
       scheduleFocus('[data-novel-launch]');
     },
     activate: actions.activate,
-    activateView: (view: WorkbenchViewId) => actions.activateView(view),
-    openWorkflowStage: (stage: WorkflowStageId) => actions.workflowStage(stage),
+    activateView: (view: WorkbenchViewId) => {
+      const stage = workflowStageForView(view);
+      if (stage !== undefined && state.selectedProjectId !== undefined) {
+        actions.workflowStage(stage);
+        persistWorkflowStage(stage);
+      }
+      actions.activateView(view);
+      if (view === 'settings') controllers?.settings.ensureLlmConfigLoaded(state.settingsView === undefined);
+    },
+    openWorkflowStage: (stage: WorkflowStageId) => {
+      if (state.selectedProjectId === undefined) return;
+      actions.workflowStage(stage);
+      persistWorkflowStage(stage);
+      actions.activateView(workflowStageOf(stage).view);
+    },
     activateOnboarding: actions.activateOnboarding,
     activateCreationSettings: actions.activateCreationSettings,
     toggleSettings: actions.toggleSettings,
-    saveLlmConfig: NOOP,
+    saveLlmConfig: () => controllers?.settings.saveLlmConfig(state.settingsDraft, state.settingsView?.hasKey ?? false) ?? NOOP(),
     saveCreationSettings: () => workflow.saveSettings(state.creationSettingsDraft),
     openCreationFolder: workflow.openProjectFolder,
     selectProject: workflow.requestOpen,
@@ -276,7 +333,14 @@ function openedProjectView(state: WorkbenchState, actions: WorkbenchActions, wor
 }
 
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
-function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient): React.ReactElement {
+function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, llmConfigNamespace: DesktopIpcClient['services']['llmConfig'], settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient, liveProgress?: DesktopClientSnapshot['progress']): React.ReactElement {
+  const settings = {
+    view: state.settingsView,
+    draft: state.settingsDraft,
+    namespace: llmConfigNamespace,
+    mutate: actions.settingsMutate,
+    save: ui.saveLlmConfig,
+  };
   const creationSettings = {
     view: state.creationSettingsView,
     draft: state.creationSettingsDraft,
@@ -286,6 +350,10 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
     projectId: state.selectedProjectId,
     openFolder: ui.openCreationFolder,
   };
+  const ruleStyleStream = desktopRuleStyleStream(liveProgress);
+  const importInterpretationReview: ImportInterpretationReviewState | undefined = state.importInterpretationReview === undefined || ruleStyleStream === undefined
+    ? state.importInterpretationReview
+    : { ...state.importInterpretationReview, ruleStyleStream };
   return React.createElement('section', { 'data-novel-project-ready': 'true' },
     workbenchView(React, {
       status: state.status,
@@ -303,7 +371,8 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
       upload: state.upload,
       uploadResult: state.uploadResult,
       sourceImport: state.sourceImport,
-      importInterpretationReview: state.importInterpretationReview,
+      importInterpretationReview,
+      settings,
       creationSettings,
     }) as React.ReactNode,
     state.selectedProjectId === undefined ? null : React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId }),
@@ -390,10 +459,20 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       startSourceReview,
       createProject: (input, onOpened) => workflow.createImportedProject(input, onOpened),
     });
+    const settings = createSettingsController({
+      llmConfig: () => props.client.services.llmConfig,
+      workbenchSettings: () => props.client.services.workbenchSettings,
+      currentProjectId,
+      isActive,
+      beginOp,
+      endOp,
+      dispatch,
+    });
     return Object.freeze({
       upload,
       sourceImport,
       importInterpretation,
+      settings,
       dispose: () => {
         operations.clear();
         importInterpretation.dispose();
@@ -482,7 +561,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     : state.status.status !== 'ready'
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
-        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.workbenchSettings, assistant)
+        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.llmConfig, props.client.services.workbenchSettings, assistant, connection.progress)
         : projectDirectoryView(state, props.store.actions, workflow, ui);
 
   return React.createElement(
@@ -498,6 +577,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       'data-novel-last-progress-method': connection.progress?.methodId ?? '',
     },
       content as React.ReactNode,
+      React.createElement(DesktopLlmStreamWindow, { progress: connection.progress }),
       React.createElement(DesktopMigrationPanel, { client: migration }),
     ),
   );

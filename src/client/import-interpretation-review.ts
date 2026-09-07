@@ -48,6 +48,8 @@ export interface ImportInterpretationReviewState {
   readonly paragraphs: readonly ImportReviewParagraph[];
   readonly confirmed: boolean;
   readonly ruleStyleInitialization?: RuleStyleImportProjection;
+  /** Desktop-only live projection from the active IPC request; never persisted as narrative state. */
+  readonly ruleStyleStream?: RuleStyleStreamView;
   readonly ruleStyleRulesDraft?: string;
   readonly ruleStyleStyleDraft?: string;
   readonly ruleStyleBusy?: boolean;
@@ -118,6 +120,12 @@ const PARAGRAPH_TREATMENT_SUGGESTIONS: Readonly<Record<SourceParagraphRole, stri
 
 export function paragraphTreatmentSuggestion(role: SourceParagraphRole): string {
   return PARAGRAPH_TREATMENT_SUGGESTIONS[role];
+}
+
+export interface RuleStyleStreamView {
+  readonly phase: 'checking-config' | 'connecting' | 'reasoning' | 'generating' | 'validating';
+  readonly receivedCharacters: number;
+  readonly latestText: string;
 }
 
 const POV_LABELS: Readonly<Record<NarrativePov, string>> = Object.freeze({ limited: '限知视角', omniscient: '全知视角' });
@@ -391,12 +399,23 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
 function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewState, ops: ImportInterpretationReviewOps): unknown {
   const initialization = state.ruleStyleInitialization;
   if (!state.confirmed && initialization === undefined) return null;
-  if (initialization === undefined) return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '' }, h('h4', null, '规则与文风初稿'), h('p', { role: 'status' }, '正在启动首次导入初始化…'));
-  const statusLabel = initialization.status === 'applied' ? '已写入本地规则与文风文件' : initialization.status === 'proposed' ? '等待作者确认' : initialization.status === 'succeeded' ? '初稿已生成，可编辑后提交确认' : initialization.status === 'failed' ? '生成失败，可重试同一首次导入任务或转到规则与文风面板手工录入' : initialization.status === 'cancelled' ? '本次生成已取消' : '无法识别的处理状态';
+  const stream = state.ruleStyleStream;
+  const streamPhaseLabel = stream?.phase === 'checking-config' ? '正在检查 AI 配置'
+    : stream?.phase === 'connecting' ? '正在连接 AI 服务'
+      : stream?.phase === 'reasoning' ? 'AI 正在推理'
+        : stream?.phase === 'generating' ? `AI 正在流式生成 · 已接收 ${stream.receivedCharacters} 字`
+          : stream?.phase === 'validating' ? '输出接收完成，正在校验结构' : '正在建立 AI 流式连接';
+  const streamRow = h('div', { className: 'nv-import-review__llm-stream', role: 'status', 'aria-live': 'polite', 'data-novel-rule-style-stream': stream?.phase ?? 'starting' },
+    h('strong', { className: 'nv-import-review__llm-stream-phase' }, streamPhaseLabel),
+    h('span', { className: 'nv-import-review__llm-stream-latest', title: stream?.latestText || '等待模型返回首个内容片段', 'data-novel-rule-style-stream-latest': '' }, stream?.latestText || '等待模型返回首个内容片段…'),
+  );
+  if (initialization === undefined) return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '' }, h('h4', null, '规则与文风初稿'), streamRow);
+  const statusLabel = initialization.status === 'applied' ? '已写入本地规则与文风文件' : initialization.status === 'proposed' ? '等待作者确认' : initialization.status === 'succeeded' ? '初稿已生成，可编辑后提交确认' : initialization.status === 'failed' ? '生成失败，可重试同一首次导入任务或转到规则与文风面板手工录入' : initialization.status === 'cancelled' ? '本次生成已取消' : initialization.status === 'queued' ? '正在排队准备 AI 交互' : initialization.status === 'running' ? 'AI 正在生成规则与文风初稿' : initialization.status === 'applying' ? '正在写入本地规则与文风文件' : '初始化状态已过期，请重试';
   const parseDraft = (raw: string | undefined, fallback: unknown): unknown => { try { return JSON.parse(raw ?? '') as unknown; } catch { return fallback; } };
   return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '', 'data-novel-rule-style-import-status': initialization.status },
     h('h4', null, '规则与文风初稿'),
     h('p', { role: 'status', 'aria-live': 'polite' }, statusLabel),
+    initialization.status === 'queued' || initialization.status === 'running' ? streamRow : null,
     initialization.status === 'succeeded' ? h('div', { className: 'nv-import-review__rule-style-editors' },
       h('section', { className: 'nv-field', 'data-novel-rule-style-import-rules': '' }, h('h5', { className: 'nv-field__label' }, '规则初稿'), structuredEditor(h, parseDraft(state.ruleStyleRulesDraft, initialization.candidate?.rules ?? []), (next) => ops.setRuleStyleRulesDraft?.(JSON.stringify(next)), 'rule-style-rules')),
       h('section', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('h5', { className: 'nv-field__label' }, '文风初稿'), structuredEditor(h, parseDraft(state.ruleStyleStyleDraft, initialization.candidate?.style ?? {}), (next) => ops.setRuleStyleStyleDraft?.(JSON.stringify(next)), 'rule-style-style')),

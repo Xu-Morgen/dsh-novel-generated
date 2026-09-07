@@ -113,6 +113,65 @@ describe('I178 Main review, repair, queue, and reference handlers', () => {
 });
 
 describe('I179 Main source import handlers', () => {
+  it('keeps rule/style initialization open for bounded LLM stream progress', async () => {
+    let llmCalls = 0;
+    const sourceAnalysis = {
+      sourceRole: 'idea', confidence: 'high', evidenceParagraphIds: ['paragraph-0001'],
+      paragraphs: [{ paragraphId: 'paragraph-0001', role: 'plot-plan', confidence: 'high', evidence: 'story seed' }],
+      rationale: 'The source is a story seed.',
+    };
+    const ruleStyleCandidate = {
+      rules: [],
+      style: {
+        id: 'style-imported', name: 'Imported', person: 'third-limited', tense: 'past', povScope: 'single',
+        tone: 'restrained', proseStyle: 'close', chapterFormat: 'chapters', dialogueConventions: 'quotes', forbidden: [],
+      },
+    };
+    const { handlers } = await fixture({
+      llm: {
+        async *stream() {
+          llmCalls += 1;
+          yield { type: 'reasoning-delta' as const, text: 'private reasoning' };
+          yield { type: 'text-delta' as const, text: JSON.stringify(llmCalls === 1 ? sourceAnalysis : ruleStyleCandidate) };
+          yield { type: 'finish' as const, reason: { kind: 'stop' } };
+        },
+      },
+      resolveGenerationSettings: async () => ({ modelRef: 'novel-custom/model', credentialRef: 'novel-custom/api-key' }),
+    });
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectCreate', [{ projectId: 'streaming', name: 'Streaming' }]);
+    await invoke(handlers, 'novel-creation-tool/novelWorkspace/projectOpen', ['streaming']);
+    const normalized = await invoke(handlers, 'novel-creation-tool/novelImportExport/normalizeSource', ['streaming', { fileName: 'idea.txt', format: 'txt', text: 'A restrained mystery.' }]);
+    const sourceHash = (normalized as { ok: true; value: { sourceHash: string } }).value.sourceHash;
+    const intent = { sourceRole: 'idea' as const, treatment: 'expand-outline' as const };
+    const paragraphDecisions = [{ paragraphId: 'paragraph-0001', decision: 'accepted' as const, role: 'plot-plan' as const, summary: 'story seed' }];
+    const created = await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/create', [{ projectId: 'streaming', sourceHash, intent, paragraphDecisions }]);
+    const importSessionId = (created as { ok: true; value: { importSessionId: string } }).value.importSessionId;
+    const identity = { projectId: 'streaming', importSessionId, sourceHash };
+    const paragraphs = [{ paragraphId: 'paragraph-0001', index: 0, text: 'A restrained mystery.', startOffset: 0, endOffset: 21 }];
+    await invoke(handlers, 'novel-creation-tool/novelImportInterpretationAnalysis/begin', [{ ...identity, paragraphs }, undefined]);
+    for (let index = 0; index < 20; index += 1) {
+      const status = await invoke(handlers, 'novel-creation-tool/novelImportInterpretationAnalysis/status', [identity]);
+      if ((status as { ok: true; value: { status: string } }).value.status === 'succeeded') break;
+      await new Promise((resolve) => setTimeout(resolve, 2));
+    }
+    await invoke(handlers, 'novel-creation-tool/novelImportInterpretation/confirm', [{ ...identity, intent, paragraphDecisions }]);
+
+    const progress: unknown[] = [];
+    const context = { signal: new AbortController().signal, reportProgress: (value: unknown) => progress.push(value) };
+    const initialized = await desktopIpcRegistry.invoke(
+      'novel-creation-tool/novelRuleStyleImportInitialization/begin', [identity, undefined],
+      handlers.get('novel-creation-tool/novelRuleStyleImportInitialization/begin'), context,
+    );
+    expect(initialized).toMatchObject({ ok: true, value: { status: 'succeeded' } });
+    expect(progress).toEqual(expect.arrayContaining([
+      expect.objectContaining({ streamPhase: 'checking-config' }),
+      expect.objectContaining({ streamPhase: 'reasoning', latestText: '' }),
+      expect.objectContaining({ streamPhase: 'generating' }),
+      expect.objectContaining({ streamPhase: 'validating' }),
+    ]));
+    expect(JSON.stringify(progress)).not.toContain('private reasoning');
+  });
+
   it('keeps native file access in Main and routes normalized source review by strict identity', async () => {
     const root = await mkdtemp(join(tmpdir(), 'novel-i179-main-'));
     roots.push(root);

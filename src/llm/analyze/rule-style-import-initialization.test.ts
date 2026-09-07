@@ -42,6 +42,24 @@ describe('I151 first-import rule/style analyzer', () => {
     expect(prompt).not.toContain('fs.writeFile');
   });
 
+  it('reports bounded streaming activity without exposing reasoning text', async () => {
+    const progress: Array<{ phase: string; receivedCharacters: number; latestText: string }> = [];
+    const serialized = JSON.stringify(corpus.cases[0].expected);
+    const backend = {
+      async *stream() {
+        yield { reasoning: 'private chain of thought' };
+        yield { text: serialized.slice(0, 40) };
+        yield { text: serialized.slice(40) };
+        yield { done: true };
+      },
+    };
+    await analyzeRuleStyleImport(backend, corpus.cases[0], settings, undefined, (value) => progress.push(value));
+    expect(progress.map((value) => value.phase)).toEqual(expect.arrayContaining(['connecting', 'reasoning', 'generating', 'validating']));
+    expect(progress.at(-1)).toMatchObject({ phase: 'validating', receivedCharacters: serialized.length });
+    expect(progress.at(-1)?.latestText.length).toBeLessThanOrEqual(240);
+    expect(JSON.stringify(progress)).not.toContain('private chain of thought');
+  });
+
   it('fails closed on immutable rules, paths/extra layers, malformed JSON, and incomplete style', () => {
     const base = structuredClone(corpus.cases[0].expected);
     base.rules[0].immutable = true as false;

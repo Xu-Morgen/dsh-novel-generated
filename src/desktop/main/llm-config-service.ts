@@ -25,6 +25,7 @@ import {
   type LlmThinkingMode,
 } from '../../core/schema/llm-config.js';
 import { readYaml } from '../../core/io/yaml.js';
+import type { IpcHandler } from '../../app/ipc-registry.js';
 
 /**
  * Main-owned LLM settings persistence for the desktop runtime (design §0.1.2).
@@ -35,6 +36,14 @@ import { readYaml } from '../../core/io/yaml.js';
 export interface DesktopLlmConfigService {
   load(): Promise<LlmConfigView>;
   save(input: LlmConfigSaveInput): Promise<LlmConfigSaveResult>;
+}
+
+/** Bind the Main-owned config service to the two canonical desktop IPC methods. */
+export function createDesktopLlmConfigHandlers(service: DesktopLlmConfigService): ReadonlyMap<string, IpcHandler> {
+  return new Map<string, IpcHandler>([
+    ['novel-creation-tool/novelLlmConfig/load', () => service.load()],
+    ['novel-creation-tool/novelLlmConfig/save', (input) => service.save(input as LlmConfigSaveInput)],
+  ]);
 }
 
 interface ProviderDocument {

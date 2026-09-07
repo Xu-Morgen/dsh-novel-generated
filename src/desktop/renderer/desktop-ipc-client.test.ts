@@ -87,6 +87,18 @@ describe('I174 generated Renderer IPC client', () => {
     });
   });
 
+  it('keeps the safe IPC code and method id in advanced diagnostics', async () => {
+    const methodId = 'novel-creation-tool/novelImportInterpretationAnalysis/begin';
+    const controls = fakeBridge(async () => ({
+      ok: false,
+      error: { code: 'handler-failed', message: 'IPC method handler failed', details: { methodId } },
+    }));
+    const client = createDesktopIpcClient(controls.bridge);
+
+    await expect(unwrap(client.services.importInterpretationAnalysis.begin({} as never, undefined)))
+      .rejects.toThrow(`IPC method handler failed [code=handler-failed; method=${methodId}]`);
+  });
+
   it('fails closed for malformed bridge results before a consumer writes UI state', async () => {
     const controls = fakeBridge(async () => ({ ok: true } as never));
     const client = createDesktopIpcClient(controls.bridge);
