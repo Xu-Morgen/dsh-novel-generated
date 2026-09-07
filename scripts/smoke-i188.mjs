@@ -27,9 +27,11 @@ try {
   await app.screenshot('project-directory');
   await app.fill('[data-novel-project-name-input]', '暖纸验收作品');
   await app.click('[data-novel-project-create]');
-  await app.waitFor('!!document.querySelector("[data-novel-assistant]")', 'created project and actual assistant');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-toggle]")', 'created project');
+  await app.click('[data-novel-assistant-toggle]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant]")', 'actual assistant');
   const assistant = await app.evaluate(`(() => {const e=document.querySelector('[data-novel-assistant-continue]');const s=getComputedStyle(e);return {ink:s.color, background:s.backgroundColor, font:s.fontSize, outside:!e.closest('.nv-workbench')};})()`);
-  check('actual assistant inherits shared controls outside workbench', assistant.outside && assistant.background === 'rgb(168, 61, 48)' && assistant.font === '14px', assistant);
+  check('actual assistant inherits shared controls after I189 placement migration', assistant.background === 'rgb(168, 61, 48)' && assistant.font === '14px', assistant);
   await app.screenshot('created-project');
   await writeFile(join(app.evidence, 'validation.json'), JSON.stringify({ iteration: 'I188', scope: 'Production Electron entry, isolated empty userData, real create command and native input. No prototype data.', checks }, null, 2));
   process.stdout.write(`I188: ${checks.length} real Electron UI checks passed; ${app.evidence}\n`);

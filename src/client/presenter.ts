@@ -229,18 +229,23 @@ export interface WorkbenchViewProps {
   importInterpretationReview?: ImportInterpretationReviewState;
   settings?: LlmSettingsPanelProps;
   creationSettings?: WorkbenchSettingsPanelProps;
+  /** I189: desktop composition slots carry presentation only, never domain state. */
+  desktop?: boolean;
+  desktopTools?: unknown;
+  desktopAside?: unknown;
 }
 
 /** 品牌头栏：砚台朱砂标记 + 衬线标题 + 折叠/关闭。tabIndex=-1 + data-novel-focus-target
  *  作为 I59 打开面板后的焦点进入落点（R12-6 焦点进入）。 */
-function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }): unknown {  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '', 'data-novel-focus-target': '', tabIndex: -1 },
+function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boolean; collapse(): void; close(): void }, desktop = false, tools?: unknown): unknown {  return h('header', { className: 'nv-workbench__brand', 'data-novel-brand': '', 'data-novel-focus-target': '', tabIndex: -1 },
   h('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
   h('div', null,
     h('h2', { className: 'nv-workbench__title' }, '创作台'),
     subtitle === undefined ? null : h('span', { className: 'nv-workbench__subtitle' }, subtitle),
   ),
-  h('button', { type: 'button', className: 'nv-workbench__toggle', 'aria-expanded': String(!ui.collapsed), onClick: () => ui.collapse() }, ui.collapsed ? '展开' : '折叠'),
-  h('button', { type: 'button', className: 'nv-workbench__close', 'aria-label': '关闭创作台', onClick: () => ui.close() }, '关闭'),
+  h('button', { type: 'button', className: 'nv-workbench__toggle', 'aria-expanded': String(!ui.collapsed), onClick: () => ui.collapse() }, desktop ? (ui.collapsed ? '展开导航' : '收起导航') : (ui.collapsed ? '展开' : '折叠')),
+  desktop ? null : h('button', { type: 'button', className: 'nv-workbench__close', 'aria-label': desktop ? '返回作品库' : '关闭创作台', onClick: () => ui.close() }, desktop ? '作品库' : '关闭'),
+  tools,
 );
 }
 
@@ -252,12 +257,13 @@ function brandHeader(h: El, subtitle: string | undefined, ui: { collapsed: boole
  */
 function groupNav(h: El, activeView: WorkbenchViewId, activateView: (view: WorkbenchViewId) => void): unknown {
   return h('nav', { className: 'nv-workbench__nav', 'data-novel-nav': '', 'aria-label': '创作台任务导航' },
-    NAV_GROUPS.map((group) => h('section', {
+    NAV_GROUPS.map((group) => h(group.id === 'advanced' ? 'details' : 'section', {
+      ...(group.id === 'advanced' ? { open: group.items.some((item) => item.view === activeView) || undefined } : {}),
       key: group.id,
       className: 'nv-workbench__nav-group',
       'data-novel-nav-group': group.id,
     },
-    h('h3', { className: 'nv-workbench__nav-group-label', 'data-novel-nav-group-label': group.id }, group.label),
+    h(group.id === 'advanced' ? 'summary' : 'h3', { className: 'nv-workbench__nav-group-label', 'data-novel-nav-group-label': group.id }, group.label),
     group.items.map((item) => h('button', {
       key: item.view,
       type: 'button',
@@ -324,7 +330,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     : status.status === 'error' ? 'error' : status.status;
   const message = status.status === 'error' ? toUserMessage(status.message)
     : (effectiveStatus === 'error' ? '创作台暂时不可用，请稍后重试。' : undefined);
-  const subtitle = ready ? `已就绪 · ${status.model.version}` : undefined;
+  const subtitle = ready ? (props.desktop ? '写下你的下一个故事' : `已就绪 · ${status.model.version}`) : undefined;
   const gate = sourceImportGate({ ...states.layers, chapters: states.chapters });
   const sourceEntry = selectedProjectId === undefined ? null : sourceImportPresenter(h, {
     state: sourceImport,
@@ -376,7 +382,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         onClick: () => ops.router.back(),
       }, '返回来源') : null,
       h('div', { className: 'nv-workbench__body-row' },
-        groupNav(h, ui.activeView, ui.activateView),
+        props.desktop && ui.collapsed ? null : groupNav(h, ui.activeView, ui.activateView),
         h('div', {
           className: 'nv-workbench__nav-resizer',
           'data-novel-nav-resizer': '',
@@ -413,6 +419,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
             outlineDetailGeneration: states.outlineDetailGeneration,
           }, ops, sourceEntry, combinedReview, settings, creationSettings, { ...states.workflow, sourceAware }, ui.openWorkflowStage),
         ),
+        props.desktopAside,
       ),
     )
     : effectiveStatus === 'ready' && (selectedProjectId === undefined || browsing)
@@ -477,7 +484,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     'data-novel-route': ui.activeView,
     // UI 打磨：面板过窄（< PANEL_NAV_AUTO_COLLAPSE）时侧边路由栏自动折叠为横向横条
     // （CSS 侧 .nv-workbench[data-novel-nav-collapsed] 驱动；与窄屏响应式形态一致）。
-    'data-novel-nav-collapsed': ui.panelWidth < PANEL_NAV_AUTO_COLLAPSE ? '' : undefined,
+    'data-novel-nav-collapsed': !props.desktop && ui.panelWidth < PANEL_NAV_AUTO_COLLAPSE ? '' : undefined,
     // I59 键盘/Esc（R12-6）：面板内 Esc 先取消脏表单离开确认，否则关闭面板
     // （关闭时焦点恢复到悬浮圆形入口，见 ui.close）。data-novel-focus-scope 是
     // 打开后的焦点进入范围锚点。
@@ -486,7 +493,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
       if (event.key !== 'Escape') return;
       event.preventDefault();
       if (leaveConfirm) { ui.cancelLeave(); return; }
-      ui.close();
+      if (!props.desktop) ui.close();
     },
   },
     // UI 打磨：面板左边缘拖柄 —— 拖动调整创作台整体宽度（贴右停靠，左边缘即宽度边界）。
@@ -514,8 +521,8 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
         ui.panelResizeStep(event.key === 'ArrowLeft' ? -GRID_STEP : GRID_STEP);
       },
     }),
-    brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: ui.close }),
-    ui.collapsed ? null : body,
+    brandHeader(h, subtitle, { collapsed: ui.collapsed, collapse: ui.collapse, close: props.desktop ? ui.requestBrowse : ui.close }, props.desktop, props.desktopTools),
+    ui.collapsed && !props.desktop ? null : body,
   );
 }
 

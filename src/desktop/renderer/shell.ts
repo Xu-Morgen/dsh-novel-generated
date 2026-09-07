@@ -1,9 +1,9 @@
+import { ProjectDirectory } from './project-directory.js';
 import { Button } from './ui/button.js';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
 
-import { launchButton, workbenchView, type WorkbenchUi } from '../../client/presenter.js';
-import { scheduleFocus } from '../../client/focus.js';
+import { workbenchView, type WorkbenchUi } from '../../client/presenter.js';
 import { WORKBENCH_STYLES } from '../../client/styles.js';
 import type { OpsRuntime } from '../../client/ops/context.js';
 import type {
@@ -19,7 +19,6 @@ import { createSourceImportController, sourceImportGate, type SourceImportContro
 import { createImportInterpretationController, paragraphsFromHostChunks, type ImportInterpretationController } from '../../client/import-interpretation-review.js';
 import type { ImportInterpretationReviewState, RuleStyleStreamView } from '../../client/import-interpretation-review.js';
 import { createDesktopUploadController, type DesktopUploadController } from './upload-controller.js';
-import { workbenchSettingsPanel } from '../../client/workbench-settings.js';
 import type { DesktopIpcClient } from './desktop-ipc-client.js';
 import type { DesktopClientSnapshot } from './desktop-ipc-client.js';
 import { createDesktopProjectWorkflow, type DesktopProjectWorkflow, type ProjectPreferenceStore } from './project-workflow.js';
@@ -190,7 +189,7 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
     });
   };
   return {
-    open: state.open,
+    open: true,
     collapsed: state.collapsed,
     activeView: state.activeView,
     navWidth: state.navWidth,
@@ -204,10 +203,7 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
     panelResizeEnd: actions.panelResizeEnd,
     panelResizeStep: (delta) => actions.setPanelWidth(state.panelWidth + delta),
     collapse: actions.collapse,
-    close: () => {
-      actions.close();
-      scheduleFocus('[data-novel-launch]');
-    },
+    close: workflow.requestBrowse,
     activate: actions.activate,
     activateView: (view: WorkbenchViewId) => {
       const stage = workflowStageForView(view);
@@ -270,71 +266,8 @@ function preferenceStore(): ProjectPreferenceStore {
   return typeof window === 'undefined' ? FALLBACK_PREFERENCE : window.localStorage;
 }
 
-function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, ui: WorkbenchUi): React.ReactElement {
-  return React.createElement('section', { className: 'nv-workbench__state nv-workbench__state--chooser', 'data-novel-project-chooser': '' },
-    React.createElement('header', { className: 'nv-workbench__brand' },
-      React.createElement('span', { className: 'nv-workbench__mark', 'aria-hidden': 'true' }, '砚'),
-      React.createElement('div', null, React.createElement('h2', { className: 'nv-workbench__title' }, '创作台'), React.createElement('span', { className: 'nv-workbench__subtitle' }, '桌面作品目录')),
-    ),
-    state.browsing && state.selectedProjectId !== undefined
-      ? React.createElement(Button, { type: 'button', 'data-novel-browse-cancel': '', onClick: actions.cancelBrowse }, '返回当前作品')
-      : null,
-    state.projectError ? React.createElement('p', { role: 'alert', 'data-novel-project-error': '' }, state.projectError) : null,
-    React.createElement('section', { className: 'nv-workbench__new-project', 'data-novel-project-create-section': '' },
-      React.createElement(Button, { type: 'button', disabled: state.projectLoading || state.upload.phase === 'reading' || state.upload.phase === 'uploading' || state.upload.phase === 'finalizing', 'data-novel-upload-main-dialog': '', onClick: () => ui.uploadFile() }, '导入 DOCX'),
-      React.createElement('h3', null, '新建小说作品'),
-      React.createElement('input', {
-        type: 'text',
-        value: state.newProjectName,
-        placeholder: '作品名称（留空为「未命名作品」）',
-        'data-novel-project-name-input': '',
-        onChange: (event: React.ChangeEvent<HTMLInputElement>) => actions.newProjectName(event.target.value),
-      }),
-      React.createElement(Button, { type: 'button', disabled: state.projectLoading, variant: 'primary', disabledReason: '作品操作正在进行，请稍候', 'data-novel-project-create': '', onClick: () => workflow.createBlankProject(state.newProjectName) }, '创建空白作品'),
-    ),
-    state.projects.length === 0 ? React.createElement('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。') : null,
-    React.createElement('ul', { 'data-novel-project-list': '' }, state.projects.map((project) => React.createElement('li', { key: project.id },
-      React.createElement(Button, { type: 'button', 'data-novel-project-open': project.id, onClick: () => workflow.requestOpen(project.id) }, project.name),
-      React.createElement(Button, { type: 'button', disabled: state.projectLoading, 'data-novel-project-archive': project.id, onClick: () => workflow.archiveProject(project.id) }, '归档'),
-    ))),
-    state.archivedProjects.length === 0 ? null : React.createElement('section', { 'data-novel-project-archive-section': '' },
-      React.createElement('h3', null, `已归档作品（${state.archivedProjects.length}）`),
-      React.createElement('p', null, '归档作品为只读目录，恢复前不可打开或编辑。'),
-      React.createElement('ul', null, state.archivedProjects.map((project) => React.createElement('li', { key: project.id, 'data-novel-archived-project': project.id },
-        React.createElement('span', null, project.name),
-        React.createElement(Button, { type: 'button', disabled: state.projectLoading, 'data-novel-project-restore': project.id, onClick: () => workflow.restoreProject(project.id) }, '恢复'),
-      ))),
-    ),
-  );
-}
-
-function openedProjectView(state: WorkbenchState, actions: WorkbenchActions, workflow: DesktopProjectWorkflow, settingsNamespace: DesktopIpcClient['services']['workbenchSettings']): React.ReactElement {
-  const creationSettings = state.creationSettingsDraft;
-  return React.createElement('section', { className: 'nv-workbench', 'data-novel-project-open': state.selectedProjectId, 'data-novel-project-ready': 'true' },
-    React.createElement('header', { className: 'nv-workbench__project-context', 'data-novel-project-context': '' },
-      React.createElement('strong', { 'data-novel-project-context-name': '' }, state.selectedProjectName ?? '未命名作品'),
-      React.createElement('span', { role: 'status', 'data-novel-project-readiness': 'verified' }, '作品结构已由主进程验证'),
-      React.createElement('button', { type: 'button', 'data-novel-back-to-projects': '', onClick: workflow.requestBrowse }, '返回作品列表'),
-    ),
-    state.leaveConfirm ? React.createElement('div', { role: 'alertdialog', 'data-novel-leave-confirm': '' },
-      React.createElement('p', null, '有未保存的修改，离开将丢弃这些修改。'),
-      React.createElement('button', { type: 'button', 'data-novel-leave-discard': '', onClick: workflow.confirmLeave }, '离开并放弃修改'),
-      React.createElement('button', { type: 'button', 'data-novel-leave-cancel': '', onClick: workflow.cancelLeave }, '取消'),
-    ) : null,
-    workbenchSettingsPanel(
-      (tag, props, ...children) => React.createElement(tag, props, ...(children as React.ReactNode[])),
-      settingsNamespace,
-      creationSettings,
-      (patch) => actions.creationSettingsMutate(patch),
-      () => workflow.saveSettings(creationSettings),
-      state.selectedProjectId,
-      workflow.openProjectFolder,
-    ) as React.ReactNode,
-  );
-}
-
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
-function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, llmConfigNamespace: DesktopIpcClient['services']['llmConfig'], settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient, liveProgress?: DesktopClientSnapshot['progress']): React.ReactElement {
+function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, llmConfigNamespace: DesktopIpcClient['services']['llmConfig'], settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient, liveProgress: DesktopClientSnapshot['progress'], assistantOpen: boolean, toggleAssistant: () => void): React.ReactElement {
   const settings = {
     view: state.settingsView,
     draft: state.settingsDraft,
@@ -355,9 +288,12 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
   const importInterpretationReview: ImportInterpretationReviewState | undefined = state.importInterpretationReview === undefined || ruleStyleStream === undefined
     ? state.importInterpretationReview
     : { ...state.importInterpretationReview, ruleStyleStream };
-  return React.createElement('section', { 'data-novel-project-ready': 'true' },
+  return React.createElement('section', { className: 'desktop-project', 'data-novel-project-ready': 'true' },
     workbenchView(React, {
       status: state.status,
+      desktop: true,
+      desktopTools: React.createElement(Button, { variant: 'ghost', 'aria-expanded': assistantOpen, 'data-novel-assistant-toggle': '', onClick: toggleAssistant }, assistantOpen ? '收起助手' : '创作助手'),
+      desktopAside: state.selectedProjectId !== undefined ? React.createElement('aside', { hidden: !assistantOpen, className: 'desktop-assistant', 'aria-label': '创作助手' }, React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId })) : null,
       ns: namespaces,
       ui,
       states: viewStates(state),
@@ -376,12 +312,13 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
       settings,
       creationSettings,
     }) as React.ReactNode,
-    state.selectedProjectId === undefined ? null : React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId }),
   );
 }
 
 export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>; client: DesktopIpcClient }): React.ReactElement {
   const state = useDesktopStore(props.store, (snapshot) => snapshot);
+  const [assistantOpen, setAssistantOpen] = React.useState(false);
+  const [migrationOpen, setMigrationOpen] = React.useState(false);
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
   const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore() }), [props.store, props.client]);
   const assistant = React.useMemo(() => createDesktopAssistantClient(props.client), [props.client]);
@@ -557,13 +494,14 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
         ops: PENDING_OPS,
         sourceImport: state.sourceImport,
       });
-  const content = !state.open
-    ? launchButton(React, actionsOpen(props.store.actions))
-    : state.status.status !== 'ready'
+  const content = state.status.status !== 'ready'
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
-        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.llmConfig, props.client.services.workbenchSettings, assistant, connection.progress)
-        : projectDirectoryView(state, props.store.actions, workflow, ui);
+        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.llmConfig, props.client.services.workbenchSettings, assistant, connection.progress, assistantOpen, () => setAssistantOpen((value) => !value))
+        : migrationOpen ? React.createElement('section', { className: 'desktop-library' },
+          React.createElement(Button, { variant: 'ghost', 'data-novel-migration-close': '', onClick: () => setMigrationOpen(false) }, '返回作品库'),
+          React.createElement(DesktopMigrationPanel, { client: migration }))
+        : React.createElement(ProjectDirectory, { state, actions: props.store.actions, workflow, ui, openMigration: () => setMigrationOpen(true) });
 
   return React.createElement(
     React.Fragment,
@@ -579,16 +517,8 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     },
       content as React.ReactNode,
       React.createElement(DesktopLlmStreamWindow, { progress: connection.progress }),
-      React.createElement(DesktopMigrationPanel, { client: migration }),
     ),
   );
-}
-
-function actionsOpen(actions: WorkbenchActions): () => void {
-  return () => {
-    actions.open();
-    scheduleFocus('[data-novel-focus-scope] [data-novel-focus-target]');
-  };
 }
 
 /**

@@ -2975,9 +2975,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/workflow.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-187",
@@ -3007,9 +3012,14 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/workflow.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-189",
@@ -3231,9 +3241,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-203",
@@ -3247,9 +3262,14 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/presenter.ts + src/desktop/renderer/shell.ts"
+      ],
+      "reachabilityEvidence": [
+        "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-204",
@@ -3263,9 +3283,14 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-205",
@@ -3279,9 +3304,14 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-206",
@@ -3295,9 +3325,14 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-207",
@@ -3375,9 +3410,14 @@
       "place": "导航 / 对象列表",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-212",
@@ -3391,9 +3431,14 @@
       "place": "导航 / 对象列表",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-213",
@@ -3407,9 +3452,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "ui.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-214",
@@ -3423,9 +3473,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "upload?.phase === 'reading' || upload?.phase === 'uploading' || upload?.phase === 'finalizing'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-215",
@@ -3439,9 +3494,14 @@
       "place": "导航 / 对象列表",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-216",
@@ -3455,9 +3515,14 @@
       "place": "当前对象轻工具区",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "ui.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-217",
@@ -3471,9 +3536,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "通用 presenter 目录分支；桌面目录当前由 shell 单独渲染",
       "disabled": "ui.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts; existing settings route"
+      ],
+      "reachabilityEvidence": [
+        "Generic presenter chooser is historical fixture-only; desktop directory is the production owner. Corresponding live controls verified by smoke-i189; AI settings by I193."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-218",
@@ -3487,9 +3557,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/presenter.ts + src/desktop/renderer/shell.ts"
+      ],
+      "reachabilityEvidence": [
+        "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-219",
@@ -3727,9 +3802,14 @@
       "place": "导航 / 对象列表",
       "reach": "当前桌面作品库真实入口",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-234",
@@ -3743,9 +3823,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前桌面作品库真实入口",
       "disabled": "state.projectLoading || state.upload.phase === 'reading' || state.upload.phase === 'uploading' || state.upload.phase === 'finalizing'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i188.mjs: Chinese real DOCX entry; native file dialog flow to be verified in I190"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-235",
@@ -3759,9 +3844,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前桌面作品库真实入口",
       "disabled": "state.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-236",
@@ -3775,9 +3865,14 @@
       "place": "导航 / 对象列表",
       "reach": "当前桌面作品库真实入口",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-237",
@@ -3791,9 +3886,14 @@
       "place": "当前对象轻工具区",
       "reach": "当前桌面作品库真实入口",
       "disabled": "state.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-238",
@@ -3807,9 +3907,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前桌面作品库真实入口",
       "disabled": "state.projectLoading",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/project-directory.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i189.mjs; artifacts/desktop/ui/i189/validation.json"
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-239",
@@ -3823,9 +3928,14 @@
       "place": "导航 / 对象列表",
       "reach": "openedProjectView：未见当前 render 分支调用，兼容/退役候选",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/presenter.ts + src/desktop/renderer/shell.ts"
+      ],
+      "reachabilityEvidence": [
+        "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-240",
@@ -3839,9 +3949,14 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "openedProjectView：未见当前 render 分支调用，兼容/退役候选",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/presenter.ts + src/desktop/renderer/shell.ts"
+      ],
+      "reachabilityEvidence": [
+        "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
+      ],
+      "iteration": "I189"
     },
     {
       "id": "BTN-241",
@@ -3855,9 +3970,14 @@
       "place": "当前对象轻工具区",
       "reach": "openedProjectView：未见当前 render 分支调用，兼容/退役候选",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "retired",
+      "implementationEvidence": [
+        "src/client/presenter.ts + src/desktop/renderer/shell.ts"
+      ],
+      "reachabilityEvidence": [
+        "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
+      ],
+      "iteration": "I189"
     }
   ]
 }

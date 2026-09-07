@@ -9,4 +9,39 @@ body {
 }
 .desktop-shell { min-height: 100vh; }
 .desktop-shell *, .desktop-shell *::before, .desktop-shell *::after { box-sizing: border-box; }
-.desktop-shell .nv-workbench { width: 100vw; max-width: 100vw; border-left: 0; }
+
+
+/* I189 shell geometry and directory: page-level owner, no shared control overrides. */
+.desktop-shell { overflow-wrap: anywhere; }
+.desktop-shell .nv-workbench__panel-resizer { display: none; }
+.desktop-shell .nv-workbench__nav-resizer { display: none; }
+.desktop-shell .nv-workbench__brand > div { flex: 1; }
+.desktop-project { min-width: 0; }
+.desktop-assistant { width: 304px; flex: none; overflow: auto; border-left: 1px solid var(--nv-line); background: var(--nv-paper-raised); }
+.desktop-assistant .nv-assistant__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.desktop-library { max-width: 1200px; margin: auto; padding: 48px 40px; }
+.desktop-library__header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 32px; }
+.desktop-library h1 { font: 600 32px/40px var(--nv-serif); margin: 8px 0; }
+.desktop-library h2 { font: 600 24px/34px var(--nv-serif); margin: 8px 0; }
+.desktop-eyebrow { color: var(--nv-cinnabar); letter-spacing: 0.12em; margin: 0; font-size: 12px; }
+.desktop-muted { color: var(--nv-ink-dim); margin: 8px 0 20px; }
+.desktop-library__create { max-width: 640px; padding: 24px; background: var(--nv-paper-raised); border: 1px solid var(--nv-line); border-radius: 12px; margin-bottom: 32px; }
+.desktop-library__create .nv-editor__actions { margin-top: 20px; }
+.desktop-library__current { border-left: 3px solid var(--nv-cinnabar); padding: 24px 32px; margin: 24px 0; background: var(--nv-paper-raised); }
+.desktop-library__list { list-style: none; margin: 24px 0; padding: 0; }
+.desktop-library__list > li { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--nv-line); padding: 16px 0; }
+.desktop-library__list > li > :first-child { flex: 1; min-width: 0; }
+.desktop-library__project { text-align: left; font: 600 18px/28px var(--nv-serif); }
+.desktop-library__more { flex: none; }
+.desktop-library summary { cursor: pointer; min-height: 40px; padding: 8px; }
+.desktop-library__archive { margin-top: 32px; }
+@media (max-width: 1100px) {
+  .desktop-shell .nv-workbench__body-row:has(.desktop-assistant:not([hidden])) { flex-wrap: wrap; }
+  .desktop-assistant { order: -1; width: 100%; max-height: 40vh; border-left: 0; border-bottom: 1px solid var(--nv-line); }
+}
+@media (max-width: 720px) {
+  .desktop-library { padding: 24px 20px; }
+  .desktop-shell .nv-workbench__brand { flex-wrap: wrap; padding: 12px 20px; gap: 8px; }
+  .desktop-shell .nv-workbench__brand > div { min-width: 100px; }
+  .desktop-shell .nv-workbench__project-context { flex-wrap: wrap; }
+}

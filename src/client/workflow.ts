@@ -41,7 +41,7 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
   { id: 'detail', step: 3, label: '细纲', hint: '为选定的幕、章或全书生成细纲', nextAction: '选择范围并生成细纲候选', view: 'outline' },
   { id: 'baseline', step: 4, label: '生成基线', hint: '修改细纲并建立正文生成基线', nextAction: '确认细纲并建立生成基线', view: 'chapters' },
   { id: 'prose', step: 5, label: '正文', hint: '按细纲卡生成、接受或微调正文', nextAction: '打开当前场景并处理正文候选', view: 'chapters' },
-  { id: 'finalization', step: 6, label: '定稿同步', hint: '分析最终正文并一次确认同步', nextAction: '分析最终正文并提交一次确认', view: 'chapters' },
+  { id: 'finalization', step: 6, label: '定稿同步', hint: '分析最终正文并一次确认同步', nextAction: '审阅最终正文的同步方案', view: 'chapters' },
   { id: 'review', step: 7, label: '全书检查', hint: '检查完成度并处理全书一致性问题', nextAction: '运行全书完成与一致性检查', view: 'review' },
   { id: 'export', step: 8, label: '导出', hint: '生成带目录的单一 TXT 或 Markdown 主稿', nextAction: '选择格式并导出单一全文', view: 'importExport' },
 ] as const;

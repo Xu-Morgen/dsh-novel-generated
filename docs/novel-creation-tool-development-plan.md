@@ -2051,6 +2051,8 @@ TDD Route:
 
 ### I188：UI-A 视觉基础与公共控件
 
+完成：`30ea419`；验证与截图见 `docs/ui/ui-implementation-dod.md`。
+
 - **目标**：主题作用域、唯一色表与公共控件 owner。
 - **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
 - **交付物 / canonical owner**：styles/tokens/base/forms/chapters、desktop renderer.css/ui；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
@@ -2060,6 +2062,8 @@ TDD Route:
 - **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
 
 ### I189：UI-B 应用框架、作品库和当前任务
+
+验收通过：223 测试文件 / 1173 断言、11 项真实 Electron 检查。同步补齐 project-workflow 对既有 readWorkflowResume 的消费接线；无持久模型变更。
 
 - **目标**：作品主视觉、当前任务唯一主操作、导航分组及按需辅助面板。
 - **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。

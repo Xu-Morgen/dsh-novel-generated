@@ -5,6 +5,7 @@ import type { WorkbenchSettingsDraftShape, WorkbenchSettingsViewShape } from '..
 import type { DesktopServiceBag } from './desktop-ipc-client.js';
 import type { DesktopStoreInstance } from './store-adapter.js';
 import { reloadProject } from '../../client/project-session.js';
+import { readWorkflowResume } from '../../client/workflow.js';
 
 export const LAST_PROJECT_PREFERENCE = 'novel-creation-tool:last-project';
 
@@ -89,6 +90,8 @@ export function createDesktopProjectWorkflow(options: {
       if (!active) return false;
       store.actions.selectProject(result.project.id, result.project.name);
       store.actions.resetEditors();
+      // I189: restore only after Main validates identity and old drafts are cleared.
+      store.actions.workflowResume(readWorkflowResume(result.project.id));
       preference.setItem(LAST_PROJECT_PREFERENCE, result.project.id);
       reloadProject(
         services.workspace,

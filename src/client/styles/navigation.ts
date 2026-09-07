@@ -28,7 +28,7 @@ export const NAVIGATION_STYLES = `
   min-width: 0;
   font-family: var(--nv-serif);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 18px;
   letter-spacing: 0.02em;
   color: var(--nv-ink);
   overflow: hidden;
@@ -112,11 +112,11 @@ export const NAVIGATION_STYLES = `
   flex-direction: column;
   gap: calc(var(--nv-grid) * 2);
   overflow-y: auto;
-  padding: calc(var(--nv-grid) * 2);
+  padding: 32px;
 }
 
 .nv-workbench__nav {
-  width: var(--nv-nav-width, 160px);
+  width: 216px;
   flex: none;
   padding: var(--nv-grid);
   border-right: 1px solid var(--nv-line);
@@ -216,7 +216,7 @@ export const NAVIGATION_STYLES = `
   background: transparent;
   color: var(--nv-ink-dim);
   font-family: var(--nv-sans);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -227,8 +227,10 @@ export const NAVIGATION_STYLES = `
 
 .nv-workbench__nav-item.is-active {
   color: var(--nv-cinnabar);
-  border-color: var(--nv-line-strong);
-  background: var(--nv-hover);
+  border-color: transparent;
+  border-left-color: var(--nv-cinnabar);
+  background: var(--nv-accent-soft);
+  font-weight: 600;
 }
 
 /* I58 任务分组导航（design §14.8 / R12-5）：组标签 + 技术层辅助徽标。 */
@@ -405,7 +407,7 @@ export const NAVIGATION_STYLES = `
   color: #fff;
   padding: calc(var(--nv-grid) * 0.625) var(--nv-grid);
   font-family: var(--nv-sans);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -441,7 +443,7 @@ export const NAVIGATION_STYLES = `
   background: var(--nv-paper-raised);
   color: var(--nv-ink-dim);
   font-family: var(--nv-sans);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 

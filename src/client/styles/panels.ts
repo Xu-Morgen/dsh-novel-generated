@@ -402,10 +402,16 @@ export const PANELS_STYLES = `
   padding-top: var(--nv-grid);
 }
 
+.nv-workflow { max-width: 1120px; }
+.nv-workflow__eyebrow { color: var(--nv-cinnabar); font-size: 12px; margin: 0 0 8px; }
+.nv-workflow__title { color: var(--nv-ink); font: 600 32px/1.4 var(--nv-serif); margin: 0 0 32px; overflow-wrap: anywhere; }
+.nv-workflow__current { padding: 28px 32px; margin-bottom: 28px; background: var(--nv-paper-raised); border-left: 3px solid var(--nv-cinnabar); }
+.nv-workflow__current > strong { font: 600 22px/1.5 var(--nv-serif); color: var(--nv-ink); }
+.nv-workflow__current .nv-btn { margin-top: 12px; }
 /* I139：作者流程阶段卡片在桌面与窄屏均保持可扫描、可键盘操作。 */
 .nv-workflow__stages {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: var(--nv-grid);
   margin: 0;
   padding: 0;
@@ -428,9 +434,8 @@ export const PANELS_STYLES = `
   background: var(--nv-hover);
 }
 
-.nv-workflow__stage--completed {
-  opacity: 0.78;
-}
+
+.nv-workflow__stage > .nv-btn { flex: none; white-space: nowrap; }
 
 .nv-workflow__stage-copy {
   display: flex;

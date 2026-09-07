@@ -47,6 +47,24 @@ function fixture(initialPreference?: string, characterList?: (projectId: string)
 }
 
 describe('I175 Renderer project workflow', () => {
+  it('I189 restores the validated project task and rejects cross-project resume data', async () => {
+    const record = { alpha: { projectId: 'alpha', stage: 'finalization', chapterId: 'chapter-1' },
+      beta: { projectId: 'alpha', stage: 'prose' } };
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(record) });
+    try {
+      const first = fixture('alpha');
+      await first.workflow.start();
+      expect(first.store.getSnapshot().workflow.stage).toBe('finalization');
+      expect(first.store.getSnapshot().workflow.chapterId).toBe('chapter-1');
+      const other = fixture('beta');
+      await other.workflow.start();
+      expect(other.store.getSnapshot().workflow.stage).toBe('import');
+      expect(other.store.getSnapshot().workflow.chapterId).toBeUndefined();
+      first.workflow.dispose();
+      other.workflow.dispose();
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it('restores an id only through a fresh Main projectOpen validation', async () => {
     const first = fixture('alpha');
     await first.workflow.start();

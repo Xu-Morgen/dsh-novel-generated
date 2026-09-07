@@ -7,24 +7,16 @@
  */
 export const BASE_STYLES = `
 .nv-workbench {
-  /* I54（D20/§14.8）：居中浮窗退役为 shell.overlay 内贴右、全高、非模态停靠侧板。
-     position:fixed + top/right/bottom:0 贴右全高；width:min(var(--nv-panel-width,860px),100vw)
-     让窄屏占满主视区但仍由同一 Slot/Fiber 管理；无遮罩即非模态；不再有窗口圆角与四向投影。
-     UI 打磨：面板整体宽度经 --nv-panel-width 下发（左边缘拖柄调整，见 client.ts panel-resizer）。 */
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(var(--nv-panel-width, 860px), 100vw);
-  height: 100%;
+  /* I189: desktop workbench participates in layout; native window owns its geometry. */
+  position: relative;
+  width: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--nv-ink);
   background: var(--nv-paper);
-  border-left: 1px solid var(--nv-line);
   font-family: var(--nv-sans);
-  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.12);
   pointer-events: auto;
 }
 
@@ -82,7 +74,7 @@ export const BASE_STYLES = `
   display: flex;
   align-items: center;
   gap: calc(var(--nv-grid) * 1.5);
-  padding: calc(var(--nv-grid) * 1.5) calc(var(--nv-grid) * 2);
+  padding: 16px 24px;
   border-bottom: 1px solid var(--nv-line);
   background: var(--nv-paper-raised);
 }
@@ -100,7 +92,7 @@ export const BASE_STYLES = `
   margin: 0;
   font-family: var(--nv-serif);
   font-weight: 600;
-  font-size: 17px;
+  font-size: 24px;
   letter-spacing: 0.02em;
   color: var(--nv-ink);
 }
