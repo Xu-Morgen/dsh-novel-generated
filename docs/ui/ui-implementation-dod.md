@@ -33,8 +33,22 @@
 
 I190–I193 在开始各自生产改动前逐卡填写；每个迭代独立 commit，失败不跨卡。
 
+## I190 / UI-C：来源导入与审阅
+
+- 前置：I189 已完成，commit `9f5918f`。
+- 状态：验收通过。
+- 目标：来源输入、逐段原文与分类并排、未决计数与固定确认区；统一首次规则文风初稿及初始化操作层次。
+- Owner：presenter.ts（仅折叠已送审的原输入）、source-import.ts、import-interpretation-review.ts、onboarding-panels.ts、styles/onboarding.ts；公共控件与 token 继续复用 I188。
+- 兼容：全部 data-novel 锚点、来源/段落 ID、split/merge 光标语义、propose/accept/reject 与 I11 不变；原输入与错误不被视觉状态覆盖。字段布局可加容器，不新增领域状态。
+- 交付：BTN-001–012、193–201、220–221 文案/级别/选择态；来源审阅原文与决策布局，初始化与规则文风反馈；verify:i190、真实 Electron 来源未决与失败恢复截图。
+- 验收：空来源禁用；未决不能确认；保留/排除可重选且具有文字/aria-pressed；错误保留原文与重试同操作；部分初始化失败保留已写事实；全部旧负向/来源/初始化回归通过。
+- 验证：`pnpm run verify:i190` exit 0（VITEST_MAX_WORKERS=4），223 文件 / 1174 断言；12 项真实 Electron 检查通过，`artifacts/desktop/ui/i190/validation.json` 与 source-review-{1440,720,440}.png、失败/空来源截图可查。额外 `smoke:i151` 与 `smoke:i189` 通过。
+- 记录：首次默认并发出现旧 binder 5000ms 超时，单文件复查通过，降低并发后的全量通过，未改超时/样本/金标/阈值。
+- 证据边界：真实 Electron 本卡覆盖未配置 provider 的失败、重试、原文分段/合并、人工裁决与取消；成功生成的初始化 UI 将在最终作者流程验收补齐。既有成功/held-out/I11 回归已通过，不冒充已实测成功模型页面。
+- 明确不做：不新增来源保真功能，不改 Main/IPC/prompt/schema/样本，不新建确认门。
+
 ## 交接
 
-刚完成：I189 应用框架与任务恢复，223 文件 / 1173 测试，I188 5 项 + I189 11 项真实 Electron 检查。下一步：I190 来源导入与审阅。
+刚完成：I190 来源与初始化 UI，223 文件 / 1174 测试，12 项真实 Electron 检查。下一步：I191 大纲/正文核心。
 新增领域/IPC 合同：零。UI token/控件兼容层仅属呈现。
 后置：多窗口、Renderer profile store、主题切换、关系图谱、连接测试新能力、F1/F2。

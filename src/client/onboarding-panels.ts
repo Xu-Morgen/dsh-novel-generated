@@ -183,17 +183,18 @@ export function onboardingReview(
     h('h3', { className: 'nv-onboarding__title' }, '六层初始化审阅'),
     h('p', { className: 'nv-onboarding__hint' }, '逐层接受、修改后接受、打回重生成或显式跳过；空候选层须重生成或跳过。全部落到终态后才可应用。'),
     h('ul', { className: 'nv-onboarding__layers', 'data-novel-onboarding-layers': '' },
-      ONBOARDING_LAYERS.map((layer) => {
+      ONBOARDING_LAYERS.map((layer, index) => {
         const empty = layerCandidates(state, layer.id).length === 0;
         const panel = openPanelFor(layer.id);
         return h('li', { key: layer.id, className: 'nv-onboarding__layer', 'data-novel-onboarding-layer': layer.id },
-          h('span', { className: 'nv-onboarding__layer-label' }, layer.label),
-          h('span', { className: 'nv-onboarding__status', 'data-novel-onboarding-status': layer.id }, layerStatusText(state, layer.id)),
+          h('details', { open: index === 0 || panel !== undefined, className: 'nv-onboarding__layer-details' },
+          h('summary', null, h('span', { className: 'nv-onboarding__layer-label' }, layer.label),
+          h('span', { className: 'nv-onboarding__status', 'data-novel-onboarding-status': layer.id }, layerStatusText(state, layer.id))),
           h('div', { className: 'nv-onboarding__verdicts', role: 'group', 'aria-label': `${layer.label} 裁决` },
             (['accept', 'edit', 'regenerate', 'skip'] as const).map((decision) => h('button', {
               key: decision,
               type: 'button',
-              className: 'nv-onboarding__verdict' + (state.decisions[layer.id] === decision ? ' is-active' : ''),
+              className: 'nv-btn nv-btn--choice nv-onboarding__verdict' + (state.decisions[layer.id] === decision ? ' is-active' : ''),
               'data-novel-onboarding-verdict': layer.id,
               'data-novel-onboarding-decision': decision,
               disabled: namespace === undefined || ((decision === 'accept' || decision === 'edit') && empty),
@@ -207,8 +208,8 @@ export function onboardingReview(
             h('p', { className: 'nv-field__label' }, '按字段修改候选内容'),
             structuredEditor(h, structuredDraft(state.editTexts?.[layer.id] ?? currentLayerJson(state, layer.id), (state.layers as Record<string, unknown> | undefined)?.[layer.id] ?? null), (next) => patch({ editTexts: { ...state.editTexts, [layer.id]: JSON.stringify(next) }, error: undefined }), `onboarding-${layer.id}`),
             h('div', { className: 'nv-onboarding__panel-actions' },
-              h('button', { type: 'button', className: 'nv-onboarding__panel-confirm', 'data-novel-onboarding-edit-confirm': layer.id, onClick: () => confirmEdit(layer.id) }, '确认修改并接受'),
-              h('button', { type: 'button', className: 'nv-onboarding__panel-cancel', 'data-novel-onboarding-edit-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消'),
+              h('button', { type: 'button', className: 'nv-btn nv-onboarding__panel-confirm', 'data-novel-onboarding-edit-confirm': layer.id, onClick: () => confirmEdit(layer.id) }, '确认修改并接受'),
+              h('button', { type: 'button', className: 'nv-btn nv-btn--ghost nv-onboarding__panel-cancel', 'data-novel-onboarding-edit-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消编辑'),
             ),
           ) : null,
           panel === 'regenerate' ? h('div', { className: 'nv-onboarding__panel', 'data-novel-onboarding-regenerate-open': layer.id },
@@ -224,11 +225,12 @@ export function onboardingReview(
               }),
             ),
             h('div', { className: 'nv-onboarding__panel-actions' },
-              h('button', { type: 'button', className: 'nv-onboarding__panel-confirm', 'data-novel-onboarding-regenerate-confirm': layer.id, onClick: () => confirmRegenerate(layer.id) }, '确认重生成'),
-              h('button', { type: 'button', className: 'nv-onboarding__panel-cancel', 'data-novel-onboarding-regenerate-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消'),
+              h('button', { type: 'button', className: 'nv-btn nv-onboarding__panel-confirm', 'data-novel-onboarding-regenerate-confirm': layer.id, onClick: () => confirmRegenerate(layer.id) }, '确认重生成'),
+              h('button', { type: 'button', className: 'nv-btn nv-btn--ghost nv-onboarding__panel-cancel', 'data-novel-onboarding-regenerate-cancel': layer.id, onClick: () => closePanel(layer.id) }, '取消重生成'),
             ),
           ) : null,
           candidateCards(h, layer.id, state),
+          ),
         );
       }),
     ),
@@ -236,11 +238,11 @@ export function onboardingReview(
       eligibility.ready ? '六层终态已锁定，可应用已接受层。' : `待 ${eligibility.pendingCount} 层进入终态（已接受/已修改/已跳过）后启用应用。`),
     h('button', {
       type: 'button',
-      className: 'nv-onboarding__apply',
+      className: 'nv-btn nv-btn--primary nv-onboarding__apply',
       'data-novel-onboarding-apply': '',
       disabled: namespace === undefined || !eligibility.ready || state.applying === true,
       onClick: () => apply(),
-    }, state.applying === true ? '应用中…' : '应用已接受层并进入创作台'),
+    }, state.applying === true ? '应用中…' : '应用已接受内容并继续'),
     state.error ? h('p', { className: 'nv-onboarding__error', 'data-novel-onboarding-error': '', role: 'alert' }, state.error) : null,
     result ? h('dl', { className: 'nv-onboarding__result', 'data-novel-onboarding-result': '', 'aria-live': 'polite' },
       h('dt', null, '已应用'), h('dd', { 'data-novel-onboarding-applied': '' }, result.appliedLayers.join(', ') || '—'),
@@ -251,11 +253,11 @@ export function onboardingReview(
       result.errors.length > 0 ? h('p', { className: 'nv-onboarding__errors' }, result.errors.join('；')) : null,
       result.retryable ? h('button', {
         type: 'button',
-        className: 'nv-onboarding__apply-retry',
+        className: 'nv-btn nv-btn--ghost nv-onboarding__apply-retry',
         'data-novel-onboarding-apply-retry': '',
         disabled: namespace === undefined || state.applying === true,
         onClick: () => apply(),
-      }, state.applying === true ? '重试中…' : '重试应用未完成层') : null,
+      }, state.applying === true ? '重试中…' : '重试应用未完成内容') : null,
     ) : null,
   );
 }
@@ -278,7 +280,7 @@ export function analysisPanel(
         analysis.status === 'queued' ? '正在排队等待分析…' : '正在分析原文（生成六层候选）…'),
       h('button', {
         type: 'button',
-        className: 'nv-analysis__cancel',
+        className: 'nv-btn nv-btn--ghost nv-analysis__cancel',
         'data-novel-analysis-cancel': '',
         onClick: () => cancel(),
       }, '取消分析'),
@@ -294,7 +296,7 @@ export function analysisPanel(
       cancelled ? '分析已取消，未写入任何层。' : `分析失败：${toUserMessage(analysis.error ?? '未知错误')}`),
     h('button', {
       type: 'button',
-      className: 'nv-analysis__retry',
+      className: 'nv-btn nv-btn--primary nv-analysis__retry',
       'data-novel-analysis-retry': '',
       onClick: () => retry(),
     }, '重新分析'),

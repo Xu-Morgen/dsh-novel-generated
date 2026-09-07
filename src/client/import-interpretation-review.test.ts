@@ -111,6 +111,22 @@ describe('I144 来源语义审阅投影', () => {
     expect(calls).toEqual([]);
   });
 
+  it('I190 exposes explicit choice state and a reason for unresolved confirmation', () => {
+    const base = reviewedState();
+    const state = { ...base, paragraphs: base.paragraphs.map((p) => ({ ...p, decision: 'pending' as const })) };
+    const tree = sourceInterpretationReview(h, state, {
+      begin() {}, cancel() {}, confirm() {}, setSourceRole() {}, setTreatment() {}, setNarrativeIntent() {},
+      setParagraphRole() {}, setParagraphDecision() {}, splitParagraph() {}, mergeParagraphWithNext() {},
+    });
+    const confirm = collect(tree, 'button').find((node) => node.props?.['data-novel-import-interpretation-confirm'] !== undefined);
+    expect(confirm?.props?.disabled).toBe(true);
+    expect(confirm?.props?.['aria-describedby']).toBe('nv-import-confirm-reason');
+    const choices = collect(tree, 'button').filter((node) => /nv-btn--choice/.test(String(node.props?.className)));
+    expect(choices).toHaveLength(2);
+    expect(choices.every((node) => node.props?.['aria-pressed'] === false)).toBe(true);
+    expect(collect(tree).find((node) => node.props?.['data-novel-import-unresolved-count'] !== undefined)?.children).toContain('待确认 1 段');
+  });
+
   it('I162 shows type and treatment suggestions, retires the duplicate edited option, and exposes segmentation actions', () => {
     const decisions: Array<[string, string]> = [];
     const segments: Array<[string, string, number?]> = [];

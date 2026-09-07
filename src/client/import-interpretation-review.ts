@@ -363,7 +363,7 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
       const decisionLabel = paragraph.decision === 'accepted' ? '已按当前分类保留'
         : paragraph.decision === 'edited' ? '已修改分类并保留'
           : paragraph.decision === 'rejected' ? '已排除此段' : '待你确认';
-      return h('article', { key: paragraph.paragraphId, className: 'nv-import-review__paragraph', 'data-novel-import-interpretation-paragraph': paragraph.paragraphId },
+      return h('article', { key: paragraph.paragraphId, className: 'nv-import-review__paragraph', 'data-decision': paragraph.decision, 'data-novel-import-interpretation-paragraph': paragraph.paragraphId },
         h('textarea', {
           className: 'nv-import-review__paragraph-text',
           value: paragraph.text,
@@ -374,6 +374,7 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
           onSelect: (event: { target: { selectionStart?: number } }) => { splitOffset = event.target.selectionStart ?? 0; },
           onClick: (event: { target: { selectionStart?: number } }) => { splitOffset = event.target.selectionStart ?? 0; },
         }),
+        h('div', { className: 'nv-import-review__paragraph-controls' },
         paragraph.suggestedRole === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-suggestion': paragraph.paragraphId }, `来源类型建议：${PARAGRAPH_ROLE_LABELS[paragraph.suggestedRole]}（${paragraph.confidence ?? '未标注'}）`),
         effectiveRole === undefined ? null : h('p', { className: 'nv-import-review__treatment-suggestion', 'data-novel-import-interpretation-treatment-suggestion': paragraph.paragraphId }, `处理建议：${paragraphTreatmentSuggestion(effectiveRole)}`),
         paragraph.evidence === undefined ? null : h('p', { className: 'nv-import-review__evidence-text' }, `依据：${paragraph.evidence}`),
@@ -386,10 +387,11 @@ function paragraphPanel(h: El, state: ImportInterpretationReviewState, ops: Impo
         ),
         h('p', { className: 'nv-import-review__decision', role: 'status', 'data-novel-import-interpretation-paragraph-decision': paragraph.paragraphId }, decisionLabel),
         h('div', { className: 'nv-import-review__paragraph-action' },
-          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy || effectiveRole === undefined, 'data-novel-import-interpretation-accept': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, effectiveRole !== paragraph.suggestedRole ? 'edited' : 'accepted') }, '按当前分类保留'),
-          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, 'data-novel-import-interpretation-reject': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'rejected') }, '排除此段'),
-          h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, title: '先在上方原文中放置光标', 'data-novel-import-interpretation-split': paragraph.paragraphId, onClick: () => ops.splitParagraph(paragraph.paragraphId, splitOffset) }, '在光标处分段'),
-          index >= state.paragraphs.length - 1 ? null : h('button', { type: 'button', className: 'nv-btn nv-btn--small', disabled: state.busy, 'data-novel-import-interpretation-merge-next': paragraph.paragraphId, onClick: () => ops.mergeParagraphWithNext(paragraph.paragraphId) }, '与下一段合并'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--choice', 'aria-pressed': paragraph.decision === 'accepted' || paragraph.decision === 'edited', disabled: state.busy || effectiveRole === undefined, 'data-novel-import-interpretation-accept': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, effectiveRole !== paragraph.suggestedRole ? 'edited' : 'accepted') }, '按当前分类保留'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--choice', 'aria-pressed': paragraph.decision === 'rejected', disabled: state.busy, 'data-novel-import-interpretation-reject': paragraph.paragraphId, onClick: () => ops.setParagraphDecision(paragraph.paragraphId, 'rejected') }, '排除此段'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--ghost nv-btn--compact', disabled: state.busy, title: '先在上方原文中放置光标', 'data-novel-import-interpretation-split': paragraph.paragraphId, onClick: () => ops.splitParagraph(paragraph.paragraphId, splitOffset) }, '在光标处分段'),
+          index >= state.paragraphs.length - 1 ? null : h('button', { type: 'button', className: 'nv-btn nv-btn--ghost nv-btn--compact', disabled: state.busy, 'data-novel-import-interpretation-merge-next': paragraph.paragraphId, onClick: () => ops.mergeParagraphWithNext(paragraph.paragraphId) }, '与下一段合并'),
+        ),
         ),
       );
     }),
@@ -414,6 +416,7 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
   const parseDraft = (raw: string | undefined, fallback: unknown): unknown => { try { return JSON.parse(raw ?? '') as unknown; } catch { return fallback; } };
   return h('section', { className: 'nv-import-review__rule-style', 'data-novel-rule-style-import': '', 'data-novel-rule-style-import-status': initialization.status },
     h('h4', null, '规则与文风初稿'),
+    initialization.status === 'proposed' ? h('p', { className: 'nv-editor__badge', 'data-novel-rule-style-import-impact': '' }, '本次仅写入已审阅的创作规则与文风，不修改正文。确认前可返回或不采用。') : null,
     h('p', { role: 'status', 'aria-live': 'polite' }, statusLabel),
     initialization.status === 'queued' || initialization.status === 'running' ? streamRow : null,
     initialization.status === 'succeeded' ? h('div', { className: 'nv-import-review__rule-style-editors' },
@@ -422,9 +425,9 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
     ) : null,
     initialization.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert' }, toUserMessage(initialization.error, '规则与文风初始化未完成。')),
     h('div', { className: 'nv-import-review__actions' },
-      initialization.status === 'succeeded' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-propose': '', onClick: () => ops.proposeRuleStyleInitialization?.() }, '提交规则与文风确认') : null,
-      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-accept': '', onClick: () => ops.acceptRuleStyleInitialization?.() }, '确认并写入本地文件') : null,
-      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-reject': '', onClick: () => ops.rejectRuleStyleInitialization?.() }, '拒绝初稿') : null,
+      initialization.status === 'succeeded' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-propose': '', onClick: () => ops.proposeRuleStyleInitialization?.() }, '审阅规则与文风') : null,
+      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-accept': '', onClick: () => ops.acceptRuleStyleInitialization?.() }, '确认写入规则与文风') : null,
+      initialization.status === 'proposed' ? h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-reject': '', onClick: () => ops.rejectRuleStyleInitialization?.() }, '不采用初稿') : null,
       initialization.status === 'failed' || initialization.status === 'cancelled' ? h('button', { type: 'button', className: 'nv-btn', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-retry': '', onClick: () => ops.retryRuleStyleInitialization?.() }, '重试同一初始化任务') : null,
     ),
   );
@@ -444,7 +447,8 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
   return h('section', { className: 'nv-import-review', 'data-novel-import-interpretation-review': '', 'data-novel-import-interpretation-status': state.analysisStatus, 'data-novel-narrow-review': '' },
     h('div', { className: 'nv-import-review__header' },
       h('h3', null, '确认导入来源'),
-      h('p', { role: 'status', 'aria-live': 'polite', 'data-novel-import-interpretation-status-message': '' }, state.busy ? '正在解释来源…' : state.confirmed ? '来源意图已确认，可进入下一步。' : '系统建议仅供参考，必须由你确认。'),
+      h('span', { className: 'nv-import-review__pending', 'data-novel-import-unresolved-count': '', role: 'status' }, `待确认 ${state.paragraphs.filter((paragraph) => paragraph.decision === 'pending').length} 段`),
+      h('p', { role: 'status', 'aria-live': 'polite', 'data-novel-import-interpretation-status-message': '' }, state.busy ? '正在解释来源…' : state.confirmed ? '来源意图已确认，可进入下一步。' : state.analysisStatus === 'failed' ? '自动解释未完成；你仍可人工确认来源，也可重试。' : '系统建议仅供参考，必须由你确认。'),
     ),
     suggested === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-overall-suggestion': '' }, `整体建议：${SOURCE_ROLE_LABELS[suggested]}${lowConfidence ? '（置信度较低，请重点核对）' : ''}`),
     lowConfidence ? h('p', { className: 'nv-import-review__warning', role: 'alert', 'data-novel-import-interpretation-low-confidence': '' }, '当前来源判断置信度较低，不会自动进入下一步。') : null,
@@ -457,14 +461,15 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     evidencePanel(h, state),
     paragraphPanel(h, state, ops),
     ruleStyleInitializationPanel(h, state, ops),
+    h('p', { id: 'nv-import-confirm-reason', className: 'nv-control-reason' }, state.confirmed ? '来源已确认。' : validation ?? (state.busy ? '请等待当前来源操作完成。' : '所有必要决策已完成，可以确认来源。')),
     validation === undefined ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-import-interpretation-validation': '' }, validation),
     state.error === undefined ? null : advancedError(h, state.technicalError ?? state.error, state.error, { 'data-novel-import-interpretation-error': '' }),
-    h('div', { className: 'nv-import-review__actions' },
+    h('div', { className: 'nv-import-review__actions nv-import-review__confirm-bar' },
       state.analysisStatus === 'failed' && state.paragraphs.length > 0 && !state.confirmed
         ? h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-import-interpretation-retry': '', onClick: () => ops.retry?.() }, '重试来源审阅')
         : null,
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: !canConfirmImportIntent(state), 'data-novel-import-interpretation-confirm': '', onClick: () => ops.confirm() }, state.confirmed ? '已确认' : '确认来源并继续'),
-      h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-import-interpretation-cancel': '', onClick: () => ops.cancel() }, '取消审阅'),
+      h('button', { type: 'button', className: state.confirmed ? 'nv-btn' : 'nv-btn nv-btn--primary', 'aria-describedby': 'nv-import-confirm-reason', disabled: !canConfirmImportIntent(state), 'data-novel-import-interpretation-confirm': '', onClick: () => ops.confirm() }, state.confirmed ? '已确认' : '确认来源并继续'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', disabled: state.busy, 'data-novel-import-interpretation-cancel': '', onClick: () => ops.cancel() }, '取消审阅'),
     ),
   );
 }

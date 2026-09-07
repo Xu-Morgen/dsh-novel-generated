@@ -15,9 +15,15 @@
       "place": "对象行 / 字段旁",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-002",
@@ -31,9 +37,15 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy || effectiveRole === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-003",
@@ -47,9 +59,15 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-004",
@@ -63,9 +81,15 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-005",
@@ -79,9 +103,15 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-006",
@@ -95,9 +125,16 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.ruleStyleBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-007",
@@ -111,9 +148,16 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.ruleStyleBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-008",
@@ -127,9 +171,16 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.ruleStyleBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-009",
@@ -143,9 +194,16 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.ruleStyleBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-010",
@@ -159,9 +217,15 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-011",
@@ -175,9 +239,15 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!canConfirmImportIntent(state)",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-012",
@@ -191,9 +261,15 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/import-interpretation-review.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-013",
@@ -3097,9 +3173,16 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || ((decision === 'accept' || decision === 'edit') && empty)",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-194",
@@ -3113,9 +3196,16 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-195",
@@ -3129,9 +3219,16 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-196",
@@ -3145,9 +3242,16 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-197",
@@ -3161,9 +3265,16 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-198",
@@ -3177,9 +3288,16 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || !eligibility.ready || state.applying === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-199",
@@ -3193,9 +3311,16 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || state.applying === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-200",
@@ -3209,9 +3334,16 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-201",
@@ -3225,9 +3357,16 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/onboarding-panels.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "src/client/import-interpretation-review.test.ts; src/client/onboarding-panels.ts existing consumer suites; smoke:i151 held-out and I11 regression"
+      ],
+      "iteration": "I190",
+      "remainingValidation": "Successful generated initialization UI to be included in final author-flow acceptance; current real Electron fixture intentionally exercises unconfigured-provider failure."
     },
     {
       "id": "BTN-202",
@@ -3594,9 +3733,15 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "blocked || props.uploadBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/source-import.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-221",
@@ -3610,9 +3755,15 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "blocked || props.state.status === 'normalizing' || props.state.text.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/source-import.ts",
+        "src/client/styles/onboarding.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i190.mjs; artifacts/desktop/ui/i190/validation.json"
+      ],
+      "iteration": "I190"
     },
     {
       "id": "BTN-222",

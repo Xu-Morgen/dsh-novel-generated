@@ -2075,6 +2075,8 @@ TDD Route:
 
 ### I190：UI-C 来源导入与审阅
 
+验收通过：223 测试文件 / 1174 断言、12 项真实 Electron 检查，I151 初始化 held-out/I11 与 I189 框架回归通过；成功生成页面的实机正向链在最终作者流程验收补齐。
+
 - **目标**：来源输入与未决审阅、首次规则文风及初始化反馈。
 - **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
 - **交付物 / canonical owner**：source-import、import-interpretation-review、onboarding-panels/styles；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。

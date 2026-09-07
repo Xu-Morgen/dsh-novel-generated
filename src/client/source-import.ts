@@ -123,7 +123,7 @@ export function sourceImportPresenter(h: El, props: SourceImportPresenterProps):
   const blocked = props.gate.status !== 'ready';
   return h('section', { className: 'nv-onboarding-entry', 'data-novel-source-import-entry': '', 'data-novel-source-import-gate': props.gate.status },
     h('h3', { className: 'nv-editor__title' }, '导入来源'),
-    h('p', { className: 'nv-settings__hint', role: props.gate.status === 'blocked' ? 'alert' : 'status', 'data-novel-source-import-guidance': '' }, props.gate.message),
+    h('p', { className: 'nv-settings__hint', role: props.gate.status === 'blocked' ? 'alert' : 'status', id: 'nv-source-import-guidance', 'data-novel-source-import-guidance': '' }, props.gate.message),
     h('label', { className: 'nv-upload', 'data-novel-source-import-docx': '' },
       h('span', { className: 'nv-upload__label', role: 'status', 'aria-live': 'polite' }, props.uploadLabel),
       props.mainDialog === true
@@ -139,7 +139,8 @@ export function sourceImportPresenter(h: El, props: SourceImportPresenterProps):
       h('span', { className: 'nv-field__label' }, '来源文本'),
       h('textarea', { className: 'nv-field__input', rows: 6, value: props.state.text, disabled: blocked || props.state.status === 'normalizing', placeholder: '粘贴故事想法、背景资料、梗概或已有正文…', 'data-novel-source-import-text': '', onChange: (event: { target: { value: string } }) => props.setText(event.target.value) }),
     ),
-    h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: blocked || props.state.status === 'normalizing' || props.state.text.trim() === '', 'data-novel-source-import-submit': '', onClick: props.submitText }, props.state.status === 'normalizing' ? '正在整理来源…' : '进入来源语义审阅'),
+    h('p', { id: 'nv-source-import-input-hint', className: 'nv-control-reason' }, props.state.text.trim() === '' ? '请先粘贴来源文本；也可以选择 DOCX 文件。' : '确认后进入逐段审阅，不会直接写入正文。'),
+    h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: blocked || props.state.status === 'normalizing' || props.state.text.trim() === '', 'aria-describedby': 'nv-source-import-guidance nv-source-import-input-hint', 'data-novel-source-import-submit': '', onClick: props.submitText }, props.state.status === 'normalizing' ? '正在整理来源…' : '进入来源审阅'),
     props.state.error ? h('p', { className: 'nv-settings__error', role: 'alert', 'data-novel-source-import-error': '' }, props.state.error) : null,
   );
 }

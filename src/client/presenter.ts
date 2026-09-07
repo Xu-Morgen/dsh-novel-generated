@@ -332,7 +332,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     : (effectiveStatus === 'error' ? '创作台暂时不可用，请稍后重试。' : undefined);
   const subtitle = ready ? (props.desktop ? '写下你的下一个故事' : `已就绪 · ${status.model.version}`) : undefined;
   const gate = sourceImportGate({ ...states.layers, chapters: states.chapters });
-  const sourceEntry = selectedProjectId === undefined ? null : sourceImportPresenter(h, {
+  const sourceInput = selectedProjectId === undefined ? null : sourceImportPresenter(h, {
     state: sourceImport,
     gate,
     uploadLabel: uploadStatusLabel(upload),
@@ -343,6 +343,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     uploadFile: ui.uploadFile,
     mainDialog: ui.uploadUsesMainDialog,
   });
+  const sourceEntry = importInterpretationReview === undefined ? sourceInput : h('details', { className: 'nv-source-original', 'data-novel-source-original': '' }, h('summary', null, '查看或更换来源'), sourceInput);
   const importReview = importInterpretationReview === undefined ? null : sourceInterpretationReview(h, importInterpretationReview, {
     begin: (source) => ui.beginImportInterpretation(source),
     retry: () => ui.retryImportInterpretation(),
