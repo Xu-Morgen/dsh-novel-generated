@@ -469,6 +469,9 @@
     "verify:stage-35": "pnpm run verify:i181 && pnpm run verify:i182",
     "verify:stage-36": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run package:desktop && pnpm run smoke:i183 && pnpm run smoke:i184 && pnpm run smoke:i185 && pnpm run smoke:i186",
     "verify:stage-37": "pnpm run verify:i187",
+    "smoke:i188": "node scripts/smoke-i188.mjs",
+    "verify:i188": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i188",
+    "verify:stage-38": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i187 && pnpm run smoke:i188 && pnpm run smoke:i189 && pnpm run smoke:i190 && pnpm run smoke:i191 && pnpm run smoke:i192 && pnpm run package:desktop && pnpm run smoke:i193 && pnpm run smoke:samples && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151",
     "update:contracts": "tsx scripts/update-contract-locks.ts"
   },
   "dependencies": {

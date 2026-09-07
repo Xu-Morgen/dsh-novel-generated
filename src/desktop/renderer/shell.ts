@@ -1,3 +1,4 @@
+import { Button } from './ui/button.js';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
 
@@ -276,11 +277,11 @@ function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, 
       React.createElement('div', null, React.createElement('h2', { className: 'nv-workbench__title' }, '创作台'), React.createElement('span', { className: 'nv-workbench__subtitle' }, '桌面作品目录')),
     ),
     state.browsing && state.selectedProjectId !== undefined
-      ? React.createElement('button', { type: 'button', 'data-novel-browse-cancel': '', onClick: actions.cancelBrowse }, '返回当前作品')
+      ? React.createElement(Button, { type: 'button', 'data-novel-browse-cancel': '', onClick: actions.cancelBrowse }, '返回当前作品')
       : null,
     state.projectError ? React.createElement('p', { role: 'alert', 'data-novel-project-error': '' }, state.projectError) : null,
     React.createElement('section', { className: 'nv-workbench__new-project', 'data-novel-project-create-section': '' },
-      React.createElement('button', { type: 'button', disabled: state.projectLoading || state.upload.phase === 'reading' || state.upload.phase === 'uploading' || state.upload.phase === 'finalizing', 'data-novel-upload-main-dialog': '', onClick: () => ui.uploadFile() }, 'Select DOCX import'),
+      React.createElement(Button, { type: 'button', disabled: state.projectLoading || state.upload.phase === 'reading' || state.upload.phase === 'uploading' || state.upload.phase === 'finalizing', 'data-novel-upload-main-dialog': '', onClick: () => ui.uploadFile() }, '导入 DOCX'),
       React.createElement('h3', null, '新建小说作品'),
       React.createElement('input', {
         type: 'text',
@@ -289,19 +290,19 @@ function projectDirectoryView(state: WorkbenchState, actions: WorkbenchActions, 
         'data-novel-project-name-input': '',
         onChange: (event: React.ChangeEvent<HTMLInputElement>) => actions.newProjectName(event.target.value),
       }),
-      React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-create': '', onClick: () => workflow.createBlankProject(state.newProjectName) }, '创建空白作品'),
+      React.createElement(Button, { type: 'button', disabled: state.projectLoading, variant: 'primary', disabledReason: '作品操作正在进行，请稍候', 'data-novel-project-create': '', onClick: () => workflow.createBlankProject(state.newProjectName) }, '创建空白作品'),
     ),
     state.projects.length === 0 ? React.createElement('p', { 'data-novel-project-empty': '' }, '尚无作品，请新建空白作品。') : null,
     React.createElement('ul', { 'data-novel-project-list': '' }, state.projects.map((project) => React.createElement('li', { key: project.id },
-      React.createElement('button', { type: 'button', 'data-novel-project-open': project.id, onClick: () => workflow.requestOpen(project.id) }, project.name),
-      React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-archive': project.id, onClick: () => workflow.archiveProject(project.id) }, '归档'),
+      React.createElement(Button, { type: 'button', 'data-novel-project-open': project.id, onClick: () => workflow.requestOpen(project.id) }, project.name),
+      React.createElement(Button, { type: 'button', disabled: state.projectLoading, 'data-novel-project-archive': project.id, onClick: () => workflow.archiveProject(project.id) }, '归档'),
     ))),
     state.archivedProjects.length === 0 ? null : React.createElement('section', { 'data-novel-project-archive-section': '' },
       React.createElement('h3', null, `已归档作品（${state.archivedProjects.length}）`),
       React.createElement('p', null, '归档作品为只读目录，恢复前不可打开或编辑。'),
       React.createElement('ul', null, state.archivedProjects.map((project) => React.createElement('li', { key: project.id, 'data-novel-archived-project': project.id },
         React.createElement('span', null, project.name),
-        React.createElement('button', { type: 'button', disabled: state.projectLoading, 'data-novel-project-restore': project.id, onClick: () => workflow.restoreProject(project.id) }, '恢复'),
+        React.createElement(Button, { type: 'button', disabled: state.projectLoading, 'data-novel-project-restore': project.id, onClick: () => workflow.restoreProject(project.id) }, '恢复'),
       ))),
     ),
   );

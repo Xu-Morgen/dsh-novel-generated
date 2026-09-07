@@ -1,3 +1,4 @@
+import { Button } from './ui/button.js';
 import * as React from 'react';
 
 import type {
@@ -71,10 +72,10 @@ export function DesktopAssistantPanel(props: { readonly client: DesktopAssistant
       h('div', null, h('h2', { className: 'nv-panel__title' }, '桌面助手'), h('p', { className: 'nv-panel__hint' }, '由主进程统一处理作品、上下文和写作候选。')),
     ),
     h('div', { className: 'nv-assistant__actions' },
-      h('button', { type: 'button', className: 'nv-btn', disabled: busy, 'data-novel-assistant-status': '', onClick: () => { void run(props.client.status(props.projectId), (value) => { setResult({ status: value }); setMessage(statusView(value) as string); }); } }, '查看状态'),
-      h('button', { type: 'button', className: 'nv-btn', disabled: busy, 'data-novel-assistant-context': '', onClick: () => { void run(props.client.context(props.projectId), (value) => { setResult({ context: value }); setMessage(`当前写作卡：${value.currentCard.title}。最近已有 ${value.recentScenes} 个场景。`); }); } }, '查看上下文'),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: busy, 'data-novel-assistant-continue': '', onClick: () => { void run(props.client.continue(props.projectId), (value) => { setCandidate(value); setResult({ candidate: value }); setMessage('续写候选已生成，确认前不会修改正文。'); }); } }, busy ? '处理中…' : '生成续写候选'),
-      h('button', { type: 'button', className: 'nv-btn', disabled: busy, 'data-novel-assistant-inspire': '', onClick: () => { void run(props.client.inspire(props.projectId), (value) => { setResult({ inspiration: value }); setMessage(`已生成 ${value.directions.length} 个灵感方向；不会直接修改作品。`); }); } }, '获取灵感'),
+      h(Button, { type: 'button', variant: 'secondary', disabled: busy, 'data-novel-assistant-status': '', onClick: () => { void run(props.client.status(props.projectId), (value) => { setResult({ status: value }); setMessage(statusView(value) as string); }); } }, '查看状态'),
+      h(Button, { type: 'button', variant: 'secondary', disabled: busy, 'data-novel-assistant-context': '', onClick: () => { void run(props.client.context(props.projectId), (value) => { setResult({ context: value }); setMessage(`当前写作卡：${value.currentCard.title}。最近已有 ${value.recentScenes} 个场景。`); }); } }, '查看上下文'),
+      h(Button, { type: 'button', variant: 'primary', disabled: busy, 'data-novel-assistant-continue': '', onClick: () => { void run(props.client.continue(props.projectId), (value) => { setCandidate(value); setResult({ candidate: value }); setMessage('续写候选已生成，确认前不会修改正文。'); }); } }, busy ? '处理中…' : '生成续写候选'),
+      h(Button, { type: 'button', variant: 'secondary', disabled: busy, 'data-novel-assistant-inspire': '', onClick: () => { void run(props.client.inspire(props.projectId), (value) => { setResult({ inspiration: value }); setMessage(`已生成 ${value.directions.length} 个灵感方向；不会直接修改作品。`); }); } }, '获取灵感'),
     ),
     h('p', { className: 'nv-panel__hint', role: 'status', 'aria-live': 'polite', 'data-novel-assistant-message': '' }, message),
     result.status === undefined ? null : h('p', { className: 'nv-assistant__result', 'data-novel-assistant-status-result': '' }, statusView(result.status)),
@@ -84,8 +85,8 @@ export function DesktopAssistantPanel(props: { readonly client: DesktopAssistant
       h('h3', { className: 'nv-panel__subtitle' }, '续写候选'),
       h('p', { className: 'nv-assistant__candidate-text', 'data-novel-assistant-candidate-text': '' }, candidate.text),
       h('div', { className: 'nv-assistant__candidate-actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: busy, 'data-novel-assistant-accept': '', onClick: () => { void run(props.client.adjudicate(candidate.candidateId, 'accept'), (value) => { setMessage(adjudicationMessage(value)); if (value.status === 'written' || value.status === 'rejected') setCandidate(undefined); if (value.status === 'rewritten') setCandidate(value.candidate); }); } }, '确认候选'),
-        h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', disabled: busy, 'data-novel-assistant-reject': '', onClick: () => { void run(props.client.adjudicate(candidate.candidateId, 'reject'), (value) => { setMessage(adjudicationMessage(value)); setCandidate(undefined); }); } }, '拒绝候选'),
+        h(Button, { type: 'button', variant: 'primary', disabled: busy, 'data-novel-assistant-accept': '', onClick: () => { void run(props.client.adjudicate(candidate.candidateId, 'accept'), (value) => { setMessage(adjudicationMessage(value)); if (value.status === 'written' || value.status === 'rejected') setCandidate(undefined); if (value.status === 'rewritten') setCandidate(value.candidate); }); } }, '确认候选'),
+        h(Button, { type: 'button', variant: 'ghost', disabled: busy, 'data-novel-assistant-reject': '', onClick: () => { void run(props.client.adjudicate(candidate.candidateId, 'reject'), (value) => { setMessage(adjudicationMessage(value)); setCandidate(undefined); }); } }, '拒绝候选'),
       ),
     ),
   );

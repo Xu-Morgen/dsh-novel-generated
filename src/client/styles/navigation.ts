@@ -5,7 +5,6 @@
  * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
  * 由 styles.ts 组合器按原顺序拼接。
  */
-import { CINNABAR, GRID, SERIF_STACK } from './tokens.js';
 export const NAVIGATION_STYLES = `
 /* 作品上下文栏之上的导航/主列横向布局（I55：上下文栏占满整行，其下再左右分栏）。 */
 .nv-workbench__body-row {
@@ -178,16 +177,8 @@ export const NAVIGATION_STYLES = `
   white-space: nowrap;
 }
 
-/* UI 打磨：主页面右上角悬浮圆形入口。面板关闭时由 shell.overlay 渲染；点击打开
-   创作台并隐藏自己。品牌色为包内常量（暗色随 body[data-ds-dark-theme] 提亮），
-   中性色/边框消费宿主 --dsw-alias-* token（D12 契约）。 */
+/* 兼容入口继续消费 I188 根主题；展示位置由后续 shell 切片迁移。 */
 .nv-launch {
-  --nv-cinnabar: ${CINNABAR};
-  --nv-serif: ${SERIF_STACK};
-  --nv-grid: ${GRID};
-  --nv-paper-raised: var(--dsw-alias-bg-layer-1);
-  --nv-line-strong: var(--dsw-alias-border-l2);
-  --nv-hover: var(--dsw-alias-interactive-bg-hover);
   position: fixed;
   top: calc(var(--nv-grid) * 2);
   right: calc(var(--nv-grid) * 2);

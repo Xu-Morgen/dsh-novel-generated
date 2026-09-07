@@ -358,65 +358,6 @@ export const CHAPTERS_STYLES = `
   color: var(--nv-ok);
 }
 
-.nv-editor__actions {
-  display: flex;
-  gap: var(--nv-grid);
-}
-
-.nv-btn {
-  border: 1px solid var(--nv-line);
-  border-radius: calc(var(--nv-grid) * 0.75);
-  background: var(--nv-paper-raised);
-  color: var(--nv-ink-dim);
-  padding: calc(var(--nv-grid) * 0.5) var(--nv-grid);
-  font-family: var(--nv-sans);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.nv-btn:hover:not(:disabled) {
-  background: var(--nv-hover);
-  color: var(--nv-ink);
-}
-
-.nv-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.nv-btn--primary {
-  background: var(--nv-cinnabar);
-  border-color: var(--nv-cinnabar);
-  color: #fff;
-}
-
-.nv-btn--primary:hover:not(:disabled) {
-  color: #fff;
-  background: var(--nv-cinnabar);
-  filter: brightness(1.05);
-}
-
-.nv-editor__error {
-  margin: 0;
-  padding: calc(var(--nv-grid) * 0.75) var(--nv-grid);
-  border: 1px solid var(--nv-danger);
-  border-radius: calc(var(--nv-grid) * 0.6);
-  color: var(--nv-danger);
-  background: var(--nv-paper-raised);
-  font-family: var(--nv-sans);
-  font-size: 12px;
-}
-
-.nv-editor__badge {
-  margin: 0;
-  padding: calc(var(--nv-grid) * 0.5) var(--nv-grid);
-  border: 1px solid var(--nv-warn);
-  border-radius: calc(var(--nv-grid) * 0.6);
-  color: var(--nv-warn);
-  font-family: var(--nv-sans);
-  font-size: 12px;
-}
-
 .nv-panel {
   padding: calc(var(--nv-grid) * 2);
   font-family: var(--nv-sans);

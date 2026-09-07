@@ -5,26 +5,8 @@
  * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
  * 由 styles.ts 组合器按原顺序拼接。
  */
-import { CINNABAR, GRID, SANS_STACK, SERIF_STACK } from './tokens.js';
 export const BASE_STYLES = `
 .nv-workbench {
-  /* 包内品牌层：纸/墨/朱砂（D12）；中性色一律转发宿主 --dsw-alias-* token */
-  --nv-paper: var(--dsw-alias-bg-base);
-  --nv-paper-raised: var(--dsw-alias-bg-layer-1);
-  --nv-ink: var(--dsw-alias-label-primary);
-  --nv-ink-dim: var(--dsw-alias-label-secondary);
-  --nv-ink-faint: var(--dsw-alias-label-tertiary);
-  --nv-line: var(--dsw-alias-border-l1);
-  --nv-line-strong: var(--dsw-alias-border-l2);
-  --nv-hover: var(--dsw-alias-interactive-bg-hover);
-  --nv-danger: var(--dsw-alias-state-error-primary);
-  --nv-warn: var(--dsw-alias-state-warn-primary);
-  --nv-ok: var(--dsw-alias-state-success-primary);
-  --nv-cinnabar: ${CINNABAR};
-  --nv-serif: ${SERIF_STACK};
-  --nv-sans: ${SANS_STACK};
-  --nv-grid: ${GRID};
-
   /* I54（D20/§14.8）：居中浮窗退役为 shell.overlay 内贴右、全高、非模态停靠侧板。
      position:fixed + top/right/bottom:0 贴右全高；width:min(var(--nv-panel-width,860px),100vw)
      让窄屏占满主视区但仍由同一 Slot/Fiber 管理；无遮罩即非模态；不再有窗口圆角与四向投影。
@@ -44,15 +26,6 @@ export const BASE_STYLES = `
   font-family: var(--nv-sans);
   box-shadow: -12px 0 32px rgba(0, 0, 0, 0.12);
   pointer-events: auto;
-}
-
-/* I59 键盘焦点可见性（R12-6）：:focus-visible 提供 2px 朱砂焦点环，环色消费
-   --nv-cinnabar（暗色主题随 token 提亮）；纯鼠标聚焦（:focus:not(:focus-visible)）
-   才移除 outline，此时输入框以朱砂 border 作替代焦点指示 —— 绝不出现无替代焦点的
-   裸 outline 移除规则。 */
-.nv-workbench :focus-visible {
-  outline: 2px solid var(--nv-cinnabar);
-  outline-offset: 2px;
 }
 
 /* UI 打磨：面板左边缘拖柄 —— 调整创作台整体宽度（贴右停靠，左边缘即宽度边界）。
@@ -83,9 +56,6 @@ export const BASE_STYLES = `
   outline-offset: 2px;
 }
 
-.nv-workbench :focus:not(:focus-visible) {
-  outline: none;
-}
 
 /* I59 保存状态行（R12-6）：saving/saved 可播报（role=status + aria-live=polite），
    failed 由 role=alert 播报；文案色消费宿主 token（明暗自动适配）。 */

@@ -75,7 +75,7 @@ export const FORMS_STYLES = `
 .nv-form {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--nv-grid) * 1.25);
+  gap: calc(var(--nv-grid) * 2);
 }
 
 .nv-field {
@@ -86,25 +86,8 @@ export const FORMS_STYLES = `
 
 .nv-field__label {
   font-family: var(--nv-sans);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--nv-ink-dim);
-}
-
-.nv-field__input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: calc(var(--nv-grid) * 0.6) var(--nv-grid);
-  border: 1px solid var(--nv-line);
-  border-radius: calc(var(--nv-grid) * 0.6);
-  background: var(--nv-paper);
-  color: var(--nv-ink);
-  font-family: var(--nv-sans);
-  font-size: 13px;
-  resize: vertical;
-}
-
-.nv-field__input:focus {
-  border-color: var(--nv-cinnabar);
 }
 
 .nv-field__check {
@@ -124,7 +107,7 @@ export const FORMS_STYLES = `
 
 .nv-fieldset__legend {
   font-family: var(--nv-sans);
-  font-size: 12px;
+  font-size: 14px;
   color: var(--nv-ink-dim);
   padding: 0 var(--nv-grid);
 }

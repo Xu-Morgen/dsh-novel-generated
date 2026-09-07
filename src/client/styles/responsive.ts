@@ -4,7 +4,7 @@
  * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
  * 由 styles.ts 组合器按原顺序拼接。
  */
-import { CINNABAR_DARK, RESPONSIVE_BREAKPOINT_COMPACT, RESPONSIVE_BREAKPOINT_NAV } from './tokens.js';
+import { RESPONSIVE_BREAKPOINT_COMPACT, RESPONSIVE_BREAKPOINT_NAV } from './tokens.js';
 export const RESPONSIVE_STYLES = `
 /* I59 响应式断点（design §14.8 / R12-6）：窄屏把左右分栏改为纵向堆叠，导航退化
    为可横向滚动的横条；仍由同一 shell.overlay Slot/Fiber 管理，不创建新容器，
@@ -99,13 +99,4 @@ export const RESPONSIVE_STYLES = `
   }
 }
 
-/* 明暗适配：暗色下朱砂提亮（D12）；中性色已由宿主 --dsw-alias-* 在
-   body[data-ds-dark-theme] 下自动切换，无需 novel 自有主题引擎。 */
-body[data-ds-dark-theme] .nv-workbench {
-  --nv-cinnabar: ${CINNABAR_DARK};
-}
-
-body[data-ds-dark-theme] .nv-launch {
-  --nv-cinnabar: ${CINNABAR_DARK};
-}
 `;

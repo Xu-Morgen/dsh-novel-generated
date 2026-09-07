@@ -130,18 +130,6 @@ export const LAYERS_STYLES = `
   min-width: 0;
 }
 
-.nv-btn--ghost {
-  border-color: transparent;
-  background: transparent;
-  color: var(--nv-ink-faint);
-  padding: calc(var(--nv-grid) * 0.2) calc(var(--nv-grid) * 0.5);
-}
-
-.nv-btn--ghost:hover:not(:disabled) {
-  color: var(--nv-danger);
-  background: var(--nv-hover);
-}
-
 .nv-field__range {
   width: 100%;
   accent-color: var(--nv-cinnabar);

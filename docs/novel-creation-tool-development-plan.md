@@ -2,7 +2,7 @@
 
 > 版本：v4.1
 > 日期：2026-09-04
-> 状态：当前执行权威（**I1–I186 / Stage 0–36 均已完成；I187 / Stage 37 是当前架构基线修订迭代**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 状态：当前执行权威（**I1–I187 / Stage 0–37 已完成；当前执行 Stage 38 / I188–I193 UI 改造**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v4.1（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -85,7 +85,7 @@ TDD Route:
 - Verification: 每迭代 `pnpm run verify:iN`；每阶段 `pnpm run verify:stage-N`
 ```
 
-### 0.7 全局执行纪律（贯穿 I1–I187）
+### 0.7 全局执行纪律（贯穿 I1–I193）
 
 1. 一迭代一任务、一次干净 commit；失败即阻塞下一迭代。
 2. 确定性迭代必须含：正向断言 + 负向断言 + 脚本化 smoke；schema/存储地基切片必配下游消费者夹具。
@@ -2041,11 +2041,79 @@ TDD Route:
 - **验收**：四份权威文件版本、当前迭代和术语一致；明确每窗一个 React root、Main 窗口注册表、Renderer 多 profile 明文持久化/切换、secret 仅作 IPC 请求输入、Main-only provider 调用及结果/log/作品/导出/诊断零 secret；旧单 Renderer/CredentialStore-only 只能出现在明确 v4.0 历史上下文；明确 I186 包尚不符合 v4.1 且运行时实现必须另立后续卡。
 - **验证**：`pnpm run verify:i187`；`pnpm run verify:stage-37`。
 
+
+
+## 38A. Stage 38：Electron 暖纸 UI 改造（R36，I188–I193）
+
+2026-09-07 用户明确授权连续执行多个 UI 迭代；覆盖每请求一迭代默认限制，保留逐卡 DoD→实现→验证→独立提交顺序。I187 已完成治理；本阶段不实现 v4.1 profiles/多窗口，也不宣称 v4.1 conformant。设计 §14.34 为本阶段依据；原型与 89 项检查仅作参考。
+
+阶段门：`pnpm run verify:stage-38`：全量测试、六张卡累积 smoke、既有 samples 与 I140/I149/I151 适用回归、Windows 打包及真实应用验收。按钮账本记录实际可达性，不以源码声明数替代。
+
+### I188：UI-A 视觉基础与公共控件
+
+- **目标**：主题作用域、唯一色表与公共控件 owner。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：styles/tokens/base/forms/chapters、desktop renderer.css/ui；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：目录与助手跨作用域消费者、键盘/禁用负测、真实 Electron 颜色与截图；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i188` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
+### I189：UI-B 应用框架、作品库和当前任务
+
+- **目标**：作品主视觉、当前任务唯一主操作、导航分组及按需辅助面板。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：desktop shell、client presenter/nav/workflow/navigation；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：创建/打开/归档恢复、任务恢复、离开保护、窄窗无遮挡；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i189` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
+### I190：UI-C 来源导入与审阅
+
+- **目标**：来源输入与未决审阅、首次规则文风及初始化反馈。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：source-import、import-interpretation-review、onboarding-panels/styles；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：来源未决阻塞、同任务重试、部分失败如实反馈、I11 边界；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i190` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
+### I191：UI-D 大纲、正文、候选、版本与定稿
+
+- **目标**：合并章节场景导航、正文优先、互斥模式和候选定稿操作层次。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：outline/detail、chapters/scene-editor/candidate/branch/styles；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：细纲至草稿至定稿、保存失败输入保留、删除影响、陈旧计划拒绝；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i191` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
+### I192：UI-E 故事资料与进阶工具
+
+- **目标**：资料编辑、审校、队列与派生工具统一操作及反馈。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：characters/worldview/relationship/state/canon/knowledge/timeline/ruleStyle/progress/review/queue/search/statistics/importExport；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：保存/取消/失败、队列暂停继续取消恢复、只读与派生操作边界；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i192` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
+### I193：UI-F 设置、辅助面板及整体验收
+
+- **目标**：真实凭据说明、全局异常、按钮逐项覆盖及打包可达性。
+- **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
+- **交付物 / canonical owner**：settings/workbench-settings、assistant/migration、全局状态、按钮实施账本；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
+- **验收 / 消费者夹具**：241 项逐条实现/合并/退役及可达证据、真实作者流程、缩放焦点、Windows 打包应用；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
+- **验证**：`pnpm run verify:i193` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。
+- **DoD**：实施前填 `docs/ui/ui-implementation-dod.md`，验收未通过不进入下一卡。
+
 ## 39. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。
 
-v4.1 当前进度：**Stage 36 / I183–I186 已完成；Stage 37 / I187 是当前治理迭代。** I187 只把多 Renderer 与 Renderer 明文多 profile 写入权威基线，不修改运行时。I186 安装包仍是 v4.0 legacy baseline；后续实现卡及 packaged-app E2E 完成前，不得标记为 v4.1 conformant。v3.2 原 I151–I162 仍为后置 F1/F2 provenance。
+v4.1 当前进度：**Stage 37 / I187 治理已完成（f489a83）；当前执行 Stage 38 / I188–I193 UI 改造。** I187 只把多 Renderer 与 Renderer 明文多 profile 写入权威基线，不修改运行时。I186 安装包仍是 v4.0 legacy baseline；后续实现卡及 packaged-app E2E 完成前，不得标记为 v4.1 conformant。v3.2 原 I151–I162 仍为后置 F1/F2 provenance。
 
 Stage 36 / I186 达成证据：
 

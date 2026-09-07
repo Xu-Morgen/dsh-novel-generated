@@ -1,0 +1,101 @@
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+
+const root = resolve(import.meta.dirname, '..');
+
+/** Test-only CDP driver: launches the actual production Electron entry with isolated data. */
+export async function launchUiElectron(iteration, executable) {
+  const evidence = resolve(root, 'artifacts/desktop/ui', iteration);
+  await mkdir(evidence, { recursive: true });
+  const profile = await mkdtemp(join(evidence, 'profile-'));
+  const server = createServer();
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  const port = server.address().port;
+  await new Promise((done) => server.close(done));
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  delete env.NOVEL_DESKTOP_SMOKE;
+  const child = spawn(executable ?? resolve(root, 'node_modules/electron/dist/electron.exe'), [
+    '--headless', '--disable-gpu', `--remote-debugging-port=${port}`,
+    `--user-data-dir=${profile}`, ...(executable ? [] : [root]),
+  ], { cwd: root, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  let log = '';
+  child.stdout.on('data', (data) => { log += data; });
+  child.stderr.on('data', (data) => { log += data; });
+  let socket;
+  let id = 0;
+  const pending = new Map();
+  const delay = (ms) => new Promise((done) => setTimeout(done, ms));
+  const until = async (fn, label, timeout = 15000) => {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      if (await fn()) return;
+      await delay(80);
+    }
+    throw new Error(`${iteration}: timeout: ${label}`);
+  };
+  try {
+    let page;
+    await until(async () => {
+      if (child.exitCode !== null) throw new Error(`Electron exited ${child.exitCode}: ${log}`);
+      try { page = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find((target) => target.type === 'page'); }
+      catch { return false; }
+      return page !== undefined;
+    }, 'production window');
+    socket = new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((done, reject) => { socket.addEventListener('open', done, { once: true }); socket.addEventListener('error', reject, { once: true }); });
+    socket.addEventListener('message', (event) => {
+      const result = JSON.parse(event.data);
+      const request = pending.get(result.id);
+      if (!request) return;
+      clearTimeout(request.timer);
+      pending.delete(result.id);
+      if (result.error) request.reject(new Error(JSON.stringify(result.error)));
+      else request.done(result.result);
+    });
+    const send = (method, params = {}) => new Promise((done, reject) => {
+      const requestId = ++id;
+      const timer = setTimeout(() => { pending.delete(requestId); reject(new Error(`CDP timeout ${method}`)); }, 15000);
+      pending.set(requestId, { done, reject, timer });
+      socket.send(JSON.stringify({ id: requestId, method, params }));
+    });
+    const evaluate = async (expression) => {
+      const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+      if (result.exceptionDetails) throw new Error(JSON.stringify(result.exceptionDetails));
+      return result.result.value;
+    };
+    const waitFor = (expression, label) => until(() => evaluate(expression), label);
+    await waitFor('!!document.querySelector("[data-novel-project-chooser]")', 'real project directory');
+    return {
+      evidence, profile, send, evaluate, waitFor,
+      async click(selector) {
+        const bounds = await evaluate(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) throw Error('Missing control'); e.scrollIntoView({block:'center'}); const r=e.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
+        await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...bounds });
+        await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...bounds });
+      },
+      async fill(selector, text) {
+        await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
+        await send('Input.insertText', { text });
+      },
+      async screenshot(name) {
+        const result = await send('Page.captureScreenshot', { format: 'png' });
+        await writeFile(join(evidence, `${name}.png`), Buffer.from(result.data, 'base64'));
+      },
+      async close() {
+        try { await evaluate('window.close()'); } catch { /* Closing the target can precede the reply. */ }
+        socket.close();
+        for (const request of pending.values()) clearTimeout(request.timer);
+        pending.clear();
+        await until(() => child.exitCode !== null, 'lifecycle exit', 5000).catch(() => child.kill());
+        await writeFile(join(evidence, 'electron.log'), log);
+      },
+    };
+  } catch (error) {
+    socket?.close();
+    child.kill();
+    await writeFile(join(evidence, 'electron.log'), log);
+    throw error;
+  }
+}
