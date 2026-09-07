@@ -31,7 +31,7 @@
 - 验证：`pnpm run verify:i189` exit 0；223 文件 / 1173 测试；I188 5 项兼容检查与 I189 11 项真实 Electron 检查通过。`artifacts/i189-verify.log`；`artifacts/desktop/ui/i189/validation.json` 及目录/迁移/助手/归档/1366、1024、720、440px 工作流截图。
 - 明确不做：正文单树与资料表单留给 I191/I192；不改 IPC/领域/prompt/样本，不添加新的确认门。
 
-I190–I193 在开始各自生产改动前逐卡填写；每个迭代独立 commit，失败不跨卡。
+I190–I194 在开始各自生产改动前逐卡填写；每个迭代独立 commit，失败不跨卡。
 
 ## I190 / UI-C：来源导入与审阅
 
@@ -79,11 +79,24 @@ I190–I193 在开始各自生产改动前逐卡填写；每个迭代独立 comm
 - 验证：typecheck、pnpm test、build、smoke:i192；模型集成使用固定 HTTP 测试 provider，既有样本不改动，最终阶段累积执行。
 - 完成证据：`pnpm run verify:i192` exit 0；225 文件 / 1176 测试，33 项真实 Electron 检查，`artifacts/i192-verify.log`、`artifacts/desktop/ui/i192/validation.json` 及资料、导入预览、搜索、知情确认、队列暂停/失败/审阅截图。模型仅由固定 HTTP provider 替代，C3/C6 为明确测试夹具；不将这些数据声明为完整初始化作者流程。
 - 格式兼容：全文 TXT/MD 合并为格式选择和单一 compile 按钮，保留所选格式原 data 锚点；新增队列审阅入口另记账，不混入原 241 声明数量。
-- 本片资料/审校/导出等既有子状态由完整消费者与负向回归覆盖，最终 I193 累积补齐作者流程、打包与按钮账本。
+- 本片资料/审校/导出等既有子状态由完整消费者与负向回归覆盖，最终 I194 累积补齐作者流程、打包与按钮账本。
 - 明确不做：无关系图谱、新主题系统、多窗口、profiles 或 F1/F2；不调整领域合同和 prompt/schema/样本。
+
+## I193 / UI-F：设置、辅助面板与全局状态
+
+- 前置：I192 已提交 `91620d5`；状态：验收通过。原最终验收切片因真实来源→大纲缺少既有服务接线，按用户拆片授权独立排为 I194；不恢复旧来源旁路。
+- 目标：真实设置、助手、迁移及全局异常有统一操作和反馈；窄宽导航、键盘焦点和中文多作品创建正常。
+- Owner：client/settings.ts、workbench-settings.ts、controllers.ts、presenter.ts、styles/{navigation,responsive,panels}.ts；desktop/renderer/{shell,assistant-panel,migration-panel,project-workflow}.ts；唯一原语 controls/Button 不重复覆盖。
+- 兼容：route/data 锚点、Electron Main ownership、现有 IPC、I11 保持；助手/迁移先做同步 inflight 挡再调用服务，跨作品/卸载后晚到结果不写 UI。当前设置使用 Main CredentialStore，不声称 v4.1 多 profiles 已实现。
+- 交付：设置/辅助/异常 UI、按钮账本对应项、真实 Electron smoke、正式 verify:i193 和独立 commit；正式拆分 I194 的权威同步。
+- 验收：AI 与创作设置保存/失败保留，读取不泄密；助手状态/上下文/候选确认与失败恢复；迁移预览/确认/撤销；离开保护焦点/键盘取消；中文多作品和窄宽/缩放。
+- 验证：typecheck、pnpm test、build、smoke:i193。最终 241 项账本、全作者流程、适用样本累积和 packaged-app 验收必须在 I194 完成后才关闭任务。
+- 明确不做：无新增领域/IPC 合同、prompt/schema/样本/金标/阈值；无多窗口/profiles/主题系统/关系图谱/后置 F1/F2。
+
+- 完成证据：`pnpm run verify:i193` exit 0；226 文件 / 1177 测试，21 项真实 Electron 检查；`artifacts/i193-verify.log`、`artifacts/desktop/ui/i193/validation.json` 与 settings、assistant、migration、unsaved-leave 截图。真实设置失败保留/重试、助手缺规则失败/补齐后上下文/续写拒绝、隔离旧库迁移/撤销、中文多作品创建通过。助手直接接受/灵感等子状态继续在 I194 总验收核对。
 
 ## 交接
 
-刚完成：I192 故事资料与进阶工具，225 文件 / 1176 测试，33 项真实 Electron 检查。下一步：I193 设置、辅助面板与整体验收。
+刚完成：I193 设置、辅助面板与全局状态，226 文件 / 1177 测试，21 项真实 Electron 检查。下一步：I194 真实作者流程接线与最终交付验收。
 新增领域/IPC 合同：零。UI token/控件兼容层仅属呈现。
 后置：多窗口、Renderer profile store、主题切换、关系图谱、连接测试新能力、F1/F2。

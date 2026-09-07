@@ -306,10 +306,10 @@ function projectContextBar(h: El, projectName: string, activeView: WorkbenchView
 
 /** I55 脏表单离开裁决：非模态确认条，离开将丢弃未保存 Client draft（§14.8 / R12-2）。 */
 function dirtyLeaveDialog(h: El, confirmLeave: () => void, cancelLeave: () => void): unknown {
-  return h('div', { className: 'nv-workbench__leave-confirm', 'data-novel-leave-confirm': '', role: 'alertdialog', 'aria-label': '离开作品确认' },
+  return h('div', { className: 'nv-workbench__leave-confirm', 'data-novel-leave-confirm': '', role: 'alertdialog', 'aria-label': '离开作品确认', onKeyDown: (event: { key: string; preventDefault(): void; stopPropagation(): void }) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelLeave(); } } },
     h('p', { className: 'nv-workbench__leave-confirm-hint', 'data-novel-leave-confirm-hint': '' }, '有未保存的修改，离开将丢弃这些修改。'),
-    h('button', { type: 'button', className: 'nv-workbench__leave-confirm-btn nv-workbench__leave-confirm-btn--discard', 'data-novel-leave-discard': '', onClick: () => confirmLeave() }, '离开并放弃修改'),
-    h('button', { type: 'button', className: 'nv-workbench__leave-confirm-btn', 'data-novel-leave-cancel': '', onClick: () => cancelLeave() }, '取消'),
+    h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-leave-discard': '', onClick: () => confirmLeave() }, '离开并放弃修改'),
+    h('button', { type: 'button', className: 'nv-btn', 'data-novel-leave-cancel': '', onClick: () => cancelLeave() }, '继续编辑'),
   );
 }
 

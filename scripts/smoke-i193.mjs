@@ -1,0 +1,142 @@
+﻿import assert from 'node:assert/strict';
+import { writeFile, mkdir, cp, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { startUiTestProvider, uiInvoke } from './ui-test-provider.mjs';
+
+const provider = await startUiTestProvider();
+const app = await launchUiElectron('i193');
+const checks = [];
+const check = (name, value) => { assert.ok(value, name); checks.push({ name, passed: true }); };
+const invoke = (method, ...args) => uiInvoke(app, method, ...args);
+try {
+  await app.fill('[data-novel-project-name-input]', '北港长篇正文验收');
+  await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'created project');
+  const projects = await invoke('novelWorkspace/projectList');
+  const id = projects[0].id;
+  await invoke('novelLlmConfig/save', { baseUrl: provider.endpoint, model: 'ui-deterministic', apiKey: 'test-only-not-a-real-key', maxTokens: 32768, thinking: 'disabled', reasoningEffort: 'low' });
+  await invoke('novelWorkspace/characterCreate', id, { id: 'mira', name: '米拉', aliases: [], kind: 'protagonist', personality: '谨慎', background: '测绘师', motivation: '追查真相', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] });
+  // Domain fixture setup is distinct from the author interactions tested below.
+  const outline = { id: 'outline', structure: 'free', logline: '米拉追查北港旧灯塔的秘密。', themes: ['追查'], acts: [{ id: 'act-1', index: 0, title: '雨夜北港', goal: '找到线索', beats: [{ id: 'beat-1', title: '码头', description: '米拉找到钥匙。', charactersInvolved: ['mira'], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [{ id: 'detail-1', title: '钥匙', summary: '米拉找到钥匙。', pov: 'mira', wordTarget: 100, points: ['钥匙'], status: 'planned' }] }] }], foreshadowing: [], endings: [] };
+  const detail = outline.acts[0].beats[0].detailBeats[0];
+  outline.acts[0].beats[0].detailBeats.push({...detail,id:'detail-2',title:'潮痕'},{...detail,id:'detail-3',title:'旧海图'});
+  await invoke('novelWorkspace/outlineSave', id, outline);
+  await invoke('novelRuleStyleManager/saveStyle', id, { name: '克制', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '简洁', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] });
+  // Fixture only: C3 must already be initialized; this is not a source-import acceptance claim.
+  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [{id:'secret',version:1,fact:'灯塔藏着海图',kind:'secret',holders:[],revealPlan:{revealTo:['mira'],revealAt:'第三幕'},status:'hidden'}], states: [{characterId: 'mira', knows: []}]}), { flag: 'wx' });
+  await writeFile(join(app.profile,'library',id,'outline-progress.yaml'),JSON.stringify({outlineId:'outline',currentAct:'act-1',currentBeat:'beat-1',completedBeats:[],deviations:[],tensionLevel:0}),{flag:'wx'});
+  await app.send('Page.reload');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'reopen seeded fixture');
+
+
+  const nav = async view => {
+    await app.evaluate(`document.querySelectorAll('details[data-novel-nav-group]').forEach(e=>e.open=true)`);
+    await app.click(`[data-novel-nav-item="${view}"]`);
+  };
+  const replace = async (selector,text) => {
+    await app.evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
+    await app.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:2,commands:['selectAll']});
+    await app.send('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',modifiers:2});
+    await app.send('Input.insertText',{text});
+  };
+  await nav('settings');
+  await app.waitFor('document.querySelector("[data-novel-llm-url]")?.value.includes("127.0.0.1")','settings loaded');
+  check('desktop settings remove obsolete restart claim',!await app.evaluate('document.querySelector("[data-novel-llm-settings]").textContent.includes("重启 DSH")'));
+  await app.click('[data-novel-llm-generation-settings] > summary');
+  check('thinking disabled explains unavailable effort',await app.evaluate('document.querySelector("[data-novel-llm-effort]").disabled'));
+  await replace('[data-novel-llm-url]','invalid-url');
+  check('invalid URL entered',await app.evaluate('document.querySelector("[data-novel-llm-url]").value==="invalid-url"'));
+  await app.click('[data-novel-llm-save]');
+  await app.waitFor('!!document.querySelector("[data-novel-llm-error]")','save failure');
+  check('failed settings save keeps input',await app.evaluate('document.querySelector("[data-novel-llm-url]").value==="invalid-url"'));
+  await app.screenshot('settings-failure');
+  await replace('[data-novel-llm-url]',provider.endpoint);
+  await app.click('[data-novel-llm-save]');
+  await app.waitFor('!!document.querySelector("[data-novel-llm-message]")','settings retry');
+  const config=await invoke('novelLlmConfig/load');
+  check('settings read has only key presence',config.hasKey && !JSON.stringify(config).includes('test-only-not-a-real-key'));
+  await app.screenshot('settings');
+  await nav('creationSettings');
+  await replace('[data-novel-workbench-word-target]','1200');
+  await app.click('[data-novel-workbench-save]');
+  await app.waitFor('!!document.querySelector("[data-novel-workbench-message]")','creation settings');
+  check('creation settings persist',(await invoke('novelWorkbenchSettings/load')).wordTarget===1200);
+  await app.screenshot('creation-settings');
+  await nav('characters');
+  await app.waitFor('!!document.querySelector("[data-novel-character-save]")','character');
+  await app.fill('[data-novel-layer-panel="characters"] .nv-form input','未保存的守灯人');
+  await app.click('[data-novel-back-to-projects]');
+  await app.waitFor('document.activeElement?.hasAttribute("data-novel-leave-cancel")','safe leave focus');
+  await app.screenshot('unsaved-leave');
+  await app.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
+  await app.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});
+  await app.waitFor('!document.querySelector("[data-novel-leave-confirm]")','escape keeps editing');
+  check('escape cancels leave and retains dirty data',await app.evaluate('document.querySelector("[data-novel-layer-panel=characters] input").value.includes("守灯人")'));
+  check('confirmation returns keyboard focus',await app.evaluate('document.activeElement?.hasAttribute("data-novel-back-to-projects")'));
+  await app.click('[data-novel-character-save]');
+  await app.waitFor('document.querySelectorAll("[data-novel-character-id]").length===2','saved before tools');
+  await nav('chapters');
+  await app.click('[data-novel-chapter-mode="materials"]');
+  await app.waitFor('document.querySelector("[data-novel-chapter-management]")?.dataset.novelManagementState==="ready"','chapter management');
+  await app.fill('[data-novel-management-input="chapter-title"]','助手续写章节');
+  await app.evaluate(`(() => { const e=document.querySelector('[data-novel-entity-select="chapter-pov"]'); e.value='mira';e.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  await app.click('[data-novel-chapter-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-chapter-item]")','assistant chapter');
+  await app.click('[data-novel-assistant-toggle]');
+  await app.click('[data-novel-assistant-status]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-status-result]")','assistant status');
+  check('assistant reads actual work state',await app.evaluate('document.querySelector("[data-novel-assistant-status-result]").textContent.includes("角色 2")'));
+  await app.click('[data-novel-assistant-context]');
+  await app.waitFor('document.querySelector("[data-novel-assistant-message]")?.getAttribute("role")==="alert"','missing rules are visible');
+  check('assistant prerequisites fail visibly',true);
+  await app.screenshot('assistant-failure');
+  await invoke('novelRuleStyleManager/createRule',id,{id:'no-magic',scope:'global',kind:'genre',statement:'北港的故事遵循现实物理。',priority:10,immutable:true,examples:[],active:true});
+  await app.click('[data-novel-assistant-context]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-context-result]")','assistant context');
+  await app.screenshot('assistant-context');
+  await app.click('[data-novel-assistant-continue]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-candidate]")','assistant candidate');
+  check('assistant candidate has a single primary action',await app.evaluate('document.querySelectorAll("[data-novel-assistant] .nv-btn--primary").length===1'));
+  await app.screenshot('assistant-candidate');
+  await app.click('[data-novel-assistant-reject]');
+  await app.waitFor('!document.querySelector("[data-novel-assistant-candidate]")','assistant reject');
+  check('assistant rejection leaves prose empty',(await invoke('novelWorkspace/chapterList',id)).every(c=>c.sceneCount===0));
+  for (const width of [1920,1366,1024,720,440]) {
+    await app.send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
+    check(`navigation and helper fit ${width}`,await app.evaluate(`document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('.nv-workbench__nav')].every(e=>e.scrollWidth<=e.clientWidth+1)`));
+    await app.screenshot(`shell-${width}`);
+  }
+  await app.send('Emulation.clearDeviceMetricsOverride');
+  await app.click('[data-novel-assistant-toggle]');
+  // Migrate only a fixture within the test child process's isolated home.
+  const legacy=join(app.fixtureHome,'.dsh','novel-projects','legacy-ui');
+  await mkdir(join(app.fixtureHome,'.dsh','novel-projects'),{recursive:true});
+  await cp(join(app.profile,'library',id),legacy,{recursive:true});
+  await writeFile(join(legacy,'project.yaml'),JSON.stringify({id:'legacy-ui',name:'旧库迁移验收',version:1}));
+  const before=await readFile(join(legacy,'project.yaml'),'utf8');
+  await app.click('[data-novel-back-to-projects]');
+  await app.waitFor('!!document.querySelector("[data-novel-project-chooser]")','directory');
+  await app.click('[data-novel-migration-open]');
+  await app.click('[data-novel-migration-preview]');
+  await app.waitFor('!!document.querySelector("[data-novel-migration-preview-result]")','migration preview');
+  check('migration preview is isolated fixture',await app.evaluate('document.querySelector("[data-novel-migration-preview-result]").textContent.includes("旧库迁移验收")'));
+  await app.screenshot('migration-preview');
+  await app.click('[data-novel-migration-execute]');
+  await app.waitFor('!!document.querySelector("[data-novel-migration-execution-result]")','migration confirmed');
+  check('migration explicit confirmation copies fixture',(await invoke('novelWorkspace/projectList')).some(p=>p.id==='legacy-ui'));
+  await app.click('[data-novel-migration-rollback]');
+  await app.waitFor('!!document.querySelector("[data-novel-migration-rollback-result]")','migration rollback');
+  check('migration rollback preserves source',(await readFile(join(legacy,'project.yaml'),'utf8'))===before && !(await invoke('novelWorkspace/projectList')).some(p=>p.id==='legacy-ui'));
+  await app.screenshot('migration-rollback');
+  await app.click('[data-novel-migration-close]');
+  await app.click('[data-novel-project-new]');
+  await app.fill('[data-novel-project-name-input]','另一部中文小说');
+  await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")','second Chinese project');
+  check('Chinese project names get distinct persisted identities',(await invoke('novelWorkspace/projectList')).length===2);
+  await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:'I193',checks,providerCalls:provider.calls},null,2));
+  console.log(`I193: ${checks.length} real Electron checks passed`);
+} catch(error) {
+  await app.screenshot('failure');await writeFile(join(app.evidence,'failure.txt'),await app.evaluate('document.body.innerText'));throw error;
+} finally {await app.close();await provider.close();}

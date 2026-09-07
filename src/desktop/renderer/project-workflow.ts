@@ -1,5 +1,5 @@
 import type { WorkspaceViewModel } from '../../client/shared.js';
-import { slug, unwrap } from '../../client/shared.js';
+import { availableDraftId, unwrap } from '../../client/shared.js';
 import type { WorkbenchActions, WorkbenchState } from '../../client/store/types.js';
 import type { WorkbenchSettingsDraftShape, WorkbenchSettingsViewShape } from '../../client/workbench-settings.js';
 import type { DesktopServiceBag } from './desktop-ipc-client.js';
@@ -40,7 +40,8 @@ function hasDirtyDrafts(state: WorkbenchState): boolean {
     || state.outlineEditor.dirty
     || state.relationshipEditor.dirty
     || state.canonEditor.dirty
-    || state.chapters.editor.dirty;
+    || state.chapters.editor.dirty
+    || state.timeline.dirty;
 }
 
 /**
@@ -150,9 +151,10 @@ export function createDesktopProjectWorkflow(options: {
     createBlankProject(name) {
       runOnce('create', async () => {
         const normalizedName = name.trim() || '未命名作品';
-        store.actions.createProject({ projectId: slug(normalizedName), name: normalizedName });
+        const draftId = availableDraftId(normalizedName, [...store.getSnapshot().projects, ...store.getSnapshot().archivedProjects].map(project => project.id));
+        store.actions.createProject({ projectId: draftId, name: normalizedName });
         try {
-          const project = await unwrap(services.workspace.projectCreate({ projectId: slug(normalizedName), name: normalizedName })) as ProjectShape;
+          const project = await unwrap(services.workspace.projectCreate({ projectId: draftId, name: normalizedName })) as ProjectShape;
           if (!active) return;
           await refreshCatalog();
           await openVerified(project.id);
@@ -170,7 +172,7 @@ export function createDesktopProjectWorkflow(options: {
           await refreshCatalog();
           if (await openVerified(project.id)) onOpened?.();
         } catch {
-          fail('瀵煎叆浣滃搧鍒涘缓澶辫触');
+          fail('导入作品创建失败');
         }
       });
     },

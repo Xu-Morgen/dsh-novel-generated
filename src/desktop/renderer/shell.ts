@@ -294,7 +294,7 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
       status: state.status,
       desktop: true,
       desktopTools: React.createElement(Button, { variant: 'ghost', 'aria-expanded': assistantOpen, 'data-novel-assistant-toggle': '', onClick: toggleAssistant }, assistantOpen ? '收起助手' : '创作助手'),
-      desktopAside: state.selectedProjectId !== undefined ? React.createElement('aside', { hidden: !assistantOpen, className: 'desktop-assistant', 'aria-label': '创作助手' }, React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId })) : null,
+      desktopAside: state.selectedProjectId !== undefined ? React.createElement('aside', { hidden: !assistantOpen, className: 'desktop-assistant', 'aria-label': '创作助手' }, React.createElement(DesktopAssistantPanel, { client: assistant, projectId: state.selectedProjectId, target: state.chapters.selectedChapterId && state.chapters.selectedSceneId ? { chapterId: state.chapters.selectedChapterId, sceneId: state.chapters.selectedSceneId } : undefined })) : null,
       ns: namespaces,
       ui,
       states: viewStates(state),
@@ -478,7 +478,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
   React.useEffect(() => {
     if (state.status.status !== 'ready' || projectId === undefined || state.browsing) return;
     ops.knowledge.refresh();
-    ops.ruleStyle.refresh();
+    if (state.ruleStyle.status === 'idle') ops.ruleStyle.refresh();
     if (state.activeView === 'progress') ops.progress.refresh();
     // I192 / §14.34: entering the queue reads its persisted tasks and outline scope.
     if (state.activeView === 'queue') ops.queue.refresh();
@@ -487,8 +487,14 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       ops.statistics.refreshStats();
       ops.statistics.refreshOverview();
     }
-    if (state.activeView === 'timeline') ops.timeline.refresh();
+    if (state.activeView === 'timeline' && !state.timeline.dirty) ops.timeline.refresh();
   }, [state.status.status, state.browsing, state.activeView, projectId]);
+  React.useEffect(() => {
+    if (!state.leaveConfirm) return;
+    const previousFocus = document.activeElement;
+    document.querySelector<HTMLElement>('[data-novel-leave-cancel]')?.focus();
+    return () => { if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus(); };
+  }, [state.leaveConfirm]);
   const loading = workbenchView(React, {
         status: { status: 'loading' },
         ns: PENDING_NAMESPACES,

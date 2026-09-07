@@ -12,7 +12,7 @@
 
 1. `docs/novel-creation-tool-design.md`（v4.1）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的 Electron 宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v4.1）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v4.1）—— 执行层；**I1–I187 / Stage 0–37 已完成，当前执行 I188–I193 / Stage 38 UI 改造**。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
+3. `docs/novel-creation-tool-development-plan.md`（v4.1）—— 执行层；**I1–I187 / Stage 0–37 已完成，当前执行 I188–I194 / Stage 38 UI 改造**。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级 Electron 宿主基线（不可修改）
@@ -29,7 +29,7 @@
 
 ## 2. 总控铁律
 
-- 一迭代一任务：默认每次只执行一个 Ixx。2026-09-07 用户明确授权 I188–I193 UI 改造连续执行；仍逐迭代先 DoD、实现、验收、独立 commit，不混提交。
+- 一迭代一任务：默认每次只执行一个 Ixx。2026-09-07 用户明确授权 I188–I194 UI 改造连续执行；仍逐迭代先 DoD、实现、验收、独立 commit，不混提交。
 - 动手前先读计划对应迭代的「目标 / 明确不做 / 交付物 / 验收 / 验证」，填 DoD 卡片，再写代码。
 - 确定性模块：实现 → 回归测试 + 负向测试 → `pnpm test` 全绿。
 - LLM 模块：先建/更新样本集（含 held-out 子集）再改 prompt/schema，跑样本回归；低于阈值即失败，禁止「接受并继续」。
@@ -40,7 +40,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 公开合同政策：既有 canonical invocation 的方法名、参数、结果是 IPC 基线；新增 strict additive method 必须同步 canonical schema、contract lock、Main adapter/Renderer client 类型耦合、真实 IPC E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。secret-bearing 输入必须显式标记并经过统一 redaction 门。
-- I1–I187 与 Stage 0–37 已完成；当前执行 I188–I193 / Stage 38 UI 改造（设计 §14.34 / 需求 R36）。I187 不授权运行时实现；多窗口、Renderer profile store 和敏感 IPC 的代码变更必须另立后续连续迭代。不得擅自恢复后置 F1/F2。
+- I1–I187 与 Stage 0–37 已完成；当前执行 I188–I194 / Stage 38 UI 改造（设计 §14.34 / 需求 R36）。I187 不授权运行时实现；多窗口、Renderer profile store 和敏感 IPC 的代码变更必须另立后续连续迭代。不得擅自恢复后置 F1/F2。
 
 ## 3. 完成定义（DoD）
 

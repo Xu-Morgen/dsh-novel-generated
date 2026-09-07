@@ -14,7 +14,10 @@ export async function launchUiElectron(iteration, executable) {
   await new Promise((done) => server.listen(0, '127.0.0.1', done));
   const port = server.address().port;
   await new Promise((done) => server.close(done));
-  const env = { ...process.env };
+  // Test process only: migration must never inspect the real user's legacy library.
+  const fixtureHome = join(profile, 'test-home');
+  await mkdir(fixtureHome, { recursive: true });
+  const env = { ...process.env, USERPROFILE: fixtureHome };
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.NOVEL_DESKTOP_SMOKE;
   const child = spawn(executable ?? resolve(root, 'node_modules/electron/dist/electron.exe'), [
@@ -69,7 +72,7 @@ export async function launchUiElectron(iteration, executable) {
     const waitFor = (expression, label) => until(() => evaluate(expression), label);
     await waitFor('!!document.querySelector("[data-novel-project-chooser]")', 'real project directory');
     return {
-      evidence, profile, send, evaluate, waitFor,
+      evidence, profile, fixtureHome, send, evaluate, waitFor,
       async click(selector) {
         const bounds = await evaluate(`(async () => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) throw Error('Missing control'); e.scrollIntoView({block:'center'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const r=e.getBoundingClientRect(); const x=r.x+r.width/2,y=r.y+r.height/2; if (e.disabled || !e.contains(document.elementFromPoint(x,y))) throw Error('Control is disabled or obscured: '+${JSON.stringify(selector)}); return {x,y}; })()`);
         await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...bounds });

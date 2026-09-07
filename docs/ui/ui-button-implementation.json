@@ -294,7 +294,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-014",
@@ -319,7 +319,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-015",
@@ -416,7 +416,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-019",
@@ -465,7 +465,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-021",
@@ -514,7 +514,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-023",
@@ -587,7 +587,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-026",
@@ -684,7 +684,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-030",
@@ -733,7 +733,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-032",
@@ -758,7 +758,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-033",
@@ -783,7 +783,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-034",
@@ -928,7 +928,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-040",
@@ -953,7 +953,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-041",
@@ -1002,7 +1002,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-043",
@@ -1027,7 +1027,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-044",
@@ -1052,7 +1052,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-045",
@@ -1173,7 +1173,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-050",
@@ -1198,7 +1198,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-051",
@@ -1223,7 +1223,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-052",
@@ -1320,7 +1320,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-056",
@@ -1345,7 +1345,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-057",
@@ -1370,7 +1370,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-058",
@@ -1395,7 +1395,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-059",
@@ -1492,7 +1492,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-063",
@@ -1541,7 +1541,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-065",
@@ -1566,7 +1566,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-066",
@@ -1591,7 +1591,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-067",
@@ -1616,7 +1616,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-068",
@@ -1641,7 +1641,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-069",
@@ -1691,7 +1691,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-071",
@@ -1716,7 +1716,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-072",
@@ -1885,7 +1885,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-079",
@@ -1910,7 +1910,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-080",
@@ -1935,7 +1935,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
       "mergeTarget": "data-novel-ie-compile + data-novel-ie-text-format",
       "compatibility": "TXT/MD canonical compileManuscript(format) unchanged; selected format retains its old format anchor; one active full-manuscript button. Consumer test migrated to format selection."
     },
@@ -1962,7 +1962,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
       "mergeTarget": "data-novel-ie-compile + data-novel-ie-text-format",
       "compatibility": "TXT/MD canonical compileManuscript(format) unchanged; selected format retains its old format anchor; one active full-manuscript button. Consumer test migrated to format selection."
     },
@@ -1989,7 +1989,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-083",
@@ -2038,7 +2038,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-085",
@@ -2063,7 +2063,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-086",
@@ -2088,7 +2088,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-087",
@@ -2113,7 +2113,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-088",
@@ -2138,7 +2138,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-089",
@@ -2163,7 +2163,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-090",
@@ -2188,7 +2188,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-091",
@@ -2213,7 +2213,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-092",
@@ -2238,7 +2238,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-093",
@@ -2263,7 +2263,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-094",
@@ -2312,7 +2312,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-096",
@@ -2337,7 +2337,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-097",
@@ -2410,7 +2410,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-100",
@@ -2459,7 +2459,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-102",
@@ -2508,7 +2508,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-104",
@@ -2533,7 +2533,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-105",
@@ -2582,7 +2582,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-107",
@@ -2631,7 +2631,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-109",
@@ -2680,7 +2680,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-111",
@@ -2705,7 +2705,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-112",
@@ -2730,7 +2730,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-113",
@@ -2755,7 +2755,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-114",
@@ -2780,7 +2780,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-115",
@@ -2805,7 +2805,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-116",
@@ -2830,7 +2830,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-117",
@@ -2855,7 +2855,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-118",
@@ -2880,7 +2880,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-119",
@@ -2905,7 +2905,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-120",
@@ -2930,7 +2930,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-121",
@@ -3123,7 +3123,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-129",
@@ -3148,7 +3148,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-130",
@@ -3173,7 +3173,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-131",
@@ -3198,7 +3198,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-132",
@@ -3223,7 +3223,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-133",
@@ -3248,7 +3248,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-134",
@@ -3273,7 +3273,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-135",
@@ -3298,7 +3298,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-136",
@@ -3395,7 +3395,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-140",
@@ -3420,7 +3420,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-141",
@@ -3445,7 +3445,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-142",
@@ -3470,7 +3470,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-143",
@@ -3495,7 +3495,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-144",
@@ -3520,7 +3520,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-145",
@@ -3545,7 +3545,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-146",
@@ -3570,7 +3570,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-147",
@@ -3595,7 +3595,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-148",
@@ -3620,7 +3620,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-149",
@@ -3645,7 +3645,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-150",
@@ -3670,7 +3670,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-151",
@@ -3695,7 +3695,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-152",
@@ -3720,7 +3720,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-153",
@@ -3745,7 +3745,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-154",
@@ -3770,7 +3770,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-155",
@@ -3795,7 +3795,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-156",
@@ -3820,7 +3820,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-157",
@@ -3845,7 +3845,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-158",
@@ -3870,7 +3870,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-159",
@@ -3895,7 +3895,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-160",
@@ -3920,7 +3920,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-161",
@@ -3945,7 +3945,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-162",
@@ -3970,7 +3970,7 @@
         "src/client-chapters.test.ts; src/host/writing-adjudication-service.test.ts; src/client-i134-outline-detail-generation.test.ts"
       ],
       "iteration": "I191",
-      "remainingValidation": "I193 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
+      "remainingValidation": "I194 最终覆盖复核：本卡实现及消费者回归已覆盖，尚非本卡真实 Electron 中逐一点击的子状态。"
     },
     {
       "id": "BTN-163",
@@ -4091,7 +4091,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-168",
@@ -4116,7 +4116,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-169",
@@ -4165,7 +4165,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-171",
@@ -4190,7 +4190,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-172",
@@ -4215,7 +4215,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-173",
@@ -4240,7 +4240,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-174",
@@ -4265,7 +4265,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-175",
@@ -4410,7 +4410,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-181",
@@ -4435,7 +4435,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-182",
@@ -4460,7 +4460,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-183",
@@ -4485,7 +4485,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-184",
@@ -4510,7 +4510,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-185",
@@ -4535,7 +4535,7 @@
         "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
       ],
       "iteration": "I192",
-      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
+      "remainingValidation": "I194 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-186",
@@ -5007,9 +5007,14 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-208",
@@ -5023,9 +5028,14 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-209",
@@ -5039,9 +5049,15 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193",
+      "remainingValidation": "I194 补齐对应实际子状态；现有确定性消费者验证不计作此按钮已实点。"
     },
     {
       "id": "BTN-210",
@@ -5055,9 +5071,15 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/presenter.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193",
+      "remainingValidation": "I194 补齐对应实际子状态；现有确定性消费者验证不计作此按钮已实点。"
     },
     {
       "id": "BTN-211",
@@ -5239,9 +5261,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || draft.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/settings.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-220",
@@ -5299,9 +5326,15 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || projectId === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/workbench-settings.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193",
+      "remainingValidation": "I194 补齐对应实际子状态；现有确定性消费者验证不计作此按钮已实点。"
     },
     {
       "id": "BTN-223",
@@ -5315,9 +5348,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "namespace === undefined || draft.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/workbench-settings.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-224",
@@ -5331,9 +5369,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-225",
@@ -5347,9 +5390,14 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-226",
@@ -5363,9 +5411,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-227",
@@ -5379,9 +5432,15 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193",
+      "remainingValidation": "I194 补齐对应实际子状态；现有确定性消费者验证不计作此按钮已实点。"
     },
     {
       "id": "BTN-228",
@@ -5395,9 +5454,15 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193",
+      "remainingValidation": "I194 补齐对应实际子状态；现有确定性消费者验证不计作此按钮已实点。"
     },
     {
       "id": "BTN-229",
@@ -5411,9 +5476,14 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/assistant-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-230",
@@ -5427,9 +5497,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/migration-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-231",
@@ -5443,9 +5518,14 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/migration-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-232",
@@ -5459,9 +5539,14 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/desktop/renderer/migration-panel.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i193.mjs; artifacts/desktop/ui/i193/validation.json"
+      ],
+      "iteration": "I193"
     },
     {
       "id": "BTN-233",

@@ -1,10 +1,4 @@
-/**
- * I83 styles 分区 · navigation：导航与项目目录层（项目上下文栏 / 脏表单
-离开裁决 / 分组导航 / 悬浮入口 / 项目选择器）。
- * I83 由 scripts/.split-styles.mjs 从单一 WORKBENCH_STYLES 模板字符串按键切出；
- * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
- * 由 styles.ts 组合器按原顺序拼接。
- */
+/** I193 / 设计 §14.34：项目上下文、目录、导航与离开提示的几何 owner。 */
 export const NAVIGATION_STYLES = `
 /* 作品上下文栏之上的导航/主列横向布局（I55：上下文栏占满整行，其下再左右分栏）。 */
 .nv-workbench__body-row {
@@ -70,25 +64,7 @@ export const NAVIGATION_STYLES = `
   color: var(--nv-warn);
 }
 
-.nv-workbench__leave-confirm-btn {
-  border: 1px solid var(--nv-line);
-  background: transparent;
-  color: var(--nv-ink-dim);
-  border-radius: calc(var(--nv-grid) * 0.6);
-  padding: calc(var(--nv-grid) * 0.35) var(--nv-grid);
-  font-size: 12px;
-  cursor: pointer;
-}
 
-.nv-workbench__leave-confirm-btn:hover {
-  background: var(--nv-hover);
-  color: var(--nv-ink);
-}
-
-.nv-workbench__leave-confirm-btn--discard {
-  border-color: var(--nv-danger);
-  color: var(--nv-danger);
-}
 
 /* I55 可恢复的 open/切换失败错误（保持当前视图，不 brick 成整屏错误）。 */
 .nv-workbench__project-error {

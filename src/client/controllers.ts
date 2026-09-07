@@ -430,7 +430,7 @@ export function createSettingsController(deps: SettingsControllerDeps): Settings
       (result) => {
         release();
         if (!deps.isActive()) return;
-        deps.dispatch((x) => x.settingsSettled({ saving: false, message: '已保存 AI 服务设置（重启创作台后生效）' }));
+        deps.dispatch((x) => x.settingsSettled({ saving: false, message: '已保存 AI 服务设置' }));
         // 保存成功后回读视图，让 hasKey 等派生字段与 Host 一致。
         void unwrap(deps.llmConfig()?.load()).then((view) => { if (deps.isActive() && view !== undefined) deps.dispatch((x) => x.settingsLoaded(view as LlmConfigViewShape)); }, () => undefined);
       },

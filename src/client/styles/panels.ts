@@ -7,7 +7,7 @@
 export const PANELS_STYLES = `
 /* I192 / §14.34：进阶工具的布局与反馈 owner；按钮、表单原语仍由 controls/forms 提供。 */
 .nv-queue, .nv-knowledge, .nv-review, .nv-progress, .nv-search, .nv-statistics,
-[data-novel-rule-style-panel], [data-novel-import-export-panel] {
+[data-novel-rule-style-panel], [data-novel-import-export-panel], .nv-settings {
   display: flex;
   flex-direction: column;
   gap: 16px;

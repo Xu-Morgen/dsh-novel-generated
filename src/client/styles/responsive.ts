@@ -1,20 +1,13 @@
-/**
- * I83 styles 分区 · responsive：响应式断点与明暗适配（I59 / D12）。
- * I83 由 scripts/.split-styles.mjs 从单一 WORKBENCH_STYLES 模板字符串按键切出；
- * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
- * 由 styles.ts 组合器按原顺序拼接。
- */
+/** I193 / 设计 §14.34：桌面响应式几何的唯一 owner，窄窗保持正文与导航可达。 */
 import { RESPONSIVE_BREAKPOINT_COMPACT, RESPONSIVE_BREAKPOINT_NAV } from './tokens.js';
 export const RESPONSIVE_STYLES = `
-/* I59 响应式断点（design §14.8 / R12-6）：窄屏把左右分栏改为纵向堆叠，导航退化
-   为可横向滚动的横条；仍由同一 shell.overlay Slot/Fiber 管理，不创建新容器，
-   窄屏无不可达内容（主列纵向滚动 + 导航横向滚动双轴可达）。 */
+/* 窄窗改为上下布局；导航在有限高度内纵向滚动，可手动收起。 */
 @media (max-width: ${RESPONSIVE_BREAKPOINT_NAV}px) {
   .nv-workbench__body-row {
     flex-direction: column;
   }
 
-  /* UI 打磨：窄屏导航退化为横向滚动横条，无可拖动侧栏宽度 → 隐藏拖柄。 */
+  /* UI 打磨：窄屏不使用侧栏宽度拖柄。 */
   .nv-workbench__nav-resizer {
     display: none;
   }
@@ -22,27 +15,26 @@ export const RESPONSIVE_STYLES = `
   .nv-workbench__nav {
     width: auto;
     max-width: 100%;
-    max-height: 40%;
+    max-height: 28vh;
     flex: none;
     border-right: none;
     border-bottom: 1px solid var(--nv-line);
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: auto;
-    white-space: nowrap;
+    white-space: normal;
     padding: var(--nv-grid);
   }
 
   .nv-workbench__nav-group {
-    display: inline-block;
-    vertical-align: top;
-    min-width: max-content;
-    margin: 0 calc(var(--nv-grid) * 2) 0 0;
+    display: block;
+    min-width: 0;
+    margin: 0 0 12px;
   }
 
   .nv-workbench__nav-item {
-    display: inline-block;
-    width: auto;
-    white-space: nowrap;
+    display: inline-flex;
+    width: 50%;
+    white-space: normal;
   }
 
   .nv-editor__columns,

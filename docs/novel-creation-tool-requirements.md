@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 路线仍只作 provenance；v4.1 选择的是具备严格 Main/Preload/多 Renderer 边界的 Electron 应用，不恢复浏览器直连 LLM、Renderer 作品文件 I/O 或旧 `I1a–I28b2` 排期。
-- 当前迭代身份：**I1–I187 / Stage 0–37 已完成；当前执行 Stage 38 / I188–I193 UI 改造**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
+- 当前迭代身份：**I1–I187 / Stage 0–37 已完成；当前执行 Stage 38 / I188–I194 UI 改造**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R35 或未来产品能力抵消。I187 明确取代 H0 中旧的单 Renderer 与 CredentialStore-only 限制，但不把运行时迁移冒充为已完成。
 
 ### 0.3 统一验收纪律
@@ -78,7 +78,7 @@
 | Stage 35 桌面助手与旧库迁移（R34） | I181–I182 | `pnpm run verify:stage-35` |
 | Stage 36 DSH 退役与桌面发布（R34） | I183–I186 | `pnpm run verify:stage-36` |
 | Stage 37 多 Renderer 与 Renderer 明文凭据治理（R35） | I187 | `pnpm run verify:stage-37` |
-| Stage 38 Electron 暖纸 UI 改造（R36） | I188–I193 | `pnpm run verify:stage-38` |
+| Stage 38 Electron 暖纸 UI 改造（R36） | I188–I194 | `pnpm run verify:stage-38` |
 | 后置设计包 F1 导入基础设施重构（v3.2 原 R20 / I151–I155） | 待重新编号 | 无当前执行命令 |
 | 后置设计包 F2 已有正文保真导入（v3.2 原 R21 / I156–I162） | 待重新编号 | 无当前执行命令 |
 
@@ -699,12 +699,12 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I187 / Stage 0–37 已完成；当前为 Stage 38 / I188–I193 UI 改造，I187 治理已提交，已把多 Renderer 与 Renderer 明文多 profile 凭据定义为 v4.1 基线。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I187 / Stage 0–37 已完成；当前为 Stage 38 / I188–I194 UI 改造，I187 治理已提交，已把多 Renderer 与 Renderer 明文多 profile 凭据定义为 v4.1 基线。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；Electron、Main 唯一领域 Host、strict IPC、Main-owned 作品数据/LLM 执行、多 Renderer 窗口注册表、Renderer-owned 明文 profiles 和 DesktopLifecycle 是当前停止线。I187 是合同修订而非运行时交付；在后续实现卡完成前，现有安装包仍属于 v4.0 legacy baseline。I1/I2、`shell.overlay`、Typert 与 DSH pin 仅记录旧交付事实，不再定义当前运行时。
 
 
-## R36. Electron 暖纸 UI 改造（I188–I193）
+## R36. Electron 暖纸 UI 改造（I188–I194）
 
 | ID | 要求 | 验收证据 | 迭代 |
 |---|---|---|---|

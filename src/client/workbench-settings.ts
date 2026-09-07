@@ -64,7 +64,7 @@ export function workbenchSettingsPanel(
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-open-project-folder': '', disabled: namespace === undefined || projectId === undefined, onClick: () => openFolder?.() },
         projectId === undefined ? '打开作品文件夹（请先选择作品）' : '打开作品文件夹'),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workbench-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-workbench-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存创作设置')),
     ),
     // I59 保存状态（R12-6）：保存中/已保存/失败三态可播报；saved/failed 行保留既有
     // data-novel-workbench-message / data-novel-workbench-error 锚点。

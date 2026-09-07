@@ -4,12 +4,9 @@ import type { NamespaceOf } from './remote-namespace.js';
 import type { llmConfigRemoteContribution } from '../remote.js';
 
 /**
- * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并保存到本地
- * DSH。Client 只提交 Key 一次，load 视图永不包含 Key（design §0.1.2 凭据 seam）。
- *
- * 生成参数（maxTokens / 思维链 / 思考强度）均按 DeepSeek 官方文档提供用户友好
- * 控件与推荐默认值：maxTokens 固定档位（32768 推荐 / 65536 / 128k），思维链官方
- * 默认启用，思考强度官方默认 high（见 `src/core/schema/llm-config.ts`）。
+ * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并交给桌面 Main 保存。
+ * Client 只提交 Key 一次，load 视图永不包含 Key（design §0.1.2 凭据 seam）。
+ * 生成参数选项服从既有 canonical schema；不同 provider 的支持能力由服务决定。
  */
 
 export interface LlmConfigViewShape {
@@ -64,7 +61,7 @@ export function llmSettingsPanel(
   return h('section', { className: 'nv-panel nv-settings', 'data-novel-llm-settings': '', 'data-novel-layer-state': 'ready' },
     h('h3', { className: 'nv-editor__title' }, 'AI 设置'),
     h('p', { className: 'nv-settings__hint' },
-      '配置自定义 AI 服务。访问密钥仅保存在本地，不回传浏览器；服务路由保存后需重启 DSH 生效，生成参数保存后立即生效。'),
+      '设置用于创作的 AI 服务。当前桌面版本由应用主进程保存访问密钥，读取设置时仅返回是否已保存。保存后用于后续请求，无需重启。'),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '服务地址'),
@@ -72,37 +69,40 @@ export function llmSettingsPanel(
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '模型名称'),
-        h('input', { type: 'text', className: 'nv-field__input', 'data-novel-llm-model': '', placeholder: 'gpt-4o', value: draft.model, onChange: (event: { target: { value: string } }) => mutate({ model: event.target.value }) }),
+        h('input', { type: 'text', className: 'nv-field__input', 'data-novel-llm-model': '', placeholder: '填写服务提供的模型名称', value: draft.model, onChange: (event: { target: { value: string } }) => mutate({ model: event.target.value }) }),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '访问密钥'),
-        h('input', { type: 'password', className: 'nv-field__input', 'data-novel-llm-key': '', placeholder: view?.hasKey ? '已保存（留空保持不变）' : '请输入访问密钥', value: draft.apiKey, onChange: (event: { target: { value: string } }) => mutate({ apiKey: event.target.value }) }),
+        h('input', { type: 'password', autoComplete: 'off', spellCheck: false, className: 'nv-field__input', 'data-novel-llm-key': '', placeholder: view?.hasKey ? '已保存（留空保持不变）' : '请输入访问密钥', value: draft.apiKey, onChange: (event: { target: { value: string } }) => mutate({ apiKey: event.target.value }) }),
       ),
+      h('details', { className: 'nv-fieldset', 'data-novel-llm-generation-settings': '' },
+      h('summary', { className: 'nv-fieldset__legend' }, '生成参数'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '单次输出长度'),
         h('select', { className: 'nv-field__input', 'data-novel-llm-max-tokens': '', value: draft.maxTokens, onChange: (event: { target: { value: string } }) => mutate({ maxTokens: Number(event.target.value) }) },
           LLM_MAX_TOKENS_OPTION_LABELS.map((option) => h('option', { key: option.value, value: option.value }, option.label)),
         ),
-        h('span', { className: 'nv-settings__hint' }, '该长度同时覆盖思考与正文；六层分析建议 32768，超长文本可上调至 128k。'),
+        h('span', { className: 'nv-settings__hint' }, '选择服务支持的单次输出上限；较长输出可能增加等待时间。'),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '深度思考'),
         h('select', { className: 'nv-field__input', 'data-novel-llm-thinking': '', value: draft.thinking, onChange: (event: { target: { value: string } }) => mutate({ thinking: event.target.value === 'enabled' ? 'enabled' : 'disabled' }) },
-          h('option', { value: 'enabled' }, '启用（官方默认，更准）'),
-          h('option', { value: 'disabled' }, '禁用（更快）'),
+          h('option', { value: 'enabled' }, '启用'),
+          h('option', { value: 'disabled' }, '禁用'),
         ),
-        h('span', { className: 'nv-settings__hint' }, '官方：启用时 temperature/top_p 等采样参数不生效；禁用后输出更快、token 更省。'),
+        h('span', { className: 'nv-settings__hint' }, '是否支持深度思考及其强度，取决于所选服务与模型。'),
       ),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '思考强度（仅启用深度思考时有效）'),
         h('select', { className: 'nv-field__input', 'data-novel-llm-effort': '', value: draft.reasoningEffort, disabled: draft.thinking === 'disabled', onChange: (event: { target: { value: string } }) => mutate({ reasoningEffort: event.target.value === 'max' ? 'max' : event.target.value === 'low' ? 'low' : 'high' }) },
           h('option', { value: 'low' }, '低（最快）'),
-          h('option', { value: 'high' }, '高（官方默认）'),
-          h('option', { value: 'max' }, '最高（最准，最慢）'),
+          h('option', { value: 'high' }, '高'),
+          h('option', { value: 'max' }, '最高'),
         ),
       ),
+      ),
     ),
-    h('button', { type: 'button', className: 'nv-btn', 'data-novel-llm-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
+    h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-llm-save': '', disabled: namespace === undefined || draft.saving, onClick: () => save() }, saveButtonLabel(draft.saving, '保存设置')),
     // I59 保存状态（R12-6）：保存中/已保存/失败三态可播报；saved/failed 行保留既有
     // data-novel-llm-message / data-novel-llm-error 锚点，新增 data-novel-save-state。
     draft.saving ? h('p', { className: 'nv-save-status nv-save-status--saving', 'data-novel-save-status': 'llm', 'data-novel-save-state': 'saving', role: 'status', 'aria-live': 'polite' }, '正在保存…') : null,
