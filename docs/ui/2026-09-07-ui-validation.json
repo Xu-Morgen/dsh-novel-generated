@@ -1,0 +1,903 @@
+{
+  "date": "2026-09-07",
+  "scope": "Offline design prototype only; no production application E2E",
+  "checks": [
+    {
+      "name": "35 design views",
+      "pass": true,
+      "detail": [
+        "projects",
+        "workflow",
+        "source",
+        "sourceReview",
+        "ruleStyleInit",
+        "onboarding",
+        "outline",
+        "detail",
+        "baseline",
+        "chapters",
+        "candidate",
+        "versions",
+        "materials",
+        "finalization",
+        "review",
+        "referenceReview",
+        "queue",
+        "characters",
+        "worldview",
+        "relationship",
+        "state",
+        "canon",
+        "knowledge",
+        "timeline",
+        "ruleStyle",
+        "progress",
+        "search",
+        "statistics",
+        "importExport",
+        "creationSettings",
+        "settings",
+        "assistant",
+        "migration",
+        "system",
+        "design"
+      ]
+    },
+    {
+      "name": "render projects",
+      "pass": true,
+      "detail": {
+        "heading": "作品库",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render workflow",
+      "pass": true,
+      "detail": {
+        "heading": "创作流程",
+        "buttons": 10,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render source",
+      "pass": true,
+      "detail": {
+        "heading": "导入来源",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render sourceReview",
+      "pass": true,
+      "detail": {
+        "heading": "来源语义审阅",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render ruleStyleInit",
+      "pass": true,
+      "detail": {
+        "heading": "规则与文风初稿",
+        "buttons": 2,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render onboarding",
+      "pass": true,
+      "detail": {
+        "heading": "初始化内容审阅",
+        "buttons": 11,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render outline",
+      "pass": true,
+      "detail": {
+        "heading": "大纲工作区",
+        "buttons": 9,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render detail",
+      "pass": true,
+      "detail": {
+        "heading": "细纲候选",
+        "buttons": 5,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render baseline",
+      "pass": true,
+      "detail": {
+        "heading": "生成基线",
+        "buttons": 3,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render chapters",
+      "pass": true,
+      "detail": {
+        "heading": "正文工作区",
+        "buttons": 18,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render candidate",
+      "pass": true,
+      "detail": {
+        "heading": "正文候选",
+        "buttons": 3,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render versions",
+      "pass": true,
+      "detail": {
+        "heading": "版本与分支",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render materials",
+      "pass": true,
+      "detail": {
+        "heading": "章节与场景管理",
+        "buttons": 10,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render finalization",
+      "pass": true,
+      "detail": {
+        "heading": "定稿同步",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render review",
+      "pass": true,
+      "detail": {
+        "heading": "审校中心",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render referenceReview",
+      "pass": true,
+      "detail": {
+        "heading": "引用更新审查",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render queue",
+      "pass": true,
+      "detail": {
+        "heading": "生成队列",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render characters",
+      "pass": true,
+      "detail": {
+        "heading": "角色",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render worldview",
+      "pass": true,
+      "detail": {
+        "heading": "世界观",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render relationship",
+      "pass": true,
+      "detail": {
+        "heading": "关系",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render state",
+      "pass": true,
+      "detail": {
+        "heading": "状态快照",
+        "buttons": 5,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render canon",
+      "pass": true,
+      "detail": {
+        "heading": "正史",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render knowledge",
+      "pass": true,
+      "detail": {
+        "heading": "知情与揭示",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render timeline",
+      "pass": true,
+      "detail": {
+        "heading": "时间线",
+        "buttons": 3,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render ruleStyle",
+      "pass": true,
+      "detail": {
+        "heading": "规则与文风",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render progress",
+      "pass": true,
+      "detail": {
+        "heading": "进度与灵感",
+        "buttons": 5,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render search",
+      "pass": true,
+      "detail": {
+        "heading": "搜索与追踪",
+        "buttons": 10,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render statistics",
+      "pass": true,
+      "detail": {
+        "heading": "写作进度",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render importExport",
+      "pass": true,
+      "detail": {
+        "heading": "导入导出与备份",
+        "buttons": 6,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render creationSettings",
+      "pass": true,
+      "detail": {
+        "heading": "创作设置",
+        "buttons": 2,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render settings",
+      "pass": true,
+      "detail": {
+        "heading": "AI 设置",
+        "buttons": 1,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render assistant",
+      "pass": true,
+      "detail": {
+        "heading": "创作助手",
+        "buttons": 7,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render migration",
+      "pass": true,
+      "detail": {
+        "heading": "旧作品迁移",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render system",
+      "pass": true,
+      "detail": {
+        "heading": "全局状态与确认",
+        "buttons": 4,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "render design",
+      "pass": true,
+      "detail": {
+        "heading": "按钮与视觉规范",
+        "buttons": 12,
+        "overflow": false,
+        "missing": 0
+      }
+    },
+    {
+      "name": "source review initially blocks confirmation",
+      "pass": true
+    },
+    {
+      "name": "disabled primary uses disabled visual",
+      "pass": true
+    },
+    {
+      "name": "source review selection enables confirmation",
+      "pass": true
+    },
+    {
+      "name": "modal opens with safe initial focus",
+      "pass": true
+    },
+    {
+      "name": "modal restores trigger focus",
+      "pass": true
+    },
+    {
+      "name": "unsaved edit protects navigation",
+      "pass": true
+    },
+    {
+      "name": "save feedback resolves dirty state",
+      "pass": true
+    },
+    {
+      "name": "queue running controls",
+      "pass": true
+    },
+    {
+      "name": "queue pause controls",
+      "pass": true
+    },
+    {
+      "name": "queue cancel controls",
+      "pass": true
+    },
+    {
+      "name": "search empty feedback",
+      "pass": true
+    },
+    {
+      "name": "state empty",
+      "pass": true,
+      "detail": {
+        "h": "角色",
+        "disabled": 0
+      }
+    },
+    {
+      "name": "state loading",
+      "pass": true,
+      "detail": {
+        "h": "角色",
+        "disabled": 0
+      }
+    },
+    {
+      "name": "state error",
+      "pass": true,
+      "detail": {
+        "h": "角色",
+        "disabled": 0
+      }
+    },
+    {
+      "name": "state readonly",
+      "pass": true,
+      "detail": {
+        "h": "角色",
+        "disabled": 1
+      }
+    },
+    {
+      "name": "width 1920 workflow",
+      "pass": true,
+      "detail": {
+        "viewport": 1920,
+        "document": 1905,
+        "content": 1600,
+        "contentWidth": 1600
+      }
+    },
+    {
+      "name": "width 1920 chapters",
+      "pass": true,
+      "detail": {
+        "viewport": 1920,
+        "document": 1905,
+        "content": 1600,
+        "contentWidth": 1600
+      }
+    },
+    {
+      "name": "width 1920 sourceReview",
+      "pass": true,
+      "detail": {
+        "viewport": 1920,
+        "document": 1905,
+        "content": 1600,
+        "contentWidth": 1600
+      }
+    },
+    {
+      "name": "width 1920 characters",
+      "pass": true,
+      "detail": {
+        "viewport": 1920,
+        "document": 1905,
+        "content": 1600,
+        "contentWidth": 1600
+      }
+    },
+    {
+      "name": "width 1920 design",
+      "pass": true,
+      "detail": {
+        "viewport": 1920,
+        "document": 1905,
+        "content": 1600,
+        "contentWidth": 1600
+      }
+    },
+    {
+      "name": "width 1366 workflow",
+      "pass": true,
+      "detail": {
+        "viewport": 1366,
+        "document": 1351,
+        "content": 1135,
+        "contentWidth": 1135
+      }
+    },
+    {
+      "name": "width 1366 chapters",
+      "pass": true,
+      "detail": {
+        "viewport": 1366,
+        "document": 1351,
+        "content": 1135,
+        "contentWidth": 1135
+      }
+    },
+    {
+      "name": "width 1366 sourceReview",
+      "pass": true,
+      "detail": {
+        "viewport": 1366,
+        "document": 1351,
+        "content": 1135,
+        "contentWidth": 1135
+      }
+    },
+    {
+      "name": "width 1366 characters",
+      "pass": true,
+      "detail": {
+        "viewport": 1366,
+        "document": 1351,
+        "content": 1135,
+        "contentWidth": 1135
+      }
+    },
+    {
+      "name": "width 1366 design",
+      "pass": true,
+      "detail": {
+        "viewport": 1366,
+        "document": 1351,
+        "content": 1135,
+        "contentWidth": 1135
+      }
+    },
+    {
+      "name": "width 1024 workflow",
+      "pass": true,
+      "detail": {
+        "viewport": 1024,
+        "document": 1009,
+        "content": 825,
+        "contentWidth": 825
+      }
+    },
+    {
+      "name": "width 1024 chapters",
+      "pass": true,
+      "detail": {
+        "viewport": 1024,
+        "document": 1009,
+        "content": 825,
+        "contentWidth": 825
+      }
+    },
+    {
+      "name": "width 1024 sourceReview",
+      "pass": true,
+      "detail": {
+        "viewport": 1024,
+        "document": 1009,
+        "content": 825,
+        "contentWidth": 825
+      }
+    },
+    {
+      "name": "width 1024 characters",
+      "pass": true,
+      "detail": {
+        "viewport": 1024,
+        "document": 1009,
+        "content": 825,
+        "contentWidth": 825
+      }
+    },
+    {
+      "name": "width 1024 design",
+      "pass": true,
+      "detail": {
+        "viewport": 1024,
+        "document": 1009,
+        "content": 825,
+        "contentWidth": 825
+      }
+    },
+    {
+      "name": "width 720 workflow",
+      "pass": true,
+      "detail": {
+        "viewport": 720,
+        "document": 705,
+        "content": 705,
+        "contentWidth": 705
+      }
+    },
+    {
+      "name": "width 720 chapters",
+      "pass": true,
+      "detail": {
+        "viewport": 720,
+        "document": 705,
+        "content": 705,
+        "contentWidth": 705
+      }
+    },
+    {
+      "name": "width 720 sourceReview",
+      "pass": true,
+      "detail": {
+        "viewport": 720,
+        "document": 705,
+        "content": 705,
+        "contentWidth": 705
+      }
+    },
+    {
+      "name": "width 720 characters",
+      "pass": true,
+      "detail": {
+        "viewport": 720,
+        "document": 705,
+        "content": 705,
+        "contentWidth": 705
+      }
+    },
+    {
+      "name": "width 720 design",
+      "pass": true,
+      "detail": {
+        "viewport": 720,
+        "document": 705,
+        "content": 705,
+        "contentWidth": 705
+      }
+    },
+    {
+      "name": "width 440 workflow",
+      "pass": true,
+      "detail": {
+        "viewport": 440,
+        "document": 425,
+        "content": 425,
+        "contentWidth": 425
+      }
+    },
+    {
+      "name": "width 440 chapters",
+      "pass": true,
+      "detail": {
+        "viewport": 440,
+        "document": 425,
+        "content": 425,
+        "contentWidth": 425
+      }
+    },
+    {
+      "name": "width 440 sourceReview",
+      "pass": true,
+      "detail": {
+        "viewport": 440,
+        "document": 425,
+        "content": 425,
+        "contentWidth": 425
+      }
+    },
+    {
+      "name": "width 440 characters",
+      "pass": true,
+      "detail": {
+        "viewport": 440,
+        "document": 425,
+        "content": 425,
+        "contentWidth": 425
+      }
+    },
+    {
+      "name": "width 440 design",
+      "pass": true,
+      "detail": {
+        "viewport": 440,
+        "document": 425,
+        "content": 425,
+        "contentWidth": 425
+      }
+    },
+    {
+      "name": "no renderer errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "241 uniquely identified button declarations",
+      "pass": true
+    },
+    {
+      "name": "all 20 stable views have prototype design",
+      "pass": true,
+      "detail": [
+        "workflow",
+        "characters",
+        "worldview",
+        "relationship",
+        "state",
+        "canon",
+        "knowledge",
+        "timeline",
+        "ruleStyle",
+        "outline",
+        "chapters",
+        "review",
+        "queue",
+        "search",
+        "statistics",
+        "progress",
+        "importExport",
+        "creationSettings",
+        "settings",
+        "onboarding"
+      ]
+    },
+    {
+      "name": "contrast body",
+      "pass": true,
+      "detail": {
+        "foreground": "#262923",
+        "background": "#fffdf8",
+        "ratio": 14.508160956608172,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast secondary",
+      "pass": true,
+      "detail": {
+        "foreground": "#64675f",
+        "background": "#f4f1ea",
+        "ratio": 5.104407644901942,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast primary button",
+      "pass": true,
+      "detail": {
+        "foreground": "#ffffff",
+        "background": "#a83d30",
+        "ratio": 6.22195741703683,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast success badge",
+      "pass": true,
+      "detail": {
+        "foreground": "#28664a",
+        "background": "#e7f1ea",
+        "ratio": 5.880271762743051,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast info badge",
+      "pass": true,
+      "detail": {
+        "foreground": "#315f89",
+        "background": "#e8eff7",
+        "ratio": 5.791801313987749,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast warning badge",
+      "pass": true,
+      "detail": {
+        "foreground": "#815914",
+        "background": "#fbf0d9",
+        "ratio": 5.505693741545837,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast danger badge",
+      "pass": true,
+      "detail": {
+        "foreground": "#a12636",
+        "background": "#f9e8eb",
+        "ratio": 6.244089799306476,
+        "minimum": 4.5
+      }
+    },
+    {
+      "name": "contrast control border",
+      "pass": true,
+      "detail": {
+        "foreground": "#87897f",
+        "background": "#fffdf8",
+        "ratio": 3.4924610424013824,
+        "minimum": 3
+      }
+    },
+    {
+      "name": "static local document links",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "static artifact encoding and whitespace",
+      "pass": true,
+      "detail": []
+    }
+  ],
+  "screenshots": [
+    "2026-09-07-ui-workflow.png",
+    "2026-09-07-ui-chapters.png",
+    "2026-09-07-ui-sourceReview.png",
+    "2026-09-07-ui-projects.png",
+    "2026-09-07-ui-design.png"
+  ],
+  "runtimeErrors": [],
+  "sourceBaseline": {
+    "branch": "desktop",
+    "commit": "0412517",
+    "buttonDeclarationFiles": 33,
+    "note": "Source audit baseline only; no new implementation commit"
+  },
+  "validationRuntime": "Electron 44.1.1; hidden offscreen BrowserWindow; contextIsolation and sandbox enabled; nodeIntegration disabled; isolated temporary userData",
+  "productionTests": "Not run: this is a design-only package; no runtime source, prompt, schema or sample changes",
+  "result": "passed",
+  "designArtifacts": {
+    "2026-09-07-ui-button-inventory.md": {
+      "bytes": 40670,
+      "sha256": "f03905ca656ff82ba94d2643fedcd571686fa4d70b04b0727c31f6e5112fc15e"
+    },
+    "2026-09-07-ui-buttons.json": {
+      "bytes": 115884,
+      "sha256": "5fde47a5dd5a5259b3d2b6ded06193af025a7e90749cec97c431377e0e57a343"
+    },
+    "2026-09-07-ui-chapters.png": {
+      "bytes": 160917,
+      "sha256": "f57cafa53b8cd4ea540f5aa6f27fa96e87b875ec1b3a90eebb6260b19666a698"
+    },
+    "2026-09-07-ui-design.png": {
+      "bytes": 75730,
+      "sha256": "528eb1512e64784277ede105ea1e22484c87a8695260fc82b5b2b954a8d22281"
+    },
+    "2026-09-07-ui-optimization-plan.md": {
+      "bytes": 31174,
+      "sha256": "ae85096de32a65b78132d3daa8814e4a4d13927f8e003e5e65bf78217cd70d06"
+    },
+    "2026-09-07-ui-projects.png": {
+      "bytes": 78572,
+      "sha256": "909ea0a56f5ff833c5c281c55d4484752243e32ebc6a995def474de906cc738c"
+    },
+    "2026-09-07-ui-prototype.html": {
+      "bytes": 81663,
+      "sha256": "3bf19ebd255867f12153e12d908d90da1aaed4fea44b3f6f33cdfc263b64d1e0"
+    },
+    "2026-09-07-ui-sourceReview.png": {
+      "bytes": 95940,
+      "sha256": "816cb90129729404f439db81985e9b5382b07a906ae1cf36d380e4eb9402ae7b"
+    },
+    "2026-09-07-ui-workflow.png": {
+      "bytes": 102725,
+      "sha256": "4c10cb67e4400186aeda94ed9916fc20575774972822e83ff10b936ad535432a"
+    }
+  }
+}
