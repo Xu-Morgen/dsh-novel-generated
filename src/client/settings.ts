@@ -5,7 +5,8 @@ import type { llmConfigRemoteContribution } from '../remote.js';
 
 /**
  * LLM 设置页（额外页面）：手动输入 API URL / 模型名称 / API Key 并交给桌面 Main 保存。
- * Client 只提交 Key 一次，load 视图永不包含 Key（design §0.1.2 凭据 seam）。
+ * Client 只提交 Key，load 视图永不包含 Key；Main 按 design §14.35 把它写入
+ * 本机应用数据目录中的明文文本文件。
  * 生成参数选项服从既有 canonical schema；不同 provider 的支持能力由服务决定。
  */
 
@@ -61,7 +62,7 @@ export function llmSettingsPanel(
   return h('section', { className: 'nv-panel nv-settings', 'data-novel-llm-settings': '', 'data-novel-layer-state': 'ready' },
     h('h3', { className: 'nv-editor__title' }, 'AI 设置'),
     h('p', { className: 'nv-settings__hint' },
-      '设置用于创作的 AI 服务。当前桌面版本由应用主进程保存访问密钥，读取设置时仅返回是否已保存。保存后用于后续请求，无需重启。'),
+      '设置用于创作的 AI 服务。访问密钥会以不加密的明文保存到应用数据目录 settings/ai-token.txt，可在文本编辑器中直接修改；同一系统账户下的其他程序也可能读取，请自行承担风险。读取设置时仅返回是否已保存，外部修改后下次 AI 请求即生效。'),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '服务地址'),

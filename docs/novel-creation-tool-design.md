@@ -1427,3 +1427,11 @@ I194 接线边界补充（§14.34）：普通来源复用已锁定 I52/I56 六�
 | 聊天历史 | C4 正史 + C5 生成文本 | 拆分：事实 vs 文本 |
 
 I195 / Stage 39 兼容说明（§14.34）：Main OpenAI-compatible SSE adapter 对 `content`/`reasoning_content` 的 null 只解释为该增量缺省；有效增量仍必须为字符串，reasoning 不合并为正文。其他类型、非法事件仍 fail-closed；公开合同与模型 prompt/schema 不变。
+
+### 14.35 作者可编辑的本地明文 Token 文件（Stage 40 / I196）
+
+2026-09-07 用户明确要求当前 AI Token 落到本地 txt 且不加密，方便直接修改和保存。当前单 profile 运行时以 Electron `userData/settings/ai-token.txt` 为 token 配置源：文件只允许一个非空行，Main 在每次 provider 请求解析凭据时重新读取。Renderer 仍无 Node/路径/文件能力，Provider 仍只在 Main 调用；`novelLlmConfig.load` 只返回 `hasKey`，不返回 token 或绝对路径。
+
+此文件不是安全存储。同一 OS 账户、能读取应用数据目录的其他程序、Renderer compromise 或本机调试均可能取得 token；设置页必须明示风险。token 禁止进入作品、导出、日志、诊断、进度、错误详情、IPC 结果或 Git。旧 `credentials.bin` 仅作一次性迁移来源：txt 不存在且旧值可解密时，先原子写入明文文件，再删除旧记录；迁移失败不得损坏旧值。
+
+I196 是当前单 profile 的显式兼容切片，不撤销 §14.33 的多 Renderer/Renderer-owned 多 profile 目标，也不宣称 R35 运行时已完成。未来 profile store 实现须把该文件作为可选导入来源，不建立第二个长期凭据真相。

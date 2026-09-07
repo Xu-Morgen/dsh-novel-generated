@@ -4,8 +4,8 @@ import { param, remoteContribution, remoteInvocation } from './shared.js';
 import { llmConfigSaveInputSchema, llmConfigSaveResultSchema, llmConfigViewSchema } from '../../core/schema/llm-config.js';
 
 /**
- * LLM 设置页 Remote：`load` 回显（不含 Key）、`save` 落盘三处 DSH 本地文件。
- * 浏览器只提交 Key 一次，永不读回。
+ * LLM 设置页 Remote：`load` 回显（不含 Key）、`save` 写入桌面本地设置。
+ * Renderer 只提交 Key，永不经 IPC 读回；明文文件策略见 design §14.35。
  */
 // I75：`param`/`llmConfigInvocation` 统一到 shared 接线层（见架构审查 §6.3/§9#1）。
 // I91：helper 泛型透传（不标注 `: InvocationDescriptor` 返回类型），否则幻影类型被扩宽抹掉。

@@ -28,10 +28,10 @@ import { readYaml } from '../../core/io/yaml.js';
 import type { IpcHandler } from '../../app/ipc-registry.js';
 
 /**
- * Main-owned LLM settings persistence for the desktop runtime (design §0.1.2).
- * The provider document and A2 sampling live below the Electron settings root;
- * the only secret operation is the injected CredentialStore. No provider
- * framework, host composition, or secret value crosses this service boundary.
+ * Main-owned LLM settings persistence for the desktop runtime. The provider
+ * document and A2 sampling live below the Electron settings root; the injected
+ * CredentialStore may use the explicitly accepted plaintext token policy from
+ * design §14.35. No secret value crosses the result boundary.
  */
 export interface DesktopLlmConfigService {
   load(): Promise<LlmConfigView>;

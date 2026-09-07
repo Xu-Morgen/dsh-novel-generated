@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 /**
  * LLM 设置页（额外页面）的 Remote 契约：用户手动输入自定义 API URL、模型名称
- * 与 API Key，Host 负责经 DSH settings/credentials seam 持久化 provider、凭据引用
- * 与 A2 active backend。Key 只交给 Host 的 `ctx.credentials`，永不回传浏览器
- * （design §0.1.2 / §14.19）。
+ * 与 API Key，Main 负责持久化 provider、凭据引用与 A2 active backend。桌面端
+ * 按用户接受的降级策略写入本地明文 token 文件；Key 永不进入 IPC 结果
+ * （design §14.35）。
  */
 
 /** 本插件在 DSH `llm-pi-ai.providers` 中拥有的 provider id。 */

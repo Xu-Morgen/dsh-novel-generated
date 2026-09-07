@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 路线仍只作 provenance；v4.1 选择的是具备严格 Main/Preload/多 Renderer 边界的 Electron 应用，不恢复浏览器直连 LLM、Renderer 作品文件 I/O 或旧 `I1a–I28b2` 排期。
-- 当前迭代身份：**I1–I195 / Stage 0–39 已完成；Stage 38 / I188–I194 UI 改造已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
+- 当前迭代身份：**I1–I196 / Stage 0–40 已完成；Stage 40 明文 Token 文件已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R35 或未来产品能力抵消。I187 明确取代 H0 中旧的单 Renderer 与 CredentialStore-only 限制，但不把运行时迁移冒充为已完成。
 
 ### 0.3 统一验收纪律
@@ -699,7 +699,7 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I195 / Stage 0–39 已完成；Stage 38 / I188–I194 UI 改造已验收交付，I187 治理已提交，已把多 Renderer 与 Renderer 明文多 profile 凭据定义为 v4.1 基线。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I196 / Stage 0–40 已完成；当前单 profile 的 token 已按用户授权改为作者可编辑的本地明文 txt，R35 多 Renderer/Renderer-owned 多 profile 仍待后续实现。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；Electron、Main 唯一领域 Host、strict IPC、Main-owned 作品数据/LLM 执行、多 Renderer 窗口注册表、Renderer-owned 明文 profiles 和 DesktopLifecycle 是当前停止线。I187 是合同修订而非运行时交付；在后续实现卡完成前，现有安装包仍属于 v4.0 legacy baseline。I1/I2、`shell.overlay`、Typert 与 DSH pin 仅记录旧交付事实，不再定义当前运行时。
 
@@ -722,3 +722,15 @@ R36 完成证据（2026-09-07）：`docs/ui/ui-delivery-report.md`、逐项 `doc
 R36-6 修复跟踪：I195 / Stage 39 验证真实来源分析消费 nullable provider 流；要求无即时类型误拒绝、非法增量继续拒绝、秘密不进入错误与输出。
 
 I195 验收通过：`verify:stage-39`（含 `verify:i195`）exit 0；227 文件 / 1185 测试、开发/打包各 18 项真实作者检查；实际 DeepSeek 来源分类成功。证据 `docs/ui/i195-dod.md`。
+
+## R37. 作者可编辑的本地明文 Token 文件（I196）
+
+| ID | 要求 | 验收证据 | 迭代 |
+|---|---|---|---|
+| R37-1 | 当前单 profile 的 API token 保存为 Electron 应用数据目录 `settings/ai-token.txt` 中唯一一个非空明文行；Main 每次 provider 调用前重新读取，允许作者用外部文本编辑器修改。 | adapter round-trip 与外部覆盖消费者；真实 Electron 保存后逐字文件断言；空文件与多行负测。 | I196 |
+| R37-2 | 产品必须明确说明该文件不加密且同 OS 账户/本机进程可读；token 仍不得进入 IPC 结果、错误、进度、日志、作品、导出、诊断、Git 或 smoke 证据。 | 设置 DOM 文案；IPC envelope 与 evidence 扫描；`.gitignore`；无 secret 的 validation 产物。 | I196 |
+| R37-3 | txt 缺失时允许从旧 `credentials.bin` 一次性迁移；必须先成功原子写入 txt 再删除旧记录。公开 IPC、A2 `secretRef`、provider/model/采样合同保持不变。 | fake legacy store 顺序/失败夹具；既有 llm-config/adapter/contract tests 全绿。 | I196 |
+
+R37 是用户授权的当前单 profile 兼容切片；不实现或替代 R35 的多 profile、多窗口与 Renderer-owned profile store，未来实现只能把该 txt 当作可选导入来源。
+
+I196 验收通过：`verify:i196` / `verify:stage-40` exit 0；228 文件 / 1189 测试，真实 Electron strict IPC 保存、txt 明文、外部编辑和零回显 smoke 通过。证据 `docs/ui/i196-dod.md` 与 `artifacts/desktop/ui/i196/validation.json`。

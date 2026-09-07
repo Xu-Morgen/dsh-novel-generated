@@ -16,6 +16,7 @@ artifacts/desktop/
 !.env.example
 secrets/
 *.key
+ai-token.txt
 
 # Logs
 *.log

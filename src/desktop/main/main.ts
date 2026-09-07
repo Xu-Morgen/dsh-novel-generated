@@ -8,8 +8,10 @@ import type { IpcHandler } from '../../app/ipc-registry.js';
 import type { ApplicationPorts } from '../../app/ports.js';
 import { createDesktopPaths } from '../../platform/desktop-paths.js';
 import { createElectronSecureStorage } from '../../platform/electron-secure-storage.js';
+import { createPlainTextSecretStorage } from '../../platform/plaintext-secret-storage.js';
 import { createOpenAICompatibleBackend } from '../../platform/openai-compatible-llm.js';
 import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
+import { NOVEL_LLM_CREDENTIAL_REF } from '../../core/schema/llm-config.js';
 import { createDesktopLlmConfigHandlers, createLlmConfigService } from './llm-config-service.js';
 import { bindElectronIpc } from '../../platform/electron-ipc-binder.js';
 import { desktopIpcRegistry } from '../../platform/desktop-ipc-registry.js';
@@ -321,7 +323,11 @@ const applicationKernel = createApplicationKernel({
       const legacySettingsRoot = isSmokeRun() ? join(paths.tempRoot, 'i182-legacy-settings') : undefined;
       if (legacyProjectsRoot !== undefined && legacySettingsRoot !== undefined) await seedI182LegacySource(legacyProjectsRoot, legacySettingsRoot);
       ports.provide('desktopPaths', paths);
-      const credentials = createCredentialStore(createElectronSecureStorage(paths.settingsFile('credentials.bin')));
+      const legacyCredentials = createElectronSecureStorage(paths.settingsFile('credentials.bin'));
+      const credentials = createCredentialStore(createPlainTextSecretStorage(
+        paths.settingsFile('ai-token.txt'),
+        { ref: NOVEL_LLM_CREDENTIAL_REF, legacy: legacyCredentials },
+      ));
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
       ports.provide('createLlmBackend', (endpoint: string, providerId: string) => createOpenAICompatibleBackend({ endpoint, providerId, credentials: credentials.resolver }));

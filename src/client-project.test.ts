@@ -349,6 +349,8 @@ describe('LLM 设置页', () => {
     await flush();
 
     expect(loads).toEqual(['load']);
+    expect(JSON.stringify(render())).toContain('settings/ai-token.txt');
+    expect(JSON.stringify(render())).toContain('不加密');
     const urlInput = collect(render(), 'input').find((node) => node.props?.['data-novel-llm-url'] === '');
     expect(urlInput?.props?.value).toBe('https://api.example.com/v1');
     expect(collect(render(), 'input').find((node) => node.props?.['data-novel-llm-model'] === '')?.props?.value).toBe('gpt-4o');

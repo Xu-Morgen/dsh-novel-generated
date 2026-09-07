@@ -12,7 +12,7 @@
 
 1. `docs/novel-creation-tool-design.md`（v4.1）—— 产品与架构唯一权威来源；§0.1 为**不可由普通变更修改**的 Electron 宿主基线。
 2. `docs/novel-creation-tool-requirements.md`（v4.1）—— 需求 ID、验收证据、非目标与迭代覆盖矩阵。
-3. `docs/novel-creation-tool-development-plan.md`（v4.1）—— 执行层；**I1–I195 / Stage 0–39 已完成，UI 改造与流式兼容修复已验收交付**。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
+3. `docs/novel-creation-tool-development-plan.md`（v4.1）—— 执行层；**I1–I196 / Stage 0–40 已完成，明文 Token 文件已验收交付**。v3.2 原 I151–I162 只作非执行 provenance，不占用当前连续迭代编号。
 4. `docs/novel-creation-tool-architecture-review.md`（v1.0）与 `docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md`（v2.0）—— 架构审查记录，架构债务治理的立项输入（v1.0 → 已完成 Stage 15；v2.0 → 已完成 Stage 17）；**review record，非设计权威**，不覆盖以上产品权威。
 
 ## 1.1 宪法级 Electron 宿主基线（不可修改）
@@ -40,7 +40,7 @@
 - 验收不达标 = 未完成，不得进入下一迭代；超范围想法记 backlog，不在本迭代实现。
 - 架构债务治理方向：重构/修复只消除复制与接线债务，**不改变领域契约与公开契约形状**，不夹带新功能；结构性拆分一次一个切片；验收以既有回归全绿为准（详见计划 §16；修复迭代纪律见计划 §18）。
 - 公开合同政策：既有 canonical invocation 的方法名、参数、结果是 IPC 基线；新增 strict additive method 必须同步 canonical schema、contract lock、Main adapter/Renderer client 类型耦合、真实 IPC E2E 与负向参数/结果验证，禁止用 `unknown`、调用方 fallback 或静默结果整形绕过。secret-bearing 输入必须显式标记并经过统一 redaction 门。
-- I1–I195 与 Stage 0–39 已完成；I188–I194 UI 改造已验收交付（设计 §14.34 / 需求 R36；证据 docs/ui/ui-delivery-report.md）。I195 / Stage 39 流式 Provider nullable delta 修复已验收；后续 I196 尚未立项，不自动执行后置项。I187 不授权运行时实现；多窗口、Renderer profile store 和敏感 IPC 的代码变更必须另立后续连续迭代。不得擅自恢复后置 F1/F2。
+- I1–I196 与 Stage 0–40 已完成；I196 按用户授权把当前单 profile token 改为应用数据目录明文 txt（设计 §14.35 / 需求 R37），但不代表 R35 多窗口/Renderer profiles 已完成。后续从 I197 另立迭代，不自动执行后置项。多窗口、Renderer profile store 和新增敏感 IPC 仍必须另立后续连续迭代；不得擅自恢复后置 F1/F2。
 
 ## 3. 完成定义（DoD）
 

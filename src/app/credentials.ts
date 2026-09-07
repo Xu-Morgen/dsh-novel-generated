@@ -25,8 +25,9 @@ export interface CredentialStoreBundle {
 }
 
 /**
- * Low-level secure storage seam. Implementations may hold a secret in memory
- * during a provider request, but persistence must be encrypted by the platform.
+ * Low-level credential persistence seam. Implementations may hold a secret in
+ * memory during a provider request. The desktop policy may deliberately use an
+ * unencrypted local text file when the UI discloses that risk (design §14.35).
  */
 export interface SecureSecretStorage {
   get(ref: string): Promise<string | undefined>;
@@ -75,6 +76,8 @@ async function safely<T>(operation: string, action: () => Promise<T>): Promise<T
   try {
     return await action();
   } catch {
+    // Keep the historical sanitized wording stable even when the selected
+    // adapter deliberately uses the v4.1 plaintext policy.
     throw new Error(`Credential secure storage ${operation} failed`);
   }
 }

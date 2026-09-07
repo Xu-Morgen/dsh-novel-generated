@@ -2,7 +2,7 @@
 
 > 版本：v4.1
 > 日期：2026-09-04
-> 状态：当前执行权威（**I1–I195 / Stage 0–39 已完成；UI 改造与 I195 流式兼容修复已验收交付**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 状态：当前执行权威（**I1–I196 / Stage 0–40 已完成；UI 改造、流式兼容与明文 Token 文件已验收交付**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v4.1（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -2144,11 +2144,24 @@ TDD Route:
 - **验证**：`pnpm run verify:i195`（typecheck + 全量测试 + build + smoke:i195）；`pnpm run verify:stage-39` 追加打包作者流程与适用既有样本回归。
 - **状态**：验收通过；227 文件 / 1185 测试，开发/打包各 18 项真实作者检查、I43/I44/I45/I151 样本回归通过；实际配置的 DeepSeek HTTP 200 来源分类成功。见 `docs/ui/i195-dod.md`。
 
+## 38C. Stage 40：作者可编辑的明文 Token 文件（I196）
+
+### I196：把当前 AI Token 改为本地明文 txt 持久化
+
+- **目标**：按用户 2026-09-07 明确授权，把当前单 profile 的 `NOVEL_CUSTOM_API_KEY` 从 Electron `safeStorage` 加密记录调整为应用数据目录 `settings/ai-token.txt` 的单行明文。Main 每次 provider 调用前重新读取，使外部文本编辑在下次请求生效。
+- **Owner**：`src/platform/plaintext-secret-storage.ts` 为单行文本读写与迁移 owner；Main 只负责 Electron 文件边界和 provider 调用；现有 `CredentialStore` 仅作不回显的兼容 facade，符合 R35 的可选适配器定位。
+- **兼容/迁移**：canonical `novelLlmConfig.load/save`、A2 `secretRef`、provider/model/采样、strict IPC 形状不变；txt 缺失时可从旧 `credentials.bin` 一次性迁移，明文原子写成功后删除旧记录。用户已显式接受同 OS 账户及本机进程可读风险。
+- **明确不做**：不把 token 放进作品/导出/日志/诊断，不经 IPC 回传 token 或宿主绝对路径；不实现多 profile、多窗口、Renderer provider client、prompt/schema/样本变更，也不宣称完成 R35 全部运行时。
+- **交付物**：明文 adapter、旧存储迁移、Main 接线、AI 设置风险说明、正负向/外部编辑/真实 Electron 消费者、smoke 证据和独立 `feat(I196)` commit。
+- **验收**：保存后文件逐字包含单行 token；外部修改后下一次读取使用新值；空文件视为未配置，多行/错 ref fail closed；IPC 结果/错误和 smoke 证据零 secret；旧记录迁移不丢失；全量回归绿。
+- **验证**：`pnpm run verify:i196`；阶段末 `pnpm run verify:stage-40`。
+- **状态**：验收通过；228 文件 / 1189 测试，真实 Electron strict IPC 保存、txt 明文、外部编辑和零回显 smoke 通过。见 `docs/ui/i196-dod.md`。
+
 ## 39. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。
 
-v4.1 当前进度：**Stage 37 / I187 治理已完成（f489a83）；Stage 38 / I188–I194 UI 改造已验收交付。** I187 只把多 Renderer 与 Renderer 明文多 profile 写入权威基线，不修改运行时。I186 安装包仍是 v4.0 legacy baseline；后续实现卡及 packaged-app E2E 完成前，不得标记为 v4.1 conformant。v3.2 原 I151–I162 仍为后置 F1/F2 provenance。
+v4.1 当前进度：**Stage 37 / I187 治理、Stage 38 / I188–I194 UI 改造、Stage 39 / I195 流兼容及 Stage 40 / I196 明文 Token 文件均已验收交付。** I196 是当前单 profile 的作者可编辑兼容切片，不等于完成多 Renderer/Renderer-owned 多 profile 运行时；完整 R35 实现及 packaged-app E2E 完成前仍不得标记为 v4.1 conformant。v3.2 原 I151–I162 仍为后置 F1/F2 provenance。
 
 Stage 36 / I186 达成证据：
 
