@@ -180,7 +180,7 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
     const content = collect(render(), 'textarea')[0];
     (content.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: '新设定' } });
     const save = byData(render(), 'data-novel-worldview-save', '') as FakeNode;
-    expect((save.children ?? []).join('')).toBe('改写');
+    expect((save.children ?? []).join('')).toBe('保存设定修订');
     (save.props?.onClick as () => void)();
     await flush();
 

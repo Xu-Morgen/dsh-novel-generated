@@ -1,7 +1,7 @@
 /**
  * I83 styles 分区 · forms：六层真表单 B3/B2（列表 + 详情双栏、字段、字段集）。
  * I83 由 scripts/.split-styles.mjs 从单一 WORKBENCH_STYLES 模板字符串按键切出；
- * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
+ * I192 统一资料表单的纸面、字号与留白；公共原生控件仍归 controls 所有。
  * 由 styles.ts 组合器按原顺序拼接。
  */
 export const FORMS_STYLES = `
@@ -19,8 +19,8 @@ export const FORMS_STYLES = `
 }
 
 .nv-editor__list {
-  flex: 0 0 220px;
-  min-width: 200px;
+  flex: 0 0 200px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: calc(var(--nv-grid) * 0.75);
@@ -40,7 +40,7 @@ export const FORMS_STYLES = `
   background: var(--nv-paper-raised);
   color: var(--nv-ink-dim);
   font-family: var(--nv-sans);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -58,6 +58,10 @@ export const FORMS_STYLES = `
 .nv-editor__detail {
   flex: 1;
   min-width: 0;
+  padding: clamp(12px, 2vw, 24px);
+  border: 1px solid var(--nv-line);
+  border-radius: 12px;
+  background: var(--nv-paper-raised);
   display: flex;
   flex-direction: column;
   gap: var(--nv-grid);
@@ -67,7 +71,7 @@ export const FORMS_STYLES = `
   margin: 0;
   font-family: var(--nv-serif);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 24px;
   letter-spacing: 0.02em;
   color: var(--nv-ink);
 }

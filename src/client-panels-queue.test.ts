@@ -48,6 +48,7 @@ describe('I65 生成队列 UI (R13-6)', () => {
   it('刷新队列后展示运行态/预算/任务列表；失败任务可重试；开始/暂停/取消按钮按 runState 可用', async () => {
     const starts: unknown[] = [];
     let retried: string | undefined;
+    let failRetry = true;
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       { ...CHAPTER_WORKSPACE, outlineBeatCards: async () => CARDS },
@@ -58,7 +59,7 @@ describe('I65 生成队列 UI (R13-6)', () => {
           pause: async () => ({ ok: true, value: QUEUE_STATUS }),
           resume: async () => ({ ok: true, value: QUEUE_STATUS }),
           cancel: async () => ({ ok: true, value: QUEUE_STATUS }),
-          retry: async (projectId, taskId) => { retried = taskId; return { ok: true, value: QUEUE_STATUS }; },
+          retry: async (projectId, taskId) => { retried = taskId; if (failRetry) { failRetry = false; throw new Error('重试失败，请再次尝试。'); } return { ok: true, value: QUEUE_STATUS }; },
           cancelTask: async () => ({ ok: true, value: QUEUE_STATUS }),
           recover: async () => ({ ok: true, value: QUEUE_STATUS }),
         },
@@ -86,6 +87,10 @@ describe('I65 生成队列 UI (R13-6)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-queue-retry'] === 'qt-scene-b')?.props?.onClick as () => void)();
     await flush();
     expect(retried).toBe('qt-scene-b');
+    expect(collect(render(), 'p').find(n => n.props?.['data-novel-queue-command-error'] === '')?.props?.role).toBe('alert');
+    (collect(render(), 'button').find(n => n.props?.['data-novel-queue-retry'] === 'qt-scene-b')?.props?.onClick as () => void)();
+    await flush();
+    expect(collect(render(), 'p').find(n => n.props?.['data-novel-queue-command-error'] === '')).toBeUndefined();
     // runState=completed 时：开始可用、暂停/继续/取消禁用。
     const startButton = () => collect(render(), 'button').find((n) => n.props?.['data-novel-queue-start'] !== undefined);
     expect(startButton()?.props?.disabled).toBe(false);

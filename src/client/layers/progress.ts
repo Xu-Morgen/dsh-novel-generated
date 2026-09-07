@@ -217,7 +217,7 @@ function directionCard(h: El, direction: ProgressDirectionShape, selected: boole
     h('ul', { className: 'nv-progress__direction-changes', 'data-novel-progress-direction-changes': '' },
       changes.map((line) => h('li', { key: line }, line))),
     h('p', { className: 'nv-progress__direction-rationale', 'data-novel-progress-direction-rationale': '' }, `理由：${direction.rationale}`),
-    h('button', { type: 'button', className: 'nv-btn' + (selected ? ' nv-btn--primary' : ''), 'data-novel-progress-direction-select': direction.id, disabled: busy, onClick: () => ops.selectDirection(direction.id) },
+    h('button', { type: 'button', className: 'nv-btn nv-btn--choice', 'aria-pressed': selected, 'data-novel-progress-direction-select': direction.id, disabled: busy, onClick: () => ops.selectDirection(direction.id) },
       selected ? '已选定（可取消）' : '选定此方向'),
   );
 }
@@ -315,7 +315,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
           h('input', { type: 'text', className: 'nv-field__input', 'data-novel-progress-inspire-prompt': '', value: state.prompt, onChange: (event: { target: { value: string } }) => ops.setPrompt(event.target.value), placeholder: '如：给故事一个更黑暗的转折' }),
         ),
         h('div', { className: 'nv-editor__actions' },
-          h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-inspire': '', disabled: busy, onClick: () => ops.inspire() }, state.inspiring ? '思考中…' : '灵感时刻'),
+          h('button', { type: 'button', className: selected === undefined ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-progress-inspire': '', disabled: busy, onClick: () => ops.inspire() }, state.inspiring ? '思考中…' : '灵感时刻'),
         ),
         directions.length === 0
           ? null
@@ -323,7 +323,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
             h('ul', { className: 'nv-progress__direction-list', 'data-novel-progress-direction-list': '' }, directions.map((direction) => directionCard(h, direction, direction.id === state.selectedDirectionId, busy, ops))),
             selected === undefined ? null
               : h('div', { className: 'nv-editor__actions' },
-                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-propose': '', disabled: busy, onClick: () => ops.proposeApply() }, state.acting ? '提交中…' : '确认应用此方向'),
+                h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-propose': '', disabled: busy, onClick: () => ops.proposeApply() }, state.acting ? '提交中…' : '审阅此方向的变更'),
               ),
           ),
       ),
@@ -337,7 +337,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
                 `「${proposal.direction.title}」→ ${proposal.direction.changes.outlineNote}`),
               h('div', { className: 'nv-editor__actions' },
                 h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-pending-accept': proposal.proposalId, disabled: busy, onClick: () => ops.accept(proposal.proposalId) }, state.acting ? '应用中…' : '确认应用'),
-                h('button', { type: 'button', className: 'nv-btn', 'data-novel-progress-pending-reject': proposal.proposalId, disabled: busy, onClick: () => ops.reject(proposal.proposalId) }, '拒绝'),
+                h('button', { type: 'button', className: 'nv-btn', 'data-novel-progress-pending-reject': proposal.proposalId, disabled: busy, onClick: () => ops.reject(proposal.proposalId) }, '不采用此方向'),
               ),
             ))),
         ),
@@ -359,7 +359,7 @@ export function progressPanel(h: El, projectId: string, namespace: ProgressNames
     h('h3', { className: 'nv-editor__title' }, '进度与灵感'),
     h('p', { className: 'nv-progress__hint', 'data-novel-progress-desc': '' }, '查看幕、节与场景卡完成状态及偏差；灵感方向默认只读，选定并确认后才会应用调整。'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-progress-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-progress-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),
     body,
   );

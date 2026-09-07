@@ -191,7 +191,7 @@ function ruleForm(h: El, draft: RuleDraftShape, acting: boolean, isNew: boolean,
     ),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-rule-save': '', disabled: acting, onClick: () => ops.saveRule() }, acting ? '保存中…' : '保存规则'),
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-rule-cancel': '', disabled: acting, onClick: () => ops.cancelRuleEdit() }, '取消'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-rule-cancel': '', disabled: acting, onClick: () => ops.cancelRuleEdit() }, '取消编辑'),
     ),
   );
 }
@@ -299,7 +299,7 @@ export function ruleStylePanel(h: El, projectId: string, namespace: RuleStyleNam
     h('h3', { className: 'nv-editor__title' }, '规则与文风'),
     h('p', { className: 'nv-rulestyle__hint', 'data-novel-rule-style-desc': '' }, '编辑硬性规则（优先级 / 不可变）与全局风格（人称、时态、视角、禁用表达）；保存后生成与检查会使用同一份内容。'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-rule-style-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-rule-style-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),
     body,
   );

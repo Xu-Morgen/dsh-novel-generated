@@ -178,3 +178,16 @@ export function slug(name: string): string {
 
 export type { TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
 export type { WorkspaceViewModel } from '../app/workspace-view-model.js';
+
+/** I192 / §14.34: allocate a draft identifier from the loaded list; Main still enforces uniqueness.
+ * Existing identifiers are immutable. Non-Latin names may share a slug, so new records and
+ * superseding world entries use an available suffix instead of reusing that identifier.
+ */
+export function availableDraftId(name: string, existingIds: readonly string[]): string {
+  const base = slug(name).replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '') || 'untitled';
+  const used = new Set(existingIds);
+  if (!used.has(base)) return base;
+  let suffix = 2;
+  while (used.has(`${base.slice(0, 48)}-${suffix}`)) suffix += 1;
+  return `${base.slice(0, 48)}-${suffix}`;
+}

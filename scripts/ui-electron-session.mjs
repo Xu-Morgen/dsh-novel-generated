@@ -71,7 +71,7 @@ export async function launchUiElectron(iteration, executable) {
     return {
       evidence, profile, send, evaluate, waitFor,
       async click(selector) {
-        const bounds = await evaluate(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) throw Error('Missing control'); e.scrollIntoView({block:'center'}); const r=e.getBoundingClientRect(); const x=r.x+r.width/2,y=r.y+r.height/2; if (e.disabled || !e.contains(document.elementFromPoint(x,y))) throw Error('Control is disabled or obscured: '+${JSON.stringify(selector)}); return {x,y}; })()`);
+        const bounds = await evaluate(`(async () => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) throw Error('Missing control'); e.scrollIntoView({block:'center'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const r=e.getBoundingClientRect(); const x=r.x+r.width/2,y=r.y+r.height/2; if (e.disabled || !e.contains(document.elementFromPoint(x,y))) throw Error('Control is disabled or obscured: '+${JSON.stringify(selector)}); return {x,y}; })()`);
         await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...bounds });
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...bounds });
       },

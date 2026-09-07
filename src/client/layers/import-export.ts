@@ -118,12 +118,11 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
   return h('section', { className: 'nv-panel nv-settings', 'data-novel-import-export-panel': '', 'data-novel-import-export-state': state.status },
     h('h3', { className: 'nv-editor__title' }, '导入导出与备份'),
     h('p', { className: 'nv-settings__hint', 'data-novel-import-export-desc': '' },
-      '备份与可移植性入口：全项目包/可分享模板/纯文本导出下载、round-trip 恢复与通用导入预览。' +
-      '浏览器只接收受控下载载荷并发送命令，不持有任何源文件路径。'),
+      '备份整部作品、分享设定，或导出可阅读的正文。恢复备份需要一个空作品。'),
 
     // ---- 导出（备份/分享）----
-    h('div', { className: 'nv-progress__section', 'data-novel-import-export-export': '' },
-      h('h4', { className: 'nv-progress__section-title' }, '导出（备份 / 分享）'),
+    h('details', { className: 'nv-progress__section', 'data-novel-import-export-export': '', open: true },
+      h('summary', { className: 'nv-progress__section-title' }, '导出与分享'),
       h('label', { className: 'nv-field' },
         h('span', { className: 'nv-field__label' }, '导出范围'),
         h('select', { className: 'nv-field__input', 'data-novel-ie-export-mode': '', value: state.exportMode, disabled: busy, onChange: (event: { target: { value: string } }) => ops.setExportMode(event.target.value as 'full-project' | 'shareable-template') },
@@ -131,16 +130,16 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
             h('option', { key: mode, value: mode }, IMPORT_EXPORT_MODE_LABELS[mode]))),
       ),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '纯文本格式'),
+        h('span', { className: 'nv-field__label' }, '文本格式'),
         h('select', { className: 'nv-field__input', 'data-novel-ie-text-format': '', value: state.textFormat, disabled: busy, onChange: (event: { target: { value: string } }) => ops.setTextFormat(event.target.value as 'txt' | 'md') },
           h('option', { value: 'txt' }, 'TXT（章节正文）'),
           h('option', { value: 'md' }, 'Markdown（正文 + 设定）')),
       ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-export-archive': '', disabled: !available || busy, onClick: () => ops.exportArchive() }, state.busy.exportArchive === true ? '导出中…' : '导出项目包（下载 .portable.json）'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-export-archive': '', disabled: !available || busy, onClick: () => ops.exportArchive() }, state.busy.exportArchive === true ? '导出中…' : '导出作品备份包'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-export-text': '', disabled: !available || busy, onClick: () => ops.exportText() }, state.busy.exportText === true ? '导出中…' : '导出纯文本'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-compile-txt': '', disabled: !available || busy, onClick: () => ops.compileManuscript('txt') }, state.busy.compileManuscript === true ? '编译中…' : '编译单一全文 TXT'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-compile-md': '', disabled: !available || busy, onClick: () => ops.compileManuscript('md') }, state.busy.compileManuscript === true ? '编译中…' : '编译单一全文 Markdown'),
+        // I192 合并格式按钮；当前格式保留原锚点，新消费者使用统一 compile 锚点（§14.34）。
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-ie-compile': '', [state.textFormat === 'txt' ? 'data-novel-ie-compile-txt' : 'data-novel-ie-compile-md']: '', disabled: !available || busy, onClick: () => ops.compileManuscript(state.textFormat) }, state.busy.compileManuscript === true ? '正在整理全文…' : `导出单一全文 ${state.textFormat === 'txt' ? 'TXT' : 'Markdown'}`),
       ),
       state.exportMode === 'shareable-template'
         ? h('p', { className: 'nv-settings__hint', 'data-novel-ie-shareable-note': '' }, '可分享模板不含正文，其余设定与结构照常包含，适合分享创作设定。')
@@ -148,8 +147,8 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
     ),
 
     // ---- 恢复（round-trip 备份恢复）----
-    h('div', { className: 'nv-progress__section', 'data-novel-import-export-restore': '' },
-      h('h4', { className: 'nv-progress__section-title' }, '恢复（round-trip 备份恢复）'),
+    h('details', { className: 'nv-progress__section', 'data-novel-import-export-restore': '' },
+      h('summary', { className: 'nv-progress__section-title' }, '从备份恢复'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-restore-desc': '' },
         '选择先前导出的 .portable.json 恢复到当前作品。恢复目标必须是空作品（' +
         '已有内容的作品不允许静默合并或覆盖；将列出冲突层并阻断）。'),
@@ -173,8 +172,8 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
     ),
 
     // ---- 导入预览（I37 通用导入管线，零写）----
-    h('div', { className: 'nv-progress__section', 'data-novel-import-export-import': '' },
-      h('h4', { className: 'nv-progress__section-title' }, '通用导入预览（预览期间不会写入作品）'),
+    h('details', { className: 'nv-progress__section', 'data-novel-import-export-import': '' },
+      h('summary', { className: 'nv-progress__section-title' }, '预览文本导入'),
       h('p', { className: 'nv-settings__hint', 'data-novel-ie-import-desc': '' },
         '这里只预览整理后的内容与分块结果，不会直接改动作品。要开始创作，请回到「创作流程」的“导入”。'),
       h('label', { className: 'nv-field' },
@@ -195,7 +194,7 @@ export function importExportPanel(h: El, projectId: string, namespace: ImportExp
         h('textarea', { className: 'nv-field__input', 'data-novel-ie-import-text': '', rows: 5, value: state.importText, onChange: (event: { target: { value: string } }) => ops.setImportText(event.target.value), placeholder: '粘贴章节草稿或设定文本…' }),
       ),
       h('div', { className: 'nv-editor__actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-import-preview': '', disabled: !available || busy || state.importText.trim() === '', onClick: () => ops.previewImport() }, state.busy.preview === true ? '处理中…' : '预览导入分块'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-ie-import-preview': '', disabled: !available || busy || state.importText.trim() === '', onClick: () => ops.previewImport() }, state.busy.preview === true ? '处理中…' : '预览导入内容'),
       ),
       state.preview === undefined ? null
         : h('div', { className: 'nv-import-export__preview', 'data-novel-ie-preview': '' },

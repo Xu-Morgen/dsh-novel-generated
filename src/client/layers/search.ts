@@ -95,7 +95,7 @@ function hitList(h: El, hits: readonly SearchHitShape[], ops: SearchEditOps): un
         h('span', { className: 'nv-search__hit-score', 'data-novel-search-hit-score': String(hit.score) }, `分 ${hit.score}`),
       ),
       h('p', { className: 'nv-search__hit-preview', 'data-novel-search-hit-preview': '' }, hit.preview),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-search-jump': hit.layer, onClick: () => ops.jumpTo(hit) }, '跳转'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--small', 'data-novel-search-jump': hit.layer, onClick: () => ops.jumpTo(hit) }, '查看原文'),
     )));
 }
 
@@ -106,8 +106,8 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
     ? null
     : h('p', { className: 'nv-search__stats', 'data-novel-search-stats': '' },
       stats.indexExists
-        ? `派生索引已构建：正文 ${stats.counts.text} · 角色 ${stats.counts.characters} · 世界观 ${stats.counts.worldview} · 大纲 ${stats.counts.outline} · 正史 ${stats.counts.canon} · 知情 ${stats.counts.knowledge}（共 ${stats.totalEntries} 条；可删除重建，非第二真相）`
-        : '派生索引未构建（可随时重建，不写任何结构层）。');
+        ? `派生索引已构建：正文 ${stats.counts.text} · 角色 ${stats.counts.characters} · 世界观 ${stats.counts.worldview} · 大纲 ${stats.counts.outline} · 正史 ${stats.counts.canon} · 知情 ${stats.counts.knowledge}（共 ${stats.totalEntries} 条；可删除并重新计算）`
+        : '尚未建立搜索索引，可在这里重建。');
   return h('section', { className: 'nv-search', 'data-novel-search-panel': '', 'data-novel-search-state': state.status },
     h('h3', { className: 'nv-editor__title' }, '全局搜索与上下文追踪'),
     available ? [
@@ -134,7 +134,7 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
       h('h4', { className: 'nv-search__subtitle' }, '实体交叉引用'),
       h('div', { className: 'nv-search__row' },
         entitySelect(h, '引用实体', state.referenceKey, referenceOptions, ops.setReferenceKey, 'search-reference'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-ref-submit': '', disabled: state.acting || state.referenceKey.trim() === '', onClick: () => ops.references() }, '查引用'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-ref-submit': '', disabled: state.acting || state.referenceKey.trim() === '', onClick: () => ops.references() }, '查找引用'),
       ),
       state.references === undefined
         ? null
@@ -143,12 +143,14 @@ export function searchPanel(h: El, projectId: string, namespace: SearchNamespace
             `「${state.references.key}」被引用 ${state.references.total} 处`),
           state.references.total === 0 ? h('p', { 'data-novel-search-ref-empty': '' }, '无引用。') : hitList(h, state.references.hits, ops),
         ),
-      h('h4', { className: 'nv-search__subtitle' }, '派生索引'),
+      h('details', { className: 'nv-fieldset', 'data-novel-search-maintenance': '' },
+      h('summary', { className: 'nv-search__subtitle' }, '搜索索引维护'),
       countsLine,
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-rebuild': '', disabled: state.acting, onClick: () => ops.rebuild() }, '重建索引'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-drop': '', disabled: state.acting || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除索引'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-search-drop': '', disabled: state.acting || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除搜索索引'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-search-stats': '', disabled: state.acting, onClick: () => ops.refreshStats() }, '刷新状态'),
+      ),
       ),
       state.message === undefined ? null : h('p', { className: 'nv-search__message', 'data-novel-search-message': '', role: 'status', 'aria-live': 'polite' }, state.message),
     ] : h('p', { className: 'nv-search__hint', 'data-novel-search-unavailable': '' }, '搜索功能暂时不可用，请稍后重试。'),

@@ -90,7 +90,7 @@ describe('I71 全局搜索与上下文追踪 UI (R14-6)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-search-drop'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(searchMessage(render)).toContain('已删除派生索引');
-    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-search-stats'] !== undefined)?.children?.[0] ?? '')).toContain('尚未建立搜索索引');
   });
 
   it('结果跳转：正文命中 → 正文视图并打开对应场景（脏文本保护复用）', async () => {

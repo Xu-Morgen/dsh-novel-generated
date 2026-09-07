@@ -73,16 +73,16 @@ export function characterLayer(
   links?: ContextLinkSink,
 ): unknown {
   if (layerState.status === 'loading') {
-    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'loading' }, '\u6b63\u5728\u88c5\u8f7d\u89d2\u8272\u2026');
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'loading' }, '正在装载角色…');
   }
   if (layerState.status === 'error') {
-    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '\u89d2\u8272\u7d20\u6750\u8bfb\u53d6\u5931\u8d25');
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '角色素材读取失败');
   }
   const d = editor.draft;
   const editing = editor.selectedId !== undefined;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-character-new': '', onClick: ops.newDraft }, '\u65b0\u5efa\u89d2\u8272'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-character-new': '', onClick: ops.newDraft }, '新建角色'),
     ),
     layerState.list.map((character) => h('div', { key: character.id, className: 'nv-editor__item-row', role: 'listitem' },
       h('button', {
@@ -95,32 +95,35 @@ export function characterLayer(
     )),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
-    h('h3', { className: 'nv-editor__title' }, editing ? `\u7f16\u8f91\u89d2\u8272\uff1a${d.name}` : '\u65b0\u5efa\u89d2\u8272'),
+    h('h3', { className: 'nv-editor__title' }, editing ? `编辑角色：${d.name}` : '新建角色'),
     h('div', { className: 'nv-form' },
-      characterText(h, '\u540d\u79f0', d.name, (value) => ops.mutate((draft) => ({ ...draft, name: value }))),
+      characterText(h, '名称', d.name, (value) => ops.mutate((draft) => ({ ...draft, name: value }))),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
+        h('span', { className: 'nv-field__label' }, '类型'),
         h('select', { className: 'nv-field__input', value: d.kind ?? 'extra', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as CharacterKind })) },
           CHARACTER_KINDS.map((kind) => h('option', { key: kind, value: kind }, CHARACTER_KIND_LABELS[kind])),
         ),
       ),
-      listField(h, '\u522b\u540d', d.aliases ?? [], (value) => ops.mutate((draft) => ({ ...draft, aliases: value }))),
-      characterText(h, '\u6027\u683c', d.personality ?? '', (value) => ops.mutate((draft) => ({ ...draft, personality: value })), true),
-      characterText(h, '\u80cc\u666f', d.background ?? '', (value) => ops.mutate((draft) => ({ ...draft, background: value })), true),
-      characterText(h, '\u52a8\u673a', d.motivation ?? '', (value) => ops.mutate((draft) => ({ ...draft, motivation: value })), true),
-      listField(h, '\u76ee\u6807', d.goals ?? [], (value) => ops.mutate((draft) => ({ ...draft, goals: value }))),
-      listField(h, '\u7f3a\u9677', d.flaws ?? [], (value) => ops.mutate((draft) => ({ ...draft, flaws: value }))),
-      listField(h, '\u80fd\u529b', d.abilities ?? [], (value) => ops.mutate((draft) => ({ ...draft, abilities: value }))),
-      characterText(h, '\u53e3\u543b', d.speechStyle ?? '', (value) => ops.mutate((draft) => ({ ...draft, speechStyle: value })), true),
-      h('fieldset', { className: 'nv-fieldset' },
-        h('legend', { className: 'nv-fieldset__legend' }, '\u5f27\u5149'),
-        characterText(h, '\u8d77\u70b9', d.arc?.startingPoint ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: value, desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: draft.arc?.keyBeats ?? [] } }))),
-        characterText(h, '\u5f52\u5bbf', d.arc?.desiredEnd ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: value, keyBeats: draft.arc?.keyBeats ?? [] } }))),
-        listField(h, '\u5173\u952e\u8282\u62cd', d.arc?.keyBeats ?? [], (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: value } }))),
+      listField(h, '别名', d.aliases ?? [], (value) => ops.mutate((draft) => ({ ...draft, aliases: value }))),
+      characterText(h, '性格', d.personality ?? '', (value) => ops.mutate((draft) => ({ ...draft, personality: value })), true),
+      characterText(h, '背景', d.background ?? '', (value) => ops.mutate((draft) => ({ ...draft, background: value })), true),
+      characterText(h, '动机', d.motivation ?? '', (value) => ops.mutate((draft) => ({ ...draft, motivation: value })), true),
+      h('details', { className: 'nv-fieldset', 'data-novel-character-depth': '' },
+        h('summary', { className: 'nv-fieldset__legend' }, '目标、能力与口吻'),
+      listField(h, '目标', d.goals ?? [], (value) => ops.mutate((draft) => ({ ...draft, goals: value }))),
+      listField(h, '缺陷', d.flaws ?? [], (value) => ops.mutate((draft) => ({ ...draft, flaws: value }))),
+      listField(h, '能力', d.abilities ?? [], (value) => ops.mutate((draft) => ({ ...draft, abilities: value }))),
+      characterText(h, '口吻', d.speechStyle ?? '', (value) => ops.mutate((draft) => ({ ...draft, speechStyle: value })), true),
+      ),
+      h('details', { className: 'nv-fieldset', 'data-novel-character-arc': '' },
+        h('summary', { className: 'nv-fieldset__legend' }, '人物弧光'),
+        characterText(h, '起点', d.arc?.startingPoint ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: value, desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: draft.arc?.keyBeats ?? [] } }))),
+        characterText(h, '归宿', d.arc?.desiredEnd ?? '', (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: value, keyBeats: draft.arc?.keyBeats ?? [] } }))),
+        listField(h, '关键节拍', d.arc?.keyBeats ?? [], (value) => ops.mutate((draft) => ({ ...draft, arc: { startingPoint: draft.arc?.startingPoint ?? '', desiredEnd: draft.arc?.desiredEnd ?? '', keyBeats: value } }))),
       ),
     ),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '\u4fdd\u5b58')),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-character-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '保存角色')),
     ),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'characters'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'character', role: 'alert' }, toUserMessage(editor.error)) : null,

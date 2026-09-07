@@ -183,5 +183,16 @@ export function createDesktopReviewQueueHandlers(deps: DesktopReviewQueueHandler
   map.set('novel-creation-tool/novelReferenceCorrection/reject', (projectId, proposalId) => referenceCorrection.reject(projectId as string, proposalId as string));
   map.set('novel-creation-tool/novelReferenceCorrection/pending', (projectId) => referenceCorrection.pending(projectId as string));
 
+  // I192 / §14.34: recovered/external queue candidates bypass writing.propose.
+  // Open its existing read dependencies before any independent queue entry point.
+  for (const [method, handler] of map) {
+    if (!method.startsWith('novel-creation-tool/novelQueue/')) continue;
+    map.set(method, async (...args) => {
+      const projectId = args[0] as string;
+      await Promise.all([rules.open(projectId), style.open(projectId), knowledge.open(projectId)]);
+      await c5.writing.open(projectId);
+      return handler(...args);
+    });
+  }
   return map;
 }

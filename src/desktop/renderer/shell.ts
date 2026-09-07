@@ -426,7 +426,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     projectId: () => props.store.getSnapshot().selectedProjectId,
     queue: () => props.client.services.queueNamespace,
     onStatus: (projection) => {
-      if (activeRef.current) props.store.actions.queuePatch({ status: 'ready', projection, acting: false, message: undefined });
+      if (activeRef.current) props.store.actions.queuePatch({ status: 'ready', projection, acting: false });
     },
   }), [props.client, props.store]);
   React.useEffect(() => () => queuePoll.stop(), [queuePoll]);
@@ -480,6 +480,8 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
     ops.knowledge.refresh();
     ops.ruleStyle.refresh();
     if (state.activeView === 'progress') ops.progress.refresh();
+    // I192 / §14.34: entering the queue reads its persisted tasks and outline scope.
+    if (state.activeView === 'queue') ops.queue.refresh();
     if (state.activeView === 'search') ops.search.refreshStats();
     if (state.activeView === 'statistics') {
       ops.statistics.refreshStats();

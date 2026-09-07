@@ -1066,6 +1066,13 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     await service.registerRecoveredCandidate(candidate, recovery);
     await service.registerRecoveredCandidate(candidate, recovery);
 
+    // I192: legacy overlong queue IDs fail before any prose is written.
+    const incompatible = { ...candidate, id: 'cand-' + 'x'.repeat(80) };
+    await service.registerRecoveredCandidate(incompatible, recovery);
+    const beforeInvalidAdoption = snapshotDir(join(root, 'demo'));
+    await expect(service.adoptDraft!(incompatible.id)).rejects.toThrow('旧队列候选标识不兼容');
+    expect(snapshotDir(join(root, 'demo'))).toBe(beforeInvalidAdoption);
+
     // 可审阅（正文 + diff + 校验结果）→ 可裁决。
     const review = await service.preview(candidate.id);
     expect(review.text).toBe('米拉在码头找到铜钥匙。');

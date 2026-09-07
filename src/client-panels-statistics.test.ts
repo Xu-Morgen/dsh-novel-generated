@@ -221,7 +221,7 @@ describe('I72 写作进度面板 UI (R14-7)', () => {
     (collect(render(), 'button').find((n) => n.props?.['data-novel-statistics-drop'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(statisticsMessage(render)).toContain('已删除派生统计');
-    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('未构建');
+    expect(String(collect(render(), 'p').find((n) => n.props?.['data-novel-statistics-stats'] !== undefined)?.children?.[0] ?? '')).toContain('尚未计算统计');
   });
 
   it('I101：并行子工作流互不阻塞——概览加载中仅概览按钮忙碌，刷新状态仍可发起', async () => {

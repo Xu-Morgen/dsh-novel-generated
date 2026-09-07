@@ -64,8 +64,26 @@ I190–I193 在开始各自生产改动前逐卡填写；每个迭代独立 comm
 - 样本：既有细纲解析与 I150 dev/held-out 回归 2 文件 / 7 测试通过，未修改语料/金标/阈值。额外历史 `smoke:i150` 的 183/89 锁尾断言不适用于已追加的当前合同，失败已记 `artifacts/i191-samples-i150.log`；正式 I191 验证和现行合同回归通过，未改旧锁绕过。
 - 明确不做：不改模型 prompt/schema/金标/阈值，不增加窗口或主题系统；其他资料和设置按 I192/I193。
 
+## I192 / UI-E：故事资料与进阶工具
+
+- 前置：I191 已提交 `87146d9`；状态：已验收。
+- 目标：资料编辑层次清晰、长表单按主题展开；审校、队列、搜索、统计和导入导出使用统一主次操作与真实状态反馈。
+- Owner：client/layers/{characters,worldview,relationship,state,canon,knowledge,timeline,rule-style,progress,review,reference-review,queue,search,statistics,import-export}.ts 与 styles/{forms,layers,panels,responsive}.ts；公共字体、颜色和控件继续归 tokens/controls，不新增覆盖表。
+- 兼容：所有稳定 route 与必要 data 锚点保留；原校验、disabled、保存/取消/重试与 I11 不放宽。导出不同格式若合并，须继续调用原有格式参数并记录锚点迁移。既有 Main adapter 缺陷仅在真实消费者证明后作最小 owner 修复并记录。
+- 实测 owner 补充：desktop/renderer/shell.ts 的既有页面加载 effect 遗漏队列刷新；补齐进入页时的状态/场景卡读取，避免未读取就显示空作品；只读轮询不再清除命令失败信息。queue ops 增加暂停请求等待当前候选结束的本地回执，不改变 runState。无领域/IPC 变更。
+- 资料消费者补充：characters/worldview/relationship ops 共用 shared.availableDraftId，避免两个中文名都映射到 untitled，或原名设定修订复用原 ID 而失败；仅给新记录/修订分配未占用的临时标识，Main 保留唯一性校验与原契约。实际关系表单原先生成含 + 的非法 ID，统一改用满足既有 ID 合同的新草稿标识；不修改 ID schema。
+- 队列消费者补充：panels/index.ts 与 queue ops 接入现有 candidatePanel/novelWriting.preview/adoptDraft；原任务只提示去正文裁决却没有载入该候选的入口。新增「审阅候选」呈现入口，复用原裁决组件与方法；不新增 IPC，不自动接受。Main review-queue-handlers 必须在队列入口打开既有 B1/B4/C3 与 writing owner，队列外部注册候选绕过普通 propose 前置打开，实测 preview 报 Rule project is not open；消费者覆盖外部注册候选审阅。恢复队列候选没有生成基线，保留 previewLayers 拒绝（负向验证），不伪造基线；正文审阅/草稿采用后继续既有定稿流程。
+- 队列采用实测修复：host/queue-service 私有候选 ID 生成不再拼接长任务 ID（原值超过既有 64 字符结果合同）；writing-adjudication-service 在 C5 写入前以既有结果 schema 校验 ID，旧超长恢复候选拒绝且零写，作者可用既有重新生成动作。公开合同/schema 不变，新增 Main 消费者与既有恢复夹具的负向断言。
+- 交付：上述稳定页面、按钮账本逐项对应、页面与负向消费者、verify:i192、真实 Electron 截图和队列恢复证据。
+- 验收：角色/世界观/关系保存及失败输入保留；知情/正史/状态变更确认；审校硬冲突与软警告区分；队列暂停、继续、取消、失败重试；搜索/统计只重建派生数据，导出/恢复保持既有语义；中文长内容和窄宽布局可达。
+- 验证：typecheck、pnpm test、build、smoke:i192；模型集成使用固定 HTTP 测试 provider，既有样本不改动，最终阶段累积执行。
+- 完成证据：`pnpm run verify:i192` exit 0；225 文件 / 1176 测试，33 项真实 Electron 检查，`artifacts/i192-verify.log`、`artifacts/desktop/ui/i192/validation.json` 及资料、导入预览、搜索、知情确认、队列暂停/失败/审阅截图。模型仅由固定 HTTP provider 替代，C3/C6 为明确测试夹具；不将这些数据声明为完整初始化作者流程。
+- 格式兼容：全文 TXT/MD 合并为格式选择和单一 compile 按钮，保留所选格式原 data 锚点；新增队列审阅入口另记账，不混入原 241 声明数量。
+- 本片资料/审校/导出等既有子状态由完整消费者与负向回归覆盖，最终 I193 累积补齐作者流程、打包与按钮账本。
+- 明确不做：无关系图谱、新主题系统、多窗口、profiles 或 F1/F2；不调整领域合同和 prompt/schema/样本。
+
 ## 交接
 
-刚完成：I191 大纲/正文核心，224 文件 / 1175 测试，19 项真实 Electron 检查。下一步：I192 故事资料与进阶工具。
+刚完成：I192 故事资料与进阶工具，225 文件 / 1176 测试，33 项真实 Electron 检查。下一步：I193 设置、辅助面板与整体验收。
 新增领域/IPC 合同：零。UI token/控件兼容层仅属呈现。
 后置：多窗口、Renderer profile store、主题切换、关系图谱、连接测试新能力、F1/F2。

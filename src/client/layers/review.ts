@@ -15,7 +15,7 @@ import type { BookReadinessResult } from '../../core/schema/book-readiness.js';
  *   跑既有探测器（I21/I22/I24 + I20 确定性检查），只读零写；
  * - 过滤：分类（规则/正史/知情/关系/风格）、严重度（硬/软）、状态
  *   （未处理/已继续/已请求重写）三组 chips，多选组合过滤
- *   （`data-novel-review-filter-*`）；「清除过滤」一键复位；
+ *   （`data-novel-review-filter-*`）；「清除筛选」一键复位；
  * - 裁决：勾选 open 软警告后显式「继续（记录软警告）」或「请求重写」——
  *   必须记录到 Host 审计账本（R13-5）；硬冲突阻止继续（Host fail-closed 拒绝，
  *   UI 同步禁用），硬问题只能请求重写；
@@ -216,12 +216,12 @@ function repairSessionPanel(h: El, session: ReviewRepairSessionState, ops: Revie
                 : session.message === undefined ? null : h('p', { className: 'nv-review__repair-error', 'data-novel-review-repair-error': '', role: 'alert' }, session.message),
     canAccept
       ? h('div', { className: 'nv-review__issue-actions' },
-        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-accept': '', onClick: () => ops.acceptRepair() }, '接受并复扫'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-repair-reject': '', onClick: () => ops.rejectRepair() }, '拒绝候选'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-accept': '', onClick: () => ops.acceptRepair() }, '接受修复并重新审校'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-repair-reject': '', onClick: () => ops.rejectRepair() }, '不采用候选'),
       )
       : canRetryScan
         ? h('div', { className: 'nv-review__issue-actions' },
-          h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-retry': '', onClick: () => ops.retryRepairScan() }, '重试复扫'),
+          h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-repair-retry': '', onClick: () => ops.retryRepairScan() }, '重试审校'),
         )
         : null,
     session.status === 'error' && session.message === undefined
@@ -300,7 +300,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
         filterRow(h, '分类', 'categories', ['rule', 'canon', 'knowledge', 'relationship', 'style'].map((value) => ({ value, label: CATEGORY_LABELS[value] ?? '无法识别的问题分类' })), state.filter.categories, ops),
         filterRow(h, '严重度', 'severities', ['hard', 'soft'].map((value) => ({ value, label: SEVERITY_LABELS[value] ?? '无法识别的严重度' })), state.filter.severities as readonly string[], ops),
         filterRow(h, '状态', 'statuses', ['open', 'continued', 'rewrite-requested'].map((value) => ({ value, label: STATUS_LABELS[value] ?? '无法识别的问题状态' })), state.filter.statuses, ops),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-filter-clear': '', onClick: () => ops.clearFilters() }, '清除过滤'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-filter-clear': '', onClick: () => ops.clearFilters() }, '清除筛选'),
       ),
       issues.length === 0
         ? h('p', { className: 'nv-review__empty', 'data-novel-review-empty': '' }, '当前过滤下没有问题。')
@@ -314,6 +314,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
           className: 'nv-btn nv-btn--primary',
           'data-novel-review-continue': '',
           disabled: continueDisabled,
+          title: selectedHard ? '硬冲突需要重写，不能记录后继续' : !canAdjudicate ? '先选择需要处理的问题' : undefined,
           onClick: () => ops.adjudicate('continue'),
         }, state.acting ? '正在记录…' : '继续（记录软警告）'),
         h('button', {
@@ -338,7 +339,7 @@ export function reviewPanel(h: El, projectId: string, review: ReviewNamespace | 
     h('h3', { className: 'nv-editor__title' }, '一致性审校中心'),
     h('p', { className: 'nv-review__hint', 'data-novel-review-desc': '' }, '集中审校规则 / 正史 / 知情 / 关系 / 风格五类问题：硬冲突阻止接受，软警告须显式继续或请求重写并记录。'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-review-refresh': '', disabled: busy || !available, onClick: () => ops.scan() }, busy ? '正在审校…' : '刷新审校'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-review-refresh': '', disabled: busy || !available, onClick: () => ops.scan() }, busy ? '正在审校…' : '刷新审校'),
     ),
     body,
   );

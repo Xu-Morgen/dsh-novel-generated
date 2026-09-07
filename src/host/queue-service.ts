@@ -131,8 +131,8 @@ interface RunEntry {
 }
 
 const now = (): string => new Date().toISOString();
-const nextQueueCandidateId = (taskId: string, attempt: number): string =>
-  `cand-${taskId}-${attempt}-${randomUUID()}`;
+// I192: task identity is already stored in the journal; candidate IDs must fit the existing draft result contract.
+const nextQueueCandidateId = (): string => `cand-queue-${randomUUID()}`;
 const isCurrentTask = (task: StoredQueueTaskData): task is QueueTaskData => task.version === 2;
 const isLegacyTask = (task: StoredQueueTaskData): task is LegacyQueueTaskData & { version: 1 } => task.version === 1;
 const hydrationKey = (projectId: string, taskId: string): string => `${projectId}:${taskId}`;
@@ -569,7 +569,7 @@ export function createQueueService(deps: QueueServiceDeps): QueueService {
     try {
       const settings = await deps.resolveSettings();
       const request: WritingCandidateRequest = {
-        id: nextQueueCandidateId(task.id, task.attempts),
+        id: nextQueueCandidateId(),
         intent: 'scene-card',
         target: { projectId, chapterId: task.chapterId, sceneId: task.sceneId },
         card: task.card,

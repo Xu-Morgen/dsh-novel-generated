@@ -296,6 +296,10 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         const chapterId = candidate.target.chapterId;
         const sceneId = candidate.target.sceneId;
         if (chapterId === undefined || sceneId === undefined) throw new Error(`Candidate has no C5 target: ${candidateId}`);
+        // I192: reject incompatible recovered IDs before C5 mutation, using the canonical result constraint.
+        if (!draftAdoptionResultSchema.shape.candidateId.safeParse(candidateId).success) {
+          throw new Error('旧队列候选标识不兼容，请重新生成候选后再接受为草稿。');
+        }
         let scene: { id: string; content: string };
         let projectFingerprint: string;
         if (candidate.target.sourceHash !== undefined) {

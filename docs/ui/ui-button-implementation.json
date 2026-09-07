@@ -722,9 +722,18 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/canon.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-032",
@@ -738,9 +747,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/canon.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-033",
@@ -754,9 +772,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "editor.selectedId === undefined || !editor.dirty || editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/canon.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-034",
@@ -1775,9 +1802,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/characters.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-076",
@@ -1791,9 +1826,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/characters.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-077",
@@ -1807,9 +1850,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!editor.dirty || editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/characters.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-078",
@@ -1823,9 +1874,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-079",
@@ -1839,9 +1899,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-080",
@@ -1855,9 +1924,20 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
+      "mergeTarget": "data-novel-ie-compile + data-novel-ie-text-format",
+      "compatibility": "TXT/MD canonical compileManuscript(format) unchanged; selected format retains its old format anchor; one active full-manuscript button. Consumer test migrated to format selection."
     },
     {
       "id": "BTN-081",
@@ -1871,9 +1951,20 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "merged",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation.",
+      "mergeTarget": "data-novel-ie-compile + data-novel-ie-text-format",
+      "compatibility": "TXT/MD canonical compileManuscript(format) unchanged; selected format retains its old format anchor; one active full-manuscript button. Consumer test migrated to format selection."
     },
     {
       "id": "BTN-082",
@@ -1887,9 +1978,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy || state.restoreFileName === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-083",
@@ -1903,9 +2003,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!available || busy || state.importText.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/import-export.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-084",
@@ -1919,9 +2027,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-085",
@@ -1935,9 +2052,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-086",
@@ -1951,9 +2077,18 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-087",
@@ -1967,9 +2102,18 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-088",
@@ -1983,9 +2127,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || state.draft.holders.length === 0",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-089",
@@ -1999,9 +2152,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || state.draft.holders.length === 0",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-090",
@@ -2015,9 +2177,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-091",
@@ -2031,9 +2202,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-092",
@@ -2047,9 +2227,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/knowledge.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-093",
@@ -2530,9 +2719,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-113",
@@ -2546,9 +2744,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-114",
@@ -2562,9 +2769,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-115",
@@ -2578,9 +2794,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || state.deviationDraft.planned.trim() === '' || state.deviationDraft.actual.trim() === '' || state.deviationDraft.reason.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-116",
@@ -2594,9 +2819,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-117",
@@ -2610,9 +2844,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-118",
@@ -2626,9 +2869,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-119",
@@ -2642,9 +2894,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-120",
@@ -2658,9 +2919,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/progress.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-121",
@@ -2674,9 +2944,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-122",
@@ -2690,9 +2968,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-123",
@@ -2706,9 +2992,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || running",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-124",
@@ -2722,9 +3016,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || !running",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-125",
@@ -2738,9 +3040,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || !paused",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-126",
@@ -2754,9 +3064,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || (!running && !paused)",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-127",
@@ -2770,9 +3088,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/queue.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-128",
@@ -2786,9 +3112,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.status === 'loading'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-129",
@@ -2802,9 +3137,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-130",
@@ -2818,9 +3162,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-131",
@@ -2834,9 +3187,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.status === 'loading'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-132",
@@ -2850,9 +3212,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "correctionNamespace === undefined || state.markedErrors.length === 0 || state.correctionInstruction.trim() === '' || state.correctionStatus === 'proposing' || state.correctionStatus === 'acting'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-133",
@@ -2866,9 +3237,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "correctionNamespace === undefined || state.correctionStatus === 'acting'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-134",
@@ -2882,9 +3262,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "correctionNamespace === undefined || state.correctionStatus === 'acting'",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-135",
@@ -2898,9 +3287,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/reference-review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-136",
@@ -2914,9 +3312,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/relationship.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-137",
@@ -2930,9 +3336,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/relationship.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-138",
@@ -2946,9 +3360,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!editor.dirty || editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/relationship.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-139",
@@ -2962,9 +3384,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-140",
@@ -2978,9 +3409,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "repairBusy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-141",
@@ -2994,9 +3434,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-142",
@@ -3010,9 +3459,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-143",
@@ -3026,9 +3484,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-144",
@@ -3042,9 +3509,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-145",
@@ -3058,9 +3534,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-146",
@@ -3074,9 +3559,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-147",
@@ -3090,9 +3584,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-148",
@@ -3106,9 +3609,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-149",
@@ -3122,9 +3634,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-150",
@@ -3138,9 +3659,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "continueDisabled",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-151",
@@ -3154,9 +3684,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!canAdjudicate",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-152",
@@ -3170,9 +3709,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy || !available",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/review.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-153",
@@ -3186,9 +3734,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-154",
@@ -3202,9 +3759,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-155",
@@ -3218,9 +3784,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-156",
@@ -3234,9 +3809,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-157",
@@ -3250,9 +3834,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-158",
@@ -3266,9 +3859,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-159",
@@ -3282,9 +3884,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "busy",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/rule-style.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-160",
@@ -3445,9 +4056,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-167",
@@ -3461,9 +4080,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting || state.query.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-168",
@@ -3477,9 +4105,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting || state.referenceKey.trim() === ''",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-169",
@@ -3493,9 +4130,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-170",
@@ -3509,9 +4154,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting || !(state.stats?.indexExists ?? false)",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-171",
@@ -3525,9 +4179,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.acting",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/search.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-172",
@@ -3541,9 +4204,18 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/state.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-173",
@@ -3557,9 +4229,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "editor.fromSeq === undefined || editor.toSeq === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/state.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-174",
@@ -3573,9 +4254,18 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "editor.selectedSeq === undefined",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/state.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-175",
@@ -3589,9 +4279,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy.detail === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/statistics.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-176",
@@ -3605,9 +4303,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy.rebuild === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/statistics.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-177",
@@ -3621,9 +4327,17 @@
       "place": "对象更多菜单 / 危险区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy.drop === true || !(state.stats?.indexExists ?? false)",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/statistics.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-178",
@@ -3637,9 +4351,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy.overview === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/statistics.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-179",
@@ -3653,9 +4375,17 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "state.busy.stats === true",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/statistics.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-180",
@@ -3669,9 +4399,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-181",
@@ -3685,9 +4424,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-182",
@@ -3701,9 +4449,18 @@
       "place": "当前对象轻工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-183",
@@ -3717,9 +4474,18 @@
       "place": "当前项选择区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-184",
@@ -3733,9 +4499,18 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-185",
@@ -3749,9 +4524,18 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!state.dirty || state.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/timeline.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192",
+      "remainingValidation": "I193 cumulative author flow: all listed substate controls are traced to implementation; this iteration records actual page and representative interaction evidence, not every button activation."
     },
     {
       "id": "BTN-186",
@@ -3823,9 +4607,17 @@
       "place": "主操作左侧 / 对象工具区",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/worldview.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-190",
@@ -3839,9 +4631,17 @@
       "place": "导航 / 对象列表",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "无显式 disabled；正式切片复核可用性",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/worldview.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-191",
@@ -3855,9 +4655,17 @@
       "place": "当前任务页头或底栏；阶段互斥",
       "reach": "当前呈现模块（子状态可达性需正式 E2E 复核）",
       "disabled": "!editor.dirty || editor.saving",
-      "status": "pending",
-      "implementationEvidence": [],
-      "reachabilityEvidence": []
+      "status": "implemented",
+      "implementationEvidence": [
+        "src/client/layers/worldview.ts",
+        "src/client/styles/forms.ts",
+        "src/client/styles/panels.ts"
+      ],
+      "reachabilityEvidence": [
+        "scripts/smoke-i192.mjs; artifacts/desktop/ui/i192/validation.json",
+        "Existing src/client-layers.test.ts and src/client-panels-*.test.ts consumer/negative assertions"
+      ],
+      "iteration": "I192"
     },
     {
       "id": "BTN-192",
@@ -4843,6 +5651,17 @@
         "I189: desktop uses native system close; no floating launch interaction; unused openedProjectView removed. Existing live project-context/leave anchors retained."
       ],
       "iteration": "I189"
+    }
+  ],
+  "additionalControls": [
+    {
+      "anchor": "data-novel-queue-review",
+      "iteration": "I192",
+      "reason": "Existing queue candidates had no author review entry point; reuses candidatePanel/strict preview/adoptDraft and original rejection/rewriting actions.",
+      "evidence": [
+        "scripts/smoke-i192.mjs",
+        "src/desktop/main/queue-ui-consumer.test.ts"
+      ]
     }
   ]
 }

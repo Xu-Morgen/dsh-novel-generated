@@ -1,10 +1,53 @@
 /**
  * I83 styles 分区 · panels：生成队列与知情揭示管理面（I65/I66）。
  * I83 由 scripts/.split-styles.mjs 从单一 WORKBENCH_STYLES 模板字符串按键切出；
- * 内容与 I46 起各迭代的样式语义逐字一致（重构纪律 §16-2 行为等价），
+ * I192 扩展进阶工具布局，公共控件原语仍归 controls/forms 唯一所有。
  * 由 styles.ts 组合器按原顺序拼接。
  */
 export const PANELS_STYLES = `
+/* I192 / §14.34：进阶工具的布局与反馈 owner；按钮、表单原语仍由 controls/forms 提供。 */
+.nv-queue, .nv-knowledge, .nv-review, .nv-progress, .nv-search, .nv-statistics,
+[data-novel-rule-style-panel], [data-novel-import-export-panel] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.nv-progress__section, .nv-review__issue, .nv-search__results,
+.nv-statistics__completion, .nv-statistics__pov, .nv-statistics__chapters,
+.nv-statistics__card-results, .nv-statistics__task-results, .nv-queue__config {
+  padding: clamp(12px, 2vw, 24px);
+  border: 1px solid var(--nv-line);
+  border-radius: 12px;
+  background: var(--nv-paper-raised);
+  min-width: 0;
+}
+.nv-progress__section > :first-child { margin-top: 0; }
+.nv-progress__section > * + * { margin-top: 16px; }
+.nv-progress__section-title, .nv-search__subtitle, .nv-statistics__subtitle {
+  font-family: var(--nv-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--nv-ink);
+}
+.nv-search__row, .nv-statistics__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.nv-search__row > .nv-field, .nv-statistics__filter { flex: 1 1 180px; min-width: 0; }
+.nv-statistics__totals { font-family: var(--nv-serif); font-size: 22px; }
+.nv-statistics__bar { height: 6px; background: var(--nv-line); border-radius: 6px; overflow: hidden; }
+.nv-statistics__bar-fill { height: 100%; background: var(--nv-cinnabar); }
+.nv-search__hit, .nv-progress__direction-list > li, .nv-progress__pending-list > li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--nv-line);
+}
+.nv-progress__hint, .nv-search__stats, .nv-statistics__stats { color: var(--nv-ink-dim); font-size: 14px; }
+
 /* I65 生成队列（design §14.9 / R13-6）：范围勾选 + 配置 + 控制 + 任务列表。 */
 .nv-queue__cards {
   display: flex;
@@ -16,6 +59,7 @@ export const PANELS_STYLES = `
 .nv-queue__card {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: calc(var(--nv-grid) * 0.5);
   font-family: var(--nv-sans);
   font-size: 13px;

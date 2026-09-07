@@ -55,7 +55,7 @@ export function relationshipLayer(h: El, _projectId: string, _workspace: Workspa
       entityMultiSelect(h, '里程碑', d.milestones ?? [], milestoneOptions, (value) => ops.mutate((draft) => ({ ...draft, milestones: value })), 'relationship-milestones'),
       entityMultiSelect(h, '知情边界', d.knownTo ?? [], characterOptions, (value) => ops.mutate((draft) => ({ ...draft, knownTo: value })), 'relationship-known-to'),
     ),
-    h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '保存'))),
+    h('div', { className: 'nv-editor__actions' }, h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-relationship-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving }, saveButtonLabel(editor.saving, '保存关系'))),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'relationship'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'relationship', role: 'alert' }, toUserMessage(editor.error)) : null,
   );

@@ -5,7 +5,7 @@ import { unwrap } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
 import type { QueueEditOps, QueueLayerState, QueueStartInputShape } from '../layers/queue.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
-type QueuePort = Pick<OpsPorts, 'workspace' | 'queueNamespace'>;
+type QueuePort = Pick<OpsPorts, 'workspace' | 'queueNamespace' | 'writing'>;
 
 export { QUEUE_POLL_INTERVAL_MS } from '../queue-poll.js';
 
@@ -35,6 +35,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
         if (!beginOp(`queue:${method}:${taskId ?? ''}`)) return;
         const release = (): void => endOp(`queue:${method}:${taskId ?? ''}`);
         if (method === 'retry' && taskId === undefined) { release(); return; }
+        queuePatch({ acting: true, message: undefined });
         const call = method === 'retry'
           ? target.retry(projectId, taskId!)
           : method === 'pause'
@@ -46,10 +47,10 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           release();
           if (!isActive()) return;
           const next = projection;
-          queuePatch({ status: 'ready', projection: next, acting: false, message: undefined });
+          queuePatch({ status: 'ready', projection: next, acting: false, message: undefined, notice: method === 'pause' && next.runState === 'running' ? '暂停已请求；当前候选完成后暂停。' : undefined });
           // I88：轮询命令发往 Fiber 级控制器（单飞行，不堆积并行轮询链）。
           if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
-        }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ message: toUserMessage(cause) }); });
+        }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: toUserMessage(cause) }); });
       };
       return {
         refresh(): void {
@@ -57,7 +58,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           if (!target || projectId === undefined) { queuePatch({ status: 'error', message: '生成队列服务不可用' }); return; }
           if (!beginOp('queue:refresh')) return;
           const release = (): void => endOp('queue:refresh');
-          queuePatch({ status: 'loading', message: undefined });
+          queuePatch({ status: 'loading', message: undefined, reviewTaskId: undefined });
           void unwrap(target.status(projectId)).then((projection) => {
             release();
             if (!isActive()) return;
@@ -108,6 +109,32 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
         resume() { queueCommand('resume'); },
         cancel() { queueCommand('cancel'); },
         retry(taskId: string) { queueCommand('retry', taskId); },
+        review(taskId: string): void {
+          const task = snapshot.queue.projection?.tasks.find(item => item.id === taskId);
+          const writing = port.writing;
+          if (!writing || !task?.candidateId || task.status !== 'candidate-ready' || !isActive()) return;
+          if (snapshot.chapters.editor.dirty) {
+            queuePatch({ message: '正文有未保存修改，请先保存或取消编辑后再审阅队列候选。' });
+            return;
+          }
+          if (!beginOp('queue:review')) return;
+          const revision = snapshot.chapters.navigationRevision;
+          queuePatch({ acting: true, message: undefined, reviewTaskId: taskId });
+          act.chaptersCandidate({ ui: { kind: 'proposing', intent: 'scene-card' } });
+          // I192: only the model review projection is loaded; adoption remains an explicit author action.
+          void unwrap(writing.preview(task.candidateId)).then((review) => {
+            endOp('queue:review');
+            if (!isActive()) return;
+            act.chaptersCandidateForRevision({ ui: { kind: 'ready', review } }, revision);
+            queuePatch({ acting: false });
+          }, (cause: Error) => {
+            endOp('queue:review');
+            if (!isActive()) return;
+            const message = toUserMessage(cause);
+            queuePatch({ acting: false, message });
+            act.chaptersCandidateForRevision({ ui: { kind: 'error', message } }, revision);
+          });
+        },
         dismiss() { queuePatch({ status: 'idle', projection: undefined, message: undefined, acting: false }); queuePoll.stop(); },
       };
 }

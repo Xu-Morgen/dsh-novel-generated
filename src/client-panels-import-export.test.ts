@@ -61,6 +61,8 @@ describe('I69 导入导出与备份 UI (R14-4)', () => {
     const render = () => registrations['shell.overlay'][0].component() as FakeNode;
     openIe(render);
     await flush();
+    (collect(render(), 'select').find((n) => n.props?.['data-novel-ie-text-format'] === '')?.props?.onChange as (event: { target: { value: string } }) => void)({ target: { value: 'md' } });
+    expect(collect(render(), 'button').filter((n) => n.props?.['data-novel-ie-compile'] === '')).toHaveLength(1);
     (collect(render(), 'button').find((n) => n.props?.['data-novel-ie-compile-md'] === '')?.props?.onClick as () => void)();
     await flush();
     expect(compileInput).toEqual({ projectId: 'fixture-project', input: { format: 'md' } });

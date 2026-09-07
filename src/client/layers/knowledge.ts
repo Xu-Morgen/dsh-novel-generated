@@ -250,7 +250,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
           )),
       // 待确认提案（Gate pending；重载后依然可见 —— R14-1 确认断言 + 重载一致）。
       pending.length === 0 ? null
-        : h('details', { className: 'nv-knowledge__pending', 'data-novel-knowledge-pending': '' },
+        : h('details', { className: 'nv-knowledge__pending', 'data-novel-knowledge-pending': '', open: true },
           h('summary', { 'data-novel-knowledge-pending-summary': '' }, `待确认提案（${pending.length} 条）`),
           h('ul', null, pending.map((proposal) => {
             const fact = factsById.get(proposal.entryId);
@@ -261,7 +261,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
                 proposal.revealAt === undefined ? '' : `；时机：${proposal.revealAt}`),
               h('div', { className: 'nv-editor__actions' },
                 h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-accept': proposal.proposalId, disabled: busy, onClick: () => ops.accept(proposal.proposalId) }, state.busy.accept === true ? '应用中…' : '确认应用'),
-                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-reject': proposal.proposalId, disabled: busy, onClick: () => ops.reject(proposal.proposalId) }, '拒绝'),
+                h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-reject': proposal.proposalId, disabled: busy, onClick: () => ops.reject(proposal.proposalId) }, '不采用提案'),
               ),
             );
           })),
@@ -274,7 +274,7 @@ export function knowledgePanel(h: El, projectId: string, knowledge: KnowledgeNam
     h('h3', { className: 'nv-editor__title' }, '知情与揭示'),
     h('p', { className: 'nv-knowledge__hint', 'data-novel-knowledge-desc': '' }, '按事实与角色查看当前知情范围、揭示计划与信息状态；揭示与知情角色变更须经确认后生效，知情只增不退。'),
     h('div', { className: 'nv-editor__actions' },
-      h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-knowledge-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-knowledge-refresh': '', disabled: busy, onClick: () => ops.refresh() }, busy ? '处理中…' : '刷新'),
     ),
     body,
   );

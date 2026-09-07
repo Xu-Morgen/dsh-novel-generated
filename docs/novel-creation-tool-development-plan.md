@@ -2102,6 +2102,7 @@ TDD Route:
 - **目标**：资料编辑、审校、队列与派生工具统一操作及反馈。
 - **明确不做**：多窗口、Renderer profiles、主题切换、关系图谱、F1/F2；不改领域/IPC、prompt/schema/样本/金标/阈值。
 - **交付物 / canonical owner**：characters/worldview/relationship/state/canon/knowledge/timeline/ruleStyle/progress/review/queue/search/statistics/importExport；本卡 DoD、生产代码、回归与负向测试、smoke 证据及独立 commit。公共颜色唯一 owner 为 styles/tokens.ts，控件 styles/controls.ts，由 styles.ts 组合。
+- **实测接线 owner**：shared.availableDraftId 与 characters/worldview/relationship ops 修正中文冲突和非法新 ID；queue ops/panels/index 与 desktop renderer shell 接入加载/命令反馈/既有候选审阅；Main review-queue-handlers 打开已有写作依赖；host/queue-service 私有候选 ID 满足既有结果长度，writing-adjudication-service 将该校验前移到写入之前，旧 ID 失败零写。仅呈现和 owner 接线，不修改领域方法或 IPC 合同；恢复候选缺少基线时保留结构预览拒绝，草稿采用复用原方法。
 - **兼容与退役**：保留路由、data-novel 锚点、业务方法和保存/取消/重试/I11；删除被迁出的重复样式；仅本卡列出的 owner 允许最小修改。
 - **验收 / 消费者夹具**：保存/取消/失败、队列暂停继续取消恢复、只读与派生操作边界；真实 Electron 生产入口截图与交互证据，不复用原型模拟结果。
 - **验证**：`pnpm run verify:i192` = typecheck + pnpm test + build + 本卡 smoke；阶段末追加 `pnpm run verify:stage-38`。

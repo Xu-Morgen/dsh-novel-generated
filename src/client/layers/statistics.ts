@@ -4,7 +4,7 @@ import type { StatisticsNamespace } from '../shared.js';
 import type { EntityOption } from '../entity-selectors.js';
 
 /**
- * I72 写作进度面板 Client（design §14.10「写作进度」/ R14-7）。
+ * I72 写作进度 Client（design §14.10「写作进度」/ R14-7）。
  *
  * 职责与不变式：
  * - 只经 Host `novelStatistics` Remote 提交受控命令：重建/删除派生统计、概览、
@@ -177,8 +177,8 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
     ? null
     : h('p', { className: 'nv-statistics__stats', 'data-novel-statistics-stats': '' },
       stats.indexExists
-        ? `派生统计已构建：章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}（可删除重建，非第二真相）`
-        : '派生统计未构建（可随时重建，不写任何结构层）。');
+        ? `派生统计已构建：章节 ${stats.counts.chapters} · 场景 ${stats.counts.scenes} · 场景卡 ${stats.counts.cards} · 任务 ${stats.counts.tasks}（可重新计算）`
+        : '尚未计算统计，点击「重建统计」汇总作品进度。');
 
   const overview = state.overview;
   const overviewBlock = overview === undefined
@@ -279,12 +279,12 @@ export function statisticsPanel(h: El, projectId: string, namespace: StatisticsN
         ];
 
   return h('section', { className: 'nv-statistics', 'data-novel-statistics-panel': '', 'data-novel-statistics-state': state.status },
-    h('h3', { className: 'nv-editor__title' }, '写作进度面板'),
+    h('h3', { className: 'nv-editor__title' }, '写作进度'),
     available ? [
       statsLine,
       h('div', { className: 'nv-editor__actions' },
         h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-statistics-rebuild': '', disabled: state.busy.rebuild === true, onClick: () => ops.rebuild() }, '重建统计'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-drop': '', disabled: state.busy.drop === true || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除统计'),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--danger', 'data-novel-statistics-drop': '', disabled: state.busy.drop === true || !(state.stats?.indexExists ?? false), onClick: () => ops.drop() }, '删除派生统计'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-refresh': '', disabled: state.busy.overview === true, onClick: () => ops.refreshOverview() }, '刷新概览'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-statistics-stats': '', disabled: state.busy.stats === true, onClick: () => ops.refreshStats() }, '刷新状态'),
       ),

@@ -68,15 +68,15 @@ export function worldviewLayer(
   parentOptions: readonly EntityOption[] = [],
 ): unknown {
   if (layerState.status === 'loading') {
-    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'loading' }, '\u6b63\u5728\u88c5\u8f7d\u4e16\u754c\u89c2\u2026');
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'loading' }, '正在装载世界观…');
   }
   if (layerState.status === 'error') {
-    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '\u4e16\u754c\u89c2\u7d20\u6750\u8bfb\u53d6\u5931\u8d25');
+    return h('section', { className: 'nv-panel', 'data-novel-layer-panel': 'worldview', 'data-novel-layer-state': 'error', role: 'alert' }, layerState.message ?? '世界观素材读取失败');
   }
   const d = editor.draft;
   const list = h('div', { className: 'nv-editor__list', role: 'list' },
     h('div', { className: 'nv-editor__toolbar' },
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-worldview-new': '', onClick: ops.newDraft }, '\u65b0\u5efa\u6761\u76ee'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-worldview-new': '', onClick: ops.newDraft }, '新建设定'),
     ),
     layerState.list.map((entry) => h('button', {
       key: entry.id,
@@ -85,48 +85,48 @@ export function worldviewLayer(
       className: 'nv-editor__item' + (editor.selectedId === entry.id ? ' is-active' : ''),
       'data-novel-worldview-id': entry.id,
       onClick: () => ops.select(entry),
-    }, entry.title || '\u672a\u547d\u540d\u6761\u76ee')),
+    }, entry.title || '未命名条目')),
   );
   const detail = h('div', { className: 'nv-editor__detail' },
-    h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '\u65b0\u5efa\u6761\u76ee' : `\u7f16\u8f91\u6761\u76ee\uff1a${d.title || '\u672a\u547d\u540d\u6761\u76ee'}`),
+    h('h3', { className: 'nv-editor__title' }, editor.selectedId === undefined ? '新建设定' : `编辑条目：${d.title || '未命名条目'}`),
     h('div', { className: 'nv-form' },
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u6807\u9898'),
+        h('span', { className: 'nv-field__label' }, '标题'),
         h('input', { type: 'text', className: 'nv-field__input', value: d.title ?? '', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, title: event.target.value })) }),
       ),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u7c7b\u578b'),
+        h('span', { className: 'nv-field__label' }, '类型'),
         h('select', { className: 'nv-field__input', value: d.kind ?? 'concept', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, kind: event.target.value as WorldKind })) },
           WORLD_KINDS.map((kind) => h('option', { key: kind, value: kind }, WORLD_KIND_LABELS[kind])),
         ),
       ),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u5185\u5bb9'),
+        h('span', { className: 'nv-field__label' }, '内容'),
         h('textarea', { className: 'nv-field__input', value: d.content ?? '', rows: 4, onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, content: event.target.value })) }),
       ),
-      listField(h, '\u89e6\u53d1\u8bcd', d.keywords ?? [], (value) => ops.mutate((draft) => ({ ...draft, keywords: value }))),
+      listField(h, '触发词', d.keywords ?? [], (value) => ops.mutate((draft) => ({ ...draft, keywords: value }))),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u89e6\u53d1\u65b9\u5f0f'),
+        h('span', { className: 'nv-field__label' }, '触发方式'),
         h('select', { className: 'nv-field__input', value: d.triggerMode ?? 'constant', onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, triggerMode: event.target.value as TriggerMode })) },
           TRIGGER_MODES.map((mode) => h('option', { key: mode, value: mode }, TRIGGER_MODE_LABELS[mode])),
         ),
       ),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u6743\u91cd'),
+        h('span', { className: 'nv-field__label' }, '权重'),
         h('input', { type: 'number', className: 'nv-field__input', value: String(d.weight ?? 0), onChange: (event: { target: { value: string } }) => ops.mutate((draft) => ({ ...draft, weight: Number.parseInt(event.target.value, 10) || 0 })) }),
       ),
-      entitySelect(h, '\u7236\u6761\u76ee\uff08\u53ef\u7a7a\uff09', d.parent ?? '', parentOptions.filter((option) => option.id !== d.id), (value) => ops.mutate((draft) => ({ ...draft, parent: value === '' ? null : value })), 'worldview-parent'),
+      entitySelect(h, '父条目（可空）', d.parent ?? '', parentOptions.filter((option) => option.id !== d.id), (value) => ops.mutate((draft) => ({ ...draft, parent: value === '' ? null : value })), 'worldview-parent'),
       h('label', { className: 'nv-field' },
-        h('span', { className: 'nv-field__label' }, '\u53ef\u5426\u6539\u5199'),
+        h('span', { className: 'nv-field__label' }, '可否改写'),
         h('input', { type: 'checkbox', className: 'nv-field__check', checked: d.mutable ?? true, onChange: (event: { target: { checked: boolean } }) => ops.mutate((draft) => ({ ...draft, mutable: event.target.checked })) }),
       ),
       editor.selectedId !== undefined && d.status === 'rewritten'
-        ? h('p', { className: 'nv-editor__badge', 'data-novel-worldview-rewritten': '' }, '\u5df2\u6709\u540e\u7eed\u6539\u5199')
+        ? h('p', { className: 'nv-editor__badge', 'data-novel-worldview-rewritten': '' }, '已有后续改写')
         : null,
     ),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-worldview-save': '', onClick: ops.save, disabled: !editor.dirty || editor.saving },
-        saveButtonLabel(editor.saving, editor.selectedId === undefined ? '\u521b\u5efa' : '\u6539\u5199')),
+        saveButtonLabel(editor.saving, editor.selectedId === undefined ? '保存设定' : '保存设定修订')),
     ),
     renderSaveStatus(h, saveStatusLine(editor.saving, editor.saveMessage, editor.error), 'worldview'),
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'worldview', role: 'alert' }, toUserMessage(editor.error)) : null,

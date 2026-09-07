@@ -48,6 +48,7 @@ export const RESPONSIVE_STYLES = `
   .nv-editor__columns,
   .nv-outline__columns {
     flex-direction: column;
+    align-items: stretch;
   }
 
   /* I191：单树导航在窄屏占有限高度，正文继续获得空间。 */

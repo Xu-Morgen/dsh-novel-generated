@@ -1,4 +1,5 @@
 import type { El, QueueNamespace, UnwrapValue, WorkspaceNamespace } from '../shared.js';
+import { DETAIL_BEAT_STATUS_LABELS } from './outline.js';
 import { toUserMessage } from '../presentation.js';
 
 /**
@@ -43,6 +44,9 @@ export type QueueStartInputShape = Parameters<QueueNamespace['startAt']>[1];
 export interface QueueLayerState {
   readonly status: 'idle' | 'loading' | 'ready' | 'error';
   readonly message?: string;
+  /** I192: acknowledgement while a requested pause waits for the current candidate. */
+  readonly notice?: string;
+  readonly reviewTaskId?: string;
   readonly projection?: QueueStatusShape;
   /** 场景卡范围（B5 outline beatCards 投影；勾选决定下一次 start 的范围）。 */
   readonly cards: readonly QueueCardShape[];
@@ -68,6 +72,8 @@ export interface QueueEditOps {
   resume(): void;
   cancel(): void;
   retry(taskId: string): void;
+  /** Open the persisted task candidate in the existing author review component. */
+  review(taskId: string): void;
   dismiss(): void;
 }
 
@@ -111,11 +117,11 @@ function queueCardRow(h: El, card: QueueCardShape, selected: boolean, ops: Queue
       onChange: () => ops.toggleCard(card.id),
     }),
     h('span', { className: 'nv-queue__card-title' }, card.title),
-    h('span', { className: 'nv-queue__card-meta' }, `视角已指定 · 目标 ${card.wordTarget} · ${QUEUE_TASK_STATUS_LABELS[card.status] ?? '无法识别的场景状态'}`),
+    h('span', { className: 'nv-queue__card-meta' }, `${card.pov === '' ? '视角未指定' : '视角已指定'} · 目标 ${card.wordTarget} · ${DETAIL_BEAT_STATUS_LABELS[card.status as keyof typeof DETAIL_BEAT_STATUS_LABELS] ?? '无法识别的场景状态'}`),
   );
 }
 
-function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps): unknown {
+function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps, busy: boolean): unknown {
   const status = task.status;
   return h('li', { className: `nv-queue__task nv-queue__task--${status}`, 'data-novel-queue-task': task.id, 'data-novel-queue-task-status': status },
     h('div', { className: 'nv-queue__task-main' },
@@ -125,11 +131,13 @@ function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps): unknown {
     h('p', { className: 'nv-queue__task-meta', 'data-novel-queue-task-meta': '' },
       `场景任务 · 第 ${task.attempts} 次尝试`,
       task.budgetUnits === null ? '' : ` · ${task.budgetUnits} 单位`,
-      status === 'candidate-ready' ? ' · 请在正文面板裁决该候选' : '',
+      status === 'candidate-ready' ? ' · 请审阅并决定是否接受为草稿' : '',
     ),
-    task.error === null ? null : h('p', { className: 'nv-queue__task-error', 'data-novel-queue-task-error': '' }, toUserMessage(task.error)),
+    task.error === null ? null : h('p', { className: 'nv-queue__task-error', 'data-novel-queue-task-error': '', role: 'alert' }, toUserMessage(task.error)),
+    status === 'candidate-ready' && task.candidateId !== null
+      ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-review': task.id, disabled: busy, onClick: () => ops.review(task.id) }, '审阅候选') : null,
     status === 'failed'
-      ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-retry': task.id, onClick: () => ops.retry(task.id) }, '重试')
+      ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-retry': task.id, disabled: busy, onClick: () => ops.retry(task.id) }, '重试')
       : null,
   );
 }
@@ -167,17 +175,17 @@ export function queuePanel(h: El, projectId: string, queue: QueueNamespace | und
       h('div', { className: 'nv-editor__actions', 'data-novel-queue-controls': '' },
         h('button', {
           type: 'button',
-          className: 'nv-btn nv-btn--primary',
+          className: paused || state.reviewTaskId !== undefined ? 'nv-btn' : 'nv-btn nv-btn--primary',
           'data-novel-queue-start': '',
           disabled: busy || running,
           onClick: () => ops.start(),
-        }, running ? '生成中…' : (paused || runState === 'stopped-hard' || runState === 'stopped-soft' || runState === 'budget-exhausted' ? '继续生成' : '开始生成')),
+        }, running ? '生成中…' : (paused || runState === 'stopped-hard' || runState === 'stopped-soft' || runState === 'budget-exhausted' ? '按当前配置生成' : '开始生成')),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-pause': '', disabled: busy || !running, onClick: () => ops.pause() }, '暂停'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-resume': '', disabled: busy || !paused, onClick: () => ops.resume() }, '继续'),
-        h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-cancel': '', disabled: busy || (!running && !paused), onClick: () => ops.cancel() }, '取消'),
+        h('button', { type: 'button', className: paused ? 'nv-btn nv-btn--primary' : 'nv-btn', 'data-novel-queue-resume': '', disabled: busy || !paused, onClick: () => ops.resume() }, '继续队列'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-cancel': '', disabled: busy || (!running && !paused), onClick: () => ops.cancel() }, '取消队列'),
       ),
       // 范围与配置（勾选范围决定下一次 start；空勾选 = 全部场景卡）。
-      h('details', { className: 'nv-queue__config', 'data-novel-queue-config': '', open: true },
+      h('details', { className: 'nv-queue__config', 'data-novel-queue-config': '', open: !running && !paused },
         h('summary', { 'data-novel-queue-config-summary': '' }, '范围与配置'),
         h('div', { className: 'nv-queue__cards', 'data-novel-queue-cards': '' },
           cards.length === 0
@@ -202,15 +210,17 @@ export function queuePanel(h: El, projectId: string, queue: QueueNamespace | und
       // 任务列表（每卡一个独立候选任务；candidate-ready = 停在待裁决）。
       tasks.length === 0
         ? h('p', { className: 'nv-queue__empty', 'data-novel-queue-tasks-empty': '' }, '尚无队列任务。')
-        : h('ul', { className: 'nv-queue__tasks', 'data-novel-queue-tasks': '' }, tasks.map((task) => queueTaskRow(h, task, ops))),
+        : h('ul', { className: 'nv-queue__tasks', 'data-novel-queue-tasks': '' }, tasks.map((task) => queueTaskRow(h, task, ops, busy))),
     );
   }
   return h('section', { className: 'nv-queue', 'data-novel-queue-panel': '', 'data-novel-queue-state': state.status },
     h('h3', { className: 'nv-editor__title' }, '生成队列'),
-    h('p', { className: 'nv-queue__hint', 'data-novel-queue-desc': '' }, '按场景卡范围批量生成候选：每张卡独立生成并停在待裁决（正文面板裁决），绝不自动接受。'),
+    h('p', { className: 'nv-queue__hint', 'data-novel-queue-desc': '' }, '按场景卡范围批量生成候选：每张卡独立生成并停在待裁决，点击任务的「审阅候选」继续，绝不自动接受。'),
     h('div', { className: 'nv-editor__actions' },
       h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-refresh': '', disabled: busy, onClick: () => ops.refresh() }, '刷新'),
     ),
     body,
+    state.notice && runState === 'running' ? h('p', { role: 'status', 'data-novel-queue-notice': '' }, state.notice) : null,
+    state.status !== 'error' && state.message ? h('p', { className: 'nv-queue__error', 'data-novel-queue-command-error': '', role: 'alert' }, toUserMessage(state.message)) : null,
   );
 }

@@ -21,6 +21,7 @@ import { outlineLayer as renderOutlineLayer } from '../layers/outline.js';
 import type { OutlineDetailGenerationView } from '../layers/outline-detail-generation.js';
 import { chaptersPanel, type ChaptersLayerState } from '../layers/chapters.js';
 import { reviewPanel } from '../layers/review.js';
+import { candidatePanel } from '../layers/candidate.js';
 import { queuePanel } from '../layers/queue.js';
 import { knowledgePanel } from '../layers/knowledge.js';
 import { ruleStylePanel } from '../layers/rule-style.js';
@@ -106,7 +107,18 @@ const PANEL_REGISTRY: Record<string, PanelRenderer> = {
   queue: ({ h, projectId, ns, states, ops }) => {
     const { queueNamespace, workspace } = ns;
     const { queue: queueState } = states;
-    return h('div', { 'data-novel-view-panel': 'queue' }, queuePanel(h, projectId, queueNamespace, workspace, queueState, ops.queue));
+    const reviewedTask = queueState.projection?.tasks.find(task => task.id === queueState.reviewTaskId);
+    const draftSaved = states.chapters.workflow.status === 'saved'
+      && states.chapters.workflow.candidateId === reviewedTask?.candidateId;
+    return h('div', { 'data-novel-view-panel': 'queue' },
+      queuePanel(h, projectId, queueNamespace, workspace, queueState, ops.queue),
+      queueState.reviewTaskId === undefined ? null : h('section', { 'data-novel-queue-candidate-review': '' },
+        h('p', { className: 'nv-queue__hint' }, '这里审阅队列候选正文。接受为草稿后，进入正文工作区编辑并准备定稿预览。'),
+        draftSaved
+          ? h('p', { role: 'status', 'data-novel-queue-draft-saved': '' }, '候选已接受为草稿，可到正文工作区继续编辑。')
+          : candidatePanel(h, projectId, ns.writing, states.chapters.candidate, ops.chapters,
+            states.layers.characters.list.map(entry => ({ id: entry.id, label: entry.name }))),
+      ));
   },
   // I66：知情与揭示（连续性组）—— 事实/角色双视图 + 揭示/holder Gate 提案（R14-1）。
   knowledge: ({ h, projectId, ns, states, ops }) => {

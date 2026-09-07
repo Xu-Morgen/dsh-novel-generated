@@ -1,7 +1,7 @@
 // 本文件由 makeOps 按层拆分生成（I82，架构审查 §5.1 / §9 #5）：
 // worldview 层编辑动作 = B2 世界观层编辑动作（选择/新建草稿/变更/保存+改写，经 Host worldRewrite 与 Gate；I49 行为等价，I82 拆分）。
 
-import { slug, unwrap } from '../shared.js';
+import { availableDraftId, unwrap } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
 import { worldviewInput as buildWorldviewInput } from '../layers/worldview.js';
 import type { WorldEditOps, WorldShape } from '../layers/worldview.js';
@@ -24,10 +24,10 @@ export function createWorldviewOps(runtime: OpsRuntime, port: WorldviewPort): Wo
         if ((e.draft.title ?? '').trim() === '') { release(); act.worldDraft({ error: '标题不能为空' }); return; }
         act.worldDraft({ saving: true, error: '', saveMessage: '' });
         if (e.selectedId === undefined) {
-          const effectiveId = slug(e.draft.title ?? 'untitled');
+          const effectiveId = availableDraftId(e.draft.title ?? 'untitled', snapshot.worldview.list.map(item => item.id));
           void unwrap(workspace.worldviewCreate(projectId, buildWorldviewInput({ ...e.draft, id: effectiveId }))).then((created) => { release(); if (!isActive()) return; act.worldDraft({ draft: created as WorldShape, selectedId: (created as WorldShape).id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setWorldview('error', [], message); act.worldDraft({ error: message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
         } else {
-          const replacementId = slug(e.draft.title ?? e.selectedId);
+          const replacementId = availableDraftId(e.draft.title ?? e.selectedId, snapshot.worldview.list.map(item => item.id));
           void unwrap(workspace.worldviewRewrite(projectId, e.selectedId, buildWorldviewInput({ ...e.draft, id: replacementId }))).then((result) => { release(); if (!isActive()) return; const replacement = (result as { replacement: WorldShape }).replacement; act.worldDraft({ draft: replacement, selectedId: replacement.id, dirty: false, saving: false, saveMessage: '已保存', error: '' }); void unwrap(workspace!.worldviewList(projectId)).then((list) => act.setWorldview('ready', list as unknown[]), (cause: Error) => { const message = toUserMessage(cause); act.setWorldview('error', [], message); act.worldDraft({ error: message }); }); }, (cause: Error) => { release(); act.worldDraft({ saving: false, saveMessage: '', error: toUserMessage(cause) }); });
         }
       },
