@@ -1,4 +1,7 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import { applyRuleStyleReplacement, readRuleStyleSnapshot, ruleStyleSnapshotFingerprint } from './rule-style-replacement.js';
+import { importInterpretationIntentSchema } from '../core/schema/import-interpretation-session.js';
 import { mkdir, rename, unlink } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -12,6 +15,8 @@ import {
   ruleStyleImportIdentitySchema,
   ruleStyleImportProjectionSchema,
   ruleStyleImportProposeInputSchema,
+  ruleStyleRegenerationDecisionSchema, ruleStyleRegenerationProposalSchema, ruleStyleSnapshotSchema,
+  type RuleStyleRegenerationDecision, type RuleStyleRegenerationProposal,
   type RuleStyleImportCandidate,
   type RuleStyleImportCheckpoint,
   type RuleStyleImportDecisionInput,
@@ -30,6 +35,11 @@ import type { NovelStyleService } from './style-service.js';
 
 export const RULE_STYLE_IMPORT_CHECKPOINT_FILE = '.rule-style-import-initialization.yaml';
 const PROPOSAL_KIND = 'rule-style-import-initialization';
+const REGENERATION_KIND = 'rule-style-regeneration';
+const regenerationPayloadSchema = ruleStyleImportIdentitySchema.extend({
+  baseline: ruleStyleSnapshotSchema, baselineFingerprint: z.string(), previousCheckpoint: z.string(),
+  sourceText: z.string().min(1).max(2 * 1024 * 1024), intent: importInterpretationIntentSchema,
+}).strict();
 
 export interface RuleStyleImportInitializationDeps {
   sessions: NovelImportInterpretationSessionService;
@@ -42,6 +52,10 @@ export interface RuleStyleImportInitializationDeps {
 
 /** I151 Host owner for the first-import one-shot task and its I11 lineage. */
 export interface RuleStyleImportInitializationService {
+  /** I201 first Gate freezes replacement scope; no LLM or story write before acceptance. */
+  prepareRegeneration(input: RuleStyleImportIdentity): Promise<RuleStyleRegenerationProposal>;
+  regenerate(input: RuleStyleRegenerationDecision, settings: GenerationSettings, options?: RuleStyleImportBeginOptions): Promise<RuleStyleImportProjection>;
+  rejectRegeneration(input: RuleStyleRegenerationDecision): Promise<RuleStyleRegenerationProposal>;
   begin(input: RuleStyleImportIdentity, settings: GenerationSettings, options?: RuleStyleImportBeginOptions): Promise<RuleStyleImportProjection>;
   configurationFailure(input: RuleStyleImportIdentity, message: string): Promise<RuleStyleImportProjection>;
   status(input: RuleStyleImportIdentity): Promise<RuleStyleImportProjection>;
@@ -69,11 +83,15 @@ export function ruleStyleImportCandidateFingerprint(candidate: RuleStyleImportCa
 }
 
 function now(): string { return new Date().toISOString(); }
+function fingerprintFor(checkpoint: RuleStyleImportCheckpoint, candidate: RuleStyleImportCandidate): string {
+  const fingerprint = ruleStyleImportCandidateFingerprint(candidate);
+  return checkpoint.replacement ? createHash('sha256').update(`${checkpoint.replacement.authorizationId}:${fingerprint}`).digest('hex') : fingerprint;
+}
 function projection(checkpoint: RuleStyleImportCheckpoint): RuleStyleImportProjection {
-  const { sourceText: _sourceText, intent: _intent, ...publicValue } = checkpoint;
+  const { sourceText: _sourceText, intent: _intent, replacement: _replacement, ...publicValue } = checkpoint;
   return ruleStyleImportProjectionSchema.parse(publicValue);
 }
-function assertIdentity(checkpoint: RuleStyleImportCheckpoint, identity: RuleStyleImportIdentity): void {
+function assertIdentity(checkpoint: RuleStyleImportIdentity, identity: RuleStyleImportIdentity): void {
   if (checkpoint.projectId !== identity.projectId) throw new Error('Rule/style import initialization belongs to another project');
   if (checkpoint.importSessionId !== identity.importSessionId) throw new Error('Rule/style import initialization belongs to another import session');
   if (checkpoint.sourceHash !== identity.sourceHash) throw new Error('Rule/style import initialization source hash mismatch');
@@ -143,7 +161,7 @@ export function createRuleStyleImportInitializationService(
         await serialize(checkpoint.projectId, async () => {
           const current = await requireCheckpoint(checkpoint);
           if (current.status === 'cancelled') return;
-          await persist({ ...current, status: 'succeeded', candidate, candidateFingerprint: ruleStyleImportCandidateFingerprint(candidate), error: undefined, updatedAt: now() });
+          await persist({ ...current, status: 'succeeded', candidate, candidateFingerprint: fingerprintFor(current, candidate), error: undefined, updatedAt: now() });
         });
       } catch (error) {
         await serialize(checkpoint.projectId, async () => {
@@ -156,7 +174,78 @@ export function createRuleStyleImportInitializationService(
     jobs.set(checkpoint.projectId, job);
     return job;
   };
+  const assertConfirmed = async (identity: RuleStyleImportIdentity) => {
+    const session = await deps.sessions.read({ projectId: identity.projectId, importSessionId: identity.importSessionId, sourceHash: identity.sourceHash });
+    if (session.status !== 'confirmed') throw new Error('Rule/style regeneration requires confirmed source');
+    return session;
+  };
+  const authorization = (input: RuleStyleRegenerationDecision) => {
+    const gate = deps.confirmation.get(input.projectId, input.authorizationId);
+    if (gate.kind !== REGENERATION_KIND) throw new Error('Invalid rule/style regeneration authorization');
+    const payload = regenerationPayloadSchema.parse(gate.payload);
+    assertIdentity(payload, input);
+    return { gate, payload };
+  };
+  const authorizationProjection = (input: RuleStyleRegenerationDecision) => {
+    const { gate, payload } = authorization(input);
+    return ruleStyleRegenerationProposalSchema.parse({ ...input, status: gate.status, baselineFingerprint: payload.baselineFingerprint, ruleCount: payload.baseline.rules.length, styleName: payload.baseline.style?.name });
+  };
+  const assertReplacementBaseline = async (current: RuleStyleImportCheckpoint): Promise<void> => {
+    const replacement = current.replacement;
+    if (!replacement) { await deps.sessions.firstConfirmed({ projectId: current.projectId, importSessionId: current.importSessionId, sourceHash: current.sourceHash }); await ensureEmpty(current.projectId); return; }
+    const session = await assertConfirmed(current);
+    if (canonical(session.intent) !== canonical(current.intent)) throw new Error('Rule/style source intent is stale');
+    if (deps.confirmation.get(current.projectId, replacement.authorizationId).status !== 'accepted') throw new Error('Replacement has not been authorized');
+    if (ruleStyleSnapshotFingerprint(await readRuleStyleSnapshot(deps, current.projectId)) !== replacement.baselineFingerprint) throw new Error('Rule/style replacement baseline is stale');
+  };
   const service: RuleStyleImportInitializationService = {
+    prepareRegeneration(rawInput) {
+      ensureActive(); const input = ruleStyleImportIdentitySchema.parse(rawInput);
+      return serialize(input.projectId, async () => {
+        const session = await assertConfirmed(input);
+        let previous = await readCheckpoint(input.projectId);
+        if (previous?.status === 'applying' && previous.replacement && previous.candidate && previous.confirmationId) {
+          const oldSession = await assertConfirmed(previous);
+          if (canonical(oldSession.intent) !== canonical(previous.intent) || deps.confirmation.get(input.projectId, previous.confirmationId).status !== 'accepted') throw new Error('Previous replacement authorization is stale');
+          await applyRuleStyleReplacement(deps, input.projectId, previous.replacement.baseline, previous.candidate);
+          previous = await persist({ ...previous, status: 'applied', updatedAt: now() });
+        }
+        if (controllers.has(input.projectId) || (previous && ['queued', 'running', 'proposed', 'applying'].includes(previous.status))) throw new Error('Finish or cancel the current rule/style task first');
+        const baseline = await readRuleStyleSnapshot(deps, input.projectId);
+        const baselineFingerprint = ruleStyleSnapshotFingerprint(baseline);
+        const sourceText = previous?.importSessionId === input.importSessionId && previous.sourceHash === input.sourceHash ? previous.sourceText : deps.analysis.source(input);
+        const payload = regenerationPayloadSchema.parse({ ...input, baseline, baselineFingerprint, previousCheckpoint: canonical(previous ?? null), sourceText, intent: session.intent });
+        const pending = deps.confirmation.pending(input.projectId).find(gate => gate.kind === REGENERATION_KIND && canonical(gate.payload) === canonical(payload));
+        const authorizationId = pending?.id ?? `rule-style-regen-${randomUUID()}`;
+        if (!pending) await deps.confirmation.propose(input.projectId, { id: authorizationId, kind: REGENERATION_KIND, payload });
+        return authorizationProjection({ ...input, authorizationId });
+      });
+    },
+    async regenerate(rawInput, settings, options) {
+      ensureActive(); const input = ruleStyleRegenerationDecisionSchema.parse(rawInput);
+      let job: Promise<void> | undefined;
+      const initial = await serialize(input.projectId, async () => {
+        const { gate, payload } = authorization(input);
+        if (gate.status === 'rejected') throw new Error('Rule/style regeneration was rejected');
+        const current = await readCheckpoint(input.projectId);
+        if (current?.replacement?.authorizationId === input.authorizationId) { assertIdentity(current, input); job = jobs.get(input.projectId); return projection(current); }
+        if (canonical(current ?? null) !== payload.previousCheckpoint || controllers.has(input.projectId)) throw new Error('Regeneration authorization is stale');
+        const session = await assertConfirmed(input);
+        if (canonical(session.intent) !== canonical(payload.intent) || ruleStyleSnapshotFingerprint(await readRuleStyleSnapshot(deps, input.projectId)) !== payload.baselineFingerprint) throw new Error('Replacement baseline is stale');
+        if (gate.status === 'pending') await deps.confirmation.accept(input.projectId, input.authorizationId);
+        const timestamp = now();
+        const checkpoint = await persist({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash, sourceText: payload.sourceText, intent: payload.intent, status: 'queued', createdAt: timestamp, updatedAt: timestamp,
+          replacement: { authorizationId: input.authorizationId, baseline: payload.baseline, baselineFingerprint: payload.baselineFingerprint } });
+        job = launch(checkpoint, settings, options?.onProgress);
+        return projection(checkpoint);
+      });
+      if (options?.waitForCompletion && job) { await job; return projection(await requireCheckpoint(input)); }
+      return initial;
+    },
+    rejectRegeneration(rawInput) {
+      ensureActive(); const input = ruleStyleRegenerationDecisionSchema.parse(rawInput);
+      return serialize(input.projectId, async () => { const { gate } = authorization(input); if (gate.status === 'pending') await deps.confirmation.reject(input.projectId, input.authorizationId); else if (gate.status !== 'rejected') throw new Error('Regeneration already accepted'); return authorizationProjection(input); });
+    },
     async begin(rawInput, settings, options) {
       ensureActive();
       const identity = ruleStyleImportIdentitySchema.parse(rawInput);
@@ -166,7 +255,7 @@ export function createRuleStyleImportInitializationService(
         const existing = await readCheckpoint(identity.projectId);
         if (existing !== undefined) {
           assertIdentity(existing, identity);
-          if (['queued', 'running', 'failed', 'cancelled'].includes(existing.status) && !controllers.has(identity.projectId)) job = launch(existing, settings, options?.onProgress);
+          if (['queued', 'running', 'failed', 'cancelled'].includes(existing.status) && !controllers.has(identity.projectId)) { if (existing.replacement) await assertReplacementBaseline(existing); job = launch(existing, settings, options?.onProgress); }
           else job = jobs.get(identity.projectId);
           return projection(existing);
         }
@@ -221,15 +310,14 @@ export function createRuleStyleImportInitializationService(
         const current = await requireCheckpoint(input);
         if (current.candidateFingerprint !== input.expectedFingerprint) throw new Error('Rule/style import candidate is stale');
         if (current.status === 'proposed') {
-          if (ruleStyleImportCandidateFingerprint(input.candidate) !== current.candidateFingerprint) throw new Error('Rule/style import proposal already frozen');
+          if (fingerprintFor(current, input.candidate) !== current.candidateFingerprint) throw new Error('Rule/style import proposal already frozen');
           return projection(current);
         }
         if (current.status !== 'succeeded') throw new Error(`Cannot propose ${current.status} rule/style import initialization`);
-        await deps.sessions.firstConfirmed({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash });
-        await ensureEmpty(input.projectId);
+        await assertReplacementBaseline(current);
         const candidate = ruleStyleImportCandidateSchema.parse(input.candidate);
-        const candidateFingerprint = ruleStyleImportCandidateFingerprint(candidate);
-        const confirmationId = `rule-style-import-${input.importSessionId}`;
+        const candidateFingerprint = fingerprintFor(current, candidate);
+        const confirmationId = current.replacement ? `rs-apply-${current.replacement.authorizationId.replace('rule-style-regen-', '')}` : `rule-style-import-${input.importSessionId}`;
         const gate = await deps.confirmation.propose(input.projectId, { id: confirmationId, kind: PROPOSAL_KIND, payload: { importSessionId: input.importSessionId, sourceHash: input.sourceHash, candidateFingerprint, candidate } });
         if (gate.status !== 'pending') throw new Error(`Rule/style import ConfirmationGate is ${gate.status}`);
         return projection(await persist({ ...current, status: 'proposed', candidate, candidateFingerprint, confirmationId, updatedAt: now() }));
@@ -240,12 +328,12 @@ export function createRuleStyleImportInitializationService(
       const input = ruleStyleImportDecisionInputSchema.parse(rawInput);
       return serialize(input.projectId, async () => {
         let current = await requireCheckpoint(input);
-        if (current.status === 'applied') return projection(current);
+        if (current.status === 'applied') { if (current.replacement && current.candidateFingerprint !== input.expectedFingerprint) throw new Error('Rule/style import candidate is stale'); return projection(current); }
         if (current.status !== 'proposed' && current.status !== 'applying') throw new Error(`Cannot accept ${current.status} rule/style import initialization`);
         if (current.candidateFingerprint !== input.expectedFingerprint || current.candidate === undefined || current.confirmationId === undefined) throw new Error('Rule/style import candidate is stale');
-        await deps.sessions.firstConfirmed({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash });
+        if (!current.replacement) await deps.sessions.firstConfirmed({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash });
         if (current.status === 'proposed') {
-          await ensureEmpty(input.projectId);
+          await assertReplacementBaseline(current);
           const gate = deps.confirmation.get(input.projectId, current.confirmationId);
           if (gate.status === 'pending') await deps.confirmation.accept(input.projectId, current.confirmationId);
           else if (gate.status !== 'accepted') throw new Error(`Rule/style import ConfirmationGate is ${gate.status}`);
@@ -253,6 +341,12 @@ export function createRuleStyleImportInitializationService(
         }
         const candidate = current.candidate;
         if (candidate === undefined) throw new Error('Rule/style import candidate is unavailable');
+        if (current.replacement) {
+          const session = await assertConfirmed(input);
+          if (canonical(session.intent) !== canonical(current.intent)) throw new Error('Rule/style source intent is stale');
+          await applyRuleStyleReplacement(deps, input.projectId, current.replacement.baseline, candidate);
+          return projection(await persist({ ...current, status: 'applied', error: undefined, updatedAt: now() }));
+        }
         const createdRuleIds = candidate.rules.map((rule) => rule.id);
         let styleWritten = false;
         try {

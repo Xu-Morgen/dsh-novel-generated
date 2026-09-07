@@ -289,7 +289,9 @@ describe('I144 来源语义审阅投影', () => {
     expect(collect(tree, 'textarea').some((node) => node.props?.['data-novel-rule-style-import-rules'] !== undefined || node.props?.['data-novel-rule-style-import-style'] !== undefined)).toBe(false);
     expect(collect(tree, 'select').some((node) => node.props?.['data-novel-structured-input'] === 'rule-style-rules')).toBe(true);
     expect(collect(tree, 'button').some((node) => node.props?.['data-novel-rule-style-import-propose'] !== undefined)).toBe(true);
-    expect(JSON.stringify(tree)).not.toContain('regenerate');
+    // I201 explicitly authorizes a new Gate entry, never an immediate overwrite.
+    expect(collect(tree, 'button').some(node => node.props?.['data-novel-rule-style-regenerate'] !== undefined)).toBe(true);
+    expect(collect(tree, 'button').some(node => node.props?.['data-novel-rule-style-regenerate-confirm'] !== undefined)).toBe(false);
   });
 
   it('shows the active LLM phase and one bounded line of latest streamed output', () => {

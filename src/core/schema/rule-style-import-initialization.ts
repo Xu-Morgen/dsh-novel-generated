@@ -35,6 +35,19 @@ export const ruleStyleImportIdentitySchema = z.object({
 }).strict();
 export type RuleStyleImportIdentity = z.infer<typeof ruleStyleImportIdentitySchema>;
 
+/** I201 Host-only rollback snapshot; never returned through the old projection. */
+export const ruleStyleSnapshotSchema = z.object({ rules: z.array(ruleSchema), style: styleProfileSchema.optional() }).strict();
+export type RuleStyleSnapshot = z.infer<typeof ruleStyleSnapshotSchema>;
+export const ruleStyleRegenerationDecisionSchema = ruleStyleImportIdentitySchema.extend({ authorizationId: entityIdSchema }).strict();
+export type RuleStyleRegenerationDecision = z.infer<typeof ruleStyleRegenerationDecisionSchema>;
+/** Strict additive author confirmation projection; no source text or file paths. */
+export const ruleStyleRegenerationProposalSchema = ruleStyleRegenerationDecisionSchema.extend({
+  status: z.enum(['pending', 'accepted', 'rejected']), baselineFingerprint: fingerprintSchema,
+  ruleCount: z.number().int().nonnegative(), styleName: z.string().optional(),
+}).strict();
+export type RuleStyleRegenerationProposal = z.infer<typeof ruleStyleRegenerationProposalSchema>;
+export const ruleStyleReplacementSchema = z.object({ authorizationId: entityIdSchema, baselineFingerprint: fingerprintSchema, baseline: ruleStyleSnapshotSchema }).strict();
+
 export const ruleStyleImportStatusSchema = z.enum([
   'queued', 'running', 'succeeded', 'proposed', 'applying', 'applied', 'rejected', 'cancelled', 'failed', 'stale',
 ]);
@@ -45,6 +58,7 @@ export const ruleStyleImportCheckpointSchema = ruleStyleImportIdentitySchema.ext
   status: ruleStyleImportStatusSchema,
   sourceText: z.string().min(1).max(2 * 1024 * 1024),
   intent: importInterpretationIntentSchema,
+  replacement: ruleStyleReplacementSchema.optional(),
   candidate: ruleStyleImportCandidateSchema.optional(),
   candidateFingerprint: fingerprintSchema.optional(),
   confirmationId: entityIdSchema.optional(),

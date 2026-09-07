@@ -227,7 +227,10 @@
     "novel-creation-tool/novelAssistant/inspire",
     "novel-creation-tool/novelMigration/preview",
     "novel-creation-tool/novelMigration/execute",
-    "novel-creation-tool/novelMigration/rollback"
+    "novel-creation-tool/novelMigration/rollback",
+    "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration",
+    "novel-creation-tool/novelRuleStyleImportInitialization/regenerate",
+    "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6604,6 +6607,69 @@
       "result": {
         "typeSymbol": "novel-creation-tool#desktopMigration:rollback",
         "schemaId": "novel-creation-tool#desktopMigration:rollback@c63afcf3"
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "prepareRegeneration",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#ruleStyleRegenerationIdentity",
+            "schemaId": "novel-creation-tool#ruleStyleRegenerationIdentity@f2a61c6b"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#ruleStyleRegenerationProposal",
+        "schemaId": "novel-creation-tool#ruleStyleRegenerationProposal@98755f7e"
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/regenerate": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/regenerate",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "regenerate",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#ruleStyleRegenerationDecision",
+            "schemaId": "novel-creation-tool#ruleStyleRegenerationDecision@10b7c268"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#ruleStyleRegenerationResult",
+        "schemaId": "novel-creation-tool#ruleStyleRegenerationResult@c1bf20cf"
+      }
+    },
+    "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration": {
+      "id": "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration",
+      "service": "novelRuleStyleImportInitialization",
+      "namespace": "novelRuleStyleImportInitialization",
+      "method": "rejectRegeneration",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#ruleStyleRegenerationDecision",
+            "schemaId": "novel-creation-tool#ruleStyleRegenerationDecision@10b7c268"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#ruleStyleRegenerationProposal",
+        "schemaId": "novel-creation-tool#ruleStyleRegenerationProposal@98755f7e"
       }
     }
   },
@@ -53815,6 +53881,364 @@
           "status",
           "projectsRemoved",
           "settingsRemoved"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#ruleStyleRegenerationIdentity@f2a61c6b": {
+      "typeSymbol": "novel-creation-tool#ruleStyleRegenerationIdentity",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#ruleStyleRegenerationProposal@98755f7e": {
+      "typeSymbol": "novel-creation-tool#ruleStyleRegenerationProposal",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "authorizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected"
+            ]
+          },
+          "baselineFingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "ruleCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "styleName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "authorizationId",
+          "status",
+          "baselineFingerprint",
+          "ruleCount"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#ruleStyleRegenerationDecision@10b7c268": {
+      "typeSymbol": "novel-creation-tool#ruleStyleRegenerationDecision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "authorizationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "authorizationId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#ruleStyleRegenerationResult@c1bf20cf": {
+      "typeSymbol": "novel-creation-tool#ruleStyleRegenerationResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "proposed",
+              "applying",
+              "applied",
+              "rejected",
+              "cancelled",
+              "failed",
+              "stale"
+            ]
+          },
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "rules": {
+                "maxItems": 50,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "global",
+                        "faction",
+                        "location",
+                        "character",
+                        "item"
+                      ]
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "physics",
+                        "magic",
+                        "technology",
+                        "genre",
+                        "taboo",
+                        "permission"
+                      ]
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "priority": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "examples": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "active": {
+                      "type": "boolean"
+                    },
+                    "immutable": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "scope",
+                    "kind",
+                    "statement",
+                    "priority",
+                    "examples",
+                    "active",
+                    "immutable"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "style": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "person": {
+                    "type": "string",
+                    "enum": [
+                      "first",
+                      "second",
+                      "third-limited",
+                      "third-omniscient"
+                    ]
+                  },
+                  "tense": {
+                    "type": "string",
+                    "enum": [
+                      "past",
+                      "present"
+                    ]
+                  },
+                  "povScope": {
+                    "type": "string",
+                    "enum": [
+                      "single",
+                      "multi",
+                      "omniscient"
+                    ]
+                  },
+                  "tone": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "proseStyle": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "chapterFormat": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dialogueConventions": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "forbidden": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "person",
+                  "tense",
+                  "povScope",
+                  "tone",
+                  "proseStyle",
+                  "chapterFormat",
+                  "dialogueConventions",
+                  "forbidden"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "rules",
+              "style"
+            ],
+            "additionalProperties": false
+          },
+          "candidateFingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "confirmationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "error": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "status",
+          "createdAt",
+          "updatedAt"
         ],
         "additionalProperties": false
       }

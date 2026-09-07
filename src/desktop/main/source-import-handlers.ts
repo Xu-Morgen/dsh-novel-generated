@@ -1,6 +1,8 @@
 import { ensureImportedProgress } from './import-progress.js';
 import { IpcHandlerRejection, ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
 import { NarrativeAdaptationFormatError } from '../../llm/analyze/narrative-adaptation.js';
+import { ruleStyleRegenerationDecisionSchema, ruleStyleImportIdentitySchema } from '../../core/schema/rule-style-import-initialization.js';
+import type { RuleStyleRegenerationNamespace } from '../../app/rule-style-regeneration-contract.js';
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
@@ -246,6 +248,14 @@ export function createDesktopSourceImportHandlers(
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/accept', (input) => initialization.accept(input as Parameters<typeof initialization.accept>[0]));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/reject', (input) => initialization.reject(input as Parameters<typeof initialization.reject>[0]));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/cancel', (input) => initialization.cancel(input as Parameters<typeof initialization.cancel>[0]));
+  const regeneration: RuleStyleRegenerationNamespace = {
+    prepareRegeneration: input => initialization.prepareRegeneration(input),
+    regenerate: async input => initialization.regenerate(input, await resolveSettings()),
+    rejectRegeneration: input => initialization.rejectRegeneration(input),
+  };
+  map.set('novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration', input => regeneration.prepareRegeneration(ruleStyleImportIdentitySchema.parse(input)));
+  map.set('novel-creation-tool/novelRuleStyleImportInitialization/regenerate', input => regeneration.regenerate(ruleStyleRegenerationDecisionSchema.parse(input)));
+  map.set('novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration', input => regeneration.rejectRegeneration(ruleStyleRegenerationDecisionSchema.parse(input)));
 
   map.set('novel-creation-tool/novelNarrativeAdaptation/begin', async (input, settings, context) => {
     const invocation = contextOf(context);

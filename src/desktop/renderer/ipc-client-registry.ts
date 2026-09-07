@@ -941,6 +941,18 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "cancel",
         "methodId": "novel-creation-tool/novelRuleStyleImportInitialization/cancel"
+      },
+      {
+        "method": "prepareRegeneration",
+        "methodId": "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration"
+      },
+      {
+        "method": "regenerate",
+        "methodId": "novel-creation-tool/novelRuleStyleImportInitialization/regenerate"
+      },
+      {
+        "method": "rejectRegeneration",
+        "methodId": "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration"
       }
     ]
   },

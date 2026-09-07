@@ -28,6 +28,8 @@ export interface NovelRuleService {
   query(projectId: string, filter?: RuleQuery): Promise<RuleReference[]>;
   initialize(projectId: string, inputs: readonly RuleInput[]): Promise<Rule[]>;
   clearInitialization(projectId: string, ruleIds: readonly string[]): Promise<void>;
+  /** Confirmed I201 whole-store CAS; not a public free-form write entry. */
+  replaceAll(projectId: string, expected: readonly Rule[], next: readonly Rule[]): Promise<void>;
 }
 
 /**
@@ -45,6 +47,7 @@ export function createRuleService(projectsRoot = join(homedir(), '.dsh', 'novel-
   return {
     async open(projectId) {
       validateProjectId(projectId);
+      if (repositories.has(projectId)) return;
       const repository = new RuleRepository(projectDirectory(projectsRoot, projectId));
       await repository.open();
       repositories.set(projectId, repository);
@@ -57,5 +60,6 @@ export function createRuleService(projectsRoot = join(homedir(), '.dsh', 'novel-
     query: (projectId, filter) => get(projectId).query(filter),
     initialize: (projectId, inputs) => get(projectId).initialize(inputs),
     clearInitialization: (projectId, ruleIds) => get(projectId).clearInitialization(ruleIds),
+    replaceAll: (projectId, expected, next) => get(projectId).replaceAll(expected, next),
   };
 }

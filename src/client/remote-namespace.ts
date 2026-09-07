@@ -104,7 +104,7 @@ export type ImportInterpretationNamespace = NamespaceOf<typeof importInterpretat
 /** I143 zero-write source classifier; only operational evidence crosses this seam. */
 export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInterpretationAnalysisRemoteContribution>;
 /** I151 first-import one-shot B1/B4 candidate, Gate, and apply surface. */
-export type RuleStyleImportInitializationNamespace = NamespaceOf<typeof ruleStyleImportInitializationRemoteContribution>;
+export type RuleStyleImportInitializationNamespace = NamespaceOf<typeof ruleStyleImportInitializationRemoteContribution> & import('../app/rule-style-regeneration-contract.js').RuleStyleRegenerationNamespace;
 /** I145 candidate-only POV adaptation; application remains a later Gate owner. */
 export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
 /** I146 candidate-only C3 reveal planner; application remains a later Gate owner. */

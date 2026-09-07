@@ -26,8 +26,8 @@ const FILE_SUFFIX = '.yaml';
  * - `immutable` and `priority` replicate on every round-trip.
  * - Queries are deterministic: active rules are ordered by descending
  *   `priority`, then by `id` for a stable consumer injection order.
- * - Immutable rules cannot be overwritten once stored (only inactivated via
- *   `active: false` at create time); I7 leaves semantic injection to I13.
+ * - Ordinary updates cannot overwrite immutable rules. I201's explicitly
+ *   confirmed whole replacement is the exception (design §14.18.1a).
  */
 export class RuleRepository {
   private readonly rulesDirectory: string;
@@ -39,6 +39,33 @@ export class RuleRepository {
 
   async open(): Promise<void> {
     await mkdir(this.rulesDirectory, { recursive: true });
+    const journal = join(this.rulesDirectory, '.replacement-journal');
+    if (await this.exists(journal)) {
+      const previous = ruleSchema.array().parse(await readYaml(journal));
+      await this.writeReplacement(previous);
+      await unlink(journal);
+    }
+  }
+
+  /** I201 / §14.18.1a: confirmed full replacement with CAS and durable rollback on reopen. */
+  async replaceAll(expected: readonly Rule[], next: readonly Rule[]): Promise<void> {
+    return this.enqueue(async () => {
+      const current = await Promise.all((await this.readRuleFiles()).sort().map(file => readYaml(join(this.rulesDirectory, file)).then(raw => ruleSchema.parse(raw))));
+      const ordered = (rules: readonly Rule[]) => [...rules].sort((a, b) => a.id.localeCompare(b.id));
+      const previous = ruleSchema.array().parse(expected);
+      const replacement = ruleSchema.array().parse(next);
+      if (new Set(replacement.map(rule => rule.id)).size !== replacement.length) throw new Error('Duplicate replacement rule ids');
+      if (JSON.stringify(ordered(current)) !== JSON.stringify(ordered(previous))) throw new Error('Rule replacement baseline is stale');
+      const journal = join(this.rulesDirectory, '.replacement-journal');
+      await writeYaml(`${journal}.tmp`, previous); await rename(`${journal}.tmp`, journal);
+      try { await this.writeReplacement(replacement); await unlink(journal); }
+      catch (cause) { await this.writeReplacement(previous); await unlink(journal); throw cause; }
+    });
+  }
+
+  private async writeReplacement(rules: readonly Rule[]): Promise<void> {
+    for (const file of await this.readRuleFiles()) await unlink(join(this.rulesDirectory, file));
+    for (const rule of rules) await this.writeRuleDocument(rule);
   }
 
   async create(input: RuleInput): Promise<Rule> {

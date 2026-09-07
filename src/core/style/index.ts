@@ -44,6 +44,18 @@ export class StyleRepository {
     });
   }
 
+  /** I201 / §14.18.1a: CAS replacement/compensation, including the initial empty profile. */
+  async replace(expected: StyleProfile | undefined, next: StyleProfile | undefined): Promise<void> {
+    return this.enqueue(async () => {
+      const raw = await readYaml<unknown>(this.stylePath);
+      const current = raw !== null && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw).length === 0 ? undefined : styleProfileSchema.parse(raw);
+      if (JSON.stringify(current) !== JSON.stringify(expected === undefined ? undefined : styleProfileSchema.parse(expected))) throw new Error('Style replacement baseline is stale');
+      const replacement = next === undefined ? {} : styleProfileSchema.parse(next);
+      const temporary = `${this.stylePath}.replace.tmp`;
+      await writeYaml(temporary, replacement); await rename(temporary, this.stylePath);
+    });
+  }
+
   /** I151 refuses to replace anything except I3's canonical empty placeholder. */
   async initialize(input: StyleProfileInput): Promise<StyleProfile> {
     return this.enqueue(async () => {

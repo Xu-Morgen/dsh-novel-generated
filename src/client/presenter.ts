@@ -88,6 +88,9 @@ export interface WorkbenchUi {
   setRuleStyleImportRulesDraft(value: string): void;
   setRuleStyleImportStyleDraft(value: string): void;
   retryRuleStyleImportInitialization(): void;
+  prepareRuleStyleRegeneration(): void;
+  confirmRuleStyleRegeneration(): void;
+  rejectRuleStyleRegeneration(): void;
   proposeRuleStyleImportInitialization(): void;
   acceptRuleStyleImportInitialization(): void;
   rejectRuleStyleImportInitialization(): void;
@@ -202,6 +205,9 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
     setRuleStyleImportRulesDraft(value) { importInterpretation.setRuleStyleRulesDraft(value); },
     setRuleStyleImportStyleDraft(value) { importInterpretation.setRuleStyleStyleDraft(value); },
     retryRuleStyleImportInitialization() { importInterpretation.retryRuleStyleInitialization(); },
+    prepareRuleStyleRegeneration() { importInterpretation.prepareRuleStyleRegeneration(); },
+    confirmRuleStyleRegeneration() { importInterpretation.confirmRuleStyleRegeneration(); },
+    rejectRuleStyleRegeneration() { importInterpretation.rejectRuleStyleRegeneration(); },
     proposeRuleStyleImportInitialization() { importInterpretation.proposeRuleStyleInitialization(); },
     acceptRuleStyleImportInitialization() { importInterpretation.acceptRuleStyleInitialization(); },
     rejectRuleStyleImportInitialization() { importInterpretation.rejectRuleStyleInitialization(); },
@@ -364,6 +370,9 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     setRuleStyleRulesDraft: (value) => ui.setRuleStyleImportRulesDraft(value),
     setRuleStyleStyleDraft: (value) => ui.setRuleStyleImportStyleDraft(value),
     retryRuleStyleInitialization: () => ui.retryRuleStyleImportInitialization(),
+    prepareRuleStyleRegeneration: () => ui.prepareRuleStyleRegeneration(),
+    confirmRuleStyleRegeneration: () => ui.confirmRuleStyleRegeneration(),
+    rejectRuleStyleRegeneration: () => ui.rejectRuleStyleRegeneration(),
     proposeRuleStyleInitialization: () => ui.proposeRuleStyleImportInitialization(),
     acceptRuleStyleInitialization: () => ui.acceptRuleStyleImportInitialization(),
     rejectRuleStyleInitialization: () => ui.rejectRuleStyleImportInitialization(),

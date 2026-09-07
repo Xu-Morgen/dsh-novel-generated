@@ -21,6 +21,8 @@ export interface NovelStyleService {
   initialize(projectId: string, input: StyleProfileInput): Promise<StyleProfile>;
   clearInitialization(projectId: string, expectedStyleId: string): Promise<void>;
   isInitialized(projectId: string): Promise<boolean>;
+  /** Confirmed I201 CAS replacement and compensation through the B4 owner. */
+  replace(projectId: string, expected: StyleProfile | undefined, next: StyleProfile | undefined): Promise<void>;
 }
 
 /** Host facade for I10 B4 global style-profile storage (design §5.6 / §10.1). */
@@ -37,6 +39,7 @@ export function createStyleService(
   return {
     async open(projectId) {
       validateProjectId(projectId);
+      if (repositories.has(projectId)) return;
       const repository = new StyleRepository(projectDirectory(projectsRoot, projectId));
       await repository.open();
       repositories.set(projectId, repository);
@@ -48,5 +51,6 @@ export function createStyleService(
     initialize: (projectId, input) => get(projectId).initialize(input),
     clearInitialization: (projectId, expectedStyleId) => get(projectId).clearInitialization(expectedStyleId),
     isInitialized: (projectId) => get(projectId).isInitialized(),
+    replace: (projectId, expected, next) => get(projectId).replace(expected, next),
   };
 }

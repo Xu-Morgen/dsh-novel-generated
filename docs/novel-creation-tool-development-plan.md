@@ -2195,6 +2195,14 @@ TDD Route:
 - **验证**：`pnpm run verify:i200`；`pnpm run verify:stage-44`。
 - **状态**：已完成；阶段门 exit 0，233 文件 / 1205 测试、真实 Electron 格式失败/手动重试、冻结样本回归通过。见 `docs/ui/i200-dod.md`；下一可用迭代 I201。
 
+## Stage 45 / I201：确认后的规则与文风重新生成（R39）
+
+- **目标/owner**：I11 授权后的非首次自动生成，RuleStyleImportInitializationService、B1/B4 CAS owner、Client 审阅面板。
+- **交付物/验收**：见 `docs/ui/i201-dod.md`；strict additive IPC、原内容快照、两次 Gate、幂等、stale 与故障补偿、真实 Electron 消费者。
+- **明确不做**：不改 prompt/样本及其他层，不在打开作品时触发；设计 §14.18.1a 明确覆盖旧首次限制。
+- **验证**：`pnpm run verify:i201`；`pnpm run verify:stage-45`。
+- **状态**：已完成；235 文件 / 1214 测试、真实 Electron 两次确认替换及既有样本回归全绿。下一可用迭代 I202。
+
 ## 39. 当前完成线
 
 I1–I164 均已完成：I45 完成 v2.0 核心闭环，I49 完成首轮创作台 UI，I53 完成作品启动与六层初始化，I59 完成停靠侧板与现有 UI 修复，I65 完成 P0 正文写作闭环，I72 完成 P1 能力可达性，I74 完成剧情时间线，I84 完成 Stage 15 架构债务消除，I85 完成 Stage 16 DSH family `0.1.1-rc.2` 兼容升级，I86–I102 完成 Stage 17 review v2.0 修复，I103–I140 完成合同地基、章节/正文/细纲新增能力、统一定稿、发布门、作者流程壳和 README 十二步产品 E2E，I141–I149 完成来源确认、幕后素材 POV 叙事化、C3/C4 安全边界与来源感知产品 E2E，I150 完成范围细纲生成接线修复，I151 完成首次导入规则与文风初始化，I152 完成 credentials seam 修复，I153 完成目录层首次受控导入接线修复，I154 完成来源审阅解释提示，I155 完成既有作品归档与恢复，I156 完成来源审阅 session Windows 落盘与原地重试恢复，I157 完成来源主角作者语义恢复，I158 完成来源 Remote Host face 注册与真实 Gateway 往返，I159–I161 完成作者入口、技术 ID 与中文术语收口，I162 完成来源处理建议、作者可控分段及最终分类裁决闭环，I163 完成来源解释异步失败后的受限原位重试与原始错误诊断，I164 完成 `novel-custom` DeepSeek reasoning capability 声明与真实 rc.2 消费者门。

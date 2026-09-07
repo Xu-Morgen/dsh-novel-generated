@@ -12,11 +12,11 @@ const registrySource = read('src/desktop/renderer/ipc-client-registry.ts');
 const clientSource = read('src/desktop/renderer/desktop-ipc-client.ts');
 const rendererSource = [clientSource, read('src/desktop/renderer/shell.ts'), read('src/desktop/renderer/main.ts')].join('\n');
 
-if (lock.descriptorIds.length !== 226 || !lock.descriptorIds.includes('novel-creation-tool/novelReviewRepair/propose')) {
+if (lock.descriptorIds.length !== 229 || !lock.descriptorIds.includes('novel-creation-tool/novelReviewRepair/propose')) {
   throw new Error('I174 canonical registry must contain the 214-method baseline plus the existing review-repair seam');
 }
-if ((registrySource.match(/"key":/g) ?? []).length !== 31 || (registrySource.match(/"methodId":/g) ?? []).length !== 207) {
-  throw new Error('I174 generated registry does not cover 31 Client services / 207 consumed methods');
+if ((registrySource.match(/"key":/g) ?? []).length !== 31 || (registrySource.match(/"methodId":/g) ?? []).length !== 210) {
+  throw new Error('I174 generated registry does not cover 31 Client services / 210 consumed methods');
 }
 if (rendererSource.includes('$mount') || /from ['"]@deepseek-ai\//.test(rendererSource) || rendererSource.includes('Remote fallback')) {
   throw new Error('I174 desktop Renderer retains a DSH Remote mount/fallback');
@@ -81,4 +81,4 @@ try {
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
-process.stdout.write('I174 smoke: generated 31-service/207-method client, unwrap/error projection, cancellation, late-response guard, real strict IPC, and DSH-free bundle passed\n');
+process.stdout.write('I174 smoke: generated 31-service/210-method client, unwrap/error projection, cancellation, late-response guard, real strict IPC, and DSH-free bundle passed\n');

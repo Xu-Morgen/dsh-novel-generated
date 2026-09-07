@@ -1247,6 +1247,12 @@ project/
 - 插件启动、Client 挂载、作品列表刷新、`projectOpen`、重启后重开、纯空白创建和对已有作品的后续导入都不是初始化事件，必须零 LLM 调用。B1/B4 文件为空也不能在 open 时反推并触发任务。
 - Host 为首次导入建立 durable one-shot checkpoint，至少冻结 projectId/sourceHash/importSessionId、任务状态、候选 fingerprint 与 Gate lineage。重试只能继续同一任务，不得因刷新、重开、重复 finalize 或应用重放再启动第二个 LLM 任务。该 checkpoint 是 operational evidence，不是第 14 层作品真相。
 
+#### 14.18.1a I201 作者确认的重新生成例外
+
+作者显式申请重新自动生成时，不受首次导入、空作品、空 B1/B4 限制。先由 I11 提案说明将替换全部当前规则（含 immutable 标记）和单一文风，冻结已确认来源及 B1/B4 fingerprint；作者接受后才启动一次模型任务。授权仅对应本次任务，重放不重复调用。
+
+生成、失败、取消及候选审阅均保留旧内容。最终候选另经 I11 接受后替换；来源或原内容变化则拒绝并重新确认，保留快照用于写盘失败补偿及中断恢复。再生成需新 Gate，不在 app/open、刷新时自动触发。本款是 I151 后续仅手工维护的显式例外；宿主、模型 schema 与其他故事层不变。
+
 #### 14.18.2 I151 一次性规则与文风 LLM 任务
 
 - 首次导入进入可分析状态时，Host 同时启动一个专用“规则与文风初始化”任务；它是独立于 I52 六层 package 的单次 LLM 调用，不得扩充或改写现有 `ONBOARDING_LAYER_KEYS`、I52 prompt/schema 或 I53 六层 apply 结果。
