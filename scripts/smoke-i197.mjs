@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { uiInvoke } from './ui-test-provider.mjs';
+import { startSourceTestProvider, sourceText } from './ui-source-test-provider.mjs';
+
+const provider = await startSourceTestProvider();
+const packaged = process.argv.includes('--packaged');
+const app = await launchUiElectron(packaged ? 'i197-packaged' : 'i197', packaged ? resolve('artifacts/desktop/win-unpacked/Novel Creation Tool.exe') : undefined);
+let socket;
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const until = async (fn, label) => { for(let i=0;i<150;i++){ if(await fn()) return; await delay(100); } throw new Error(label); };
+try {
+  await app.fill('[data-novel-project-name-input]', '窗口验收');
+  await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-next-action]")', 'project');
+  await uiInvoke(app, 'novelLlmConfig/save', { baseUrl: provider.endpoint, model: 'ui-deterministic', apiKey: 'test-only-not-a-real-key', maxTokens:32768, thinking:'disabled', reasoningEffort:'low' });
+  provider.state.delay = 1000;
+  await app.click('[data-novel-workflow-next-action]');
+  await app.fill('[data-novel-source-import-text]', sourceText);
+  await app.click('[data-novel-source-import-submit]');
+  let target;
+  await until(async () => { target = (await (await fetch(`http://127.0.0.1:${app.port}/json/list`)).json()).find(page => page.url.endsWith('/monitor.html')); return !!target; }, 'second Electron window');
+  socket = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise(resolve => socket.addEventListener('open', resolve, {once:true}));
+  let next = 0; const pending = new Map();
+  socket.addEventListener('message', event => { const value=JSON.parse(event.data); const callback=pending.get(value.id); if(callback){pending.delete(value.id);callback(value.result);} });
+  const evaluate = expression => new Promise(resolve => { const id=++next; pending.set(id, result => resolve(result.result?.value)); socket.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression,returnByValue:true}})); });
+  await until(async () => await evaluate('!!document.querySelector("[data-request-status=complete]")'), 'backend completion visible');
+  assert.equal(await evaluate('typeof window.novelDesktop'), 'undefined');
+  assert.equal(await evaluate('typeof require'), 'undefined');
+  assert.equal(await evaluate('document.body.innerText.includes("test-only-not-a-real-key")'), false);
+  await app.waitFor('!!document.querySelector("[data-novel-import-interpretation-status=succeeded]")', 'source analysis succeeds');
+  // A fresh project exercises an HTTP failure through the same production backend.
+  provider.state.fail = true;
+  await app.click('[data-novel-back-to-projects]');
+  await app.waitFor('!!document.querySelector("[data-novel-project-new]")', 'directory');
+  await app.click('[data-novel-project-new]');
+  await app.waitFor('!!document.querySelector("[data-novel-project-name-input]")', 'directory');
+  await app.fill('[data-novel-project-name-input]', '失败窗口验收');
+  await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-next-action]")', 'second project');
+  await app.click('[data-novel-workflow-next-action]');
+  await app.fill('[data-novel-source-import-text]', sourceText);
+  await app.click('[data-novel-source-import-submit]');
+  await until(async () => await evaluate('!!document.querySelector("[data-request-status=failed]")'), 'failure retained');
+  assert.equal(await evaluate('!!document.querySelector("[role=alert]")'), true);
+  await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:'I197',independentWindow:true,sourceAnalysis:true,backendFailure:true,restrictedPreload:true,secretEcho:false},null,2));
+  process.stdout.write('I197 independent Electron monitor: source analysis, completion, HTTP failure and isolation passed\n');
+} finally { socket?.close(); await app.close(); await provider.close(); }

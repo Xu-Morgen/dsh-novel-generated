@@ -74,7 +74,7 @@ export async function launchUiElectron(iteration, executable) {
     const waitFor = (expression, label) => until(() => evaluate(expression), label);
     await waitFor('!!document.querySelector("[data-novel-project-chooser]")', 'real project directory');
     return {
-      evidence, profile, fixtureHome, send, evaluate, waitFor,
+      evidence, profile, fixtureHome, port, send, evaluate, waitFor,
       async click(selector) {
         let bounds;
         await until(async () => {

@@ -3,6 +3,8 @@ import { access, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
+import { LlmMonitor } from './llm-monitor.js';
+import { DesktopWindowRegistry, createMonitorWindowHost } from './monitor-window.js';
 import { createCredentialStore } from '../../app/credentials.js';
 import type { IpcHandler } from '../../app/ipc-registry.js';
 import type { ApplicationPorts } from '../../app/ports.js';
@@ -22,6 +24,7 @@ const DESKTOP_SMOKE = '1';
 const DEFAULT_SMOKE_HOLD_MS = 1_000;
 
 let mainWindow: BrowserWindow | null = null;
+const windowRegistry = new DesktopWindowRegistry();
 
 function desktopRoot(): string {
   return join(app.getAppPath(), 'dist', 'desktop');
@@ -299,11 +302,13 @@ function createMainWindow(): BrowserWindow {
   });
 
   mainWindow = window;
+  windowRegistry.register('main', window);
   installWindowSecurity(window, root);
   installSmokeProbe(window, applicationKernel.ports);
   window.once('ready-to-show', () => window.show());
   window.once('closed', () => {
     if (mainWindow === window) mainWindow = null;
+    windowRegistry.get('llm-monitor')?.close();
   });
   void window.loadFile(join(root, 'index.html')).catch(() => undefined);
   return window;
@@ -330,17 +335,20 @@ const applicationKernel = createApplicationKernel({
       ));
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
-      ports.provide('createLlmBackend', (endpoint: string, providerId: string) => createOpenAICompatibleBackend({ endpoint, providerId, credentials: credentials.resolver }));
+      const monitorHost = createMonitorWindowHost(windowRegistry, desktopRoot());
+      const monitor = new LlmMonitor((snapshot, started) => monitorHost.update(snapshot, started));
+      ports.registerDisposer(() => { monitor.dispose(); monitorHost.dispose(); windowRegistry.dispose(); }, 'I197 managed windows and LLM observation');
+      ports.provide('createLlmBackend', (endpoint: string, providerId: string) => monitor.wrap(secret => createOpenAICompatibleBackend({ endpoint, providerId, credentials: { resolve: async () => secret } }), ref => credentials.resolver.resolve(ref)));
       const llmConfig = createLlmConfigService(credentials.store, paths.settingsRoot);
-      const llm: LlmBackend = {
+      const llm: LlmBackend = monitor.wrap(secret => ({
         [LLM_BACKEND_MARKER]: true,
         async *stream(request) {
           const config = await llmConfig.load();
           if (config.baseUrl === '') throw new Error('LLM endpoint is not configured');
-          const backend = createOpenAICompatibleBackend({ endpoint: config.baseUrl, providerId: config.providerId, credentials: credentials.resolver });
+          const backend = createOpenAICompatibleBackend({ endpoint: config.baseUrl, providerId: config.providerId, credentials: { resolve: async () => secret } });
           yield* backend.stream(request);
         },
-      };
+      }), ref => credentials.resolver.resolve(ref));
       ports.registerDisposer(() => {
         if (mainWindow !== null && !mainWindow.isDestroyed()) mainWindow.close();
         mainWindow = null;

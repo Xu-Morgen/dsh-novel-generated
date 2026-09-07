@@ -532,7 +532,6 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       'data-novel-last-progress-method': connection.progress?.methodId ?? '',
     },
       content as React.ReactNode,
-      React.createElement(DesktopLlmStreamWindow, { progress: connection.progress }),
     ),
   );
 }

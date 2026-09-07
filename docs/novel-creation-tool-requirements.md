@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 路线仍只作 provenance；v4.1 选择的是具备严格 Main/Preload/多 Renderer 边界的 Electron 应用，不恢复浏览器直连 LLM、Renderer 作品文件 I/O 或旧 `I1a–I28b2` 排期。
-- 当前迭代身份：**I1–I196 / Stage 0–40 已完成；Stage 40 明文 Token 文件已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
+- 当前迭代身份：**I1–I197 / Stage 0–41 已完成；Stage 41 独立 LLM 过程与错误窗口已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R35 或未来产品能力抵消。I187 明确取代 H0 中旧的单 Renderer 与 CredentialStore-only 限制，但不把运行时迁移冒充为已完成。
 
 ### 0.3 统一验收纪律
@@ -699,7 +699,7 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I196 / Stage 0–40 已完成；当前单 profile 的 token 已按用户授权改为作者可编辑的本地明文 txt，R35 多 Renderer/Renderer-owned 多 profile 仍待后续实现。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I197 / Stage 0–41 已完成；已交付本地明文 token txt 与独立受管 LLM 观察窗口，R35 Renderer-owned 多 profile 仍待后续实现。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；Electron、Main 唯一领域 Host、strict IPC、Main-owned 作品数据/LLM 执行、多 Renderer 窗口注册表、Renderer-owned 明文 profiles 和 DesktopLifecycle 是当前停止线。I187 是合同修订而非运行时交付；在后续实现卡完成前，现有安装包仍属于 v4.0 legacy baseline。I1/I2、`shell.overlay`、Typert 与 DSH pin 仅记录旧交付事实，不再定义当前运行时。
 
@@ -734,3 +734,13 @@ I195 验收通过：`verify:stage-39`（含 `verify:i195`）exit 0；227 文件 
 R37 是用户授权的当前单 profile 兼容切片；不实现或替代 R35 的多 profile、多窗口与 Renderer-owned profile store，未来实现只能把该 txt 当作可选导入来源。
 
 I196 验收通过：`verify:i196` / `verify:stage-40` exit 0；228 文件 / 1189 测试，真实 Electron strict IPC 保存、txt 明文、外部编辑和零回显 smoke 通过。证据 `docs/ui/i196-dod.md` 与 `artifacts/desktop/ui/i196/validation.json`。
+
+## R38. 统一 LlmBackend 观察与独立过程窗口（I197）
+
+| ID | 需求 | 验收证据 | 迭代 |
+|---|---|---|---|
+| R38-1 | 在 Main LlmBackend 统一观察请求，独立窗口展示连接、推理、正文及完成/失败/取消，终态保留；不依赖旧业务接口。 | fake backend 透传/并发/取消/失败；真实来源分析与 HTTP 失败 smoke。 | I197 |
+| R38-2 | 独立 BrowserWindow、HTML、React root 与 push-only preload；主窗关闭回收，观察窗关闭不取消任务，新请求重开。 | 窗口生命周期测试；开发版和打包版真实 Electron 隔离验收。 | I197 |
+| R38-3 | strict 版本化有界只读投影，不回显密钥或原始异常；正文/推理跨 chunk 脱敏；不改领域 IPC。 | JSON Schema 锁一致性、额外字段/非法状态/超长负测、密钥跨片段及截断负测。 | I197 |
+
+验收：`verify:stage-41`（含 `verify:i197`）exit 0；230 文件 / 1195 测试，开发态和打包态 smoke 全绿。证据见 `docs/ui/i197-dod.md`。调用前领域校验、调用后解析/写回错误仍由业务面板负责；本迭代不交付 Renderer profiles。

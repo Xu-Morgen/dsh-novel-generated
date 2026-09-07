@@ -1430,8 +1430,19 @@ I195 / Stage 39 兼容说明（§14.34）：Main OpenAI-compatible SSE adapter �
 
 ### 14.35 作者可编辑的本地明文 Token 文件（Stage 40 / I196）
 
+
 2026-09-07 用户明确要求当前 AI Token 落到本地 txt 且不加密，方便直接修改和保存。当前单 profile 运行时以 Electron `userData/settings/ai-token.txt` 为 token 配置源：文件只允许一个非空行，Main 在每次 provider 请求解析凭据时重新读取。Renderer 仍无 Node/路径/文件能力，Provider 仍只在 Main 调用；`novelLlmConfig.load` 只返回 `hasKey`，不返回 token 或绝对路径。
 
 此文件不是安全存储。同一 OS 账户、能读取应用数据目录的其他程序、Renderer compromise 或本机调试均可能取得 token；设置页必须明示风险。token 禁止进入作品、导出、日志、诊断、进度、错误详情、IPC 结果或 Git。旧 `credentials.bin` 仅作一次性迁移来源：txt 不存在且旧值可解密时，先原子写入明文文件，再删除旧记录；迁移失败不得损坏旧值。
 
 I196 是当前单 profile 的显式兼容切片，不撤销 §14.33 的多 Renderer/Renderer-owned 多 profile 目标，也不宣称 R35 运行时已完成。未来 profile store 实现须把该文件作为可选导入来源，不建立第二个长期凭据真相。
+
+### 14.36 统一 LlmBackend 观察与独立过程窗口（Stage 41 / I197）
+
+Main 在生产 `LlmBackend` 组合入口统一装饰请求，原请求、chunk、异常和取消权属不变；不依赖旧业务 IPC 方法名触发。观察投影区分连接、推理、正文、传输完成、失败和取消；终态保留。领域调用前校验及流结束后的解析/写回错误仍由业务面板负责，传输完成不表示作品写入成功。
+
+Main 注册并统一回收主窗口与独立 AI 过程 BrowserWindow。观察窗具有独立 HTML、React root 和仅推送订阅的 preload，保持 §0.1 安全选项，无领域 invocation 权限。关闭观察窗不取消任务；新请求重新打开；主窗关闭及 DesktopLifecycle dispose 回收窗口与定时器。
+
+版本化只读事件 `novel:llm-monitor:v1` 采用 strict schema，在 Main 和 preload 验证并锁定 `contracts/desktop/llm-monitor.json`；既有 canonical invocation 不变。投影仅在内存保留最近 30 条请求，正文/推理分别限 16000 字，100ms 合并发送。凭据每请求解析一次供 provider 与脱敏共用；跨 chunk 密钥前缀暂缓发布，完整密钥在截断前替换；不传播 prompt、endpoint、路径或原始异常，错误仅采用固定分类提示。
+
+实现与验收见 `docs/ui/i197-design.md`、`docs/ui/i197-dod.md`。本切片交付受管观察窗口，不宣称 R35 Renderer-owned 多 profile 已完成。

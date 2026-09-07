@@ -45,4 +45,8 @@ await build({
 copyFileSync(source('src/desktop/renderer/index.html'), resolve(outDir, 'index.html'));
 copyFileSync(source('src/desktop/renderer/renderer.css'), resolve(outDir, 'renderer.css'));
 
+await build({ entryPoints: [source('src/desktop/preload/monitor-preload.ts')], bundle: true, platform: 'node', format: 'cjs', target: 'es2022', external: ['electron'], outfile: resolve(outDir, 'monitor-preload.cjs'), logLevel: 'silent' });
+await build({ entryPoints: [source('src/desktop/renderer/monitor.ts')], bundle: true, platform: 'browser', format: 'iife', target: 'es2020', outfile: resolve(outDir, 'monitor.js'), logLevel: 'silent' });
+for (const file of ['monitor.html', 'monitor.css']) copyFileSync(source(`src/desktop/renderer/${file}`), resolve(outDir, file));
+
 process.stdout.write('I166 desktop bundle: dist/desktop (Main/Preload/Renderer + local HTML)\n');
