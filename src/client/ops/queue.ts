@@ -47,7 +47,7 @@ export function createQueueOps(runtime: OpsRuntime, port: QueuePort): QueueEditO
           release();
           if (!isActive()) return;
           const next = projection;
-          queuePatch({ status: 'ready', projection: next, acting: false, message: undefined, notice: method === 'pause' && next.runState === 'running' ? '暂停已请求；当前候选完成后暂停。' : undefined });
+          queuePatch({ status: 'ready', projection: next, acting: false, message: undefined, notice: method === 'retry' ? '已重新排队；点击开始生成以重试该任务。' : method === 'pause' && next.runState === 'running' ? '暂停已请求；当前候选完成后暂停。' : undefined });
           // I88：轮询命令发往 Fiber 级控制器（单飞行，不堆积并行轮询链）。
           if (next.runState === 'running' || next.runState === 'paused') queuePoll.start();
         }, (cause: Error) => { release(); if (!isActive()) return; queuePatch({ acting: false, message: toUserMessage(cause) }); });

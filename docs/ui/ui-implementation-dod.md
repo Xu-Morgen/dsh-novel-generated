@@ -31,7 +31,7 @@
 - 验证：`pnpm run verify:i189` exit 0；223 文件 / 1173 测试；I188 5 项兼容检查与 I189 11 项真实 Electron 检查通过。`artifacts/i189-verify.log`；`artifacts/desktop/ui/i189/validation.json` 及目录/迁移/助手/归档/1366、1024、720、440px 工作流截图。
 - 明确不做：正文单树与资料表单留给 I191/I192；不改 IPC/领域/prompt/样本，不添加新的确认门。
 
-I190–I194 在开始各自生产改动前逐卡填写；每个迭代独立 commit，失败不跨卡。
+I190–I194 均在开始各自生产改动前逐卡填写，现已验收；每个迭代独立 commit，失败不跨卡。
 
 ## I190 / UI-C：来源导入与审阅
 
@@ -95,8 +95,29 @@ I190–I194 在开始各自生产改动前逐卡填写；每个迭代独立 comm
 
 - 完成证据：`pnpm run verify:i193` exit 0；226 文件 / 1177 测试，21 项真实 Electron 检查；`artifacts/i193-verify.log`、`artifacts/desktop/ui/i193/validation.json` 与 settings、assistant、migration、unsaved-leave 截图。真实设置失败保留/重试、助手缺规则失败/补齐后上下文/续写拒绝、隔离旧库迁移/撤销、中文多作品创建通过。助手直接接受/灵感等子状态继续在 I194 总验收核对。
 
+## I194 / UI-G：真实作者流程与最终验收
+
+- 前置：I193 已验收提交 `3e04f4b`；状态：验收通过。本卡代码前已读计划 §38A、设计 §14.15/§14.34 与现有来源/初始化合同。
+- 目标：让已确认来源通过现有分析/裁决进入大纲、细纲、正文与定稿；修复最终实际使用揭示的局部 UI 接线和输入保护问题，完成 Stage 38。
+- Owner：desktop/main/source-import-handlers.ts 的现有 analyzer/onboarding 适配，desktop/renderer/source-plan*.ts 与 shell.ts 的来源消费；复用 client/onboarding*、import-interpretation-review.ts、source-aware-workflow.ts、现有 store/ops，必要 dirty guard 仅限 UI 状态；无新的领域 owner。
+- 兼容：普通 expand-outline 使用既有分析/逐层裁决；adapt-pov 只取 I52 B3/B2/C1/C2，B5 来自 narrativeAdaptation，C3 来自 narrativeReveal，C4 不把未公开来源变成既成事实。既有 NarrativeImportPlan/I11 同一计划应用和失败恢复；不新增 IPC/schema/prompt，不恢复 F1/F2。
+- 接线缺陷：真实规则/文风 propose 与 accept 把扩展请求整包交给 strict session identity，正式消费者拒绝多余字段；纳入 host/rule-style-import-initialization-service.ts 最小字段投影修复，不修改合同。
+- 首轮续写消费者缺陷：新作品缺少空 C3 文档，导入后的 B5 缺少 C6 起始游标；纳入 Main projectCreate 的新作品空知识初始化、source-import-handlers 的已确认导入后游标准备（唯一 helper）。不修复/覆盖既有损坏或丢失知识文件，不从来源臆造知情事实；普通导入对新角色建立空 knows 基线，保留已有知识与状态。不更改领域/IPC schema。
+- 新场景候选消费者：chapters-candidate.ts 不再把 I110 结构预览作为 I135 草稿接受的前提；continue/scene-card 直接审阅已有 strict preview，结构同步仍由独立定稿完成。既有 rewrite 预览保持，不吞掉结构预览错误，不制造 baseline。
+- 发布依赖收口：I186 实包扫描发现 onboarding-types 的仅类型依赖误用值导入，导致退役 remote 描述进入 Renderer bundle；改为 import type，并把 onboarding 纯动作从含历史 re-export 的 barrel 隔离至 onboarding-actions；controllers 只消费纯动作，旧 barrel 的外部导出保持，保留派生类型合同，并把 I186 包边界 smoke 纳入阶段门。
+- 灵感消费者缺陷：实际助手调用发现 inspiration-service 仍向 LlmBackend 传历史 messages 请求；纳入该 owner 的 native backend 分支与 Main 受控 settings resolver 接线。保持逐字 prompt、结果 schema、样本和 I11 apply 不变，既有 legacy 测试适配仍保留。
+- UI 状态收口：候选刷新选择刚写入场景并保留定稿上下文；时间线切项保留 dirty，规则/文风及计划编辑复用既有离开确认；队列重试明确重新排队后启动，验收跟踪同一 task；助手续写分配新场景。新增 owner 仅现有 client ops/layers 与 renderer 工作流。I140 旧文案断言同步 I192 合并导出按钮，保留全部合同/样本断言。
+- 发布消费者补充：Main 的显式保存写作中场景卡的绑定后通过既有 baseline owner 建立缺失的首个意图快照；不替换 stale 基线，不在候选生成中写作品层。rewrite 只读并冻结现有 fresh 基线 ID，不增加 prompt 注入。finalization coordinator 仅在完整 applied 后通知 writing 会话 owner 结清同场景已采用候选，失败、未确认和未采用候选仍阻止发布；使用 Host-only seam，公开 IPC/schema 不变。消费者回归验证基线 stale 拒绝、失败不结清与完整发布。
+- 交付：真实源码接线、全作者流程 Electron 和打包 smoke、241 项按钮分类/证据账本、最终 UI 截图与阶段报告、正式 verify:i194/verify:stage-38、独立 commit。
+- 验收：来源未决/取消零写、规则文风成功初始化经明确确认、候选和导入计划确认前零写、失败保留与恢复、正文生成/草稿/定稿确认、队列同一失败任务重试、归档只读、长中文/窄宽/焦点/缩放、最终 packaged app 可达。
+- 验证：先 fake HTTP provider 跑完整 Main/IPC/UI 消费；回归和负向断言、pnpm test、build、verify:i194；阶段末适用既有样本和累积 smoke，不修改样本/金标/阈值。旧纯 metadata 的过时锁计数单独记录，不代替当前合同测试。
+- 明确不做：多窗口、profiles、主题系统、关系图谱、后置 F1/F2、真实密钥或用户作品修改。
+
+- 完成证据：`pnpm run verify:i194` 和 `pnpm run verify:stage-38` 均 exit 0，227 文件 / 1182 测试；I188–I194 累积 122 项真实 Electron 检查，Windows packaged app 另 18 项完整作者检查。I186 安装/升级/迁移/安全恢复与 no-DSH 发布门、I43/I44/I45/I140/I149/I151 适用回归通过。日志 `artifacts/i194-verify.log`、`artifacts/stage-38-verify.log`；发布审计副本 `artifacts/desktop/ui/i194-release/`。
+- 按钮证据：241 项全部分类（226 实现 / 9 合并 / 6 退役），163 个实际可见锚点族、95 个实点锚点族、293 次原生点击、87 张截图。不是全部条件实例逐一实点；逐项确定性/负向证据与运行时观察分列。最终报告 `docs/ui/ui-delivery-report.md`。
+
 ## 交接
 
-刚完成：I193 设置、辅助面板与全局状态，226 文件 / 1177 测试，21 项真实 Electron 检查。下一步：I194 真实作者流程接线与最终交付验收。
+刚完成：I188–I194 / Stage 38 UI 改造与真实应用验收。下一步：本任务完成；I195 尚未立项，不自动执行后置功能。
 新增领域/IPC 合同：零。UI token/控件兼容层仅属呈现。
 后置：多窗口、Renderer profile store、主题切换、关系图谱、连接测试新能力、F1/F2。

@@ -423,6 +423,7 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
       h('section', { className: 'nv-field', 'data-novel-rule-style-import-rules': '' }, h('h5', { className: 'nv-field__label' }, '规则初稿'), structuredEditor(h, parseDraft(state.ruleStyleRulesDraft, initialization.candidate?.rules ?? []), (next) => ops.setRuleStyleRulesDraft?.(JSON.stringify(next)), 'rule-style-rules')),
       h('section', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('h5', { className: 'nv-field__label' }, '文风初稿'), structuredEditor(h, parseDraft(state.ruleStyleStyleDraft, initialization.candidate?.style ?? {}), (next) => ops.setRuleStyleStyleDraft?.(JSON.stringify(next)), 'rule-style-style')),
     ) : null,
+    initialization.status === 'proposed' ? h('div', { 'data-novel-rule-style-import-preview': '' }, h('ul', null, initialization.candidate?.rules.map(rule => h('li', { key: rule.id }, rule.statement))), h('p', null, `文风：${initialization.candidate?.style.name} · ${initialization.candidate?.style.tone}`)) : null,
     initialization.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert' }, toUserMessage(initialization.error, '规则与文风初始化未完成。')),
     h('div', { className: 'nv-import-review__actions' },
       initialization.status === 'succeeded' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-propose': '', onClick: () => ops.proposeRuleStyleInitialization?.() }, '审阅规则与文风') : null,
@@ -450,6 +451,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
       h('span', { className: 'nv-import-review__pending', 'data-novel-import-unresolved-count': '', role: 'status' }, `待确认 ${state.paragraphs.filter((paragraph) => paragraph.decision === 'pending').length} 段`),
       h('p', { role: 'status', 'aria-live': 'polite', 'data-novel-import-interpretation-status-message': '' }, state.busy ? '正在解释来源…' : state.confirmed ? '来源意图已确认，可进入下一步。' : state.analysisStatus === 'failed' ? '自动解释未完成；你仍可人工确认来源，也可重试。' : '系统建议仅供参考，必须由你确认。'),
     ),
+    h(state.confirmed ? 'details' : 'div', { className: 'nv-import-review__source-controls' }, state.confirmed ? h('summary', null, '查看已确认来源') : null,
     suggested === undefined ? null : h('p', { className: 'nv-import-review__suggestion', 'data-novel-import-interpretation-overall-suggestion': '' }, `整体建议：${SOURCE_ROLE_LABELS[suggested]}${lowConfidence ? '（置信度较低，请重点核对）' : ''}`),
     lowConfidence ? h('p', { className: 'nv-import-review__warning', role: 'alert', 'data-novel-import-interpretation-low-confidence': '' }, '当前来源判断置信度较低，不会自动进入下一步。') : null,
     selectField(h, '来源角色（必须确认）', state.selectedSourceRole, IMPORT_SOURCE_ROLE_OPTIONS, (value) => ops.setSourceRole(value as ImportSourceRole), { 'data-novel-import-interpretation-source-role': '' }, {
@@ -459,7 +461,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
     state.selectedSourceRole === 'existing-prose' ? h('p', { className: 'nv-import-review__warning', role: 'note', 'data-novel-import-interpretation-existing-prose': '' }, '当前只支持把已有正文扩展为大纲；保留原正文的导入暂不可用。') : null,
     intentFields(h, state, ops),
     evidencePanel(h, state),
-    paragraphPanel(h, state, ops),
+    paragraphPanel(h, state, ops)),
     ruleStyleInitializationPanel(h, state, ops),
     h('p', { id: 'nv-import-confirm-reason', className: 'nv-control-reason' }, state.confirmed ? '来源已确认。' : validation ?? (state.busy ? '请等待当前来源操作完成。' : '所有必要决策已完成，可以确认来源。')),
     validation === undefined ? null : h('p', { className: 'nv-import-review__validation', role: 'alert', 'data-novel-import-interpretation-validation': '' }, validation),
@@ -469,7 +471,7 @@ export function sourceInterpretationReview(h: El, state: ImportInterpretationRev
         ? h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-import-interpretation-retry': '', onClick: () => ops.retry?.() }, '重试来源审阅')
         : null,
       h('button', { type: 'button', className: state.confirmed ? 'nv-btn' : 'nv-btn nv-btn--primary', 'aria-describedby': 'nv-import-confirm-reason', disabled: !canConfirmImportIntent(state), 'data-novel-import-interpretation-confirm': '', onClick: () => ops.confirm() }, state.confirmed ? '已确认' : '确认来源并继续'),
-      h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', disabled: state.busy, 'data-novel-import-interpretation-cancel': '', onClick: () => ops.cancel() }, '取消审阅'),
+      h('button', { type: 'button', className: 'nv-btn nv-btn--ghost', disabled: state.busy || state.confirmed, title: state.confirmed ? '来源已确认，后续请在当前任务继续。' : undefined, 'data-novel-import-interpretation-cancel': '', onClick: () => ops.cancel() }, '取消审阅'),
     ),
   );
 }

@@ -425,7 +425,7 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
       endOp('chapters:finalization:accept');
       if (!isActive()) return;
       const result = value as FinalizationApplyResult;
-      if (result.status === 'partial-failure') finalizationPatch({ status: 'partial-failure', result, message: `定稿同步在${result.failedStage}处中断，可重试。` });
+      if (result.status === 'partial-failure') finalizationPatch({ status: 'partial-failure', result, message: `定稿同步在${({ c2: '故事状态', c1: '角色关系', c3: '知情信息', c4: '正史', b2: '世界观', b5: '细纲', c6: '写作进度', baseline: '生成快照' })[result.failedStage]}处中断，可重试。` });
       else if (result.status === 'stale') finalizationPatch({ status: 'stale', result, message: '正文或相关素材已变化，请重新分析最终正文。' });
       else if (result.status === 'needs-target') finalizationPatch({ status: 'needs-target', result, message: '当前正文已定稿，但暂时没有合法的下一目标。' });
       else if (result.next.status === 'needs-target') finalizationPatch({ status: 'needs-target', result, message: '当前正文已定稿，但暂时没有合法的下一目标。' });

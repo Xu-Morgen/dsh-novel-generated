@@ -1,3 +1,4 @@
+import { useSourcePlanPanel } from './source-plan-panel.js';
 import { ProjectDirectory } from './project-directory.js';
 import { Button } from './ui/button.js';
 import * as React from 'react';
@@ -219,7 +220,7 @@ export function createDesktopShellUi(state: WorkbenchState, actions: WorkbenchAc
       if (state.selectedProjectId === undefined) return;
       actions.workflowStage(stage);
       persistWorkflowStage(stage);
-      actions.activateView(workflowStageOf(stage).view);
+      actions.activateView(stage === 'outline' && state.importInterpretationReview?.confirmed && state.outlineEditor.draft.acts.length === 0 ? 'onboarding' : workflowStageOf(stage).view);
     },
     activateOnboarding: actions.activateOnboarding,
     activateCreationSettings: actions.activateCreationSettings,
@@ -268,7 +269,7 @@ function preferenceStore(): ProjectPreferenceStore {
 }
 
 /** 唯一桌面 root 中的创作台壳；现有 presenter 和样式均由同一 React 树持有。 */
-function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, llmConfigNamespace: DesktopIpcClient['services']['llmConfig'], settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient, liveProgress: DesktopClientSnapshot['progress'], assistantOpen: boolean, toggleAssistant: () => void): React.ReactElement {
+function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions, ui: WorkbenchUi, ops: WorkbenchOps, namespaces: WorkbenchNamespaces, llmConfigNamespace: DesktopIpcClient['services']['llmConfig'], settingsNamespace: DesktopIpcClient['services']['workbenchSettings'], assistant: DesktopAssistantClient, liveProgress: DesktopClientSnapshot['progress'], assistantOpen: boolean, toggleAssistant: () => void, sourcePlanReview?: React.ReactNode): React.ReactElement {
   const settings = {
     view: state.settingsView,
     draft: state.settingsDraft,
@@ -309,6 +310,7 @@ function structuredProjectView(state: WorkbenchState, actions: WorkbenchActions,
       upload: state.upload,
       uploadResult: state.uploadResult,
       sourceImport: state.sourceImport,
+      sourcePlanReview,
       importInterpretationReview,
       settings,
       creationSettings,
@@ -321,7 +323,8 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
   const [assistantOpen, setAssistantOpen] = React.useState(false);
   const [migrationOpen, setMigrationOpen] = React.useState(false);
   const connection = React.useSyncExternalStore(props.client.subscribe, props.client.getSnapshot, props.client.getSnapshot);
-  const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore() }), [props.store, props.client]);
+  const sourcePlanDirty = React.useRef(false);
+  const workflow = React.useMemo(() => createDesktopProjectWorkflow({ store: props.store, services: props.client.services, preference: preferenceStore(), hasAdditionalDraft: () => sourcePlanDirty.current }), [props.store, props.client]);
   const assistant = React.useMemo(() => createDesktopAssistantClient(props.client), [props.client]);
   const migration = React.useMemo(() => createDesktopMigrationClient(props.client), [props.client]);
   React.useEffect(() => {
@@ -372,7 +375,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
       onConfirmed: () => {
         if (!activeRef.current) return;
         props.store.actions.workflowStage('outline');
-        props.store.actions.activateView('workflow');
+        props.store.actions.activateView('onboarding');
       },
     });
     const sourceImport = createSourceImportController({
@@ -431,6 +434,10 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
   }), [props.client, props.store]);
   React.useEffect(() => () => queuePoll.stop(), [queuePoll]);
   const projectId = state.selectedProjectId;
+  const sourcePlanReview = useSourcePlanPanel({ projectId: projectId ?? '', review: state.importInterpretationReview, services: props.client.services, actions: props.store.actions, onboarding: state.onboarding, onDirtyChange: value => { sourcePlanDirty.current = value; }, onComplete: () => {
+    if (!projectId) return;
+    writeWorkflowResume({ projectId, stage: 'outline' }); workflow.requestOpen(projectId, true);
+  } });
   const runtime: OpsRuntime = {
     snapshot: state,
     act: props.store.actions,
@@ -506,7 +513,7 @@ export function DesktopWorkbenchShell(props: { store: DesktopStoreInstance<Workb
   const content = state.status.status !== 'ready'
       ? loading
       : state.selectedProjectId !== undefined && !state.browsing
-        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.llmConfig, props.client.services.workbenchSettings, assistant, connection.progress, assistantOpen, () => setAssistantOpen((value) => !value))
+        ? structuredProjectView(state, props.store.actions, ui, ops, namespaces, props.client.services.llmConfig, props.client.services.workbenchSettings, assistant, connection.progress, assistantOpen, () => setAssistantOpen((value) => !value), sourcePlanReview)
         : migrationOpen ? React.createElement('section', { className: 'desktop-library' },
           React.createElement(Button, { variant: 'ghost', 'data-novel-migration-close': '', onClick: () => setMigrationOpen(false) }, '返回作品库'),
           React.createElement(DesktopMigrationPanel, { client: migration }))

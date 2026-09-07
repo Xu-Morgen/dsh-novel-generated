@@ -137,7 +137,7 @@ function queueTaskRow(h: El, task: QueueTaskShape, ops: QueueEditOps, busy: bool
     status === 'candidate-ready' && task.candidateId !== null
       ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-review': task.id, disabled: busy, onClick: () => ops.review(task.id) }, '审阅候选') : null,
     status === 'failed'
-      ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-retry': task.id, disabled: busy, onClick: () => ops.retry(task.id) }, '重试')
+      ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-retry': task.id, disabled: busy, onClick: () => ops.retry(task.id) }, '重新排队')
       : null,
   );
 }
@@ -160,7 +160,7 @@ export function queuePanel(h: El, projectId: string, queue: QueueNamespace | und
   } else if (state.status === 'error') {
     body = h('div', { className: 'nv-queue__error', 'data-novel-queue-error': '', role: 'alert', 'aria-live': 'assertive' },
       h('p', { 'data-novel-queue-error-text': '' }, toUserMessage(state.message ?? '队列状态读取失败')),
-      h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-refresh': '', onClick: () => ops.refresh() }, '重试'),
+      h('button', { type: 'button', className: 'nv-btn', 'data-novel-queue-refresh': '', onClick: () => ops.refresh() }, '重新读取'),
     );
   } else {
     const projection = state.projection;

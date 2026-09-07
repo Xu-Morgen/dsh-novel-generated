@@ -77,6 +77,9 @@ export interface StyleDraftShape {
 }
 
 export interface RuleStyleLayerState {
+  /** Renderer drafts participate in the existing project leave guard. */
+  readonly ruleDirty?: boolean;
+  readonly styleDirty?: boolean;
   readonly status: 'idle' | 'loading' | 'ready' | 'error';
   readonly message?: string;
   readonly projection?: RuleStyleProjectionShape;

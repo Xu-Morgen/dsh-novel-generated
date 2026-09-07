@@ -24,7 +24,7 @@ try {
   await invoke('novelWorkspace/outlineSave', id, outline);
   await invoke('novelRuleStyleManager/saveStyle', id, { name: '克制', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '简洁', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] });
   // Fixture only: C3 must already be initialized; this is not a source-import acceptance claim.
-  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [{id:'secret',version:1,fact:'灯塔藏着海图',kind:'secret',holders:[],revealPlan:{revealTo:['mira'],revealAt:'第三幕'},status:'hidden'}], states: [{characterId: 'mira', knows: []}]}), { flag: 'wx' });
+  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [{id:'secret',version:1,fact:'灯塔藏着海图',kind:'secret',holders:[],revealPlan:{revealTo:['mira'],revealAt:'第三幕'},status:'hidden'}], states: [{characterId: 'mira', knows: []}]}), { flag: 'w' });
   await writeFile(join(app.profile,'library',id,'outline-progress.yaml'),JSON.stringify({outlineId:'outline',currentAct:'act-1',currentBeat:'beat-1',completedBeats:[],deviations:[],tensionLevel:0}),{flag:'wx'});
   await app.send('Page.reload');
   await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'reopen seeded fixture');
@@ -102,6 +102,18 @@ try {
   await app.click('[data-novel-assistant-reject]');
   await app.waitFor('!document.querySelector("[data-novel-assistant-candidate]")','assistant reject');
   check('assistant rejection leaves prose empty',(await invoke('novelWorkspace/chapterList',id)).every(c=>c.sceneCount===0));
+  const scenesBeforeAssistant=(await invoke('novelWorkspace/chapterList',id)).reduce((n,c)=>n+c.sceneCount,0);
+  await app.click('[data-novel-assistant-continue]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-candidate]")','assistant candidate');
+  check('assistant candidate remains zero-write',(await invoke('novelWorkspace/chapterList',id)).reduce((n,c)=>n+c.sceneCount,0)===scenesBeforeAssistant);
+  await app.click('[data-novel-assistant-accept]');
+  await app.waitFor('document.querySelector("[data-novel-assistant-message]").textContent.includes("写入正文")','assistant confirmed write');
+  check('assistant explicit acceptance appends a fresh scene',(await invoke('novelWorkspace/chapterList',id)).reduce((n,c)=>n+c.sceneCount,0)===scenesBeforeAssistant+1);
+  await app.screenshot('assistant-written');
+  await app.click('[data-novel-assistant-inspire]');
+  await app.waitFor('!!document.querySelector("[data-novel-assistant-inspiration-result]")','assistant inspiration');
+  check('inspiration is visible and does not write prose',(await invoke('novelWorkspace/chapterList',id)).reduce((n,c)=>n+c.sceneCount,0)===scenesBeforeAssistant+1);
+  await app.screenshot('assistant-inspiration');
   for (const width of [1920,1366,1024,720,440]) {
     await app.send('Emulation.setDeviceMetricsOverride',{width,height:1000,deviceScaleFactor:1,mobile:false});
     check(`navigation and helper fit ${width}`,await app.evaluate(`document.documentElement.scrollWidth<=innerWidth && [...document.querySelectorAll('.nv-workbench__nav')].every(e=>e.scrollWidth<=e.clientWidth+1)`));

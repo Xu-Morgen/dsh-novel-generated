@@ -9,6 +9,8 @@ const root = resolve(import.meta.dirname, '..');
 export async function launchUiElectron(iteration, executable) {
   const evidence = resolve(root, 'artifacts/desktop/ui', iteration);
   await mkdir(evidence, { recursive: true });
+  const interactions = [];
+  const observations = [];
   const profile = await mkdtemp(join(evidence, 'profile-'));
   const server = createServer();
   await new Promise((done) => server.listen(0, '127.0.0.1', done));
@@ -74,19 +76,26 @@ export async function launchUiElectron(iteration, executable) {
     return {
       evidence, profile, fixtureHome, send, evaluate, waitFor,
       async click(selector) {
-        const bounds = await evaluate(`(async () => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) throw Error('Missing control'); e.scrollIntoView({block:'center'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const r=e.getBoundingClientRect(); const x=r.x+r.width/2,y=r.y+r.height/2; if (e.disabled || !e.contains(document.elementFromPoint(x,y))) throw Error('Control is disabled or obscured: '+${JSON.stringify(selector)}); return {x,y}; })()`);
+        let bounds;
+        await until(async () => {
+          bounds = await evaluate(`(async () => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null; e.scrollIntoView({block:'center'}); await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))); const r=e.getBoundingClientRect(); const x=r.x+r.width/2,y=r.y+r.height/2; if (e.disabled || !e.contains(document.elementFromPoint(x,y))) return null; return {x,y}; })()`);
+          return bounds !== null;
+        }, `enabled and unobscured control: ${selector}`);
         await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...bounds });
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...bounds });
+        interactions.push({selector});
       },
       async fill(selector, text) {
         await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
         await send('Input.insertText', { text });
       },
       async screenshot(name) {
+        observations.push({name, controls:await evaluate(`Array.from(document.querySelectorAll('button, summary')).filter(e=>e.getClientRects().length>0).map(e=>({text:e.innerText,disabled:!!e.disabled,anchors:Object.fromEntries(e.getAttributeNames().filter(n=>n.startsWith('data-novel-')).map(n=>[n,e.getAttribute(n)]))}))`)});
         const result = await send('Page.captureScreenshot', { format: 'png' });
         await writeFile(join(evidence, `${name}.png`), Buffer.from(result.data, 'base64'));
       },
       async close() {
+        await writeFile(join(evidence, 'controls.json'), JSON.stringify({executable:executable ?? 'development Electron bundle',interactions,observations},null,2));
         try { await evaluate('window.close()'); } catch { /* Closing the target can precede the reply. */ }
         socket.close();
         for (const request of pending.values()) clearTimeout(request.timer);

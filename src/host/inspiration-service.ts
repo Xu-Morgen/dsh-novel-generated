@@ -1,3 +1,4 @@
+import { collectCandidate, LLM_BACKEND_MARKER, type LlmBackend, type GenerationSettings } from '../llm/port/index.js';
 import { outlineSchema, type Outline } from '../core/schema/outline.js';
 import { outlineProgressSchema, type OutlineProgress } from '../core/schema/outline-progress.js';
 import type { ConfirmationRecord } from '../core/schema/confirm.js';
@@ -36,7 +37,7 @@ export interface NovelInspirationService {
  * applying a direction requires an accepted I11 Gate record and preserves C6
  * references while changing only the selected B5 logline/themes. Design §9.5.
  */
-export function createInspirationService(llm: unknown, onDispose?: (dispose: () => void) => void): NovelInspirationService {
+export function createInspirationService(llm: unknown, onDispose?: (dispose: () => void) => void, settings?: () => Promise<GenerationSettings>): NovelInspirationService {
   const active = new Set<AbortController>();
   onDispose?.(() => { for (const controller of active) controller.abort(); active.clear(); });
   return Object.freeze({
@@ -46,7 +47,15 @@ export function createInspirationService(llm: unknown, onDispose?: (dispose: () 
       active.add(controller);
       const forwardAbort = () => controller.abort();
       signal?.addEventListener('abort', forwardAbort, { once: true });
+      if (signal?.aborted) controller.abort();
       try {
+        // I194: Main's native port takes a prompt and controlled generation references.
+        // Preserve the historical prompt verbatim; no model instructions change here.
+        if ((llm as LlmBackend)[LLM_BACKEND_MARKER] === true) {
+          if (!settings) throw new Error('Generation settings are unavailable');
+          const result = await collectCandidate(llm as LlmBackend, { prompt: `灵感 agent\n${input.context ?? ''}\n${input.prompt}`, settings: await settings(), signal: controller.signal });
+          return inspirationResultSchema.parse(JSON.parse(result.text));
+        }
         const chunks: string[] = [];
         for await (const event of (llm as { stream(request: unknown, signal?: AbortSignal): AsyncIterable<{ type: string; text?: string }> }).stream({ messages: [{ role: 'user', content: [{ type: 'text', text: `灵感 agent\n${input.context ?? ''}\n${input.prompt}` }] }], signal: controller.signal }, controller.signal)) {
           if (event.type === 'text-delta' && event.text) chunks.push(event.text);

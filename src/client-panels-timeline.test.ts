@@ -55,6 +55,14 @@ describe('方案 A 剧情时间线面板 UI（design §8 相关角色对）', ()
     (first.props?.onClick as () => void)();
     await flush();
 
+    // Dirty timeline navigation/refresh must retain the author's draft.
+    (collect(render(), 'input')[0].props?.onChange as (event: { target: { value: string } }) => void)({target:{value:'次日清晨'}});
+    await flush();
+    (collect(render(), 'button').find(n=>n.props?.['data-novel-timeline-node']==='node-1')?.props?.onClick as ()=>void)();
+    await flush();
+    (collect(render(), 'button').find(n=>n.props?.['data-novel-timeline-refresh']==='')?.props?.onClick as ()=>void)();
+    await flush();
+    expect(collect(render(), 'button').filter(n=>n.props?.['data-novel-timeline-node']!==undefined)).toHaveLength(2);
     // 保存作者安排 → 只经 novelTimeline.save，且输入是完整时间线文档。
     const saveButton = collect(render(), 'button').find((n) => n.props?.['data-novel-timeline-save'] === '') as FakeNode;
     expect(saveButton).toBeDefined();
@@ -63,6 +71,7 @@ describe('方案 A 剧情时间线面板 UI（design §8 相关角色对）', ()
     expect(saveCalls).toHaveLength(1);
     expect(saveCalls[0].projectId).toBe('fixture-project');
     expect((saveCalls[0].input as { nodes: unknown[] }).nodes).toHaveLength(2);
+    expect((saveCalls[0].input as {nodes: Array<{storyTime?:string}>}).nodes[0].storyTime).toBe('次日清晨');
   });
 
   it('时间线已自建时直接列出节点；手动设当前节点经 setCurrentNode', async () => {

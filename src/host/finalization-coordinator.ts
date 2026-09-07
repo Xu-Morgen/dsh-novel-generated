@@ -120,6 +120,8 @@ export function createFinalizationCoordinator(deps: {
   readonly baseline: Pick<NovelOutlineGenerationBaselineService, 'read'>;
   readonly reconciliation: Pick<NovelOutlineReconciliationService, 'applyAuthorized' | 'completeAuthorized'>;
   readonly confirmation: NovelConfirmationService;
+  /** Session bookkeeping only after every authorized write succeeds; never on partial failure. */
+  readonly onApplied?: (projectId: string, chapterId: string, sceneId: string) => void;
   readonly onDispose?: (dispose: () => void) => void;
 }): NovelFinalizationCoordinator {
   const operations = new Map<string, OperationState>();
@@ -280,6 +282,7 @@ export function createFinalizationCoordinator(deps: {
       status: 'applied', appliedStages: [...operation.appliedStages],
       current: completion.current, next: nextFromReconciliation(completion),
     });
+    deps.onApplied?.(projectId, context.plan.chapterId, context.plan.sceneId);
     operation.result = result;
     return result;
   };

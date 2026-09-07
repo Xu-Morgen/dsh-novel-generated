@@ -1,3 +1,4 @@
+import { ensureImportedProgress } from './import-progress.js';
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { basename } from 'node:path';
@@ -6,6 +7,8 @@ import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js
 import type { DesktopPaths } from '../../app/paths.js';
 import type { SelectedDocxResult } from '../../core/schema/upload.js';
 import type { GenerationSettings } from '../../llm/port/index.js';
+import { createOnboardingAnalyzerService } from '../../host/onboarding-analyzer-service.js';
+import { createOnboardingAdjudicationService } from '../../host/onboarding-adjudication-service.js';
 import { createImportExportService } from '../../host/import-export-service.js';
 import { createImportInterpretationAnalysisService, type NovelImportInterpretationAnalysisService } from '../../host/import-interpretation-analysis-service.js';
 import { createImportInterpretationSessionService, type NovelImportInterpretationSessionService } from '../../host/import-interpretation-session-service.js';
@@ -164,7 +167,36 @@ export function createDesktopSourceImportHandlers(
     characters, worldview, outline, relationship, state, canon, knowledge, confirmation,
   }, deps.onDispose);
 
+  // I194 / §14.15: reuse the I52 candidate owner; POV import consumes only its foundation layers.
+  const analyzer = createOnboardingAnalyzerService(deps.llm, deps.onDispose, () => {});
+  const onboarding = createOnboardingAdjudicationService({ characters, worldview, outline, relationship, state, canon, confirmation }, {
+    getResult: (id) => analyzer.getResult(id),
+    async regenerate(id, layer, settings) { return { layers: (await analyzer.regenerate(id, layer, settings ?? await resolveSettings())).layers }; },
+  });
+
   const map = new Map<string, IpcHandler>();
+  map.set('novel-creation-tool/novelOnboardingAnalyzer/begin', async (input, settings) => analyzer.begin(input as Parameters<typeof analyzer.begin>[0], settings ?? await resolveSettings()));
+  map.set('novel-creation-tool/novelOnboardingAnalyzer/start', async (input, settings, context) => analyzer.start(input as Parameters<typeof analyzer.start>[0], settings ?? await resolveSettings(), contextOf(context)?.signal));
+  map.set('novel-creation-tool/novelOnboardingAnalyzer/status', (id) => analyzer.status(id as string));
+  map.set('novel-creation-tool/novelOnboardingAnalyzer/result', (id) => analyzer.result(id as string));
+  map.set('novel-creation-tool/novelOnboardingAnalyzer/cancel', (id) => analyzer.cancel(id as string));
+  map.set('novel-creation-tool/novelOnboarding/adjudicate', (input, settings) => onboarding.adjudicate(input as Parameters<typeof onboarding.adjudicate>[0], settings));
+  map.set('novel-creation-tool/novelOnboarding/acceptedLayers', (id) => onboarding.acceptedLayers(id as string));
+  map.set('novel-creation-tool/novelOnboarding/finalApply', async (input) => {
+    const result = await onboarding.finalApply(input as Parameters<typeof onboarding.finalApply>[0]);
+    if (!result.retryable && result.blockedLayers.length === 0 && result.pendingLayers.length === 0) {
+      // Ordinary I52 has no C3 fact candidates. New roles begin with no knowledge;
+      // existing entries and states are retained through the monotonic C3 owner.
+      await knowledge.open(result.projectId);
+      const document = await knowledge.read(result.projectId);
+      const importedCharacters = await characters.list(result.projectId);
+      const knownIds = new Set(document.states.map(item => item.characterId));
+      const missing = importedCharacters.filter(character => !knownIds.has(character.id));
+      if (missing.length) await knowledge.saveAll(result.projectId, document.entries, [...document.states, ...missing.map(character => ({ characterId: character.id, knows: [] }))]);
+      if (result.appliedLayers.includes('outline')) { await ensureImportedProgress(outline, result.projectId); await c5.timeline.ensureFromOutline(result.projectId); }
+    }
+    return result;
+  });
   map.set('novel-creation-tool/novelWorkspace/selectDocx', () => selectAndUploadDocx(deps));
   map.set('novel-creation-tool/novelWorkspace/uploadStart', (input) => c5.workspace.uploadStart(input as Parameters<typeof c5.workspace.uploadStart>[0]));
   map.set('novel-creation-tool/novelWorkspace/uploadChunk', (uploadId, index, base64) => c5.workspace.uploadChunk(uploadId as string, index as number, base64 as string));
@@ -229,9 +261,9 @@ export function createDesktopSourceImportHandlers(
 
   map.set('novel-creation-tool/novelNarrativeImportPlan/propose', (input) => plan.propose(input as Parameters<typeof plan.propose>[0]));
   map.set('novel-creation-tool/novelNarrativeImportPlan/read', (input) => plan.read(input as Parameters<typeof plan.read>[0]));
-  map.set('novel-creation-tool/novelNarrativeImportPlan/accept', (input) => plan.accept(input as Parameters<typeof plan.accept>[0]));
+  map.set('novel-creation-tool/novelNarrativeImportPlan/accept', async (input) => { const result = await plan.accept(input as Parameters<typeof plan.accept>[0]); if (result.status === 'applied') await ensureImportedProgress(outline, result.projectId); return result; });
   map.set('novel-creation-tool/novelNarrativeImportPlan/reject', (input) => plan.reject(input as Parameters<typeof plan.reject>[0]));
-  map.set('novel-creation-tool/novelNarrativeImportPlan/recover', (input) => plan.recover(input as Parameters<typeof plan.recover>[0]));
+  map.set('novel-creation-tool/novelNarrativeImportPlan/recover', async (input) => { const result = await plan.recover(input as Parameters<typeof plan.recover>[0]); if (result.status === 'applied') await ensureImportedProgress(outline, result.projectId); return result; });
 
   return map;
 }

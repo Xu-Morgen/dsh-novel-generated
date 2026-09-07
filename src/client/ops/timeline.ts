@@ -13,6 +13,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
   const timelineNamespace = port.timelineNamespace;
       const timelinePatch = (patch: Partial<TimelineLayerState>): void => act.timelinePatch(patch);
       const load = (): void => {
+        if (snapshot.timeline.dirty) { timelinePatch({ error: '请先保存时间线修改，再刷新。' }); return; }
         const target = timelineNamespace;
         if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
         if (!beginOp('timeline:read')) return;
@@ -27,6 +28,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
       return {
         refresh: load,
         ensure(): void {
+          if (snapshot.timeline.dirty) { timelinePatch({ error: '请先保存时间线修改。' }); return; }
           const target = timelineNamespace;
           if (!target || projectId === undefined) { timelinePatch({ status: 'error', message: '时间线服务不可用' }); return; }
           if (!beginOp('timeline:ensure')) return;
@@ -39,7 +41,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
         }, (cause: Error) => { release(); if (!isActive()) return; timelinePatch({ status: 'error', error: toUserMessage(cause), message: undefined }); });
         },
         select(nodeId: string) {
-          timelinePatch({ selectedId: nodeId, dirty: false, error: '', saveMessage: '' });
+          timelinePatch({ selectedId: nodeId, error: '', saveMessage: '' });
         },
         mutate(update: (draft: TimelineShape) => TimelineShape) {
           const current = snapshot.timeline.timeline;
@@ -47,6 +49,7 @@ export function createTimelineOps(runtime: OpsRuntime, port: TimelinePort): Time
           timelinePatch({ timeline: update(current), dirty: true, error: '', saveMessage: '' });
         },
         setCurrent(nodeId: string | null): void {
+          if (snapshot.timeline.dirty) { timelinePatch({ error: '请先保存时间线修改，再切换当前时间点。' }); return; }
           const target = timelineNamespace;
           const current = snapshot.timeline.timeline;
           if (!target || projectId === undefined || current === undefined) return;

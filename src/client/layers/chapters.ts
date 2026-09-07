@@ -243,12 +243,13 @@ export function freshChapters(): ChaptersLayerState {
   };
 }
 
-function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
+function writingWorkflowPanel(h: El, state: WritingWorkflowState, finalization: FinalizationPanelState): unknown {
+  const finalized = finalization.plan?.candidateId === state.candidateId && (finalization.result?.status === 'applied' || finalization.result?.status === 'already-applied');
   const labels = {
     idle: '等待开始写作',
     loading: '正在生成候选…',
     ready: '候选已就绪，等待作者审阅',
-    saved: '正文已保存，可继续下一场景',
+    saved: '正文已保存',
     rejected: '候选已拒绝，未写入正文',
     cancelled: '当前写作操作已取消',
     error: '写作操作失败',
@@ -260,8 +261,8 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState): unknown {
     role: 'status',
     'aria-live': 'polite',
   },
-    h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, labels[state.status]),
-    state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
+    h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, finalized ? '当前正文已定稿' : labels[state.status]),
+    finalized || state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
   );
 }
 
@@ -270,13 +271,14 @@ function finalizationPanel(h: El, state: FinalizationPanelState, workflow: Writi
   const busy = state.status === 'loading' || state.status === 'proposing' || state.status === 'applying';
   const canPrepare = workflow.candidateId !== undefined && workflow.sourceHash !== undefined && !busy;
   const decisionFor = (detailBeatId: string, fallback: OutlineReconciliationChoice): OutlineReconciliationChoice => state.decisions[detailBeatId] ?? fallback;
-  const message = state.message === undefined ? null : h('p', {
+  const completed = state.status === 'done' || state.status === 'needs-target';
+  const message = completed || state.message === undefined ? null : h('p', {
     className: state.status === 'error' || state.status === 'stale' || state.status === 'partial-failure' ? 'nv-error' : 'nv-chapters__item-meta',
     'data-novel-finalization-message': '',
     role: state.status === 'error' || state.status === 'stale' || state.status === 'partial-failure' ? 'alert' : 'status',
   }, state.message);
   const summary = plan === undefined ? null : h('div', { className: 'nv-chapters__finalization-summary', 'data-novel-finalization-summary': '' },
-    h('p', { className: 'nv-chapters__item-meta' }, `最终正文已保存。将同步 ${plan.layerChanges.length} 项结构变化，并处理 ${plan.references.semanticCandidates.length} 项需要作者留意的关联变化。`),
+    h('p', { className: 'nv-chapters__item-meta' }, `最终正文已保存。${completed ? '已处理' : '将同步'} ${plan.layerChanges.length} 项结构变化，并${completed ? '已处理' : '处理'} ${plan.references.semanticCandidates.length} 项需要作者留意的关联变化。`),
     h('p', { className: 'nv-chapters__item-meta' }, plan.reconciliation.status === 'ready'
       ? `后续细纲有 ${plan.reconciliation.items.length} 张卡可选择。`
       : plan.reconciliation.status === 'degraded' ? '当前正文暂时没有可安全推进的后续细纲。' : '当前正文不需要调整后续细纲。'),
@@ -494,6 +496,7 @@ function managementPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps,
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-rebind': '', onClick: () => ops.bindingRebind() }, '更换细纲绑定'),
         h('button', { type: 'button', className: 'nv-btn', 'data-novel-binding-unbind': '', onClick: () => ops.bindingUnbind() }, '解除细纲绑定'),
       ),
+      h('p', { className: 'nv-chapters__item-meta' }, '需要同步定稿时，先在大纲工作区把当前细纲卡设为“写作中”，再保存此处绑定，然后生成重写候选。'),
       h('p', { className: 'nv-chapters__item-meta', 'data-novel-binding-state': management.binding?.status ?? 'idle' }, `手动绑定 ${management.binding?.manual.length ?? 0} 条；有效映射 ${management.binding?.effective.length ?? 0} 条`),
     ),
     reconciliationPanel(h, reconciliation, ops, choices.reconciliationPlans ?? []),
@@ -635,7 +638,7 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
     ),
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '', ...(state.editor.focusAnchor === undefined ? {} : { 'data-novel-scene-anchor-start': String(state.editor.focusAnchor.start), 'data-novel-scene-anchor-end': String(state.editor.focusAnchor.end), 'data-novel-scene-anchor-quote': state.editor.focusAnchor.quote }) },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
-      writingWorkflowPanel(h, state.workflow),
+      writingWorkflowPanel(h, state.workflow, state.management.finalization),
       h('details', { className: 'nv-chapters__tools', open: state.polish.status === 'running', 'data-novel-polish-tools': '' }, h('summary', null, '章节润色工具'), polishSessionPanel(h, state, ops)),
       chapterModeTabs(h, state, ops),
       modePanel(h, projectId, writing, branches, state, ops, body, choices),

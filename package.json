@@ -477,14 +477,17 @@
     "verify:i189": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i188 && pnpm run smoke:i189",
     "smoke:i190": "node scripts/smoke-i190.mjs",
     "verify:i190": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i190",
-    "verify:stage-38": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i187 && pnpm run smoke:i188 && pnpm run smoke:i189 && pnpm run smoke:i190 && pnpm run smoke:i191 && pnpm run smoke:i192 && pnpm run smoke:i193 && pnpm run package:desktop && pnpm run smoke:i194 && pnpm run smoke:samples && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151",
+    "verify:stage-38": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i187 && pnpm run smoke:i188 && pnpm run smoke:i189 && pnpm run smoke:i190 && pnpm run smoke:i191 && pnpm run smoke:i192 && pnpm run smoke:i193 && pnpm run package:desktop && pnpm run smoke:i194 && pnpm run smoke:ui-packaged && pnpm run smoke:i186 && pnpm run smoke:samples && pnpm run smoke:i140 && pnpm run smoke:i149 && pnpm run smoke:i151 && node scripts/audit-ui-coverage.mjs",
     "update:contracts": "tsx scripts/update-contract-locks.ts",
     "smoke:i191": "node scripts/smoke-i191.mjs",
     "verify:i191": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i191",
     "smoke:i192": "node scripts/smoke-i192.mjs",
     "verify:i192": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i192",
     "smoke:i193": "node scripts/smoke-i193.mjs",
-    "verify:i193": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i193"
+    "verify:i193": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i193",
+    "smoke:i194": "node scripts/smoke-i194.mjs",
+    "verify:i194": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i194",
+    "smoke:ui-packaged": "node scripts/smoke-ui-packaged.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",

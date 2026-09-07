@@ -23,7 +23,7 @@ try {
   await invoke('novelWorkspace/outlineSave', id, outline);
   await invoke('novelRuleStyleManager/saveStyle', id, { name: '克制', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '简洁', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] });
   // Fixture only: C3 must already be initialized; this is not a source-import acceptance claim.
-  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [], states: [{characterId: 'mira', knows: []}]}), { flag: 'wx' });
+  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [], states: [{characterId: 'mira', knows: []}]}), { flag: 'w' });
   await app.send('Page.reload');
   await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'reopen seeded fixture');
   await app.click('[data-novel-nav-group="advanced"] > summary');

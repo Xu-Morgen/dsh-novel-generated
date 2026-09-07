@@ -1,3 +1,4 @@
+import { LLM_BACKEND_MARKER, type GenerationRequest } from '../llm/port/index.js';
 import { describe, expect, it } from 'vitest';
 import { createInspirationService } from './inspiration-service.js';
 import { PluginLifecycleGate } from '../core/lifecycle/installation.js';
@@ -61,4 +62,19 @@ describe('I45 complete package lifecycle gate', () => {
     expect(() => gate.registerEffect(() => {})).toThrow(/not active/);
     expect(() => gate.reinstall('2.1.0')).not.toThrow();
   });
+});
+
+it('I194 native Main backend preserves the prompt, resolves settings, and rejects pre-cancelled calls', async () => {
+  const calls: GenerationRequest[] = [];
+  const backend = { [LLM_BACKEND_MARKER]: true as const, async *stream(request: GenerationRequest) {
+    calls.push(request); yield {text:JSON.stringify({directions:[direction,{...direction,id:'other',title:'Other',premise:'Another direction.'}]})};
+  } };
+  const settings = {modelRef:'test/model',credentialRef:'test/managed'};
+  const service = createInspirationService(backend, undefined, async()=>settings);
+  expect((await service.propose({prompt:'turn',context:'current'})).directions).toHaveLength(2);
+  expect(calls[0]).toMatchObject({prompt:'灵感 agent\ncurrent\nturn',settings});
+  const abort = new AbortController(); abort.abort();
+  await expect(service.propose({prompt:'cancel'},abort.signal)).rejects.toThrow('cancelled');
+  expect(calls).toHaveLength(1);
+  await expect(createInspirationService(backend).propose({prompt:'missing settings'})).rejects.toThrow('settings');
 });

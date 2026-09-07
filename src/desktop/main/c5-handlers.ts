@@ -211,6 +211,7 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
     baseline,
     reconciliation,
     confirmation,
+    onApplied: (projectId, chapterId, sceneId) => writing.settleFinalizedDraft?.(projectId, chapterId, sceneId),
     onDispose: deps.onDispose,
   });
   const branch = createBranchService(paths.libraryRoot);
@@ -288,7 +289,21 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   map.set('novel-creation-tool/novelBranches/chooseFresh', async (projectId, chapterId, sceneId, branchId, sourceHash) => { await openBranch(projectId as string); return branch.chooseFresh(projectId as string, chapterId as string, sceneId as string, branchId as string, sourceHash as string); });
 
   map.set('novel-creation-tool/novelSceneOutlineBinding/read', async (projectId) => { await openText(projectId as string); return binding.read(projectId as string); });
-  map.set('novel-creation-tool/novelSceneOutlineBinding/save', async (projectId, input) => { await openText(projectId as string); return binding.save(projectId as string, input as Parameters<NovelSceneOutlineBindingService['save']>[1]); });
+  map.set('novel-creation-tool/novelSceneOutlineBinding/save', async (projectId, input) => {
+    const id = projectId as string;
+    await openText(id);
+    const selection = input as Parameters<NovelSceneOutlineBindingService['save']>[1];
+    const result = await binding.save(id, selection);
+    const owned = result.effective.find((item) => item.sceneId === selection.sceneId && item.detailBeatId === selection.detailBeatId);
+    if (owned !== undefined) {
+      const target = { chapterId: owned.chapterId, sceneId: owned.sceneId, detailBeatId: owned.detailBeatId };
+      // Explicit binding establishes the first intent snapshot (§14.14); a stale
+      // existing snapshot is never silently replaced by saving the same binding.
+      const card = (await outline.beatCards(id)).find((item) => item.detailBeat.id === owned.detailBeatId);
+      if (card?.detailBeat.status === 'writing' && (await baseline.current(id, target)).baseline === null) await baseline.create(id, target);
+    }
+    return result;
+  });
   map.set('novel-creation-tool/novelSceneOutlineBinding/rebind', async (projectId, input) => { await openText(projectId as string); return binding.rebind(projectId as string, input as Parameters<NovelSceneOutlineBindingService['rebind']>[1]); });
   map.set('novel-creation-tool/novelSceneOutlineBinding/unbind', async (projectId, input) => { await openText(projectId as string); return binding.unbind(projectId as string, input as Parameters<NovelSceneOutlineBindingService['unbind']>[1]); });
   map.set('novel-creation-tool/novelSceneOutlineBinding/impact', async (projectId, input) => { await openText(projectId as string); return binding.impact(projectId as string, input as Parameters<NovelSceneOutlineBindingService['impact']>[1]); });

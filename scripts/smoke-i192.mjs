@@ -25,7 +25,7 @@ try {
   await invoke('novelWorkspace/outlineSave', id, outline);
   await invoke('novelRuleStyleManager/saveStyle', id, { name: '克制', person: 'third-limited', tense: 'past', povScope: 'single', tone: '克制', proseStyle: '简洁', chapterFormat: 'plain', dialogueConventions: 'quotes', forbidden: [] });
   // Fixture only: C3 must already be initialized; this is not a source-import acceptance claim.
-  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [{id:'secret',version:1,fact:'灯塔藏着海图',kind:'secret',holders:[],revealPlan:{revealTo:['mira'],revealAt:'第三幕'},status:'hidden'}], states: [{characterId: 'mira', knows: []}]}), { flag: 'wx' });
+  await writeFile(join(app.profile, 'library', id, 'knowledge.yaml'), JSON.stringify({entries: [{id:'secret',version:1,fact:'灯塔藏着海图',kind:'secret',holders:[],revealPlan:{revealTo:['mira'],revealAt:'第三幕'},status:'hidden'}], states: [{characterId: 'mira', knows: []}]}), { flag: 'w' });
   await writeFile(join(app.profile,'library',id,'outline-progress.yaml'),JSON.stringify({outlineId:'outline',currentAct:'act-1',currentBeat:'beat-1',completedBeats:[],deviations:[],tensionLevel:0}),{flag:'wx'});
   await app.send('Page.reload');
   await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'reopen seeded fixture');
@@ -150,11 +150,14 @@ try {
   check('provider failure remains visible with retry',await app.evaluate('!!document.querySelector("[data-novel-queue-task-error]")'));
   await app.screenshot('queue-failure');
   provider.state.fail=false;
+  const retriedId=await app.evaluate('document.querySelector("[data-novel-queue-retry]").getAttribute("data-novel-queue-retry")');
   await app.click('[data-novel-queue-retry]');
-  await app.waitFor('!!document.querySelector("[data-novel-queue-task-status="+JSON.stringify("candidate-ready")+"]")','retried candidate');
+  await app.waitFor(`document.querySelector('[data-novel-queue-task="${retriedId}"]')?.getAttribute('data-novel-queue-task-status')==='queued'`,'same task requeued');
+  await app.click('[data-novel-queue-start]');
+  await app.waitFor(`document.querySelector('[data-novel-queue-task="${retriedId}"]')?.getAttribute('data-novel-queue-task-status')==='candidate-ready'`,'retried candidate');
   check('retry recovers to candidate awaiting author decision',true);
   await app.screenshot('queue-candidate-ready');
-  await app.click('[data-novel-queue-review]');
+  await app.click(`[data-novel-queue-task="${retriedId}"] [data-novel-queue-review]`);
   await app.waitFor('!!document.querySelector("[data-novel-candidate-adopt-draft]")','queue candidate review');
   await app.evaluate('document.querySelector("[data-novel-queue-candidate-review]").scrollIntoView({block:"start"})');
   await app.screenshot('queue-review');

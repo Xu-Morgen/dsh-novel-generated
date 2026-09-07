@@ -42,7 +42,7 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersScene('error', undefined, toUserMessage(cause)); act.sceneEditorReset(); act.chaptersBranches({ status: 'idle', list: [], diff: { status: 'idle', lines: [] } }); });
   };
 
-  const loadChapter = (chapterId: string): void => {
+  const loadChapter = (chapterId: string, preferredSceneId?: string): void => {
     const target = workspace;
     if (!target || projectId === undefined) return;
     if (!beginOp(`chapters:chapter:${chapterId}`)) return;
@@ -53,18 +53,19 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
       if (!isActive()) return;
       const shape = read as ChapterReadShape;
       act.chaptersRead('ready', shape, undefined);
-      if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
+      if (preferredSceneId !== undefined) loadScene(preferredSceneId, chapterId);
+      else if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
       else act.chaptersScene('idle', undefined, undefined);
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, toUserMessage(cause)); });
   };
 
-  const selectChapter = (chapterId: string): void => {
+  const selectChapter = (chapterId: string, preferredSceneId?: string): void => {
     if (snapshot.chapters.editor.dirty) {
-      editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId } });
+      editorPatch({ leaveConfirm: true, pendingNavigation: { chapterId, sceneId: preferredSceneId } });
       scheduleFocus('[data-novel-scene-leave-cancel]');
       return;
     }
-    loadChapter(chapterId);
+    loadChapter(chapterId, preferredSceneId);
   };
 
   const selectScene = (sceneId: string): void => {

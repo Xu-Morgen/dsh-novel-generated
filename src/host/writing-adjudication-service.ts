@@ -122,6 +122,8 @@ export interface NovelWritingAdjudicationService {
   open(projectId: string): Promise<void>;
   /** Optional Host-only introspection; pending candidates are the only blockers for I106. */
   listActiveCandidates?(projectId: string): Promise<readonly WritingCandidateActivity[]>;
+  /** Host-only completion notification after full I11 finalization; unadopted candidates stay pending. */
+  settleFinalizedDraft?(projectId: string, chapterId: string, sceneId: string): void;
   /** 产生一个可审阅候选（continue/scene-card/rewrite；零写，绑定 target 与 sourceHash）。 */
   propose(projectId: string, input: WritingProposeInput, settings?: unknown, signal?: AbortSignal): Promise<{ readonly candidate: WritingCandidate }>;
   /** Strict additive explicit target for non-rewrite candidates. */
@@ -195,7 +197,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
     return repository;
   };
 
-  const production = createCandidateProduction({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose, context: deps.context, sceneOutlineBinding: deps.sceneOutlineBinding, resolveSettings: deps.resolveSettings, ensureOpen });
+  const production = createCandidateProduction({ llm: deps.llm, projectsRoot, onDispose: deps.onDispose, context: deps.context, sceneOutlineBinding: deps.sceneOutlineBinding, outlineGenerationBaseline: deps.outlineGenerationBaseline, resolveSettings: deps.resolveSettings, ensureOpen });
   const projection = createValidationProjection({
     rules: deps.rules, canon: deps.canon, relationship: deps.relationship, style: deps.style, knowledge: deps.knowledge,
     consistency: deps.consistency, knowledgeLeak: deps.knowledgeLeak, relationshipStyle: deps.relationshipStyle,
@@ -229,6 +231,15 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
       validateProjectId(projectId);
       await production.candidates.open(projectId);
       await ensureOpen(projectId);
+    },
+    settleFinalizedDraft(projectId: string, chapterId: string, sceneId: string): void {
+      validateProjectId(projectId);
+      for (const entry of production.entries.values()) {
+        const target = entry.candidate.target;
+        if (entry.draftAdoption !== undefined && target.projectId === projectId && target.chapterId === chapterId && target.sceneId === sceneId && ledger.statusOf(entry.candidate.id) === 'pending') {
+          ledger.accept(entry.candidate.id, projectId);
+        }
+      }
     },
     async listActiveCandidates(projectId: string): Promise<readonly WritingCandidateActivity[]> {
       validateProjectId(projectId);
@@ -334,7 +345,7 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         const adoption = draftAdoptionResultSchema.parse({
           projectId, candidateId, chapterId, sceneId, status: 'adopted', sourceHash: hashText(scene.content),
           projectFingerprint,
-          generationBaselineId: entry.context?.provenance.baseline?.baselineId,
+          generationBaselineId: entry.context?.provenance.baseline?.baselineId ?? entry.generationBaselineId,
         });
         entry.draftAdoption = adoption;
         return adoption;

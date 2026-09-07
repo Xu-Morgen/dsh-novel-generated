@@ -211,6 +211,8 @@ export function createWorkbenchUi(deps: WorkbenchUiDeps): WorkbenchUi {
 
 /** workbenchView 渲染期 props（21 形参收敛为对象；I90 review v2.0 §3.5/§5）。 */
 export interface WorkbenchViewProps {
+  /** I194: source-confirmed Main plan consumer within the existing review route. */
+  sourcePlanReview?: unknown;
   status: WorkspaceStatus;
   ns: WorkbenchNamespaces;
   ui: WorkbenchUi;
@@ -367,7 +369,7 @@ export function workbenchView(React: ReactFace, props: WorkbenchViewProps): unkn
     rejectRuleStyleInitialization: () => ui.rejectRuleStyleImportInitialization(),
   });
   const sourceAware = importInterpretationReview === undefined ? undefined : projectSourceAwareWorkflow({ review: importInterpretationReview });
-  const combinedReview = importReview;
+  const combinedReview = h('div', { className: 'nv-onboarding-stack' }, importReview, props.sourcePlanReview);
   const body = effectiveStatus === 'ready' && selectedProjectId !== undefined && !browsing
     ? h('div', { className: 'nv-workbench__body', 'data-novel-project-open': selectedProjectId },
       projectContextBar(h, selectedProjectName ?? '未命名作品', ui.activeView, ui.requestBrowse, () => ui.activateView('workflow'), leaveConfirm, ui.confirmLeave, ui.cancelLeave),

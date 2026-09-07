@@ -35,7 +35,7 @@ import {
   type OnboardingLayerId,
   type OnboardingNamespace,
   type OnboardingState,
-} from './onboarding.js';
+} from './onboarding-actions.js';
 import type { LlmConfigDraftShape, LlmConfigNamespace, LlmConfigViewShape } from './settings.js';
 import type { WorkbenchSettingsDraftShape, WorkbenchSettingsNamespace, WorkbenchSettingsViewShape } from './workbench-settings.js';
 import type { WorkspaceNamespace } from './shared.js';

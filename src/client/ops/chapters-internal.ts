@@ -6,5 +6,6 @@
 export interface ChaptersInternal {
   loadScene(sceneId: string, chapterId: string): void;
   branchesLoad(chapterId?: string, sceneId?: string): void;
-  selectChapter(chapterId: string): void;
+  /** An accepted candidate supplies its persisted scene instead of selecting the first scene. */
+  selectChapter(chapterId: string, preferredSceneId?: string): void;
 }

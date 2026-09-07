@@ -36,23 +36,29 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
   };
   const freshSceneId = (): string => `scene-${Date.now()}-${++targetSequence}`;
   // accept 成功后刷新章节树与当前章节，让新场景/替换后的场景立即可见。
-  const reloadChapters = (): void => {
+  const reloadChapters = (sceneId: string): void => {
     const target = workspace;
     if (!target || projectId === undefined) return;
     void unwrap(target.chapterList(projectId)).then((list) => {
       if (!isActive()) return;
       act.setChapters('ready', list as unknown[]);
       const chapterId = snapshot.chapters.selectedChapterId;
-      if (chapterId !== undefined) internal.selectChapter(chapterId);
+      if (chapterId !== undefined) internal.selectChapter(chapterId, sceneId);
     }, (cause: Error) => { if (isActive()) act.setChapters('error', [], toUserMessage(cause)); });
   };
-  // 候选生成后先取得兼容的正文审阅，再取得 I110 五层结构化预览；两者
-  // 都完成后才进入 ready，避免作者在 plan 尚未冻结时触发 accept。
+  // I194 / §14.34: new-scene candidates use I135 draft adoption. Their structural
+  // preview needs a later persisted scene baseline and belongs to finalization.
   const previewAfterPropose = (candidateId: string, navigationRevision: number, onReady: () => void, guard: () => boolean = () => true): void => {
     const target = writing;
     if (!target) { candidatePatch({ ui: { kind: 'error', message: '候选审阅服务不可用' } }); return; }
     void unwrap(target.preview(candidateId)).then((review) => {
       if (!isActive() || !guard()) return;
+      if (review.intent === 'continue' || review.intent === 'scene-card') {
+        candidatePatchForRevision({ ui: { kind: 'ready', review } }, navigationRevision);
+        workflowPatchForRevision({ status: 'ready', candidateId, sceneId: review.target.sceneId, traceSectionCount: review.trace?.sections.length, message: '请审阅候选正文；接受为草稿后，再独立确认定稿同步。' }, navigationRevision);
+        onReady();
+        return;
+      }
       void unwrap(target.previewLayers(candidateId)).then((layerPreview) => {
         if (!isActive() || !guard()) return;
         candidatePatchForRevision({ ui: { kind: 'ready', review, layerPreview } }, navigationRevision);
@@ -222,7 +228,7 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
         });
         // 章节润色会话需要在本次接受后继续持有 scene 游标；重新 selectChapter
         // 会按导航语义清空 Client 会话，因此只让普通单候选流程刷新投影。
-        if (snapshot.chapters.polish.status !== 'running') reloadChapters();
+        if (snapshot.chapters.polish.status !== 'running') reloadChapters(outcome.scene.sceneId);
       } else if (outcome.status === 'rejected') {
         candidatePatchForRevision({ ui: { kind: 'done', message: '已拒绝候选，未写入任何内容' } }, navigationRevision);
         const polish = snapshot.chapters.polish;
@@ -276,9 +282,9 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
       if (polish.status === 'running' && polish.currentSceneId === result.sceneId && polish.chapterId === result.chapterId) {
         polishPatchForRevision(completePolishScene(polish, result.sceneId), navigationRevision);
       }
-      workflowPatchForRevision({ status: 'saved', candidateId: result.candidateId, projectId, chapterId: result.chapterId, sceneId: result.sceneId, sourceHash: result.sourceHash, message: '草稿已保存；请编辑正文后再生成定稿预览。' }, navigationRevision);
+      workflowPatchForRevision({ status: 'saved', candidateId: result.candidateId, projectId, chapterId: result.chapterId, sceneId: result.sceneId, sourceHash: result.sourceHash, message: '草稿已保存；审阅或编辑正文后，可生成定稿预览。' }, navigationRevision);
       // 润色会话必须保留当前游标；普通候选接受仍刷新章节投影。
-      if (snapshot.chapters.polish.status !== 'running') reloadChapters();
+      if (snapshot.chapters.polish.status !== 'running') reloadChapters(result.sceneId);
     }, (cause: Error) => {
       release();
       if (!isActive()) return;

@@ -37,14 +37,14 @@ function plan(): FinalizationPlan {
   };
 }
 
-function fixture(options: { readonly content?: () => string } = {}) {
+function fixture(options: { readonly content?: () => string; readonly failCompletion?: () => boolean } = {}) {
   const currentPlan = plan();
   const context: FinalizationApplicationContext = {
     plan: currentPlan,
     structural: { planId: 'structural-plan-1', projectId, candidateId: 'candidate-1', sourceHash: finalSourceHash, generationBaseline: currentPlan.generationBaseline, layerBaselines: [], parserOutputs: {} as never, changes: [], createdAt: currentPlan.createdAt },
   };
   const records = new Map<string, ConfirmationRecord>();
-  const calls = { proposed: 0, accepted: 0, rejected: 0, completed: 0, writes: 0 };
+  const calls = { proposed: 0, accepted: 0, rejected: 0, completed: 0, writes: 0, settled: 0 };
   const confirmation = {
     async open() { return undefined; },
     async propose(_projectId: string, input: { id: string; kind: string; payload: unknown }) {
@@ -87,8 +87,9 @@ function fixture(options: { readonly content?: () => string } = {}) {
     outline: { contentFingerprint: async () => b5ContentFingerprint } as never,
     binding: { read: async () => ({ manual: [], effective: [], fingerprint: bindingFingerprint }) } as never,
     baseline: { read: async () => ({ baseline: { status: 'current' }, staleReasons: [] }) } as never,
-    reconciliation: { completeAuthorized: async () => { calls.completed += 1; return { status: 'continued', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, next: { chapterId: 'chapter-1', sceneId: 'scene-2', detailBeatId: 'detail-2', baselineId: 'baseline-2' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint }; } } as never,
+    reconciliation: { completeAuthorized: async () => { calls.completed += 1; if (options.failCompletion?.()) throw new Error('completion failed'); return { status: 'continued', current: { chapterId: 'chapter-1', sceneId: 'scene-1', detailBeatId: 'detail-1', status: 'done' }, next: { chapterId: 'chapter-1', sceneId: 'scene-2', detailBeatId: 'detail-2', baselineId: 'baseline-2' }, progress: { outlineId: 'outline-1', currentAct: 'act-1', currentBeat: 'beat-1', completedBeats: [], deviations: [], tensionLevel: 20 }, b5ContentFingerprint }; } } as never,
     confirmation,
+    onApplied: () => { calls.settled += 1; },
   });
   return { service, confirmation, calls };
 }
@@ -102,9 +103,23 @@ describe('I136 FinalizationCoordinator', () => {
     expect(applied).toMatchObject({ status: 'applied', appliedStages: ['b5', 'c6', 'baseline'], next: { status: 'continued' } });
     expect(calls.accepted).toBe(1);
     expect(calls.completed).toBe(1);
+    expect(calls.settled).toBe(1);
     expect(await service.accept(projectId, proposed.proposalId)).toMatchObject({ status: 'already-applied' });
     expect(calls.accepted).toBe(1);
     expect(calls.completed).toBe(1);
+    expect(calls.settled).toBe(1);
+  });
+
+  it('I194 completion failure retains pending candidates until the authorized retry fully succeeds', async () => {
+    let fail = true;
+    const { service, calls } = fixture({ failCompletion: () => fail });
+    const proposed = await service.propose(projectId, { planId: 'finalization-plan-1', decisions: [] });
+    expect(await service.accept(projectId, proposed.proposalId)).toMatchObject({ status: 'partial-failure', failedStage: 'b5' });
+    expect(calls.settled).toBe(0);
+    fail = false;
+    expect(await service.accept(projectId, proposed.proposalId)).toMatchObject({ status: 'applied' });
+    expect(calls.settled).toBe(1);
+    expect(calls.accepted).toBe(1);
   });
 
   it('source freshness changes fail closed before any layer or completion write', async () => {
@@ -114,6 +129,7 @@ describe('I136 FinalizationCoordinator', () => {
     content = '外部修改后的正文。';
     expect(await service.accept(projectId, proposed.proposalId)).toMatchObject({ status: 'stale', reasons: ['source-changed'] });
     expect(calls.completed).toBe(0);
+    expect(calls.settled).toBe(0);
     expect(calls.writes).toBe(0);
   });
 
@@ -124,6 +140,7 @@ describe('I136 FinalizationCoordinator', () => {
     expect(await service.reject(projectId, proposed.proposalId)).toMatchObject({ status: 'rejected', planId: 'finalization-plan-1' });
     expect(calls.accepted).toBe(0);
     expect(calls.completed).toBe(0);
+    expect(calls.settled).toBe(0);
     expect(calls.writes).toBe(0);
     expect(await service.reject(projectId, proposed.proposalId)).toMatchObject({ status: 'already-rejected' });
     expect(calls.rejected).toBe(1);

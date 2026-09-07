@@ -20,7 +20,8 @@ export interface DesktopProjectWorkflow {
   createBlankProject(name: string): void;
   /** I179 creates and opens the dedicated empty import target before review starts. */
   createImportedProject(input: { projectId: string; name: string }, onOpened?: () => void): void;
-  requestOpen(projectId: string): void;
+  /** Revalidate after a Main import; the same dirty-leave gate also protects reloads. */
+  requestOpen(projectId: string, reload?: boolean): void;
   requestBrowse(): void;
   confirmLeave(): void;
   cancelLeave(): void;
@@ -41,7 +42,9 @@ function hasDirtyDrafts(state: WorkbenchState): boolean {
     || state.relationshipEditor.dirty
     || state.canonEditor.dirty
     || state.chapters.editor.dirty
-    || state.timeline.dirty;
+    || state.timeline.dirty
+    || state.ruleStyle.ruleDirty === true
+    || state.ruleStyle.styleDirty === true;
 }
 
 /**
@@ -56,6 +59,8 @@ export function createDesktopProjectWorkflow(options: {
   readonly store: DesktopStoreInstance<WorkbenchState, WorkbenchActions>;
   readonly services: Pick<DesktopServiceBag, 'workspace' | 'workbenchSettings'>;
   readonly preference: ProjectPreferenceStore;
+  /** Additional in-memory UI drafts use this same leave gate. */
+  readonly hasAdditionalDraft?: () => boolean;
 }): DesktopProjectWorkflow {
   let active = true;
   let pending: { readonly kind: 'browse' } | { readonly kind: 'open'; readonly projectId: string } | undefined;
@@ -176,12 +181,12 @@ export function createDesktopProjectWorkflow(options: {
         }
       });
     },
-    requestOpen(projectId) {
-      if (projectId === store.getSnapshot().selectedProjectId) {
+    requestOpen(projectId, reload = false) {
+      if (!reload && projectId === store.getSnapshot().selectedProjectId) {
         store.actions.cancelBrowse();
         return;
       }
-      if (hasDirtyDrafts(store.getSnapshot())) {
+      if (hasDirtyDrafts(store.getSnapshot()) || options.hasAdditionalDraft?.()) {
         pending = { kind: 'open', projectId };
         store.actions.showLeaveConfirm(true);
         return;
@@ -189,7 +194,7 @@ export function createDesktopProjectWorkflow(options: {
       runOnce(`open:${projectId}`, async () => { await openVerified(projectId); });
     },
     requestBrowse() {
-      if (hasDirtyDrafts(store.getSnapshot())) {
+      if (hasDirtyDrafts(store.getSnapshot()) || options.hasAdditionalDraft?.()) {
         pending = { kind: 'browse' };
         store.actions.showLeaveConfirm(true);
         return;

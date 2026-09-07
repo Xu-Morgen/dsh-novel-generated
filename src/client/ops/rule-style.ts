@@ -28,6 +28,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
         };
       return {
         refresh(): void {
+          if (snapshot.ruleStyle.ruleDirty || snapshot.ruleStyle.styleDirty) { ruleStylePatch({ message: '请先保存规则与文风修改，再刷新。' }); return; }
           const target = ruleStyleNamespace;
           if (!target || projectId === undefined) { ruleStylePatch({ status: 'error', message: '规则与文风服务不可用' }); return; }
           if (!beginOp('ruleStyle:refresh')) return;
@@ -41,11 +42,12 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
           }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ status: 'error', message: toUserMessage(cause) }); });
         },
         selectRule(ruleId: string): void {
+          if (snapshot.ruleStyle.ruleDirty) { ruleStylePatch({ message: '请先保存或取消当前规则修改。' }); return; }
           const target = ruleStyleNamespace;
           const state = snapshot.ruleStyle;
           if (!target || projectId === undefined || state.acting) return;
           if (state.editingRuleId === ruleId) {
-            ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined });
+            ruleStylePatch({ ruleDirty: false, editingRuleId: undefined, ruleDraft: undefined, message: undefined });
             return;
           }
           if (!beginOp(`ruleStyle:read:${ruleId}`)) return;
@@ -57,14 +59,15 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
           }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ message: toUserMessage(cause) }); });
         },
         newRule(): void {
+          if (snapshot.ruleStyle.ruleDirty) { ruleStylePatch({ message: '请先保存或取消当前规则修改。' }); return; }
           const editing = snapshot.ruleStyle.editingRuleId === '__new__';
           ruleStylePatch({ editingRuleId: editing ? undefined : '__new__', ruleDraft: editing ? undefined : freshRuleDraft(), message: undefined });
         },
-        cancelRuleEdit(): void { ruleStylePatch({ editingRuleId: undefined, ruleDraft: undefined, message: undefined }); },
+        cancelRuleEdit(): void { ruleStylePatch({ ruleDirty: false, editingRuleId: undefined, ruleDraft: undefined, message: undefined }); },
         setRuleDraft(patch: Partial<RuleDraftShape>): void {
           const draft = snapshot.ruleStyle.ruleDraft;
           if (draft === undefined) return;
-          ruleStylePatch({ ruleDraft: { ...draft, ...patch }, message: undefined });
+          ruleStylePatch({ ruleDirty: true, ruleDraft: { ...draft, ...patch }, message: undefined });
         },
         saveRule(): void {
           const target = ruleStyleNamespace;
@@ -86,7 +89,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             release();
             if (!isActive()) return;
             const saved = rule as RuleShape;
-            ruleStylePatch({ acting: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则（版本 ${saved.version}）。` });
+            ruleStylePatch({ acting: false, ruleDirty: false, editingRuleId: undefined, ruleDraft: undefined, message: `已保存规则（版本 ${saved.version}）。` });
             // 刷新列表投影以反映同一 Host 真相（生成/检测消费同一存储）。
             void unwrap(target.list(projectId)).then((projection) => {
               if (!isActive()) return;
@@ -96,7 +99,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
           }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: toUserMessage(cause) }); });
         },
         setStyleDraft(patch: Partial<StyleDraftShape>): void {
-          ruleStylePatch({ styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
+          ruleStylePatch({ styleDirty: true, styleDraft: { ...snapshot.ruleStyle.styleDraft, ...patch }, message: undefined });
         },
         saveStyle(): void {
           const target = ruleStyleNamespace;
@@ -115,7 +118,7 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             release();
             if (!isActive()) return;
             const saved = style as StyleShape;
-            ruleStylePatch({ acting: false, message: `已保存风格档案「${saved.name}」（版本 ${saved.version}）。` });
+            ruleStylePatch({ acting: false, styleDirty: false, message: `已保存风格档案「${saved.name}」（版本 ${saved.version}）。` });
             // 刷新投影：style 视图同步（含 version/id）。
             void unwrap(target.list(projectId)).then((projection) => {
               if (!isActive()) return;
@@ -124,6 +127,6 @@ export function createRuleStyleOps(runtime: OpsRuntime, port: RuleStylePort): Ru
             }, () => undefined);
           }, (cause: Error) => { release(); if (!isActive()) return; ruleStylePatch({ acting: false, message: toUserMessage(cause) }); });
         },
-        dismiss() { ruleStylePatch({ status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
+        dismiss() { ruleStylePatch({ ruleDirty: false, styleDirty: false, status: 'idle', projection: undefined, message: undefined, editingRuleId: undefined, ruleDraft: undefined, styleDraft: freshStyleDraft(), acting: false }); },
       };
 }

@@ -1,5 +1,5 @@
 import type { NamespaceOf } from './remote-namespace.js';
-import { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from '../remote.js';
+import type { onboardingRemoteContribution, onboardingAnalyzerRemoteContribution } from '../remote.js';
 
 /**
  * I53 六层候选审阅与逐层裁决 Client 类型（design §14.7.4 / R11-4，计划 §18

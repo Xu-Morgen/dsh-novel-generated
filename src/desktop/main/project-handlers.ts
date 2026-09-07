@@ -1,3 +1,4 @@
+import { resolveA2GenerationConfig, SettingsIndex } from '../../core/settings-index/index.js';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import type { IpcHandler } from '../../app/ipc-registry.js';
@@ -132,7 +133,7 @@ export function createDesktopProjectHandlers(
     onServices: (services) => { reviewQueueServices = services; },
   });
   if (reviewQueueServices === undefined) throw new Error('Desktop review and queue services were not composed');
-  const inspiration = createInspirationService(options.llm, options.onDispose);
+  const inspiration = createInspirationService(options.llm, options.onDispose, options.resolveGenerationSettings ?? (async () => resolveA2GenerationConfig(await new SettingsIndex(paths.settingsRoot).load()).settings));
   const sourceImportHandlers = createDesktopSourceImportHandlers({
     c5: c5Services,
     paths,
@@ -243,7 +244,14 @@ export function createDesktopProjectHandlers(
     ['novel-creation-tool/novelRuleStyleManager/readStyle', async (projectId) => ruleStyleManager.readStyle(projectId as string)],
     ['novel-creation-tool/novelRuleStyleManager/saveStyle', async (projectId, input) => ruleStyleManager.saveStyle(projectId as string, input as Parameters<typeof ruleStyleManager.saveStyle>[1])],
     ['novel-creation-tool/novelWorkspace/projectList', async () => projects.listProjects()],
-    ['novel-creation-tool/novelWorkspace/projectCreate', async (input) => projects.createProject(input as Parameters<typeof projects.createProject>[0])],
+    ['novel-creation-tool/novelWorkspace/projectCreate', async (input) => {
+      const project = await projects.createProject(input as Parameters<typeof projects.createProject>[0]);
+      // I194: only a newly created work receives an empty C3 baseline. Opening an
+      // existing work must never invent missing knowledge or hide file damage.
+      await knowledge.open(project.id);
+      await knowledge.saveAll(project.id, [], []);
+      return project;
+    }],
     ['novel-creation-tool/novelWorkspace/projectOpen', async (projectId) => projects.openProject(projectId as string)],
     ['novel-creation-tool/novelWorkspace/projectArchiveList', async () => projects.listArchivedProjects()],
     ['novel-creation-tool/novelWorkspace/projectArchive', async (projectId) => projects.archiveProject(projectId as string)],

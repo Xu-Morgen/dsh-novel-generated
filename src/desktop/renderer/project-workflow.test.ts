@@ -65,6 +65,20 @@ describe('I175 Renderer project workflow', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
+  it('I194 revalidates the current work after import and retains the dirty reload gate', async () => {
+    const { workflow, store, opened } = fixture('alpha');
+    await workflow.start();
+    workflow.requestOpen('alpha', true);
+    await vi.waitFor(() => expect(opened).toEqual(['alpha', 'alpha']));
+    store.actions.characterMutate(draft => ({ ...draft, name: '未保存' }));
+    workflow.requestOpen('alpha', true);
+    expect(store.getSnapshot().leaveConfirm).toBe(true);
+    workflow.cancelLeave();
+    expect(store.getSnapshot().characterEditor.dirty).toBe(true);
+    expect(opened).toEqual(['alpha', 'alpha']);
+    workflow.dispose();
+  });
+
   it('restores an id only through a fresh Main projectOpen validation', async () => {
     const first = fixture('alpha');
     await first.workflow.start();

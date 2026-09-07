@@ -54,11 +54,13 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     const proposes: Array<{ projectId: string; input: { intent: string; chapterId: string; sceneId: string } }> = [];
     const adjudicates: string[] = [];
     const adoptions: string[] = [];
+    let structuralPreviews = 0;
     const { registrations } = mount(
       () => Promise.resolve({ ok: true, value: READY_MODEL }),
       CHAPTER_WORKSPACE,
       {
         writing: {
+          previewLayers: async () => { structuralPreviews++; throw new Error('new scene has no persisted baseline'); },
           proposeAt: async (projectId, input) => { proposes.push({ projectId, input }); return { ok: true, value: { candidate: { id: 'cand-1', intent: 'continue', target: { projectId, chapterId: 'chapter-main', sceneId: 'scene-next' }, prompt: 'p', text: '米拉在码头找到铜钥匙。', chunkCount: 1, createdAt: '2026-01-01T00:00:00.000Z' } } }; },
           preview: async (candidateId) => { expect(candidateId).toBe('cand-1'); return REVIEW; },
           adoptDraft: async (candidateId) => { adoptions.push(candidateId); return { ok: true, value: { projectId: 'fixture-project', candidateId, chapterId: 'chapter-main', sceneId: 'scene-next', status: 'adopted', sourceHash: 'a'.repeat(64), projectFingerprint: 'b'.repeat(64) } }; },
@@ -98,6 +100,8 @@ describe('I63 候选审阅与生成后裁决 UI (R13-4)', () => {
     (accept()?.props?.onClick as () => void)();
     await flush();
     expect(adoptions).toEqual(['cand-1']);
+    expect(structuralPreviews).toBe(0);
+    expect(collect(render(), 'div').find(n => n.props?.['data-novel-writing-workflow'] !== undefined)?.props?.['data-novel-writing-workflow-state']).toBe('saved');
     expect(adjudicates).toEqual([]);
     // I107：接受后重读章节会清理旧候选 target；模式徽标随之清除并回到 idle。
     expect(candidatePanel(render())?.props?.['data-novel-candidate-state']).toBe('idle');

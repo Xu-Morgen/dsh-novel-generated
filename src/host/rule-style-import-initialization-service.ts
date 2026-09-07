@@ -225,7 +225,7 @@ export function createRuleStyleImportInitializationService(
           return projection(current);
         }
         if (current.status !== 'succeeded') throw new Error(`Cannot propose ${current.status} rule/style import initialization`);
-        await deps.sessions.firstConfirmed(input);
+        await deps.sessions.firstConfirmed({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash });
         await ensureEmpty(input.projectId);
         const candidate = ruleStyleImportCandidateSchema.parse(input.candidate);
         const candidateFingerprint = ruleStyleImportCandidateFingerprint(candidate);
@@ -243,7 +243,7 @@ export function createRuleStyleImportInitializationService(
         if (current.status === 'applied') return projection(current);
         if (current.status !== 'proposed' && current.status !== 'applying') throw new Error(`Cannot accept ${current.status} rule/style import initialization`);
         if (current.candidateFingerprint !== input.expectedFingerprint || current.candidate === undefined || current.confirmationId === undefined) throw new Error('Rule/style import candidate is stale');
-        await deps.sessions.firstConfirmed(input);
+        await deps.sessions.firstConfirmed({ projectId: input.projectId, importSessionId: input.importSessionId, sourceHash: input.sourceHash });
         if (current.status === 'proposed') {
           await ensureEmpty(input.projectId);
           const gate = deps.confirmation.get(input.projectId, current.confirmationId);

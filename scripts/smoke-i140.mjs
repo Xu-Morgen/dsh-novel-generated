@@ -132,7 +132,7 @@ for (const token of ['createOnboardingAnalyzerService(llm', 'createWritingAdjudi
 for (const token of ['novelWriting/adoptDraft', 'novelWriting/proposeFinalization', 'novelReview/bookScan', 'novelImportExport/compileManuscript', 'rejected "input"', 'rejected "result"']) {
   if (!remoteBinder.includes(token)) fail(`real binder product boundary missing ${token}`);
 }
-for (const token of ['data-novel-ie-compile-txt', 'data-novel-ie-compile-md', '编译单一全文']) {
+for (const token of ['data-novel-ie-compile-txt', 'data-novel-ie-compile-md', '导出单一全文']) {
   if (!importExport.includes(token)) fail(`export consumer missing ${token}`);
 }
 if (lock.descriptorIds.length !== 187 || lock.resultSchemaIds.length !== 93) fail('Stage 18 + I150 + I155 + I159 Remote lock is not 187/93');

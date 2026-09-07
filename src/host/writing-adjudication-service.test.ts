@@ -17,6 +17,7 @@ import { createStyleService } from './style-service.js';
 import { createRuleService } from './rule-service.js';
 import { createKnowledgeService } from './knowledge-service.js';
 import { createTextService } from './text-service.js';
+import { createOutlineGenerationBaselineService } from './outline-generation-baseline-service.js';
 import { createSceneOutlineBindingService } from './scene-outline-binding-service.js';
 import { SceneOutlineBindingRepository } from './scene-outline-binding-repository.js';
 import { createConsistencyDetectionService } from './consistency-detection-service.js';
@@ -92,6 +93,7 @@ interface Setup {
     knowledge: ReturnType<typeof createKnowledgeService>;
     text: ReturnType<typeof createTextService>;
     sceneOutlineBinding: ReturnType<typeof createSceneOutlineBindingService>;
+    baseline: ReturnType<typeof createOutlineGenerationBaselineService>;
   };
 }
 
@@ -131,6 +133,7 @@ async function setup(overrides: {
   mutateAtCandidateFreshCheck?: { readonly owner: 'outline' | 'binding'; readonly call: number };
   beforeWriter?: (label: string) => Promise<void>;
   emptyParserOps?: boolean;
+  withBaseline?: boolean;
 } = {}): Promise<Setup> {
   const root = await mkdtemp(join(tmpdir(), 'novel-i63-'));
   const seen: string[] = [];
@@ -260,12 +263,16 @@ async function setup(overrides: {
   const knowledgeLeak = createKnowledgeLeakDetectionService(llm);
   const relationshipStyle = createRelationshipStyleDetectionService(llm);
   const calls = { c5: 0, writers: [] as string[] };
+  const baseline = createOutlineGenerationBaselineService({ text, outline, binding: sceneOutlineBinding }, root);
   const service = createWritingAdjudicationService({
     llm,
     projectsRoot: root,
     context,
     sceneOutlineBinding,
+    outlineGenerationBaseline: overrides.withBaseline ? baseline : undefined,
     textMutation: {
+      projectFingerprint: text.projectFingerprint,
+      replaceSceneContentMutation: text.replaceSceneContentMutation,
       async createSceneMutation(projectId, input) {
         calls.c5 += 1;
         await overrides.beforeC5?.();
@@ -287,7 +294,7 @@ async function setup(overrides: {
   void project;
   return {
     service, root, seen, calls,
-    services: { characters, worldview, outline, relationship, state, canon, confirmation, style, rules, knowledge, text, sceneOutlineBinding },
+    services: { characters, worldview, outline, relationship, state, canon, confirmation, style, rules, knowledge, text, sceneOutlineBinding, baseline },
   };
 }
 
@@ -390,6 +397,34 @@ describe('I63 候选预览与生成后裁决（writing adjudication）', () => {
     expect(service.adoptedDraft!(candidate.id)).toEqual(adoption);
     expect((await services.text.readChapter('demo', adoption.chapterId)).scenes).toHaveLength(1);
     await expect(service.adjudicate(candidate.id, 'accept')).rejects.toThrow(/adopted draft.*finalization/);
+  });
+
+  it('I194 bound rewrite freezes the existing baseline without writes; settlement preserves unadopted blockers and stale input fails closed', async () => {
+    const { service, root, services } = await setup({ withBaseline: true });
+    roots.push(root);
+    await seedProject(root, services, 'demo');
+    await service.open('demo');
+    const first = (await service.propose('demo', { intent: 'continue' })).candidate;
+    const adoption = await service.adoptDraft!(first.id);
+    const binding = await services.sceneOutlineBinding.read('demo');
+    await services.sceneOutlineBinding.save('demo', { sceneId: adoption.sceneId, detailBeatId: 'detail-1', expectedFingerprint: binding.fingerprint });
+    const baseline = await services.baseline.create('demo', { chapterId: adoption.chapterId, sceneId: adoption.sceneId, detailBeatId: 'detail-1' });
+    const before = snapshotDir(join(root, 'demo'));
+    const input = { intent: 'rewrite' as const, chapterId: adoption.chapterId, sceneId: adoption.sceneId, prompt: '精炼措辞。' };
+    const rewrite = (await service.propose('demo', input)).candidate;
+    const pending = (await service.propose('demo', input)).candidate;
+    expect(snapshotDir(join(root, 'demo'))).toBe(before);
+    expect(await service.adoptDraft!(rewrite.id)).toMatchObject({ generationBaselineId: baseline.baseline.baselineId });
+    expect(await service.listActiveCandidates!('demo')).toHaveLength(3);
+    service.settleFinalizedDraft!('demo', adoption.chapterId, adoption.sceneId);
+    service.settleFinalizedDraft!('demo', adoption.chapterId, adoption.sceneId);
+    expect(await service.listActiveCandidates!('demo')).toMatchObject([{ candidateId: pending.id }]);
+    const repository = new TextRepository(join(root, 'demo'));
+    await repository.open();
+    await repository.replaceRange(adoption.chapterId, adoption.sceneId, { start: 0, end: rewrite.text.length }, '外部改变正文。');
+    const staleBefore = snapshotDir(join(root, 'demo'));
+    await expect(service.propose('demo', input)).rejects.toThrow(/当前细纲快照缺失或已变化/);
+    expect(snapshotDir(join(root, 'demo'))).toBe(staleBefore);
   });
 
   it('I135 rewrite adoptDraft 在 sourceHash 过期时 fail closed 且零写', async () => {

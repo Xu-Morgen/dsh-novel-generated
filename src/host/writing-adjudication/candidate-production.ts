@@ -14,6 +14,7 @@ import type { ConsistencyViolationView } from '../../core/validate/index.js';
 import type { GenerationSettings } from '../../llm/port/index.js';
 import { createWritingCandidateService, type WritingCandidateRequest } from '../candidate-service.js';
 import type { NextSceneContextProvider, NovelAgentContext } from '../writing-context.js';
+import type { NovelOutlineGenerationBaselineService } from '../outline-generation-baseline-service.js';
 import type { NovelSceneOutlineBindingService } from '../scene-outline-binding-service.js';
 import type { WritingAdjudicationOutcome, WritingProposeAtInput, WritingProposeInput, WritingProposeIntent } from '../writing-adjudication-service.js';
 import type { StructuralPreviewPlan } from './structural-preview-plan.js';
@@ -45,6 +46,8 @@ export interface CandidateEntry {
   readonly candidate: WritingCandidate;
   readonly request: WritingCandidateRequest;
   readonly context?: NovelAgentContext;
+  /** Host-only frozen intent for rewrite; never injected into its prompt (§14.14). */
+  readonly generationBaselineId?: string;
   /** I65 队列恢复上下文：card/navigation 供 pov/summary/beats 重建（正常路径为 undefined）。 */
   readonly recovery?: { card: DetailBeat; navigation: OutlineNavigation };
   /** I71 生成注入解释（continue/scene-card/rewrite 各自构建；preview 返回）。 */
@@ -100,6 +103,7 @@ export interface CandidateProductionDeps {
   /** 下一场景上下文装配（与对话 Agent 共用，见 writing-context）。 */
   readonly context: NextSceneContextProvider;
   readonly sceneOutlineBinding: NovelSceneOutlineBindingService;
+  readonly outlineGenerationBaseline?: NovelOutlineGenerationBaselineService;
   /** A2 生成设置解析（Client/Agent 不传 settings 时惰性解析）。 */
   readonly resolveSettings: () => Promise<GenerationSettings>;
   /** 只读 C5 仓库访问（rewrite 绑定源正文哈希；由组合根注入共享池）。 */
@@ -202,6 +206,7 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
       request: next,
       context,
       recovery: entry.recovery,
+      generationBaselineId: entry.generationBaselineId,
       trace,
       targetSnapshot,
       attempts: entry.attempts + 1,
@@ -229,7 +234,18 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
         const chapter = await repository.readChapter(chapterId);
         const scene = chapter.scenes.find((item) => item.id === sceneId);
         if (scene === undefined) throw new Error(`Unknown scene: ${sceneId}`);
-      const request: WritingCandidateRequest = {
+        let generationBaselineId: string | undefined;
+        if (deps.outlineGenerationBaseline !== undefined) {
+          const binding = (await deps.sceneOutlineBinding.read(projectId)).effective.find((item) => item.chapterId === chapterId && item.sceneId === sceneId);
+          if (binding !== undefined) {
+            const baseline = await deps.outlineGenerationBaseline.current(projectId, { chapterId, sceneId, detailBeatId: binding.detailBeatId });
+            if (baseline.baseline === null || baseline.freshness !== 'fresh' || baseline.baseline.status !== 'current') {
+              throw new Error('当前细纲快照缺失或已变化。请先将细纲卡设为写作中并保存场景绑定；已有快照过期时，先处理正文与细纲调和。');
+            }
+            generationBaselineId = baseline.baseline.baselineId;
+          }
+        }
+        const request: WritingCandidateRequest = {
           id: nextId('rewrite'),
           intent: 'rewrite',
           target: { projectId, chapterId, sceneId, sourceHash: hashText(scene.content) },
@@ -242,6 +258,7 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
         entries.set(candidate.id, {
           candidate,
           request,
+          generationBaselineId,
           // I71：rewrite 不注入结构层，只注入调用方重写指令（长度摘要）。
           trace: buildContextTrace({ intent: 'rewrite', rewritePrompt: prompt }),
           attempts: 0,

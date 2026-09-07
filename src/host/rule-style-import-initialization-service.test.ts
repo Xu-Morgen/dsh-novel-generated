@@ -1,3 +1,4 @@
+import { importInterpretationSessionReadInputSchema } from '../core/schema/import-interpretation-session.js';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -36,7 +37,8 @@ describe('I151 RuleStyleImportInitializationService', () => {
       let calls = 0;
       const streamPhases: string[] = [];
       const llm = { async *stream() { calls += 1; yield { type: 'text-delta' as const, text: JSON.stringify(candidate) }; yield { type: 'finish' as const, reason: { kind: 'stop' } }; } };
-      const sessions = { firstConfirmed: async () => ({ ...identity, intent, paragraphDecisions: [], status: 'confirmed' as const, createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }) };
+      // I194 consumer fixture enforces the real session owner's strict identity contract.
+      const sessions = { firstConfirmed: async (input: unknown) => ({ ...importInterpretationSessionReadInputSchema.parse(input), intent, paragraphDecisions: [], status: 'confirmed' as const, createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }) };
       const analysis = { source: () => '规范化首次导入文本' };
       const service = createRuleStyleImportInitializationService(llm, root, {
         sessions: sessions as never, analysis: analysis as never, confirmation, rules, style, isProjectEmpty: async () => true,
