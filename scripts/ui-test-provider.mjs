@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 /** Deterministic test provider. Only replaces the HTTP model boundary; production Main owns parsing and writes. */
 export async function startUiTestProvider(answer) {
   const calls = [];
-  const state = { fail: false, delay: 0 };
+  const state = { fail: false, delay: 0, nullableDeltas: false };
   const server = createServer(async (request, response) => {
     let raw = '';
     for await (const chunk of request) raw += chunk;
@@ -20,7 +20,10 @@ export async function startUiTestProvider(answer) {
       : kind === 'parser' ? JSON.stringify({ ops: [] })
         : '米拉在码头找到铜钥匙。雨滴落在旧海图上，她收起灯，沿着潮痕走向北港。');
     response.writeHead(200, { 'content-type': 'text/event-stream' });
-    response.end(`data: ${JSON.stringify({ choices: [{ delta: { content: output } }] })}\n\ndata: [DONE]\n\n`);
+    const deltas = state.nullableDeltas
+      ? [{ role:'assistant',content:null,reasoning_content:'Test reasoning only.' },{ content:output,reasoning_content:null },{ content:null,reasoning_content:null }]
+      : [{ content:output }];
+    response.end(deltas.map(delta=>`data: ${JSON.stringify({choices:[{delta}]})}\n\n`).join('')+'data: [DONE]\n\n');
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   return { state, calls, endpoint: `http://127.0.0.1:${server.address().port}/v1`, close: () => new Promise(resolve => server.close(resolve)) };

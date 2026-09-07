@@ -177,8 +177,10 @@ function parseSseLine(line: string): '[DONE]' | LlmChunk | undefined {
   if (!Array.isArray(choice) || choice.length === 0 || !choice[0] || typeof choice[0] !== 'object') throw new OpenAICompatibleError('invalid-response', 'LLM SSE choice is invalid');
   const delta = (choice[0] as { delta?: unknown }).delta;
   if (!delta || typeof delta !== 'object') throw new OpenAICompatibleError('invalid-response', 'LLM SSE delta is invalid');
-  const text = (delta as { content?: unknown }).content;
-  const reasoning = (delta as { reasoning_content?: unknown }).reasoning_content;
+  // I195 / design §14.34: provider null means no delta, including the first
+  // reasoning-only frame. Other non-string values remain invalid below.
+  const text = (delta as { content?: unknown }).content ?? undefined;
+  const reasoning = (delta as { reasoning_content?: unknown }).reasoning_content ?? undefined;
   if (text !== undefined && typeof text !== 'string') throw new OpenAICompatibleError('invalid-response', 'LLM text delta is invalid');
   if (reasoning !== undefined && typeof reasoning !== 'string') throw new OpenAICompatibleError('invalid-response', 'LLM reasoning delta is invalid');
   if (text === undefined && reasoning === undefined) return {};

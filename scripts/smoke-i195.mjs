@@ -1,0 +1,11 @@
+import {resolve,join} from 'node:path';
+import {readFile,writeFile} from 'node:fs/promises';
+const packaged=process.argv.includes('--packaged');
+process.env.NOVEL_UI_NULL_DELTAS='1';
+process.env.NOVEL_UI_EVIDENCE=packaged?'i195-packaged':'i195';
+if(packaged)process.env.NOVEL_UI_EXECUTABLE=resolve('artifacts/desktop/win-unpacked/Novel Creation Tool.exe');
+await import('./smoke-i194.mjs');
+const path=join('artifacts/desktop/ui',process.env.NOVEL_UI_EVIDENCE,'validation.json');
+const result=JSON.parse(await readFile(path,'utf8'));
+await writeFile(path,JSON.stringify({...result,iteration:'I195',nullableDeltas:true,packaged},null,2));
+console.log(`I195: nullable SSE source/author flow passed (${packaged?'packaged':'development'})`);

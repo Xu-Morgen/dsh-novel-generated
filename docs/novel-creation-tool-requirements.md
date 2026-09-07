@@ -22,7 +22,7 @@
 
 - 本文件完全取代历史 v1.4 覆盖文档。v1.1–v1.4 保留的价值仅是需求来源 provenance：13 层、核心引擎、ConfirmationGate、创作环境、样本治理、受控写回和规模 smoke 等产品要求继续有效。
 - v1.x 的独立 Node/Vite 路线仍只作 provenance；v4.1 选择的是具备严格 Main/Preload/多 Renderer 边界的 Electron 应用，不恢复浏览器直连 LLM、Renderer 作品文件 I/O 或旧 `I1a–I28b2` 排期。
-- 当前迭代身份：**I1–I194 / Stage 0–38 已完成；Stage 38 / I188–I194 UI 改造已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
+- 当前迭代身份：**I1–I195 / Stage 0–39 已完成；Stage 38 / I188–I194 UI 改造已验收交付**。v3.2 原 I151–I162 仍为 F1/F2 provenance，不占用连续编号。
 - H0 是宪法级最高优先级。H0 未满足时，不得以任何 R0–R35 或未来产品能力抵消。I187 明确取代 H0 中旧的单 Renderer 与 CredentialStore-only 限制，但不把运行时迁移冒充为已完成。
 
 ### 0.3 统一验收纪律
@@ -699,7 +699,7 @@ R30-1 取代 R12-2 中“目录层直接展示六层初始化审阅”的产品�
 
 ## 结论
 
-**直接结论：I1–I194 / Stage 0–38 已完成；Stage 38 / I188–I194 UI 改造已验收交付，I187 治理已提交，已把多 Renderer 与 Renderer 明文多 profile 凭据定义为 v4.1 基线。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
+**直接结论：I1–I195 / Stage 0–39 已完成；Stage 38 / I188–I194 UI 改造已验收交付，I187 治理已提交，已把多 Renderer 与 Renderer 明文多 profile 凭据定义为 v4.1 基线。v3.2 原 I151–I162 仍只作后置 F1/F2 provenance。**
 
 H0 是不可被产品功能抵消的最高优先级；Electron、Main 唯一领域 Host、strict IPC、Main-owned 作品数据/LLM 执行、多 Renderer 窗口注册表、Renderer-owned 明文 profiles 和 DesktopLifecycle 是当前停止线。I187 是合同修订而非运行时交付；在后续实现卡完成前，现有安装包仍属于 v4.0 legacy baseline。I1/I2、`shell.overlay`、Typert 与 DSH pin 仅记录旧交付事实，不再定义当前运行时。
 
@@ -718,3 +718,7 @@ H0 是不可被产品功能抵消的最高优先级；Electron、Main 唯一领�
 本阶段不修改 H0、领域/IPC 合同或 LLM prompt/schema/样本/金标/阈值，不实施 profiles/多窗口/主题切换/关系图/F1/F2。原型 89 项检查不能替代应用验收。各卡 `verify:iN`、阶段 `verify:stage-38` 必须通过后才声明完成。
 
 R36 完成证据（2026-09-07）：`docs/ui/ui-delivery-report.md`、逐项 `docs/ui/ui-button-implementation.json`；`verify:i194` 与 `verify:stage-38` 全绿，227 文件 / 1182 测试，真实 Electron 分片 122 项检查及打包应用 18 项作者检查，87 张截图。原始 241 项全部分类，运行时可见/点击与源码声明分开计数。
+
+R36-6 修复跟踪：I195 / Stage 39 验证真实来源分析消费 nullable provider 流；要求无即时类型误拒绝、非法增量继续拒绝、秘密不进入错误与输出。
+
+I195 验收通过：`verify:stage-39`（含 `verify:i195`）exit 0；227 文件 / 1185 测试、开发/打包各 18 项真实作者检查；实际 DeepSeek 来源分类成功。证据 `docs/ui/i195-dod.md`。

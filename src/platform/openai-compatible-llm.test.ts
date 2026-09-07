@@ -1,3 +1,6 @@
+import { createImportInterpretationAnalysisService } from '../host/import-interpretation-analysis-service.js';
+import { SOURCE_INTERPRETATION_PROMPT_EXAMPLE } from '../llm/analyze/import-interpretation.js';
+import { createImportInterpretationParagraphs } from '../core/schema/import-interpretation-analysis.js';
 import { describe, expect, it } from 'vitest';
 
 import { createOpenAICompatibleBackend, OpenAICompatibleError } from './openai-compatible-llm.js';
@@ -25,6 +28,29 @@ function streamingResponse(): Response {
 }
 
 describe('I170 OpenAI-compatible LlmBackend', () => {
+  it('I195 consumes nullable reasoning/text frames through the real source classifier without mixing reasoning into JSON', async () => {
+    const backend = createOpenAICompatibleBackend({ endpoint: 'https://api.example.test', providerId: 'deepseek', credentials: credentialResolver('fixture-secret'), fetch: async () => new Response([
+      { role: 'assistant', content: null, reasoning_content: 'This is reasoning, not JSON.' },
+      { content: SOURCE_INTERPRETATION_PROMPT_EXAMPLE, reasoning_content: null },
+      { content: null, reasoning_content: null },
+    ].map(delta => `data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`).join('') + 'data: [DONE]\n\n') });
+    const service = createImportInterpretationAnalysisService(backend, undefined, () => undefined);
+    try {
+      const identity = service.begin({ projectId: 'nullable-test', importSessionId: 'nullable-source', sourceHash: 'a'.repeat(64), paragraphs: createImportInterpretationParagraphs('北境城墙由黑曜石砌成。') }, settings);
+      await new Promise<void>(resolve => setImmediate(resolve));
+      expect(service.status(identity).status).toBe('succeeded');
+      expect(service.result(identity).output).toEqual(JSON.parse(SOURCE_INTERPRETATION_PROMPT_EXAMPLE));
+      expect(JSON.stringify(service.result(identity))).not.toContain('fixture-secret');
+    } finally { service.dispose(); }
+  });
+
+  it.each(['content', 'reasoning_content'])('I195 still rejects non-string/non-null %s values', async (field) => {
+    for (const value of [42, false, [], {}]) {
+      const backend = createOpenAICompatibleBackend({ endpoint: 'https://api.example.test', providerId: 'deepseek', credentials: credentialResolver('fixture-secret'), fetch: async () => new Response(`data: ${JSON.stringify({ choices: [{ delta: { [field]: value } }] })}\n\n`) });
+      await expect(collect(backend, { prompt: 'x', settings })).rejects.toMatchObject({ code: 'invalid-response' });
+    }
+  });
+
   it('maps validated settings, resolves credentials only in Main, and preserves stream/reasoning/stop', async () => {
     const calls: string[] = [];
     let requestedUrl = '';

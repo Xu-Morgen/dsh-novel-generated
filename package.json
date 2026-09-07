@@ -487,7 +487,10 @@
     "verify:i193": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i193",
     "smoke:i194": "node scripts/smoke-i194.mjs",
     "verify:i194": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i194",
-    "smoke:ui-packaged": "node scripts/smoke-ui-packaged.mjs"
+    "smoke:ui-packaged": "node scripts/smoke-ui-packaged.mjs",
+    "smoke:i195": "node scripts/smoke-i195.mjs",
+    "verify:i195": "pnpm run typecheck && pnpm test && pnpm run build && pnpm run smoke:i195",
+    "verify:stage-39": "pnpm run verify:i195 && pnpm run package:desktop && node scripts/smoke-i195.mjs --packaged && pnpm run smoke:samples && pnpm run smoke:i151"
   },
   "dependencies": {
     "fflate": "^0.8.3",

@@ -1425,3 +1425,5 @@ I194 接线边界补充（§14.34）：普通来源复用已锁定 I52/I56 六�
 | （无对应） | C2 状态层 | 新增（核心增量） |
 | （无对应） | C3 揭示/知情层 | 新增 |
 | 聊天历史 | C4 正史 + C5 生成文本 | 拆分：事实 vs 文本 |
+
+I195 / Stage 39 兼容说明（§14.34）：Main OpenAI-compatible SSE adapter 对 `content`/`reasoning_content` 的 null 只解释为该增量缺省；有效增量仍必须为字符串，reasoning 不合并为正文。其他类型、非法事件仍 fail-closed；公开合同与模型 prompt/schema 不变。

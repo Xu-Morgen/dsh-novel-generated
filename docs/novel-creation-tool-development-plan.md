@@ -2,7 +2,7 @@
 
 > 版本：v4.1
 > 日期：2026-09-04
-> 状态：当前执行权威（**I1–I194 / Stage 0–38 已完成；Stage 38 / I188–I194 UI 改造已验收交付**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
+> 状态：当前执行权威（**I1–I195 / Stage 0–39 已完成；UI 改造与 I195 流式兼容修复已验收交付**；v3.2 原 I151–I162 为后置 provenance，不占用当前连续编号）
 > 配套设计文档：`docs/novel-creation-tool-design.md` v4.1（本计划是它的执行层）
 > 配套需求权威：`docs/novel-creation-tool-requirements.md` v4.1（需求 ID、验收、迭代覆盖）
 > 重构立项输入：`docs/novel-creation-tool-architecture-review.md` v1.0（review record，非设计权威；Stage 15 依据其 §9 路线图）；`docs/architecture-reviews/2026-08-28-novel-creation-tool-architecture-review-v2.md` v2.0（Stage 17 依据其 §9.2 优先级表）
@@ -2130,6 +2130,19 @@ TDD Route:
 - **验收**：真实 Electron 全作者流程（测试 HTTP provider 仅替换模型边界）、来源未决/取消/失败/同操作恢复、保存/定稿/I11/队列/归档/删除边界；241 项声明和额外入口逐项处置；实际 Windows 打包应用截图与 smoke。
 - **验证**：`pnpm run verify:i194`；阶段末 `pnpm run verify:stage-38` = 全量确定性/负向测试、I187–I194 适用累积 smoke、现有 held-out 样本与 packaged-app E2E。历史纯 metadata smoke 不得覆盖真实应用证据。
 - **DoD**：I193 验收提交后单独填卡实施；完成后同步权威文档/AGENTS 的 Stage 38 完成线与交接。
+
+## 38B. Stage 39：流式 Provider 兼容修复（I195）
+
+### I195：修复来源分析即时失败的 nullable delta 解析
+
+- **目标**：实测 DeepSeek HTTP 200 首帧 `delta.content:null` 与字符串 reasoning 并存，旧 adapter 误拒绝。仅把缺省/null 视为无该增量；正文和 reasoning 保持分离。
+- **Owner**：`src/platform/openai-compatible-llm.ts` 唯一 SSE adapter；配套 adapter/来源分析消费者测试、真实 Electron HTTP 夹具。
+- **兼容/退役**：既有字符串帧行为不变；数字/布尔/数组/对象仍拒绝；无 IPC、领域、prompt/schema/样本变更。未知服务错误继续统一脱敏，不把原始响应透传到 IPC。
+- **明确不做**：不改密钥、模型参数、用户作品；不引入新 provider API、多窗口/profiles 或通用错误展示系统。
+- **交付物**：最小 parser 修复、正负向与来源消费者、真实 Electron/打包证据、独立 fix(I195) commit。
+- **验收**：null 正文的 reasoning 帧、null reasoning 的正文帧、双 null 帧可消费；非法类型拒绝、reasoning 不入正文；真实分析不再即刻失败，失败/取消与确认边界保持。
+- **验证**：`pnpm run verify:i195`（typecheck + 全量测试 + build + smoke:i195）；`pnpm run verify:stage-39` 追加打包作者流程与适用既有样本回归。
+- **状态**：验收通过；227 文件 / 1185 测试，开发/打包各 18 项真实作者检查、I43/I44/I45/I151 样本回归通过；实际配置的 DeepSeek HTTP 200 来源分类成功。见 `docs/ui/i195-dod.md`。
 
 ## 39. 当前完成线
 

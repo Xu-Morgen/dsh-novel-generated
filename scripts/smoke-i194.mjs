@@ -5,6 +5,7 @@ import { launchUiElectron } from './ui-electron-session.mjs';
 import { uiInvoke } from './ui-test-provider.mjs';
 import { startSourceTestProvider, sourceText } from './ui-source-test-provider.mjs';
 const provider=await startSourceTestProvider();
+provider.state.nullableDeltas=process.env.NOVEL_UI_NULL_DELTAS==='1';
 const app=await launchUiElectron(process.env.NOVEL_UI_EVIDENCE ?? 'i194',process.env.NOVEL_UI_EXECUTABLE);
 await app.send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
 const checks=[];
