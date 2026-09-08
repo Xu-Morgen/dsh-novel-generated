@@ -1,16 +1,17 @@
 import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
 import { llmMonitorSchema, type LlmMonitorSnapshot } from '../llm-monitor-contract.js';
 import { OpenAICompatibleError } from '../../platform/openai-compatible-llm.js';
+import { llmTraceStage, type LlmTrace, type LlmTraceStore } from './llm-trace-store.js';
 
 /** Main-only bounded observation; never copies prompts, endpoints or exception messages. */
 export class LlmMonitor {
   private sequence = 0;
   private rows: LlmMonitorSnapshot['requests'] = [];
   private disposed = false;
-  constructor(private readonly changed: (snapshot: LlmMonitorSnapshot, started: boolean) => void) {}
+  constructor(private readonly changed: (snapshot: LlmMonitorSnapshot, started: boolean) => void, private readonly traces?: LlmTraceStore) {}
 
   snapshot(): LlmMonitorSnapshot { return llmMonitorSchema.parse({ version: 1, requests: this.rows }); }
-  dispose(): void { this.disposed = true; this.rows = []; }
+  dispose(): void { this.disposed = true; this.traces?.dispose(); this.rows = []; }
 
   /** Decorates any backend while preserving its chunks/errors and cancellation ownership. */
   wrap(backend: LlmBackend | ((secret: string | undefined) => LlmBackend), resolveSecret: (ref: string) => Promise<string | undefined>): LlmBackend {
@@ -23,15 +24,23 @@ export class LlmMonitor {
       let text = '';
       let reasoning = '';
       let finished = false;
+      let trace: LlmTrace | undefined;
+      let textFilter: SecretFilter | undefined;
+      let reasoningFilter: SecretFilter | undefined;
+      let traceFailed = false;
       try {
+        trace = monitor.traces?.begin(row.id, llmTraceStage(request.prompt), () => { traceFailed = true; });
         secret = await resolveSecret(request.settings.credentialRef) ?? '';
         const source = typeof backend === 'function' ? backend(secret || undefined) : backend;
-        const textFilter = new SecretFilter(secret);
-        const reasoningFilter = new SecretFilter(secret);
+        textFilter = new SecretFilter(secret);
+        reasoningFilter = new SecretFilter(secret);
         for await (const chunk of source.stream(request)) {
           const delta = typeof chunk === 'string' ? { text: chunk } : chunk;
-          text = (text + textFilter.push(delta.text ?? '')).slice(-16000);
-          reasoning = (reasoning + reasoningFilter.push(delta.reasoning ?? '')).slice(-16000);
+          const safeText = textFilter.push(delta.text ?? '');
+          const safeReasoning = reasoningFilter.push(delta.reasoning ?? '');
+          trace?.write(safeText, safeReasoning, 'done' in delta && delta.done === true);
+          text = (text + safeText).slice(-16000);
+          reasoning = (reasoning + safeReasoning).slice(-16000);
           row.text = text;
           row.reasoning = reasoning;
           if (delta.text) row.status = 'generating';
@@ -48,6 +57,10 @@ export class LlmMonitor {
         throw cause;
       } finally {
         if (!finished) row.status = 'cancelled';
+        const tail = textFilter?.finish() ?? '', reasoningTail = reasoningFilter?.finish() ?? '';
+        if (tail || reasoningTail) { trace?.write(tail, reasoningTail); row.text = (text + tail).slice(-16000); row.reasoning = (reasoning + reasoningTail).slice(-16000); }
+        trace?.finish(row.status, row.error);
+        if (traceFailed) row.error = `${row.error}${row.error ? ' ' : ''}本次调用记录保存失败，请检查本地存储。`;
         secret = ''; text = ''; reasoning = '';
         monitor.emit(false);
       }
@@ -64,6 +77,7 @@ export class LlmMonitor {
 class SecretFilter {
   private pending = '';
   constructor(private readonly secret: string) {}
+  finish(): string { const tail = this.pending ? '[已隐藏密钥前缀]' : ''; this.pending = ''; return tail; }
   push(value: string): string {
     if (!this.secret) return value;
     let safe = (this.pending + value).split(this.secret).join('[已隐藏密钥]');

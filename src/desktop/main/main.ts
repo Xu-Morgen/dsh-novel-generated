@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { createApplicationKernel } from '../../app/kernel.js';
 import { LlmMonitor } from './llm-monitor.js';
+import { LlmTraceStore } from './llm-trace-store.js';
 import { DesktopWindowRegistry, createMonitorWindowHost } from './monitor-window.js';
 import { createCredentialStore } from '../../app/credentials.js';
 import type { IpcHandler } from '../../app/ipc-registry.js';
@@ -336,7 +337,7 @@ const applicationKernel = createApplicationKernel({
       ports.provide('credentialStore', credentials.store);
       ports.provide('credentialResolver', credentials.resolver);
       const monitorHost = createMonitorWindowHost(windowRegistry, desktopRoot());
-      const monitor = new LlmMonitor((snapshot, started) => monitorHost.update(snapshot, started));
+      const monitor = new LlmMonitor((snapshot, started) => monitorHost.update(snapshot, started), new LlmTraceStore(join(paths.cacheRoot, 'llm-traces')));
       ports.registerDisposer(() => { monitor.dispose(); monitorHost.dispose(); windowRegistry.dispose(); }, 'I197 managed windows and LLM observation');
       ports.provide('createLlmBackend', (endpoint: string, providerId: string) => monitor.wrap(secret => createOpenAICompatibleBackend({ endpoint, providerId, credentials: { resolve: async () => secret } }), ref => credentials.resolver.resolve(ref)));
       const llmConfig = createLlmConfigService(credentials.store, paths.settingsRoot);

@@ -1,0 +1,15 @@
+{
+  "immutable": true,
+  "threshold": 1,
+  "baseCorpus": "samples/i200/cases.json",
+  "dev": ["compact-outline", "missing-outline", "invalid-conflict"],
+  "heldOut": ["compact-existing-protagonist", "missing-rationale", "missing-evidence"],
+  "cases": [
+    {"id":"compact-outline","mutation":"compact","accepted":true},
+    {"id":"missing-outline","mutation":"missing-outline","accepted":false},
+    {"id":"invalid-conflict","mutation":"invalid-conflict","accepted":false},
+    {"id":"compact-existing-protagonist","mutation":"existing","accepted":true},
+    {"id":"missing-rationale","mutation":"missing-rationale","accepted":false},
+    {"id":"missing-evidence","mutation":"missing-evidence","accepted":false}
+  ]
+}

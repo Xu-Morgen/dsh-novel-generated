@@ -509,7 +509,10 @@
     "verify:stage-44": "pnpm run verify:i200 && pnpm run smoke:i200:samples && pnpm run smoke:i199 && pnpm run smoke:samples",
     "smoke:i201": "node scripts/smoke-i201.mjs",
     "verify:i201": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i201",
-    "verify:stage-45": "pnpm run verify:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
+    "verify:stage-45": "pnpm run verify:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples",
+    "smoke:i202": "node scripts/smoke-i202.mjs",
+    "verify:i202": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i202",
+    "verify:stage-46": "pnpm run verify:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
   },
   "dependencies": {
     "fflate": "^0.8.3",

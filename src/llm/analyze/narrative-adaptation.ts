@@ -92,6 +92,8 @@ export function buildNarrativeAdaptationPrompt(input: NarrativeAdaptationInput):
     '输入是作者已经确认的创作想法、背景/幕后资料或混合段，以及明确冻结的限知/全知视角。',
     '只输出一个严格 JSON 对象，字段必须只有 confidence、evidenceParagraphIds、outline、protagonistCandidate（仅限已确认的限知待创建主角）、rationale。',
     'B5 必须按视角重构读者体验，先表达所选视角可经历的行动、调查、线索、误判和冲突，再按揭示节奏逐步接近幕后答案；不得按幕后年表直接复述答案。',
+    '本次只生成简洁的读者体验大纲，不展开逐场景细纲：每个 beat 的 detailBeats 必须输出 []，细纲留给后续独立创作步骤。建议最多 3 幕、每幕最多 3 个核心节拍、伏笔最多 3 条、结局最多 2 个；合并次要支线而非逐个罗列调查点。',
+    'description/goal/hint/payoff/premise 各用一两句，rationale 不超过 200 字。输出紧凑 JSON，不缩进、不重复原文；必须完整闭合 JSON，不能因追求细节遗漏末尾字段。',
     input.narrativeIntent.protagonistCandidateId === undefined
       ? '使用已确认的作品角色组织视角，不得另行输出 protagonistCandidate。'
       : `素材中尚无可绑定主角。必须提议 id 为 ${input.narrativeIntent.protagonistCandidateId} 的 protagonistCandidate，并让 outline 的 charactersInvolved 或 detailBeats.pov 实际引用该角色来串联故事。`,

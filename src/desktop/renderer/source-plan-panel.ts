@@ -12,6 +12,7 @@ import { rawError, toUserMessage } from '../../client/presentation.js';
 import type { NarrativeImportPlan, NarrativeImportPlanIdentity } from '../../core/schema/narrative-import-plan.js';
 import type { NarrativeAdaptationIdentity } from '../../core/schema/narrative-adaptation.js';
 import type { NarrativeRevealIdentity } from '../../core/schema/narrative-reveal.js';
+import { SourcePlanStep, sourcePlanInputKey } from './source-plan-step.js';
 
 const LABELS = { characters: '角色', worldview: '世界观', outline: '读者体验大纲', state: '起始状态', canon: '开场已公开事实', relationship: '关系', knowledge: '秘密与揭示计划' } as const;
 const identityOf = ({ projectId, importSessionId, sourceHash, planId }: NarrativeImportPlan): NarrativeImportPlanIdentity => ({ projectId, importSessionId, sourceHash, planId });
@@ -62,6 +63,7 @@ export function useSourcePlanPanel(props: {
   const generation = React.useRef(0);
   const lock = React.useRef(false);
   const cancelRemote = React.useRef<() => Promise<unknown>>(async () => {});
+  const steps = React.useRef({ foundation: new SourcePlanStep<string>(), adaptation: new SourcePlanStep<NarrativeAdaptationIdentity>(), reveal: new SourcePlanStep<NarrativeRevealIdentity>() });
   const key = `novel-source-plan:${projectId}`;
   const remember = (value: NarrativeImportPlan): void => {
     if (!isCurrent()) return;
@@ -81,6 +83,7 @@ export function useSourcePlanPanel(props: {
   }, [services, projectId, props.actions]);
   React.useEffect(() => {
     active.current = true;
+    Object.values(steps.current).forEach(step => step.clear());
     setPlan(undefined); setDraft(undefined); setEditing(false); setError(''); setBusy(false); setGenerating(false); setManualSettingsReady(false); lock.current = false;
     if (!projectId) return;
     try {
@@ -118,6 +121,7 @@ export function useSourcePlanPanel(props: {
     const evidence = review.paragraphs.filter(p => p.decision !== 'rejected').map(p => { const role = p.selectedRole ?? p.suggestedRole; if (!role) throw new Error('来源段落缺少已确认分类。'); return { paragraphId: p.paragraphId, role, text: p.text }; });
     if (confirmed.intent.treatment !== 'adapt-pov' || !confirmed.intent.narrativeIntent || confirmed.intent.sourceRole === 'existing-prose' || confirmed.intent.sourceRole === 'synopsis') throw new Error('当前来源不属于视角重构路径。');
     const input = { ...identity, sourceRole: confirmed.intent.sourceRole, treatment: 'adapt-pov' as const, narrativeIntent: confirmed.intent.narrativeIntent, evidence };
+    const inputKey = await sourcePlanInputKey(input); assertCurrent();
     const poll = async (status: () => Promise<string>, result: () => Promise<unknown>, label: string): Promise<void> => {
       for (;;) { assertCurrent(); const value = await status(); assertCurrent(); if (value === 'succeeded') return;
         if (value === 'failed') { await result(); assertCurrent(); throw new Error(`${label}生成失败，请重试。`); }
@@ -126,18 +130,28 @@ export function useSourcePlanPanel(props: {
       }
     };
     setMessage('正在分析角色、世界观、关系与起始状态…');
-    const foundationId = await unwrap(services.analyzer.begin({ projectId, sourceHash: review.sourceHash, text: evidence.map(p=>p.text).join('\n\n') }, undefined));
+    const foundationSessionId = await steps.current.foundation.acquire(inputKey, async () => {
+      const value = await unwrap(services.analyzer.begin({ projectId, sourceHash: review.sourceHash, text: evidence.map(p=>p.text).join('\n\n') }, undefined));
+      await registerCancel(() => unwrap(services.analyzer.cancel(value.onboardingSessionId))); return value.onboardingSessionId;
+    }, id => unwrap(services.analyzer.status(id)), assertCurrent);
+    const foundationId = { onboardingSessionId: foundationSessionId };
     await registerCancel(() => unwrap(services.analyzer.cancel(foundationId.onboardingSessionId)));
     await poll(() => unwrap(services.analyzer.status(foundationId.onboardingSessionId)), () => unwrap(services.analyzer.result(foundationId.onboardingSessionId)), '故事资料');
     const foundation = await unwrap(services.analyzer.result(foundationId.onboardingSessionId)); assertCurrent();
     setMessage('正在安排读者体验与视角大纲…');
-    const adaptationId: NarrativeAdaptationIdentity = await unwrap(services.narrativeAdaptation.begin(input, undefined));
+    const adaptationId = await steps.current.adaptation.acquire(`${inputKey}:${foundationSessionId}`, async () => {
+      const value = await unwrap(services.narrativeAdaptation.begin(input, undefined));
+      await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(value))); return value;
+    }, async id => (await unwrap(services.narrativeAdaptation.status(id))).status, assertCurrent);
     await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(adaptationId)));
     await poll(async () => (await unwrap(services.narrativeAdaptation.status(adaptationId))).status, () => unwrap(services.narrativeAdaptation.result(adaptationId)), '读者体验大纲');
     const outline = (await unwrap(services.narrativeAdaptation.result(adaptationId))).candidate; assertCurrent();
     setMessage('正在安排秘密与揭示时机…');
     const characterIds = [...new Set([...foundation.layers.characters.candidates.map(c=>c.id), ...(outline.protagonistCandidate ? [outline.protagonistCandidate.id] : [])])];
-    const revealId: NarrativeRevealIdentity = await unwrap(services.narrativeReveal.begin({ ...input, b5CandidateId: outline.candidateId, characterIds, b5Anchors: outline.outline.acts.flatMap(act=>act.beats.map(beat=>({id:beat.id,actId:act.id,beatId:beat.id,label:beat.title}))) }, undefined));
+    const revealId = await steps.current.reveal.acquire(`${inputKey}:${adaptationId.adaptationId}`, async () => {
+      const value = await unwrap(services.narrativeReveal.begin({ ...input, b5CandidateId: outline.candidateId, characterIds, b5Anchors: outline.outline.acts.flatMap(act=>act.beats.map(beat=>({id:beat.id,actId:act.id,beatId:beat.id,label:beat.title}))) }, undefined));
+      await registerCancel(() => unwrap(services.narrativeReveal.cancel(value))); return value;
+    }, async id => (await unwrap(services.narrativeReveal.status(id))).status, assertCurrent);
     await registerCancel(() => unwrap(services.narrativeReveal.cancel(revealId)));
     await poll(async () => (await unwrap(services.narrativeReveal.status(revealId))).status, () => unwrap(services.narrativeReveal.result(revealId)), '秘密揭示计划');
     const knowledge = (await unwrap(services.narrativeReveal.result(revealId))).candidate; assertCurrent();
@@ -146,7 +160,7 @@ export function useSourcePlanPanel(props: {
     const value = await unwrap(services.narrativeImportPlan.propose({ ...identity, sourceRole: input.sourceRole, treatment: 'adapt-pov', narrativeIntent: input.narrativeIntent,
       package: { characters: foundation.layers.characters, worldview: foundation.layers.worldview, state: foundation.layers.state, relationship: foundation.layers.relationship,
         outline, knowledge, canon: { candidates: [], confidence: 'high', warnings: ['尚未确认开场已公开事实，初始正史留空。'], evidenceIds: [] } } }));
-    assertCurrent(); remember(value); setMessage('计划已生成；确认前不会写入故事资料。');
+    assertCurrent(); remember(value); Object.values(steps.current).forEach(step => step.clear()); setMessage('计划已生成；确认前不会写入故事资料。');
   }, 'generation'); };
   const cancel = (): void => { if (!generating) return; setGenerating(false); generation.current++; lock.current = false; setBusy(false); setMessage('生成已取消，尚未应用故事资料。'); void cancelRemote.current().catch(()=>{}); };
   const decision = (kind: 'accept' | 'reject' | 'recover'): void => { if (!plan) return; void run(async () => {
@@ -176,7 +190,8 @@ export function useSourcePlanPanel(props: {
     h('p', null, '检查角色、事件顺序与秘密揭示时机后，再确认写入。'),
     message ? h('p', { role: 'status', 'aria-live': 'polite' }, message) : null,
     error ? h('p', { role: 'alert', 'data-novel-source-plan-error': '' }, error) : null,
-    !plan || plan.status === 'rejected' || plan.status === 'stale' ? h(Button, { variant:'primary', disabled:busy || !confirmed, 'data-novel-source-plan-generate':'', onClick:generate }, busy?'正在生成…':'生成叙事计划') : null,
+    !plan || plan.status === 'rejected' || plan.status === 'stale' ? h(Button, { variant:'primary', disabled:busy || !confirmed, 'data-novel-source-plan-generate':'', onClick:generate }, busy?'正在生成…':error?'重试未完成步骤':'生成叙事计划') : null,
+    error && !plan ? h('p', null, '同一页面与来源下，已成功步骤会保留；重试只重新请求失败或取消的步骤，并继续后续流程。') : null,
     generating ? h(Button, { variant:'ghost', onClick:cancel, 'data-novel-source-plan-cancel':'' }, '取消生成') : null,
     plan ? h('div', null,
       h('p', { role:'status' }, `已写入 ${plan.committedStages.length} 类资料`),
