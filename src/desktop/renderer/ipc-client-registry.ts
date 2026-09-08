@@ -975,6 +975,14 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "result",
         "methodId": "novel-creation-tool/novelNarrativeAdaptation/result"
+      },
+      {
+        "method": "beginBound",
+        "methodId": "novel-creation-tool/novelNarrativeAdaptation/beginBound"
+      },
+      {
+        "method": "repairProgress",
+        "methodId": "novel-creation-tool/novelNarrativeAdaptation/repairProgress"
       }
     ]
   },
@@ -997,6 +1005,10 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "result",
         "methodId": "novel-creation-tool/novelNarrativeReveal/result"
+      },
+      {
+        "method": "repairProgress",
+        "methodId": "novel-creation-tool/novelNarrativeReveal/repairProgress"
       }
     ]
   },

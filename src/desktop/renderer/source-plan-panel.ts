@@ -105,6 +105,8 @@ export function useSourcePlanPanel(props: {
     catch (cause) { if (isCurrent() && turn === generation.current) {
       // unwrap appends transport metadata; it must not turn safe Chinese errors into a generic fallback.
       const message = rawError(cause).replace(/ \[code=[\w-]+; method=[^\]]+\]$/, '');
+      if (message.startsWith('计划合并失败：大纲')) { steps.current.adaptation.clear(); steps.current.reveal.clear(); }
+      if (message.startsWith('计划合并失败：故事资料') || message.startsWith('故事资料任务与当前作品')) Object.values(steps.current).forEach(step => step.clear());
       setError(toUserMessage(message, '操作未完成，请检查后重试。'));
       if (kind === 'generation') setMessage('本次生成未完成，尚未写入故事资料。');
     } }
@@ -140,11 +142,15 @@ export function useSourcePlanPanel(props: {
     const foundation = await unwrap(services.analyzer.result(foundationId.onboardingSessionId)); assertCurrent();
     setMessage('正在安排读者体验与视角大纲…');
     const adaptationId = await steps.current.adaptation.acquire(`${inputKey}:${foundationSessionId}`, async () => {
-      const value = await unwrap(services.narrativeAdaptation.begin(input, undefined));
+      const value = await unwrap(services.narrativeAdaptation.beginBound({ input, onboardingSessionId: foundationSessionId }));
       await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(value))); return value;
     }, async id => (await unwrap(services.narrativeAdaptation.status(id))).status, assertCurrent);
     await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(adaptationId)));
-    await poll(async () => (await unwrap(services.narrativeAdaptation.status(adaptationId))).status, () => unwrap(services.narrativeAdaptation.result(adaptationId)), '读者体验大纲');
+    await poll(async () => {
+      const progress = await unwrap(services.narrativeAdaptation.repairProgress(adaptationId)); assertCurrent();
+      if (progress.attempt) setMessage(`正在修正读者体验大纲，第 ${progress.attempt}/2 次…`);
+      return (await unwrap(services.narrativeAdaptation.status(adaptationId))).status;
+    }, () => unwrap(services.narrativeAdaptation.result(adaptationId)), '读者体验大纲');
     const outline = (await unwrap(services.narrativeAdaptation.result(adaptationId))).candidate; assertCurrent();
     setMessage('正在安排秘密与揭示时机…');
     const characterIds = [...new Set([...foundation.layers.characters.candidates.map(c=>c.id), ...(outline.protagonistCandidate ? [outline.protagonistCandidate.id] : [])])];
@@ -153,7 +159,11 @@ export function useSourcePlanPanel(props: {
       await registerCancel(() => unwrap(services.narrativeReveal.cancel(value))); return value;
     }, async id => (await unwrap(services.narrativeReveal.status(id))).status, assertCurrent);
     await registerCancel(() => unwrap(services.narrativeReveal.cancel(revealId)));
-    await poll(async () => (await unwrap(services.narrativeReveal.status(revealId))).status, () => unwrap(services.narrativeReveal.result(revealId)), '秘密揭示计划');
+    await poll(async () => {
+      const progress = await unwrap(services.narrativeReveal.repairProgress(revealId)); assertCurrent();
+      if (progress.attempt) setMessage(`正在修正秘密揭示计划，第 ${progress.attempt}/2 次…`);
+      return (await unwrap(services.narrativeReveal.status(revealId))).status;
+    }, () => unwrap(services.narrativeReveal.result(revealId)), '秘密揭示计划');
     const knowledge = (await unwrap(services.narrativeReveal.result(revealId))).candidate; assertCurrent();
     // §14.15: no source paragraph has author-confirmed public-at-start visibility here.
     // The old analyzer's B5/C4 output therefore cannot enter this plan.

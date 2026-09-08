@@ -230,7 +230,10 @@
     "novel-creation-tool/novelMigration/rollback",
     "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration",
     "novel-creation-tool/novelRuleStyleImportInitialization/regenerate",
-    "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration"
+    "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration",
+    "novel-creation-tool/novelNarrativeAdaptation/beginBound",
+    "novel-creation-tool/novelNarrativeAdaptation/repairProgress",
+    "novel-creation-tool/novelNarrativeReveal/repairProgress"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6670,6 +6673,69 @@
       "result": {
         "typeSymbol": "novel-creation-tool#ruleStyleRegenerationProposal",
         "schemaId": "novel-creation-tool#ruleStyleRegenerationProposal@98755f7e"
+      }
+    },
+    "novel-creation-tool/novelNarrativeAdaptation/beginBound": {
+      "id": "novel-creation-tool/novelNarrativeAdaptation/beginBound",
+      "service": "novelNarrativeAdaptation",
+      "namespace": "novelNarrativeAdaptation",
+      "method": "beginBound",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#boundAdaptation",
+            "schemaId": "novel-creation-tool#boundAdaptation@ef90f61c"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#boundAdaptationIdentity",
+        "schemaId": "novel-creation-tool#boundAdaptationIdentity@596b002a"
+      }
+    },
+    "novel-creation-tool/novelNarrativeAdaptation/repairProgress": {
+      "id": "novel-creation-tool/novelNarrativeAdaptation/repairProgress",
+      "service": "novelNarrativeAdaptation",
+      "namespace": "novelNarrativeAdaptation",
+      "method": "repairProgress",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#adaptationRepairIdentity",
+            "schemaId": "novel-creation-tool#adaptationRepairIdentity@596b002a"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#narrativeRepairProgress",
+        "schemaId": "novel-creation-tool#narrativeRepairProgress@d374d096"
+      }
+    },
+    "novel-creation-tool/novelNarrativeReveal/repairProgress": {
+      "id": "novel-creation-tool/novelNarrativeReveal/repairProgress",
+      "service": "novelNarrativeReveal",
+      "namespace": "novelNarrativeReveal",
+      "method": "repairProgress",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#revealRepairIdentity",
+            "schemaId": "novel-creation-tool#revealRepairIdentity@7409eab6"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#narrativeRepairProgress",
+        "schemaId": "novel-creation-tool#narrativeRepairProgress@d374d096"
       }
     }
   },
@@ -54239,6 +54305,282 @@
           "status",
           "createdAt",
           "updatedAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#boundAdaptation@ef90f61c": {
+      "typeSymbol": "novel-creation-tool#boundAdaptation",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "importSessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "sourceRole": {
+                "type": "string",
+                "enum": [
+                  "idea",
+                  "background-material",
+                  "hybrid"
+                ]
+              },
+              "treatment": {
+                "type": "string",
+                "const": "adapt-pov"
+              },
+              "narrativeIntent": {
+                "type": "object",
+                "properties": {
+                  "pov": {
+                    "type": "string",
+                    "enum": [
+                      "limited",
+                      "omniscient"
+                    ]
+                  },
+                  "protagonistId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "protagonistCandidateId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "initialKnown": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64,
+                      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                    }
+                  },
+                  "revealPacing": {
+                    "type": "string",
+                    "enum": [
+                      "slow",
+                      "balanced",
+                      "fast"
+                    ]
+                  }
+                },
+                "required": [
+                  "pov",
+                  "initialKnown",
+                  "revealPacing"
+                ],
+                "additionalProperties": false
+              },
+              "evidence": {
+                "minItems": 1,
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "paragraphId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "world-truth",
+                        "plot-plan",
+                        "prose",
+                        "author-instruction",
+                        "presentation-note"
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20000
+                    }
+                  },
+                  "required": [
+                    "paragraphId",
+                    "role",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "projectId",
+              "importSessionId",
+              "sourceHash",
+              "sourceRole",
+              "treatment",
+              "narrativeIntent",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "onboardingSessionId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "input",
+          "onboardingSessionId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#boundAdaptationIdentity@596b002a": {
+      "typeSymbol": "novel-creation-tool#boundAdaptationIdentity",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "adaptationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "adaptationId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#adaptationRepairIdentity@596b002a": {
+      "typeSymbol": "novel-creation-tool#adaptationRepairIdentity",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "adaptationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "adaptationId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#narrativeRepairProgress@d374d096": {
+      "typeSymbol": "novel-creation-tool#narrativeRepairProgress",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": [
+          "attempt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#revealRepairIdentity@7409eab6": {
+      "typeSymbol": "novel-creation-tool#revealRepairIdentity",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "importSessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "revealId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId",
+          "importSessionId",
+          "sourceHash",
+          "revealId"
         ],
         "additionalProperties": false
       }

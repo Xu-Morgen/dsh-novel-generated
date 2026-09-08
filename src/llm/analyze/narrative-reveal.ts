@@ -6,6 +6,7 @@ import {
   type NarrativeRevealOutput,
 } from '../../core/schema/narrative-reveal.js';
 import { parseJsonObject } from '../parse/shared.js';
+import { generateWithNarrativeRepair, revealReferenceIssues, type RepairOptions } from './narrative-repair.js';
 
 export const NARRATIVE_REVEAL_PROMPT_EXAMPLE =
   '{"confidence":"high","entries":[{"id":"secret-ash","fact":"档案中的事实需要通过调查逐步验证","kind":"secret","holders":["archivist"],"revealPlan":{"revealTo":["mira"],"revealAt":"act-1-beat-1"},"status":"hidden","evidenceParagraphIds":["paragraph-0001"]}],"states":[{"characterId":"archivist","knows":["secret-ash"]},{"characterId":"mira","knows":[]}],"rationale":"让主角在第一幕保持未知，通过 B5 调查锚点安排逐步揭示"}';
@@ -62,8 +63,14 @@ export async function planNarrativeReveal(
   rawInput: NarrativeRevealInput,
   settings: GenerationSettings,
   signal?: AbortSignal,
+  repair?: RepairOptions,
 ): Promise<NarrativeRevealOutput> {
   const input = narrativeRevealInputSchema.parse(rawInput);
+  if (repair) return generateWithNarrativeRepair({ backend, settings: resolveGenerationSettings(settings), signal, stage: 'reveal', onRepair: repair.onRepair,
+    referenceContext: JSON.stringify({ characters: input.characterIds, anchors: input.b5Anchors }),
+    prompt: buildNarrativeRevealPrompt(input), schema: narrativeRevealOutputSchema,
+    references: value => revealReferenceIssues(value, input.characterIds, input.b5Anchors.map(a => a.id), input.evidence.map(e => e.paragraphId)),
+    validate: value => assertNarrativeRevealSafety(input, value) });
   const candidate = await collectCandidate(backend, {
     prompt: buildNarrativeRevealPrompt(input),
     settings: resolveGenerationSettings(settings),
@@ -76,13 +83,20 @@ export async function planNarrativeReveal(
 
 /** Dedicated C3 planner: facts may be secret, but their visibility is explicit. */
 export function buildNarrativeRevealPrompt(input: NarrativeRevealInput): string {
+  const example = narrativeRevealOutputSchema.parse(JSON.parse(NARRATIVE_REVEAL_PROMPT_EXAMPLE));
+  const target = input.narrativeIntent.protagonistId ?? input.narrativeIntent.protagonistCandidateId ?? input.characterIds[0];
+  example.entries[0].holders = [];
+  example.entries[0].revealPlan = { revealTo: target ? [target] : [], revealAt: input.b5Anchors[0].id };
+  example.entries[0].evidenceParagraphIds = input.evidence.map(item => item.paragraphId);
+  example.states = input.characterIds.map(characterId => ({ characterId, knows: [] }));
   return [
     '你是幕后素材的 C3 揭示候选规划器，只生成待审阅的知情候选，不写入作品。',
     '输入已通过 I145 生成并确认了 POV B5；每个 revealAt 必须精确引用给定 B5 beat anchor。',
     '只输出 confidence、entries、states、rationale；entries 只能是 secret、backstory、foreshadow、plotpoint，status 必须为 hidden。',
     'holders 表示故事起点已知者，states.knows 必须与 holders 双向一致；revealTo 不得包含 holder，主角起点不得知道未列入 initialKnown 的新事实。',
     '不得输出 B3/B5/C4/C5 写入命令、正文、未来年表、任意未知 B5 id、version 或自动确认；不要把 presentation note/author instruction 当作已公开正史。',
-    NARRATIVE_REVEAL_PROMPT_EXAMPLE,
+    JSON.stringify(example),
+    'revealAt 只复制 B5 anchors 中的 id 字段，禁止将 actId 与 beatId 拼接；holders/revealTo/states.characterId 只复制允许的角色 ID。',
     `来源角色：${input.sourceRole}`,
     `POV 意图：${JSON.stringify(input.narrativeIntent)}`,
     `I145 B5 candidate：${input.b5CandidateId}`,

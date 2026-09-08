@@ -31,6 +31,11 @@ export interface NarrativeImportPlanOwners extends LayerOwners {
   confirmation: NovelConfirmationService;
 }
 
+/** I203 preserves the failing owner so the UI can invalidate the correct generation step. */
+export class NarrativePlanPreflightError extends Error {
+  constructor(readonly stages: readonly string[]) { super('Narrative import plan preflight failed'); }
+}
+
 export interface NarrativeImportPlanCoordinator {
   propose(input: NarrativeImportPlanInput): Promise<NarrativeImportPlan>;
   read(input: NarrativeImportPlanIdentity): Promise<NarrativeImportPlan>;
@@ -165,7 +170,7 @@ export function createNarrativeImportPlanCoordinator(
   const preflight = async (plan: NarrativeImportPlan): Promise<void> => {
     const existing = await applier.existingCharacters(plan.projectId);
     const failed = await applier.preflightAccepted(plan.projectId, acceptedLayers(plan), existing);
-    if (failed.size > 0) throw new Error(`Narrative import plan preflight failed: ${[...failed.entries()].map(([stage, message]) => `${stage}: ${message}`).join('; ')}`);
+    if (failed.size > 0) throw new NarrativePlanPreflightError([...failed.keys()]);
     const entryIds = new Set<string>();
     for (const entry of plan.package.knowledge.entries) {
       if (entryIds.has(entry.id)) throw new Error(`Duplicate C3 candidate: ${entry.id}`);

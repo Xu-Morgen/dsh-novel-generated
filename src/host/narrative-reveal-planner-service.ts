@@ -14,6 +14,8 @@ import {
 import { planNarrativeReveal } from '../llm/analyze/narrative-reveal.js';
 
 interface RevealJob {
+  readonly repair: boolean;
+  repairAttempt: number;
   readonly input: NarrativeRevealInput;
   readonly controller: AbortController;
   readonly revealId: string;
@@ -27,7 +29,9 @@ interface RevealJob {
  * KnowledgeRepository and ConfirmationGate remain unreachable until I148.
  */
 export interface NarrativeRevealPlanner {
-  begin(input: NarrativeRevealInput, settings: GenerationSettings): NarrativeRevealIdentity;
+  begin(input: NarrativeRevealInput, settings: GenerationSettings, repair?: boolean): NarrativeRevealIdentity;
+  /** I203 read-only repair counter under the same strict identity guard. */
+  repairAttempt(input: NarrativeRevealIdentity): number;
   status(input: NarrativeRevealIdentity): ReturnType<typeof narrativeRevealStatusResultSchema.parse>;
   cancel(input: NarrativeRevealIdentity): Promise<ReturnType<typeof narrativeRevealStatusResultSchema.parse>>;
   result(input: NarrativeRevealIdentity): NarrativeRevealResult;
@@ -59,7 +63,7 @@ export function createNarrativeRevealPlanner(
   const run = async (job: RevealJob, settings: GenerationSettings): Promise<void> => {
     job.status = 'running';
     try {
-      const output = await planNarrativeReveal(backend, job.input, settings, job.controller.signal);
+      const output = await planNarrativeReveal(backend, job.input, settings, job.controller.signal, job.repair ? { onRepair: attempt => { job.repairAttempt = attempt; } } : undefined);
       job.candidate = narrativeRevealCandidateSchema.parse({
         candidateId: `narrative-reveal-candidate-${job.revealId.split('-').at(-1) ?? '1'}`,
         projectId: job.input.projectId,
@@ -79,16 +83,17 @@ export function createNarrativeRevealPlanner(
     }
   };
   const service: NarrativeRevealPlanner = {
-    begin(rawInput, settings) {
+    begin(rawInput, settings, repair = false) {
       ensureActive();
       const input = narrativeRevealInputSchema.parse(rawInput);
       const revealId = `narrative-reveal-${nextId++}`;
-      const job: RevealJob = { input, revealId, controller: new AbortController(), status: 'queued' };
+      const job: RevealJob = { input, revealId, repair, repairAttempt: 0, controller: new AbortController(), status: 'queued' };
       jobs.set(revealId, job);
       void run(job, settings);
       return identityOf(job);
     },
     status(rawInput) { ensureActive(); return statusOf(jobFor(rawInput)); },
+    repairAttempt(rawInput) { ensureActive(); return jobFor(rawInput).repairAttempt; },
     async cancel(rawInput) {
       ensureActive();
       const job = jobFor(rawInput);

@@ -13,6 +13,8 @@ import {
 import { classifyNarrativeAdaptation } from '../llm/analyze/narrative-adaptation.js';
 
 interface AdaptationJob {
+  readonly characters?: readonly { id: string; name: string }[];
+  repairAttempt: number;
   readonly input: NarrativeAdaptationInput;
   readonly controller: AbortController;
   readonly adaptationId: string;
@@ -27,7 +29,9 @@ interface AdaptationJob {
  * reachable from this service. I148 owns any later plan/application seam.
  */
 export interface NarrativeAdaptationService {
-  begin(input: NarrativeAdaptationInput, settings: GenerationSettings): { projectId: string; importSessionId: string; sourceHash: string; adaptationId: string };
+  begin(input: NarrativeAdaptationInput, settings: GenerationSettings, characters?: readonly { id: string; name: string }[]): { projectId: string; importSessionId: string; sourceHash: string; adaptationId: string };
+  /** I203 read-only repair counter; does not change the old status contract. */
+  repairAttempt(input: ReturnType<typeof narrativeAdaptationIdentitySchema.parse>): number;
   status(input: { projectId: string; importSessionId: string; sourceHash: string; adaptationId: string }): ReturnType<typeof narrativeAdaptationStatusResultSchema.parse>;
   cancel(input: { projectId: string; importSessionId: string; sourceHash: string; adaptationId: string }): Promise<ReturnType<typeof narrativeAdaptationStatusResultSchema.parse>>;
   result(input: { projectId: string; importSessionId: string; sourceHash: string; adaptationId: string }): NarrativeAdaptationResult;
@@ -59,7 +63,7 @@ export function createNarrativeAdaptationService(
   const run = async (job: AdaptationJob, settings: GenerationSettings): Promise<void> => {
     job.status = 'running';
     try {
-      const output = await classifyNarrativeAdaptation(backend, job.input, settings, job.controller.signal);
+      const output = await classifyNarrativeAdaptation(backend, job.input, settings, job.controller.signal, job.characters ? { characters: job.characters, onRepair: attempt => { job.repairAttempt = attempt; } } : undefined);
       job.candidate = narrativeAdaptationCandidateSchema.parse({
         candidateId: `narrative-candidate-${job.adaptationId.split('-').at(-1) ?? '1'}`,
         projectId: job.input.projectId,
@@ -78,16 +82,17 @@ export function createNarrativeAdaptationService(
     }
   };
   const service: NarrativeAdaptationService = {
-    begin(rawInput, settings) {
+    begin(rawInput, settings, characters) {
       ensureActive();
       const input = narrativeAdaptationInputSchema.parse(rawInput);
       const adaptationId = `narrative-adaptation-${nextId++}`;
-      const job: AdaptationJob = { input, adaptationId, controller: new AbortController(), status: 'queued' };
+      const job: AdaptationJob = { input, adaptationId, characters: characters ? structuredClone(characters) : undefined, repairAttempt: 0, controller: new AbortController(), status: 'queued' };
       jobs.set(adaptationId, job);
       void run(job, settings);
       return identityOf(job);
     },
     status(rawInput) { ensureActive(); return statusOf(jobFor(rawInput)); },
+    repairAttempt(rawInput) { ensureActive(); return jobFor(rawInput).repairAttempt; },
     async cancel(rawInput) {
       ensureActive();
       const job = jobFor(rawInput);

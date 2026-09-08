@@ -28,7 +28,7 @@ const rendererSources = [
   'src/desktop/renderer/shell.ts',
 ].map(read).join('\n');
 
-if (lock.descriptorIds.length !== 229 || migrationIds.some((id) => !lock.descriptorIds.includes(id))) {
+if (lock.descriptorIds.length !== 232 || migrationIds.some((id) => !lock.descriptorIds.includes(id))) {
   throw new Error('I182 canonical desktop lock is missing the strict migration descriptors');
 }
 for (const required of ['DesktopMigrationService', 'ConfirmationGate', 'copyPlanToBackup', 'backupManifestHash', 'sourceFingerprint', 'createDesktopMigrationCommandRegistry', 'legacyProjectsRoot']) {

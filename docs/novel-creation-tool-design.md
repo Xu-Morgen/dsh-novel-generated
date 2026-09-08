@@ -1458,3 +1458,11 @@ Main 注册并统一回收主窗口与独立 AI 过程 BrowserWindow。观察窗
 在上述有界窗口投影之外，Main 将每次脱敏后的 LlmBackend 增量与完整正文写入 userData/cache/llm-traces 的 stream.txt / result.txt。传输结束附加可识别输出的 JSON/schema 诊断（路径、错误码、预期类型，无模型值或原始异常）；该诊断不替代业务语义校验。日志不含 prompt、endpoint 或密钥，不进入作品/导出包；无静默截尾，记录失败提示且不阻断模型；全部记录生命周期归 LlmMonitor/DesktopLifecycle。用户可在关闭应用后清理，模型正文会明文保留用于本机调试。
 
 §14.15 的 foundation → adaptation → reveal 仍为三步独立调用。Renderer 仅暂存任务身份及输入指纹，重试前读 Host 状态，复用已成功步骤；失败/取消由作者显式重试该步骤，来源/意图/证据/上游任务变化使下游身份失效，取消隔离迟到响应。无跨重启缓存候选；最终仍经 I11。POV prompt 首轮输出简洁核心节拍并让 detailBeats 为空，详细场景走后续按范围细纲流程；canonical schema 及旧样本不变。
+
+#### 14.36.2 I203 共享引用与有界模型修正（用户授权）
+
+Main 的 additive beginBound 以 onboardingSessionId 读取成功 foundation，复验作品/sourceHash，冻结 B3 id/name 并传给大纲模型。示例也使用当前角色、证据和 B5 anchor ID。大纲/揭示严格解析后立即校验合法引用，再执行既有 POV、证据与 holders/knows 校验，全部通过才标记 succeeded。
+
+每阶段最多两次额外模型修正，repairProgress additive 方法暴露 0–2 计数，取消中止后续调用。引用错误仅允许 replacements 中的精确路径与对应合法字符串值；程序对候选副本应用后重新校验，禁止额外字段、重复路径、越权剧情修改、原型路径及无效值。无法解析或其他语义校验错误仅重生成本阶段。修正耗尽以固定安全错误显示；模型输出/补丁依 I202 脱敏留存，公开错误不带模型原值。
+
+I148 preflight 保留类型化失败层。大纲错误只清理大纲及揭示身份，基础资料错误清理全链身份，重试由作者发起，不能再次复用同一个合并失败包。公开旧方法/参数/结果、业务 schema、I11 与零提前写入不变；仅新增 beginBound 和两个 repairProgress，未引入跨重启候选恢复。

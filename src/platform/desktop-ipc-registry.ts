@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ruleStyleRegenerationDescriptors } from '../app/rule-style-regeneration-contract.js';
+import { narrativeRepairDescriptors } from '../app/narrative-repair-contract.js';
 
 import desktopContract from '../../contracts/desktop/ipc-methods.json' with { type: 'json' };
 
@@ -93,9 +94,10 @@ function buildCanonicalDescriptors(): readonly IpcMethodDescriptor[] {
 }
 
 const baselineDescriptors = buildCanonicalDescriptors();
+const additiveDescriptors = [...ruleStyleRegenerationDescriptors, ...narrativeRepairDescriptors];
 export const desktopIpcMethodDescriptors = Object.freeze([
-  ...baselineDescriptors.map(descriptor => ruleStyleRegenerationDescriptors.find(additive => additive.id === descriptor.id) ?? descriptor),
-  ...ruleStyleRegenerationDescriptors.filter(additive => !baselineDescriptors.some(descriptor => descriptor.id === additive.id)),
+  ...baselineDescriptors.map(descriptor => additiveDescriptors.find(additive => additive.id === descriptor.id) ?? descriptor),
+  ...additiveDescriptors.filter(additive => !baselineDescriptors.some(descriptor => descriptor.id === additive.id)),
 ]);
 
 /** The sole canonical desktop registry; the legacy Host has no registration path. */

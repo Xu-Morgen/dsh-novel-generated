@@ -228,5 +228,8 @@ export const IPC_METHOD_IDS = [
   "novel-creation-tool/novelMigration/rollback",
   "novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration",
   "novel-creation-tool/novelRuleStyleImportInitialization/regenerate",
-  "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration"
+  "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration",
+  "novel-creation-tool/novelNarrativeAdaptation/beginBound",
+  "novel-creation-tool/novelNarrativeAdaptation/repairProgress",
+  "novel-creation-tool/novelNarrativeReveal/repairProgress"
 ] as const;

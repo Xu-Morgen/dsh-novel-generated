@@ -106,9 +106,9 @@ export type ImportInterpretationAnalysisNamespace = NamespaceOf<typeof importInt
 /** I151 first-import one-shot B1/B4 candidate, Gate, and apply surface. */
 export type RuleStyleImportInitializationNamespace = NamespaceOf<typeof ruleStyleImportInitializationRemoteContribution> & import('../app/rule-style-regeneration-contract.js').RuleStyleRegenerationNamespace;
 /** I145 candidate-only POV adaptation; application remains a later Gate owner. */
-export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution>;
+export type NarrativeAdaptationNamespace = NamespaceOf<typeof narrativeAdaptationRemoteContribution> & import('../app/narrative-repair-contract.js').BoundAdaptationNamespace;
 /** I146 candidate-only C3 reveal planner; application remains a later Gate owner. */
-export type NarrativeRevealNamespace = NamespaceOf<typeof narrativeRevealRemoteContribution>;
+export type NarrativeRevealNamespace = NamespaceOf<typeof narrativeRevealRemoteContribution> & import('../app/narrative-repair-contract.js').RevealRepairNamespace;
 /** I148 one-preview/one-confirmation plan; C5 remains outside this surface. */
 export type NarrativeImportPlanNamespace = NamespaceOf<typeof narrativeImportPlanRemoteContribution>;
 export type BranchNamespace = NamespaceOf<typeof branchRemoteContribution>;

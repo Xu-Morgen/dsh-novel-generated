@@ -7,6 +7,7 @@ import {
 } from '../../core/schema/narrative-adaptation.js';
 import { parseJsonObject } from '../parse/shared.js';
 import { z } from 'zod';
+import { adaptationReferenceIssues, generateWithNarrativeRepair, type RepairOptions } from './narrative-repair.js';
 
 // I200 / §14.15: derive every nested field from its owner, so empty examples
 // cannot leave the model to invent scene cards, foreshadowing or protagonists.
@@ -73,8 +74,21 @@ export async function classifyNarrativeAdaptation(
   rawInput: NarrativeAdaptationInput,
   settings: GenerationSettings,
   signal?: AbortSignal,
+  bound?: { characters: readonly { id: string; name: string }[] } & RepairOptions,
 ): Promise<NarrativeAdaptationOutput> {
   const input = narrativeAdaptationInputSchema.parse(rawInput);
+  if (bound) {
+    const characters = [...bound.characters, ...(input.narrativeIntent.protagonistCandidateId ? [{ id: input.narrativeIntent.protagonistCandidateId, name: '作者确认的待创建主角' }] : [])];
+    const example = narrativeAdaptationOutputSchema.parse(JSON.parse(NARRATIVE_ADAPTATION_PROMPT_EXAMPLE));
+    const protagonist = input.narrativeIntent.protagonistCandidateId ?? input.narrativeIntent.protagonistId ?? characters[0]?.id;
+    example.evidenceParagraphIds = input.evidence.map(item => item.paragraphId);
+    example.outline.acts[0].beats[0].charactersInvolved = protagonist ? [protagonist] : [];
+    if (input.narrativeIntent.protagonistCandidateId) example.protagonistCandidate = { id: input.narrativeIntent.protagonistCandidateId, name: '待命名调查者', premise: '从可见线索展开调查。' };
+    return generateWithNarrativeRepair({ backend, settings: resolveGenerationSettings(settings), signal, stage: 'adaptation', onRepair: bound.onRepair,
+      referenceContext: JSON.stringify(characters),
+      prompt: `${buildNarrativeAdaptationPrompt(input).replace(NARRATIVE_ADAPTATION_PROMPT_EXAMPLE, JSON.stringify(example))}\n允许的角色 ID 与姓名（所有角色引用只能精确选取这些 id，不得重新音译姓名生成 id）：${JSON.stringify(characters)}`,
+      schema: narrativeAdaptationOutputSchema, references: value => adaptationReferenceIssues(value, characters.map(c => c.id)), validate: value => assertNarrativeAdaptationSafety(input, value) });
+  }
   const candidate = await collectCandidate(backend, {
     prompt: buildNarrativeAdaptationPrompt(input),
     settings: resolveGenerationSettings(settings),

@@ -5,9 +5,10 @@ import { narrativeAdaptationOutputSchema } from '../../core/schema/narrative-ada
 import { narrativeRevealOutputSchema } from '../../core/schema/narrative-reveal.js';
 import { onboardingAnalysisOutputSchema } from '../../core/schema/onboarding.js';
 
-type Stage = 'adaptation' | 'foundation' | 'reveal' | 'other';
+type Stage = 'adaptation' | 'foundation' | 'reveal' | 'reference-repair' | 'other';
 /** Only fixed labels are retained; source prompts and provider configuration stay out of logs. */
 export function llmTraceStage(prompt: string): Stage {
+  if (prompt.startsWith('叙事引用受限修正 ')) return 'reference-repair';
   if (prompt.includes('POV 叙事化候选生成器')) return 'adaptation';
   if (prompt.includes('B5 anchors：')) return 'reveal';
   if (prompt.includes('六层') && prompt.includes('evidence')) return 'foundation';
@@ -17,7 +18,7 @@ export function llmTraceStage(prompt: string): Stage {
 /** Schema diagnostics intentionally omit values, Zod messages and arbitrary model-owned keys. */
 export function llmOutputDiagnostic(text: string, stage: Stage): object {
   const schemas = { adaptation: narrativeAdaptationOutputSchema, foundation: onboardingAnalysisOutputSchema, reveal: narrativeRevealOutputSchema };
-  if (stage === 'other') return { validation: 'not-checked' };
+  if (stage === 'other' || stage === 'reference-repair') return { validation: 'not-checked', ...(stage === 'reference-repair' ? { note: 'The domain service checks allowed patch paths and values, then revalidates the merged candidate.' } : {}) };
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { return { validation: 'invalid-json' }; }
   const schema = schemas[stage];

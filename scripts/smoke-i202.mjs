@@ -46,8 +46,8 @@ try {
   await app.waitFor('!!document.querySelector("[data-novel-source-plan-error]") && !document.querySelector("[data-novel-source-plan-cancel]")', 'reveal failure');
   assert.equal(provider.calls.filter(call => call.kind === 'foundation').length, 1);
   assert.equal(provider.calls.filter(call => call.kind === 'adaptation').length, 1);
-  assert.equal(provider.calls.filter(call => call.kind === 'invalid-adaptation').length, 1);
-  assert.equal(provider.calls.filter(call => call.kind === 'invalid-reveal').length, 1);
+  assert.equal(provider.calls.filter(call => call.kind === 'invalid-adaptation').length, 3);
+  assert.equal(provider.calls.filter(call => call.kind === 'invalid-reveal').length, 3);
   invalidReveal = false;
   await app.click('[data-novel-source-plan-generate]');
   await app.waitFor('!!document.querySelector("[data-novel-source-plan=pending]")', 'single reveal retry succeeds');
@@ -60,6 +60,6 @@ try {
   assert.ok(traces.every(text => !text.includes('test-only-not-a-real-key')));
   assert.equal((await invoke('novelWorkspace/characterList', id)).length, 0);
   assert.equal(provider.calls.filter(call => call.kind === 'reveal').length, 1);
-  await writeFile(join(app.evidence, 'validation.json'), JSON.stringify({ iteration: 'I202', foundationCalls: 1, adaptationCalls: 2, revealCalls: 2, fullTrace: true, strictFailure: true, stoppedWaiting: true, noRevealOnFailure: true, zeroStoryWrites: true, manualRetry: true, privateErrorEcho: false }, null, 2));
+  await writeFile(join(app.evidence, 'validation.json'), JSON.stringify({ iteration: 'I202', foundationCalls: 1, adaptationCalls: 4, revealCalls: 4, i203BoundedRepair: true, fullTrace: true, strictFailure: true, stoppedWaiting: true, noRevealOnFailure: true, zeroStoryWrites: true, manualRetry: true, privateErrorEcho: false }, null, 2));
   process.stdout.write('I202 Electron: foundation reused, adaptation/reveal independently retried, full diagnostic traces, zero story writes\n');
 } finally { await app.close(); await provider.close(); }

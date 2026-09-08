@@ -1,6 +1,10 @@
 import { ensureImportedProgress } from './import-progress.js';
 import { IpcHandlerRejection, ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
 import { NarrativeAdaptationFormatError } from '../../llm/analyze/narrative-adaptation.js';
+import { NarrativeRepairError } from '../../llm/analyze/narrative-repair.js';
+import { boundAdaptationSchema, type BoundAdaptationNamespace, type RevealRepairNamespace } from '../../app/narrative-repair-contract.js';
+import { narrativeAdaptationIdentitySchema } from '../../core/schema/narrative-adaptation.js';
+import { narrativeRevealIdentitySchema } from '../../core/schema/narrative-reveal.js';
 import { ruleStyleRegenerationDecisionSchema, ruleStyleImportIdentitySchema } from '../../core/schema/rule-style-import-initialization.js';
 import type { RuleStyleRegenerationNamespace } from '../../app/rule-style-regeneration-contract.js';
 import { createHash } from 'node:crypto';
@@ -17,7 +21,7 @@ import { createImportExportService } from '../../host/import-export-service.js';
 import { createImportInterpretationAnalysisService, type NovelImportInterpretationAnalysisService } from '../../host/import-interpretation-analysis-service.js';
 import { createImportInterpretationSessionService, type NovelImportInterpretationSessionService } from '../../host/import-interpretation-session-service.js';
 import { createNarrativeAdaptationService, type NarrativeAdaptationService } from '../../host/narrative-adaptation-service.js';
-import { createNarrativeImportPlanCoordinator, type NarrativeImportPlanCoordinator } from '../../host/narrative-import-plan-coordinator.js';
+import { createNarrativeImportPlanCoordinator, NarrativePlanPreflightError, type NarrativeImportPlanCoordinator } from '../../host/narrative-import-plan-coordinator.js';
 import { createNarrativeRevealPlanner, type NarrativeRevealPlanner } from '../../host/narrative-reveal-planner-service.js';
 import { createRuleStyleImportInitializationService, type RuleStyleImportInitializationService } from '../../host/rule-style-import-initialization-service.js';
 import type { NovelCharacterService } from '../../host/character-service.js';
@@ -262,25 +266,44 @@ export function createDesktopSourceImportHandlers(
     return withProgress(invocation, 'narrativeAdaptation.begin', async () => adaptation.begin(input as Parameters<typeof adaptation.begin>[0], settings === undefined ? await resolveSettings() : settings as GenerationSettings));
   });
   map.set('novel-creation-tool/novelNarrativeAdaptation/status', (input) => adaptation.status(input as Parameters<typeof adaptation.status>[0]));
+  const boundAdaptation: BoundAdaptationNamespace = {
+    async beginBound({ input, onboardingSessionId }) {
+      const foundation = analyzer.result(onboardingSessionId);
+      if (foundation.projectId !== input.projectId || foundation.sourceHash !== input.sourceHash) throw new IpcHandlerRejection('narrative-binding-invalid');
+      return adaptation.begin(input, await resolveSettings(), foundation.layers.characters.candidates.map(({ id, name }) => ({ id, name })));
+    },
+    async repairProgress(input) { return { attempt: adaptation.repairAttempt(input) }; },
+  };
+  const revealRepair: RevealRepairNamespace = { async repairProgress(input) { return { attempt: reveal.repairAttempt(input) }; } };
+  map.set('novel-creation-tool/novelNarrativeAdaptation/beginBound', raw => boundAdaptation.beginBound(boundAdaptationSchema.parse(raw)));
+  map.set('novel-creation-tool/novelNarrativeAdaptation/repairProgress', raw => boundAdaptation.repairProgress(narrativeAdaptationIdentitySchema.parse(raw)));
+  map.set('novel-creation-tool/novelNarrativeReveal/repairProgress', raw => revealRepair.repairProgress(narrativeRevealIdentitySchema.parse(raw)));
   map.set('novel-creation-tool/novelNarrativeAdaptation/cancel', (input) => adaptation.cancel(input as Parameters<typeof adaptation.cancel>[0]));
   map.set('novel-creation-tool/novelNarrativeAdaptation/result', (input) => {
     try { return adaptation.result(input as Parameters<typeof adaptation.result>[0]); }
     catch (cause) {
       // I200: fixed diagnostic only; Zod messages may contain model text or secrets.
       if (cause instanceof NarrativeAdaptationFormatError) throw new IpcHandlerRejection('narrative-output-invalid');
+      if (cause instanceof NarrativeRepairError) throw new IpcHandlerRejection('narrative-adaptation-repair-failed');
       throw cause;
     }
   });
 
   map.set('novel-creation-tool/novelNarrativeReveal/begin', async (input, settings, context) => {
     const invocation = contextOf(context);
-    return withProgress(invocation, 'narrativeReveal.begin', async () => reveal.begin(input as Parameters<typeof reveal.begin>[0], settings === undefined ? await resolveSettings() : settings as GenerationSettings));
+    return withProgress(invocation, 'narrativeReveal.begin', async () => reveal.begin(input as Parameters<typeof reveal.begin>[0], settings === undefined ? await resolveSettings() : settings as GenerationSettings, true));
   });
   map.set('novel-creation-tool/novelNarrativeReveal/status', (input) => reveal.status(input as Parameters<typeof reveal.status>[0]));
   map.set('novel-creation-tool/novelNarrativeReveal/cancel', (input) => reveal.cancel(input as Parameters<typeof reveal.cancel>[0]));
-  map.set('novel-creation-tool/novelNarrativeReveal/result', (input) => reveal.result(input as Parameters<typeof reveal.result>[0]));
+  map.set('novel-creation-tool/novelNarrativeReveal/result', (input) => {
+    try { return reveal.result(input as Parameters<typeof reveal.result>[0]); }
+    catch (cause) { if (cause instanceof NarrativeRepairError) throw new IpcHandlerRejection('narrative-reveal-repair-failed'); throw cause; }
+  });
 
-  map.set('novel-creation-tool/novelNarrativeImportPlan/propose', (input) => plan.propose(input as Parameters<typeof plan.propose>[0]));
+  map.set('novel-creation-tool/novelNarrativeImportPlan/propose', async (input) => {
+    try { return await plan.propose(input as Parameters<typeof plan.propose>[0]); }
+    catch (cause) { if (cause instanceof NarrativePlanPreflightError) throw new IpcHandlerRejection(cause.stages.every(stage => stage === 'outline') ? 'narrative-plan-outline-invalid' : 'narrative-plan-foundation-invalid'); throw cause; }
+  });
   map.set('novel-creation-tool/novelNarrativeImportPlan/read', (input) => plan.read(input as Parameters<typeof plan.read>[0]));
   map.set('novel-creation-tool/novelNarrativeImportPlan/accept', async (input) => { const result = await plan.accept(input as Parameters<typeof plan.accept>[0]); if (result.status === 'applied') await ensureImportedProgress(outline, result.projectId); return result; });
   map.set('novel-creation-tool/novelNarrativeImportPlan/reject', (input) => plan.reject(input as Parameters<typeof plan.reject>[0]));

@@ -1,0 +1,13 @@
+{
+  "immutable": true, "threshold": 1,
+  "dev": ["character-alias", "anchor-alias", "out-of-scope-patch"],
+  "heldOut": ["state-alias", "invalid-replacement", "repair-exhausted"],
+  "cases": [
+    {"id":"character-alias","stage":"adaptation","mutation":"alias","accepted":true},
+    {"id":"anchor-alias","stage":"reveal","mutation":"anchor","accepted":true},
+    {"id":"out-of-scope-patch","stage":"adaptation","mutation":"narrative-patch","accepted":false},
+    {"id":"state-alias","stage":"reveal","mutation":"state","accepted":true},
+    {"id":"invalid-replacement","stage":"adaptation","mutation":"unknown-value","accepted":false},
+    {"id":"repair-exhausted","stage":"adaptation","mutation":"unchanged","accepted":false}
+  ]
+}
