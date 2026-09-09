@@ -35,6 +35,8 @@ export class LlmMonitor {
         // Never publish raw input if resolving the credential fails.
         const promptFilter = new SecretFilter(secret);
         const safePrompt = promptFilter.push(request.prompt) + promptFilter.finish();
+        // I211 / §14.36.1: archive the full redacted input before provider I/O.
+        trace?.input(safePrompt);
         row.prompt = safePrompt.slice(0, LLM_MONITOR_PROMPT_LIMIT);
         row.promptTruncated = safePrompt.length > LLM_MONITOR_PROMPT_LIMIT;
         monitor.emit(false);

@@ -9,7 +9,7 @@ function Monitor(): React.ReactElement {
   React.useEffect(() => window.novelMonitor.subscribe(setSnapshot), []);
   return React.createElement('main', null, React.createElement('h1', null, 'AI 过程与错误'),
     React.createElement('p', null, '关闭本窗口不会中断生成。传输完成后，主窗口可能继续校验或处理结果。'),
-    React.createElement('p', null, '正文与推理各仅显示最后 16000 字符，复制这里可能得到不完整的 JSON。完整脱敏记录见应用数据目录 cache/llm-traces 下的 txt 文件。'),
+    React.createElement('p', null, '正文与推理各仅显示最后 16000 字符，复制这里可能得到不完整的 JSON。完整脱敏记录见应用数据目录 cache/llm-traces：input.txt 为输入提示词，stream.txt 为流式记录，result.txt 为返回文本；同次调用文件名前缀相同。'),
     [...snapshot.requests].reverse().map(row => React.createElement('article', { key: row.id, 'data-request-status': row.status },
       React.createElement('h2', null, `请求 ${row.id} · ${labels[row.status]}`),
       row.error ? React.createElement('p', { role: 'alert' }, row.error) : null,

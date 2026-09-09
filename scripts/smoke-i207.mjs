@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { launchUiElectron } from './ui-electron-session.mjs';
 import { uiInvoke } from './ui-test-provider.mjs';
@@ -8,7 +8,8 @@ import { startSourceTestProvider, sourceText } from './ui-source-test-provider.m
 const prompts = [];
 const provider = await startSourceTestProvider(prompt => { prompts.push(prompt); });
 const packaged = process.argv.includes('--packaged');
-const app = await launchUiElectron(packaged ? 'i207-packaged' : 'i207', packaged ? resolve('artifacts/desktop/win-unpacked/Novel Creation Tool.exe') : undefined);
+const archive = process.argv.includes('--input-archive');
+const app = await launchUiElectron(archive ? 'i211' : packaged ? 'i207-packaged' : 'i207', packaged ? resolve('artifacts/desktop/win-unpacked/Novel Creation Tool.exe') : undefined);
 let socket;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const until = async (fn, label) => { for(let i=0;i<150;i++){ if(await fn()) return; await delay(100); } throw new Error(label); };
@@ -58,6 +59,18 @@ try {
   assert.equal(await evaluate('document.querySelectorAll("article").length===document.querySelectorAll("[data-request-input]").length'), true);
   assert.equal(await evaluate('document.body.textContent.includes("test-only-not-a-real-key")'), false);
   assert.equal(await evaluate('!!document.querySelector("[role=alert]")'), true);
-  await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:'I207',independentWindow:true,sourceAnalysis:true,backendFailure:true,restrictedPreload:true,secretEcho:false,perRequestInput:true,defaultCollapsed:true,expandCollapse:true,failedInputRetained:true},null,2));
+  if (archive) {
+    const directory = join(app.profile, 'cache', 'llm-traces');
+    const files = await readdir(directory);
+    const inputFiles = files.filter(file => file.endsWith('.input.txt'));
+    const inputs = await Promise.all(inputFiles.map(file => readFile(join(directory, file), 'utf8')));
+    assert.deepEqual(inputs.sort(), prompts.map(prompt => prompt.split('test-only-not-a-real-key').join('[已隐藏密钥]')).sort());
+    for (const file of inputFiles) {
+      assert.ok(files.includes(file.replace('.input.txt', '.stream.txt')));
+      assert.ok(files.includes(file.replace('.input.txt', '.result.txt')));
+    }
+    assert.ok(inputs.length >= 2);
+  }
+  await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:archive?'I211':'I207',inputArchive:archive,independentWindow:true,sourceAnalysis:true,backendFailure:true,restrictedPreload:true,secretEcho:false,perRequestInput:true,defaultCollapsed:true,expandCollapse:true,failedInputRetained:true},null,2));
   process.stdout.write('I207 independent Electron monitor: source analysis, completion, HTTP failure and isolation passed\n');
 } finally { socket?.close(); await app.close(); await provider.close(); }

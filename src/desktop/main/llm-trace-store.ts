@@ -6,7 +6,7 @@ import { narrativeRevealOutputSchema } from '../../core/schema/narrative-reveal.
 import { onboardingAnalysisOutputSchema } from '../../core/schema/onboarding.js';
 
 type Stage = 'adaptation' | 'foundation' | 'reveal' | 'reference-repair' | 'other';
-/** Only fixed labels are retained; source prompts and provider configuration stay out of logs. */
+/** Stage metadata retains only fixed labels, never prompt text or provider configuration. */
 export function llmTraceStage(prompt: string): Stage {
   if (prompt.startsWith('叙事引用受限修正 ')) return 'reference-repair';
   if (prompt.includes('POV 叙事化候选生成器')) return 'adaptation';
@@ -28,8 +28,10 @@ export function llmOutputDiagnostic(text: string, stage: Stage): object {
   return { validation: 'invalid-schema', issues: result.error.issues.map(issue => ({ code: issue.code, path: issue.path.map(part => typeof part === 'number' ? part : knownKeys.has(String(part)) ? part : '[field]'), ...(issue.code === 'invalid_type' ? { expected: issue.expected } : {}) })) };
 }
 
-/** A trace accepts only sanitized deltas and fixed status/error labels. */
+/** A trace accepts only sanitized input/deltas and fixed status/error labels. */
 export interface LlmTrace {
+  /** Full sanitized input, once per call; never pass raw provider credentials. */
+  input(prompt: string): void;
   write(text: string, reasoning: string, done?: boolean): void;
   finish(status: string, error: string): void;
 }
@@ -42,7 +44,7 @@ export class LlmTraceStore {
 
   begin(requestId: number, stage: Stage, onFailure: () => void): LlmTrace {
     const stem = join(this.directory, `${new Date().toISOString().replace(/[:.]/g, '-')}-${requestId}-${randomUUID()}`);
-    let failed = this.disposed, ended = false, sequence = 0;
+    let failed = this.disposed, ended = false, inputWritten = false, sequence = 0;
     const safeWrite = (operation: () => void): void => { if (failed) return; try { operation(); } catch { failed = true; onFailure(); } };
     safeWrite(() => {
       mkdirSync(this.directory, { recursive: true });
@@ -50,6 +52,11 @@ export class LlmTraceStore {
       writeFileSync(`${stem}.result.txt`, '', 'utf8');
     });
     const trace: LlmTrace = {
+      input: (prompt: string) => {
+        if (ended || inputWritten) return;
+        inputWritten = true;
+        safeWrite(() => writeFileSync(`${stem}.input.txt`, prompt, 'utf8'));
+      },
       write: (text, reasoning, done) => {
         if (ended) return;
         safeWrite(() => {

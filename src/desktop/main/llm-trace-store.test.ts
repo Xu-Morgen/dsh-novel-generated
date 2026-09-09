@@ -11,10 +11,12 @@ it('records full outputs beyond the monitor tail, streams, safe errors and per-c
   try {
     const backend = monitor.wrap({ async *stream() { yield { text: 'BEGIN' + 'x'.repeat(20000) + 'sk-fi', reasoning: 'sk-fi' }; yield { text: 'xture END', reasoning: 'xture' }; } }, async () => 'sk-fixture');
     await Promise.all([1, 2].map(async () => { for await (const chunk of backend.stream(request)) void chunk; }));
-    const files = await readdir(root); expect(files).toHaveLength(4);
+    const files = await readdir(root); expect(files).toHaveLength(6);
     for (const file of files) {
       const text = await readFile(join(root, file), 'utf8');
-      expect(text).not.toContain('sk-fi'); expect(text).not.toContain('private prompt');
+      expect(text).not.toContain('sk-fi');
+      if (file.endsWith('.input.txt')) { expect(text).toBe(request.prompt); continue; }
+      expect(text).not.toContain('private prompt');
       if (file.endsWith('.result.txt')) expect(text).toBe('BEGIN' + 'x'.repeat(20000) + '[已隐藏密钥] END');
       else { expect(text).toContain('"status":"complete"'); expect(text).toContain('"reasoning":"[已隐藏密钥]"'); }
     }

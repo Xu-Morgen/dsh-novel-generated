@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 55 / I211：输入提示词 TXT 存档
+
+- **目标**：每次调用自动保存完整脱敏输入，与输出记录配对。
+- **明确不做**：不改模型/公开 IPC，不补历史，不写作品数据。
+- **交付物 / owner**：Main monitor → trace store，.input.txt；DoD：`docs/ui/i211-dod.md`。
+- **验收**：完整性、脱敏、失败/取消、存储故障、真实 Electron/provider 与磁盘匹配。
+- **验证**：`pnpm run verify:i211` / `pnpm run verify:stage-55`；已完成，247 文件 / 1240 测试、实际 Electron 存盘配对与累计样本回归全绿。下一可用 I212。
+
 ## Stage 54 / I210：范围细纲已有卡上下文
 
 - **目标**：LLM 生成时携带所选范围已保存场景卡，避免仅提供节拍描述。

@@ -1457,7 +1457,9 @@ Main 注册并统一回收主窗口与独立 AI 过程 BrowserWindow。观察窗
 
 #### 14.36.1 I202 完整调用记录与叙事步骤恢复（用户授权）
 
-在上述有界窗口投影之外，Main 将每次脱敏后的 LlmBackend 增量与完整正文写入 userData/cache/llm-traces 的 stream.txt / result.txt。传输结束附加可识别输出的 JSON/schema 诊断（路径、错误码、预期类型，无模型值或原始异常）；该诊断不替代业务语义校验。日志不含 prompt、endpoint 或密钥，不进入作品/导出包；无静默截尾，记录失败提示且不阻断模型；全部记录生命周期归 LlmMonitor/DesktopLifecycle。用户可在关闭应用后清理，模型正文会明文保留用于本机调试。
+在上述有界窗口投影之外，Main 将每次脱敏后的 LlmBackend 增量与完整正文写入 userData/cache/llm-traces 的 stream.txt / result.txt。传输结束附加可识别输出的 JSON/schema 诊断（路径、错误码、预期类型，无模型值或原始异常）；该诊断不替代业务语义校验。stream/result 不含输入提示词或 provider 配置，密钥统一脱敏，不进入作品/导出包；无静默截尾，记录失败提示且不阻断模型；全部记录生命周期归 LlmMonitor/DesktopLifecycle。用户可在关闭应用后清理，模型正文会明文保留用于本机调试。
+
+I211 补充：Main 在凭据解析成功并对完整输入统一脱敏后、provider 调用前，自动写入 `cache/llm-traces/<同次调用前缀>.input.txt`（UTF-8），与 `.stream.txt` / `.result.txt` 配对。输入不受 monitor 预览限长影响；成功、失败与取消均保留。凭据解析失败不保存原始输入；记录写盘失败沿用固定提示并与生成隔离。不追溯历史内存调用，不改变 IPC、模型输入或作品持久化。
 
 §14.15 的 foundation → adaptation → reveal 仍为三步独立调用。Renderer 仅暂存任务身份及输入指纹，重试前读 Host 状态，复用已成功步骤；失败/取消由作者显式重试该步骤，来源/意图/证据/上游任务变化使下游身份失效，取消隔离迟到响应。无跨重启缓存候选；最终仍经 I11。POV prompt 首轮输出简洁核心节拍并让 detailBeats 为空，详细场景走后续按范围细纲流程；canonical schema 及旧样本不变。
 
