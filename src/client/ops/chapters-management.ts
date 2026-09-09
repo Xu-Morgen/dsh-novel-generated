@@ -61,14 +61,22 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
   const createChapter = (): void => {
     const text = port.textMutation;
     const draft = snapshot.chapters.management.chapterDraft;
-    if (!text || projectId === undefined || !beginOp('chapters:management:create-chapter')) return;
+    const management = snapshot.chapters.management;
+    if (!text || projectId === undefined || management.status === 'loading') return;
+    // I204 / §14.14.2: validate the author's form before crossing strict IPC.
+    // Never replace an existing fingerprint to silently retry a stale write.
+    if (draft.title.trim() === '') { patch({ status: 'error', message: '请填写章节标题。' }); return; }
+    if (draft.title.trim().length > 200) { patch({ status: 'error', message: '章节标题不能超过 200 字。' }); return; }
+    if (draft.pov.trim() === '') { patch({ status: 'error', message: '请选择视角角色；如果列表为空，请先创建角色。' }); return; }
+    if (management.projectFingerprint === undefined) { patch({ status: 'error', message: '请先点击“刷新管理状态”，读取完成后再新建章节。' }); return; }
+    if (!beginOp('chapters:management:create-chapter')) return;
     patch({ status: 'loading', message: '' });
     const id = draft.id || draftEntityId('chapter', `${draft.index}:${draft.title}`, snapshot.chapters.list.map((chapter) => chapter.id));
-    void unwrap(text.chapterCreate(projectId, { ...draft, id, expectedFingerprint: snapshot.chapters.management.projectFingerprint ?? '' })).then((result) => {
+    void unwrap(text.chapterCreate(projectId, { ...draft, id, expectedFingerprint: management.projectFingerprint })).then((result) => {
       endOp('chapters:management:create-chapter');
       if (!isActive()) return;
       const value = result as { fingerprint: string };
-      patch({ status: 'ready', projectFingerprint: value.fingerprint, chapterDraft: { ...draft, id: '', title: '' } });
+      patch({ status: 'ready', message: '章节已创建，请在左侧选中该章，再切到“候选”按场景卡写作。', projectFingerprint: value.fingerprint, chapterDraft: { ...draft, id: '', index: draft.index + 1, title: '' } });
       reloadTree('chapters:management:reload:create-chapter');
     }, (cause: Error) => { endOp('chapters:management:create-chapter'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };

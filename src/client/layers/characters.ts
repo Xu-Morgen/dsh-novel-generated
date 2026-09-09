@@ -37,7 +37,7 @@ export interface CharacterEditOps {
   save(): void;
 }
 
-/** Host-validated create/update copy of a character form model. */
+/** Host-validated creation input, including the new character's stable ID. */
 export function characterCreateInput(draft: CharacterShape): Parameters<WorkspaceNamespace['characterCreate']>[1] {
   return {
     id: draft.id,
@@ -60,6 +60,12 @@ export function characterCreateInput(draft: CharacterShape): Parameters<Workspac
     relationships: draft.relationships ?? [],
     knowledgeIds: draft.knowledgeIds ?? [],
   };
+}
+
+/** I204 / §14.34: updates preserve identity; id is a separate IPC argument. */
+export function characterUpdateInput(draft: CharacterShape): Parameters<WorkspaceNamespace['characterUpdate']>[2] {
+  const { id: _id, version: _version, ...patch } = characterCreateInput(draft);
+  return patch;
 }
 
 /** B3 character list and editor. Client state is persisted through the supplied ops only. */

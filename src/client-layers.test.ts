@@ -124,7 +124,10 @@ describe('I47 B3/B2 真表单 (R10-4)', () => {
 
     expect(updateCalls).toHaveLength(1);
     expect(updateCalls[0].id).toBe('mara');
-    expect(updateCalls[0].patch).toMatchObject({ id: 'mara', name: 'Mara II' });
+    expect(updateCalls[0].patch).toMatchObject({ name: 'Mara II' });
+    // I204: the immutable ID is the separate argument, forbidden in the patch.
+    expect(updateCalls[0].patch).not.toHaveProperty('id');
+    expect(updateCalls[0].patch).not.toHaveProperty('version');
   });
 
   it('shows the Host error when an illegal character write is rejected', async () => {
