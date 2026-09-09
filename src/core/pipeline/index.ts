@@ -5,6 +5,7 @@ import type { OutlineNavigation } from '../schema/outline-progress.js';
 import { canonEventSchema } from '../schema/canon.js';
 import { sceneSchema, type Scene } from '../schema/text.js';
 import { knowledgeEntrySchema } from '../schema/knowledge.js';
+import { renderTailHistory } from './tail-history.js';
 
 /** Immutable I19 limits for the full prompt, measured in UTF-16 code units. */
 export const i19ContextBudget = Object.freeze({
@@ -13,11 +14,15 @@ export const i19ContextBudget = Object.freeze({
 });
 
 export interface StoryHistorySources {
+  /** I215 explicit chapter append: retain the latest saved ending when bounded. */
+  readonly tailPriority?: boolean;
   readonly recentScenes: readonly Scene[];
   readonly historicalSummaries: readonly string[];
 }
 
 export interface StoryGenerationSources {
+  /** I215 single-card generation omits beat-wide future events; navigation remains an internal identity check. */
+  readonly omitOutline?: boolean;
   readonly context: ContextAssemblyRequest;
   readonly navigation: OutlineNavigation;
   readonly knowledge: FilteredKnowledge;
@@ -59,10 +64,12 @@ export function assembleStoryContext(
   }
   const base = assembler.assemble(sources.context);
   const extra = [
-    renderExtraSection('outline', renderNavigation(sources.navigation), i19ContextBudget.sectionCharacters.outline, false),
+    sources.omitOutline ? undefined : renderExtraSection('outline', renderNavigation(sources.navigation), i19ContextBudget.sectionCharacters.outline, false),
     renderExtraSection('knowledge', renderKnowledge(sources.knowledge), i19ContextBudget.sectionCharacters.knowledge, true),
     renderExtraSection('canon', renderCanon(sources.canon), i19ContextBudget.sectionCharacters.canon, true),
-    renderExtraSection('history', renderHistory(sources.history), i19ContextBudget.sectionCharacters.history, true),
+    sources.history.tailPriority
+      ? renderTailHistory(sources.history, i19ContextBudget.sectionCharacters.history)
+      : renderExtraSection('history', renderHistory(sources.history), i19ContextBudget.sectionCharacters.history, true),
   ].filter((section): section is StoryContextSection => section !== undefined);
   const sections = Object.freeze([...base.sections, ...extra]);
   const prompt = sections.map((section) => section.text).join('\n\n');

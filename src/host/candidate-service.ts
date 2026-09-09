@@ -155,7 +155,7 @@ export function createWritingCandidateService(deps: WritingCandidateServiceDeps)
       case 'scene-card': {
         if (request.sources === undefined) return buildChapterWritingPrompt(request.card, request.navigation);
         if (request.sources.context.macros.pov !== request.card.pov) throw new Error('Scene card POV must match context POV');
-        const context = assembleStoryContext(assembler, request.sources);
+        const context = assembleStoryContext(assembler, { ...request.sources, omitOutline: true });
         return buildSceneCardContextPrompt(context, request.sources.context.sources.characters, request.card, request.navigation);
       }
       case 'rewrite': {

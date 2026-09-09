@@ -10,18 +10,19 @@ export interface WordTargetReport {
 }
 
 /** Build the bounded chapter prompt from the current scene card and navigation. */
-export function buildChapterWritingPrompt(card: DetailBeat, navigation: OutlineNavigation): string {
+export function buildChapterWritingPrompt(card: DetailBeat, navigation: OutlineNavigation, options?: { readonly singleScene: boolean }): string {
   if (!card.title.trim() || !card.summary.trim() || !card.pov.trim()) throw new Error('Scene card title, summary, and POV are required');
   if (!navigation.beatId || !navigation.instruction.trim()) throw new Error('Outline navigation is required');
   return [
     '你是长篇小说章节写作器。只输出完整的小说正文，不要标题、解释、Markdown 或字数报告。',
-    '按照场景卡完成一个自洽场景，必须有自然的开头、发展和收束；不要截断，不要续写提示。',
+    options?.singleScene
+      ? '本次只展开下面这一张目标细纲卡。承接已保存正文的最后状态，以动作、对话、观察和感官细节充分展开本卡要点，不要把正文写成摘要；不引入下一场景或后续剧情，不为凑完整开头而重述前文。'
+      : '按照场景卡完成一个自洽场景，必须有自然的开头、发展和收束；不要截断，不要续写提示。',
     `当前 POV: ${card.pov}`,
     `场景标题: ${card.title}`,
     `场景摘要: ${card.summary}`,
     `场景要点: ${card.points.join('；') || '无'}`,
-    `大纲 Beat: ${navigation.beatId} / ${navigation.title}`,
-    `大纲指令: ${navigation.instruction}`,
+    ...(options?.singleScene ? [] : [`大纲 Beat: ${navigation.beatId} / ${navigation.title}`, `大纲指令: ${navigation.instruction}`]),
     `目标字数: ${card.wordTarget}（软引导，仅用于控制篇幅，不能为了凑数牺牲完整性）`,
   ].join('\n');
 }

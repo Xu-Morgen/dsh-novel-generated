@@ -92,7 +92,7 @@ export interface NovelAgentContext {
 }
 
 export interface NextSceneContextProvider {
-  context(projectId: string): Promise<NovelAgentContext>;
+  context(projectId: string, append?: { readonly chapterId: string; readonly intent: 'continue' | 'scene-card' }): Promise<NovelAgentContext>;
 }
 
 export interface WritingContextTarget {
@@ -172,7 +172,17 @@ export function selectRecentNarrativeScenes(
     .slice(-limit));
 }
 
-/** 从细纲卡中选择当前应写的一张：优先当前 beat 中未完成的，其次最后一张。 */
+/** I215 append context uses the selected chapter's saved scenes and preceding three, never later chapters. */
+export function selectChapterAppendHistory(chapters: readonly Chapter[], chapterId: string): readonly NarrativeSceneEntry[] {
+  const chapter = chapters.find(item => item.id === chapterId);
+  if (chapter === undefined) throw new Error(`Unknown chapter: ${chapterId}`);
+  const ordered = orderNarrativeScenes(chapters).filter(entry => entry.scene.content.trim().length > 0);
+  const previous = ordered.filter(entry => entry.chapterIndex < chapter.index
+    || (entry.chapterIndex === chapter.index && entry.chapterId.localeCompare(chapterId) < 0)).slice(-3);
+  return Object.freeze([...previous, ...ordered.filter(entry => entry.chapterId === chapterId)]);
+}
+
+/** 从细纲卡中选择当前应写的一张：优先当前 beat 的 writing，其次未完成/最后一张。 */
 export function pickCurrentCard(
   cards: readonly { beatId: string; detailBeat: DetailBeat }[],
   navigation: OutlineNavigation,
@@ -246,7 +256,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
   };
 
   /** 装配下一场景的全部生成源（上下文/导航/知情/正史/历史）。 */
-  async function context(projectId: string): Promise<NovelAgentContext> {
+  async function context(projectId: string, append?: { readonly chapterId: string; readonly intent: 'continue' | 'scene-card' }): Promise<NovelAgentContext> {
     const outlineFingerprintBefore = await deps.outline.contentFingerprint(projectId);
     const textFingerprintBefore = deps.textFingerprint === undefined ? undefined : await deps.textFingerprint(projectId);
     const navigation = await deps.outline.navigate(projectId);
@@ -271,7 +281,9 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       detailBeatId: baseline.detailBeatId,
       sourceHash: baseline.sourceHash,
     };
-    const selectedHistory = selectRecentNarrativeScenes(chapters, target);
+    const selectedHistory = append === undefined
+      ? selectRecentNarrativeScenes(chapters, target)
+      : selectChapterAppendHistory(chapters, append.chapterId);
     const recentScenes = selectedHistory.map((entry) => entry.scene);
     const provenanceHistory = selectedHistory.map((entry) => ({
       chapterId: entry.chapterId,
@@ -305,6 +317,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
     const worldviewHits =
       triggerText.length > 0 ? await deps.worldview.matchTriggers(projectId, [triggerText], []) : [];
     const sources: StoryGenerationSources = {
+      ...(append?.intent === 'scene-card' ? { omitOutline: true } : {}),
       context: {
         macros: { user: '作者', pov: card.pov },
         sources: {
@@ -319,7 +332,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       navigation,
       knowledge: knowledgeView,
       canon: canonViews,
-      history: { recentScenes, historicalSummaries: [] },
+      history: { recentScenes, historicalSummaries: [], ...(append === undefined ? {} : { tailPriority: true }) },
     };
     const parserInputs: StoryLifecycleParserInputs = {
       c2: { state },

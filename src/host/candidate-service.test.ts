@@ -76,6 +76,32 @@ describe('I214 scene-card prompt consumer regression (frozen dev / held-out)', (
   });
 });
 
+interface ContinuityCase { id: string; split: string; saved: string; ending: string; future: string; long: boolean }
+const continuityCases: ContinuityCase[] = JSON.parse(await readFile(new URL('../../samples/i215/cases.json', import.meta.url), 'utf8'));
+
+describe('I215 frozen single-card continuity prompts', () => {
+  it.each(continuityCases)('$split / $id omits future beat content and retains the saved ending', async sample => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i215-'));
+    roots.push(projectsRoot);
+    const seen: string[] = [];
+    const { service } = await openProject(projectsRoot, fakeLlm(seen, '当前场景的正文。'));
+    const saved = sample.saved + (sample.long ? '已发生的调查经过。'.repeat(900) : '') + sample.ending;
+    const inputSources = sources();
+    const inputNavigation = { ...navigation, description: sample.future, instruction: sample.future };
+    await service.propose({ id: sample.id, intent: 'scene-card', target: { projectId: 'demo', chapterId: CHAPTER_ID, sceneId: 'new-scene' }, card, navigation: inputNavigation, settings,
+      sources: { ...inputSources, navigation: inputNavigation, history: { tailPriority: true, historicalSummaries: [], recentScenes: [{ id: 'saved', index: 0, content: saved, summary: sample.saved, beats: [], canonEvents: [], notes: '', branches: [] }] } },
+    });
+    expect(seen).toHaveLength(1);
+    const prompt = seen[0];
+    expect(prompt).not.toContain(sample.future);
+    expect(prompt).not.toContain('## Outline');
+    expect(prompt).not.toContain('大纲指令:');
+    for (const detail of [card.id, card.title, card.summary, ...card.points, sample.ending, '本次唯一待写剧情范围', '不重复已完成事件']) expect(prompt).toContain(detail);
+    if (sample.long) { expect(prompt).toContain('[truncated]'); expect(prompt).not.toContain(saved); }
+    else expect(prompt).toContain(saved);
+  });
+});
+
 function sources(): StoryGenerationSources {
   return {
     context: {

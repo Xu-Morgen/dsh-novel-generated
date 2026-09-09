@@ -1,0 +1,6 @@
+[
+  { "id": "dev-single", "split": "dev", "saved": "沈砚已经取得铜钥匙，站在钟楼门口。", "ending": "门内传来三次轻响。", "future": "未来节事件：镇长举办晚宴。", "long": false },
+  { "id": "dev-long", "split": "dev", "saved": "陆青已经封存证物。", "ending": "陆青把灯递给沈砚，等待他的回答。", "future": "未来节事件：夜里抓捕凶手。", "long": true },
+  { "id": "held-single", "split": "held-out", "saved": "温宁已走过渡桥。", "ending": "迟远仍握着桥门钥匙。", "future": "未来节事件：两人抵达王城。", "long": false },
+  { "id": "held-long", "split": "held-out", "saved": "钟离月已核查旧名册。", "ending": "阿洛守在门外，钟离月将最后一页藏好。", "future": "未来节事件：档案室焚毁。", "long": true }
+]

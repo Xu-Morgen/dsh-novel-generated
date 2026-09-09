@@ -20,13 +20,14 @@ export function buildSceneCardContextPrompt(
   })).sort((a, b) => a.id.localeCompare(b.id));
   const pov = roster.find((character) => character.id === card.pov);
   return [
-    buildChapterWritingPrompt(card, navigation),
+    buildChapterWritingPrompt(card, navigation, { singleScene: true }),
     `当前细纲场景卡 ID: ${card.id}`,
     `当前细纲场景卡状态: ${card.status}`,
     `当前视角角色姓名: ${pov?.name ?? card.pov}`,
     '人物姓名表（ID 仅用于引用，正文使用设定姓名或已有别名；不得擅自改名、替换主角或将角色表理解为全部必须出场）：',
     JSON.stringify(roster),
-    '以以上细纲场景卡的摘要和全部要点安排本场景；幕、节目标只作背景，不得代替细纲。遵循以下人物设定、规则、文风及知识边界：',
+    '以上目标卡是本次唯一待写剧情范围。以下 History 是已保存、已经发生的正文，不是待写提纲：承接其末尾的人物位置、持有物、对话和动作，不重复已完成事件。若目标卡与已发生事实重叠，只展开尚未写出的部分，不重置事实、不自行推进到下一张卡。人物设定不代表所有角色都要出场，背景中的未来经历不代表本场景已经发生。',
+    '遵循以下人物设定、规则、文风及知识边界；在目标字数附近充分展开当前场景，避免以概述替代正文：',
     context.prompt,
   ].join('\n');
 }

@@ -131,7 +131,7 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
     // Freeze the three canonical owners before assembling context, then require
     // target validation to observe that same revision before any generation.
     const ownerFingerprints = await deps.sceneOutlineBinding.captureOwnerFingerprintTriple(projectId);
-    const built = await deps.context.context(projectId);
+    const built = await deps.context.context(projectId, { chapterId: input.chapterId, intent: input.intent });
     const card = input.intent === 'scene-card' ? built.card : { ...built.card, wordTarget: built.creation.wordTarget };
     const targetSnapshot = await deps.sceneOutlineBinding.captureCandidateTarget(
       projectId,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNextSceneContextBuilder, pickCurrentCard, type NextSceneContextDeps } from './writing-context.js';
+import { createNextSceneContextBuilder, pickCurrentCard, selectChapterAppendHistory, type NextSceneContextDeps } from './writing-context.js';
 import type { NovelTimelineService } from './timeline-service.js';
 import { assembleStoryContext } from '../core/pipeline/index.js';
 import { registerContextSerializers } from '../core/assemble/serializers.js';
@@ -44,6 +44,25 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
 }
 
 describe('host/writing-context 时间线关系注入（方案 A）', () => {
+  it('I215 scopes both append intents to saved current-chapter content and excludes future chapters', async () => {
+    const chapters = [
+      contextChapter('future', 3, [contextScene('future-scene', 0, '后章不应泄漏')]),
+      contextChapter('current', 2, [contextScene('ending', 5, '当前章最新结尾'), ...[0, 1, 2, 3].map(i => contextScene(`current-${i}`, i, `当前已保存${i}`)), contextScene('empty', 4, '')]),
+      contextChapter('previous', 1, [contextScene('prev', 0, '前章已保存')]),
+    ];
+    const deps = stubDeps({ text: { listChapters: async () => chapters } as unknown as NextSceneContextDeps['text'] });
+    for (const intent of ['scene-card', 'continue'] as const) {
+      const built = await createNextSceneContextBuilder(deps).context('demo', { chapterId: 'current', intent });
+      expect(built.provenance.history.map(x => x.sceneId)).toEqual(['prev', 'current-0', 'current-1', 'current-2', 'current-3', 'ending']);
+      const prompt = assembleStoryContext(registerContextSerializers(new ContextAssembler()), built.sources).prompt;
+      expect(prompt).toContain('当前章最新结尾');
+      expect(prompt).toContain('当前已保存0');
+      expect(prompt).not.toContain('后章不应泄漏');
+      expect(built.sources.history.tailPriority).toBe(true);
+      expect(built.trace.sections.some(section => section.id === 'outline')).toBe(intent !== 'scene-card');
+    }
+    expect(() => selectChapterAppendHistory(chapters, 'missing')).toThrow('Unknown chapter');
+  });
   it('I214 prioritizes writing in the current beat and preserves planned order without mutating B5', async () => {
     const deps = stubDeps({});
     const navigation = await deps.outline.navigate('demo');

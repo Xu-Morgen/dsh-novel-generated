@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 59 / I215：单卡剧情与同章承接上下文
+
+- **目标**：场景卡写作只展开目标卡，排除节描述后续事件；两种新场景写作读取目标章已保存正文。
+- **明确不做**：不改 IPC/自动推进选卡，不改用户正文或字数配置，不新增模型调用。
+- **交付物 / owner**：write/pipeline 单卡和尾部优先 prompt；writing-context/candidate-production 目标章接线，DoD `docs/ui/i215-dod.md`。
+- **验收**：冻结 dev/held-out 输入断言、跨章与截断负向、真实 Electron 两意图 + TXT + 零写。
+- **验证**：`pnpm run verify:i215` / `pnpm run verify:stage-59` 已完成；251 文件 / 1256 测试，新增 dev 2/2、held-out 2/2 输入断言，真实 Electron 双意图/长正文尾部/TXT 和原样本全绿。下一可用 I216。
+
 ## Stage 58 / I214：场景卡写作上下文接线修复
 
 - **目标**：正文工作区按场景卡写作携带实际细纲及人物上下文，当前节 writing 卡优先。

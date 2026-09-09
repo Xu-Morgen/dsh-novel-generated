@@ -35,6 +35,20 @@ function assemble(input = sources()) {
 }
 
 describe('I19 full story context', () => {
+  it('I215 preserves the saved tail inside the history budget and reports truncation faithfully', () => {
+    const input = sources();
+    const ending = 'LATEST_SAVED_ENDING';
+    const content = 'old '.repeat(2000) + ending;
+    const result = assemble({ ...input, omitOutline: true, history: { ...input.history, tailPriority: true, recentScenes: [{ ...input.history.recentScenes[0], content }] } });
+    const history = result.sections.find(section => section.id === 'history')!;
+    expect(history.text.endsWith(ending)).toBe(true);
+    expect(history.characterCount).toBeLessThanOrEqual(i19ContextBudget.sectionCharacters.history);
+    expect(history.truncated).toBe(true);
+    expect(history.text).toContain('[truncated]');
+    expect(result.sections.some(section => section.id === 'outline')).toBe(false);
+    expect(result.prompt).not.toContain('Lin betrayed the crew.');
+    expect(result.prompt).toContain('The seal is cracked.');
+  });
   it('orders the fixed context followed by current navigation, filtered C3, C4, and C5 history', () => {
     const result = assemble();
     expect(result.prompt).toContain('## Outline\nbeat: beat-current');
