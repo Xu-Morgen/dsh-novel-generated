@@ -30,7 +30,8 @@ export const DETAIL_BEAT_STATUS_LABELS: Record<DetailBeatStatus, string> = {
   planned: '待写', writing: '写作中', done: '已完成',
 };
 export interface OutlineLayerState { readonly status: 'loading' | 'ready' | 'error'; readonly outline?: OutlineShape; readonly message?: string; }
-export interface OutlineEditor { draft: OutlineShape; dirty: boolean; error: string; selectedActId: string | undefined; selectedBeatId: string | undefined; selectedDetailId: string | undefined; saving: boolean; saveMessage: string; }
+export interface DescriptionUpdateState { token: string; kind: 'act' | 'beat'; busy: boolean; message: string; proposal?: import('../../app/outline-description-contract.js').DescriptionProposal; }
+export interface OutlineEditor { draft: OutlineShape; dirty: boolean; error: string; selectedActId: string | undefined; selectedBeatId: string | undefined; selectedDetailId: string | undefined; saving: boolean; saveMessage: string; descriptionUpdate?: DescriptionUpdateState; }
 export interface OutlineEditOps {
   mutate(update: (draft: OutlineShape) => OutlineShape): void;
   selectAct(id: string): void;
@@ -43,6 +44,40 @@ export interface OutlineEditOps {
   addDetailBeat(actId: string, beatId: string): void;
   removeDetailBeat(actId: string, beatId: string, cardId: string): void;
   save(): void;
+  generateDescription(kind: 'act' | 'beat'): void;
+  decideDescription(accept: boolean): void;
+}
+
+const CONFLICT_HELP = [
+  '内心冲突：人物自身的愿望、信念或情感相互矛盾，例如想报仇却不愿伤害无辜。',
+  '外部冲突：人物受到外在对手或环境阻碍，例如追捕、灾害、资源争夺。',
+  '关系冲突：矛盾集中在人际关系中的信任、立场或利益，例如朋友决裂、亲人误解。',
+  '世界规则冲突：人物目标与社会制度、禁令或世界运行规则相抵触，例如挑战等级制度或魔法代价。',
+  '同一节可以包含多种冲突，选择最主要、最推动本节发展的类型。',
+];
+function conflictHelp(h: El): unknown {
+  const position = (event: { currentTarget: HTMLElement }): void => {
+    const tip = event.currentTarget.querySelector<HTMLElement>('[role=tooltip]');
+    if (!tip) return;
+    const anchor = event.currentTarget.getBoundingClientRect();
+    const bounds = tip.getBoundingClientRect();
+    tip.style.top = `${Math.max(12, Math.min(anchor.bottom + 6, window.innerHeight - bounds.height - 16))}px`;
+    tip.style.left = `${Math.max(12, Math.min(anchor.left, window.innerWidth - bounds.width - 16))}px`;
+  };
+  return h('span', { className: 'nv-import-help', onMouseEnter: position, onFocus: position },
+    h('button', { type: 'button', className: 'nv-import-help__button', title: CONFLICT_HELP.join('\n'), 'aria-label': '冲突类型说明', 'aria-describedby': 'outline-conflict-help', 'data-novel-conflict-help': '' }, '?'),
+    h('span', { id: 'outline-conflict-help', role: 'tooltip', className: 'nv-import-help__tooltip', style: { position: 'fixed', maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' } }, h('strong', null, '冲突类型的区别'), h('ul', null, CONFLICT_HELP.map((line, index) => h('li', { key: index }, line)))));
+}
+function descriptionUpdatePanel(h: El, kind: 'act' | 'beat', editor: OutlineEditor, ops: OutlineEditOps): unknown {
+  const state = editor.descriptionUpdate?.kind === kind ? editor.descriptionUpdate : undefined;
+  return h('div', { 'data-novel-description-update': kind },
+    h('button', { type: 'button', className: 'nv-btn', disabled: editor.saving || editor.descriptionUpdate?.busy, 'data-novel-description-generate': kind, onClick: () => ops.generateDescription(kind) }, state?.busy ? '处理中…' : kind === 'act' ? '根据各节描述更新幕目标' : '根据场景卡更新节描述'),
+    state?.message ? h('p', { role: 'status' }, state.message) : null,
+    state?.proposal?.status === 'pending' ? h('div', { 'data-novel-description-candidate': kind },
+      h('p', null, '原文：'), h('pre', { style: { whiteSpace: 'pre-wrap' } }, state.proposal.before),
+      h('p', null, '更新候选：'), h('pre', { style: { whiteSpace: 'pre-wrap' } }, state.proposal.after),
+      h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-description-accept': kind, onClick: () => ops.decideDescription(true) }, '替换并保存'),
+      h('button', { type: 'button', className: 'nv-btn', disabled: state.busy, 'data-novel-description-reject': kind, onClick: () => ops.decideDescription(false) }, '保留原文')) : null);
 }
 
 export function emptyOutline(): OutlineShape { return { id: 'outline', structure: 'free', logline: '', themes: [], acts: [], foreshadowing: [], endings: [] }; }
@@ -93,11 +128,12 @@ export function outlineLayer(h: El, _projectId: string, _workspace: WorkspaceNam
   const beat = act === undefined || editor.selectedBeatId === undefined ? undefined : act.beats.find((item) => item.id === editor.selectedBeatId);
   const detail = beat === undefined || editor.selectedDetailId === undefined ? undefined : beat.detailBeats.find((item) => item.id === editor.selectedDetailId);
   const beatOptions: EntityOption[] = editor.draft.acts.flatMap((item) => item.beats).filter((item) => item.id !== beat?.id).map((item) => ({ id: item.id, label: item.title || '未命名节' }));
-  const actPanel = act === undefined ? h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, '细纲大纲'), h('p', { className: 'nv-outline__nodetail' }, '选择左侧的幕与节，或新建一幕后继续编辑。')) : h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, `幕：${act.title || '未命名幕'}`), h('div', { className: 'nv-form' }, characterText(h, '幕标题', act.title, (value) => setAct(act.id, (item) => ({ ...item, title: value }))), characterText(h, '幕目标', act.goal, (value) => setAct(act.id, (item) => ({ ...item, goal: value })), true)));
+  const actPanel = act === undefined ? h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, '细纲大纲'), h('p', { className: 'nv-outline__nodetail' }, '选择左侧的幕与节，或新建一幕后继续编辑。')) : h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, `幕：${act.title || '未命名幕'}`), h('div', { className: 'nv-form' }, characterText(h, '幕标题', act.title, (value) => setAct(act.id, (item) => ({ ...item, title: value }))), characterText(h, '幕目标', act.goal, (value) => setAct(act.id, (item) => ({ ...item, goal: value })), true), descriptionUpdatePanel(h, 'act', editor, ops)));
   const beatPanel = beat === undefined ? h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, '节'), h('p', { className: 'nv-outline__nodetail' }, '选择或新建一节以编辑节与细纲场景卡。')) : h('div', { className: 'nv-outline__detail' }, h('h3', { className: 'nv-editor__title' }, `节：${beat.title || '未命名节'}`), h('div', { className: 'nv-form' },
     characterText(h, '节标题', beat.title, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, title: value }))),
     characterText(h, '描述', beat.description, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, description: value })), true),
-    h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '冲突类型'), h('select', { className: 'nv-field__input', value: beat.conflictType, onChange: (event: { target: { value: string } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, conflictType: event.target.value as ConflictType })) }, CONFLICT_TYPES.map((value) => h('option', { key: value, value }, CONFLICT_TYPE_LABELS[value])))),
+    descriptionUpdatePanel(h, 'beat', editor, ops),
+    h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '冲突类型', conflictHelp(h)), h('select', { className: 'nv-field__input', value: beat.conflictType, onChange: (event: { target: { value: string } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, conflictType: event.target.value as ConflictType })) }, CONFLICT_TYPES.map((value) => h('option', { key: value, value }, CONFLICT_TYPE_LABELS[value])))),
     entityMultiSelect(h, '参与角色', beat.charactersInvolved, characterOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, charactersInvolved: value })), 'outline-characters-involved'),
     entityMultiSelect(h, '前置节', beat.prerequisites, beatOptions, (value) => setBeat(act!.id, beat.id, (item) => ({ ...item, prerequisites: value })), 'outline-prerequisites'),
     h('label', { className: 'nv-field' }, h('span', { className: 'nv-field__label' }, '可选节'), h('input', { type: 'checkbox', className: 'nv-field__check', checked: beat.optional, onChange: (event: { target: { checked: boolean } }) => setBeat(act!.id, beat.id, (item) => ({ ...item, optional: event.target.checked })) })),

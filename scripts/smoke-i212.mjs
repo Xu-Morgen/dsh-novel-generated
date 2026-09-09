@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { startUiTestProvider, uiInvoke } from './ui-test-provider.mjs';
+
+const prompts = [];
+const provider = await startUiTestProvider(prompt => {
+  prompts.push(prompt);
+  return { kind: 'description', output: JSON.stringify({ description: prompt.includes('根据本幕') ? '调查推进，明确下一步目标。' : '主角找到钥匙并询问守门人。' }) };
+});
+const app = await launchUiElectron('i212');
+const invoke = (method, ...args) => uiInvoke(app, method, ...args);
+try {
+  await app.fill('[data-novel-project-name-input]', '描述更新验收'); await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'project');
+  const id = (await invoke('novelWorkspace/projectList'))[0].id;
+  await invoke('novelLlmConfig/save', { baseUrl: provider.endpoint, model: 'ui-deterministic', apiKey: 'test-only-not-a-real-key', maxTokens: 32768, thinking: 'disabled', reasoningEffort: 'low' });
+  await invoke('novelWorkspace/outlineSave', id, { id: 'outline', structure: 'free', logline: '调查', themes: [], foreshadowing: [], endings: [], acts: [{ id: 'act', index: 0, title: '第一幕', goal: '旧幕目标', beats: [{ id: 'beat', title: '第一节', description: '旧节描述', charactersInvolved: [], conflictType: 'external', prerequisites: [], optional: false, detailBeats: [{ id: 'card', title: '找到钥匙', summary: '主角找到钥匙并询问守门人。', pov: 'hero', wordTarget: 500, points: ['钥匙在门边'], status: 'planned' }] }] }] });
+  const before = await invoke('novelWorkspace/outlineRead', id);
+  await app.send('Page.reload'); await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")', 'reopen');
+  await app.click('[data-novel-nav-group="advanced"] > summary'); await app.click('[data-novel-nav-item="outline"]');
+  await app.waitFor('!!document.querySelector("[data-novel-outline-act=act]")', 'outline');
+  await app.click('[data-novel-outline-act=act]'); await app.click('[data-novel-outline-beat=beat]');
+  await app.evaluate('document.querySelector("[data-novel-conflict-help]").focus()');
+  await app.waitFor('getComputedStyle(document.querySelector("#outline-conflict-help")).visibility==="visible"', 'focus tooltip');
+  assert.match(await app.evaluate('document.querySelector("#outline-conflict-help").textContent'), /内心冲突.*外部冲突.*关系冲突.*世界规则冲突/);
+  assert.ok(await app.evaluate('document.querySelector("#outline-conflict-help").getBoundingClientRect().bottom <= innerHeight'));
+  await app.screenshot('conflict-help');
+  await app.click('[data-novel-description-generate=beat]');
+  await app.waitFor('!!document.querySelector("[data-novel-description-candidate=beat]")', 'beat candidate');
+  assert.deepEqual(await invoke('novelWorkspace/outlineRead', id), before);
+  await app.click('[data-novel-description-reject=beat]');
+  await app.waitFor('document.querySelector("[data-novel-description-update=beat]").textContent.includes("已保留原文")', 'reject');
+  assert.deepEqual(await invoke('novelWorkspace/outlineRead', id), before);
+  await app.click('[data-novel-description-generate=beat]');
+  await app.waitFor('!!document.querySelector("[data-novel-description-candidate=beat]")', 'regenerate');
+  await app.screenshot('description-candidate');
+  await app.click('[data-novel-description-accept=beat]');
+  await app.waitFor('document.querySelector("[data-novel-description-update=beat]").textContent.includes("描述已替换并保存")', 'beat saved');
+  await app.click('[data-novel-description-generate=act]');
+  await app.waitFor('!!document.querySelector("[data-novel-description-candidate=act]")', 'act candidate');
+  assert.ok(prompts.at(-1).includes('主角找到钥匙并询问守门人。'));
+  assert.ok(!prompts.at(-1).includes('钥匙在门边'));
+  await app.click('[data-novel-description-accept=act]');
+  await app.waitFor('document.querySelector("[data-novel-description-update=act]").textContent.includes("描述已替换并保存")', 'act saved');
+  await invoke('novelWorkspace/projectOpen', id);
+  const saved = await invoke('novelWorkspace/outlineRead', id);
+  assert.equal(saved.acts[0].goal, '调查推进，明确下一步目标。');
+  assert.equal(saved.acts[0].beats[0].description, '主角找到钥匙并询问守门人。');
+  assert.deepEqual(saved.acts[0].beats[0].detailBeats, before.acts[0].beats[0].detailBeats);
+  const invalid = await app.evaluate(`window.novelDesktop.invoke('novel-creation-tool/novelWorkspace/descriptionGenerate', [{projectId:${JSON.stringify(id)},kind:'act',actId:'act',extra:true}])`);
+  assert.equal(invalid.error.code, 'invalid-arguments');
+  await writeFile(join(app.evidence, 'validation.json'), JSON.stringify({ passed: true, checks: ['keyboard tooltip', 'beat card source', 'candidate zero write', 'reject zero write', 'beat replace persists', 'act source uses updated beat descriptions only', 'act replace persists', 'cards unchanged', 'strict IPC rejects extra fields'] }, null, 2));
+  process.stdout.write('I212 Electron: tooltip, two-level candidates, I11 reject/replace and persisted descriptions passed\n');
+} finally { await app.close(); await provider.close(); }

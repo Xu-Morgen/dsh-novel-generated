@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 56 / I212：冲突帮助与描述更新候选
+
+- **目标**：冲突类型提供悬浮说明；节由场景卡、幕由节描述生成更新候选，作者决定替换。
+- **明确不做**：不自动更新其他层，不改变冲突枚举或正文，不绕过 I11。
+- **交付物 / owner**：Client outline UI；Main 描述候选服务；strict additive IPC 与锁。DoD：`docs/ui/i212-dod.md`。
+- **验收**：mock样本/负向、候选零写、拒绝/接受、幂等/过期、实际 Electron 与 IPC。
+- **验证**：`pnpm run verify:i212` / `pnpm run verify:stage-56`；已完成，250 文件 / 1243 测试、真实 Electron、dev/held-out 确定性回归与原样本全绿。下一可用 I213。
+
 ## Stage 55 / I211：输入提示词 TXT 存档
 
 - **目标**：每次调用自动保存完整脱敏输入，与输出记录配对。

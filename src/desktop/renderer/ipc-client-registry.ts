@@ -163,6 +163,14 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "selectDocx",
         "methodId": "novel-creation-tool/novelWorkspace/selectDocx"
+      },
+      {
+        "method": "descriptionGenerate",
+        "methodId": "novel-creation-tool/novelWorkspace/descriptionGenerate"
+      },
+      {
+        "method": "descriptionDecide",
+        "methodId": "novel-creation-tool/novelWorkspace/descriptionDecide"
       }
     ]
   },

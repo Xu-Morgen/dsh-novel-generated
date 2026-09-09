@@ -233,7 +233,9 @@
     "novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration",
     "novel-creation-tool/novelNarrativeAdaptation/beginBound",
     "novel-creation-tool/novelNarrativeAdaptation/repairProgress",
-    "novel-creation-tool/novelNarrativeReveal/repairProgress"
+    "novel-creation-tool/novelNarrativeReveal/repairProgress",
+    "novel-creation-tool/novelWorkspace/descriptionGenerate",
+    "novel-creation-tool/novelWorkspace/descriptionDecide"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6736,6 +6738,48 @@
       "result": {
         "typeSymbol": "novel-creation-tool#narrativeRepairProgress",
         "schemaId": "novel-creation-tool#narrativeRepairProgress@d374d096"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/descriptionGenerate": {
+      "id": "novel-creation-tool/novelWorkspace/descriptionGenerate",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "descriptionGenerate",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#outlineDescriptionTarget",
+            "schemaId": "novel-creation-tool#outlineDescriptionTarget@5c6b67e8"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#outlineDescriptionProposal",
+        "schemaId": "novel-creation-tool#outlineDescriptionProposal@dd9feca7"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/descriptionDecide": {
+      "id": "novel-creation-tool/novelWorkspace/descriptionDecide",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "descriptionDecide",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#outlineDescriptionDecision",
+            "schemaId": "novel-creation-tool#outlineDescriptionDecision@78de5e8e"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#outlineDescriptionProposal",
+        "schemaId": "novel-creation-tool#outlineDescriptionProposal@dd9feca7"
       }
     }
   },
@@ -54581,6 +54625,209 @@
           "importSessionId",
           "sourceHash",
           "revealId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#outlineDescriptionTarget@5c6b67e8": {
+      "typeSymbol": "novel-creation-tool#outlineDescriptionTarget",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "kind": {
+                "type": "string",
+                "const": "act"
+              },
+              "actId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "projectId",
+              "kind",
+              "actId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "kind": {
+                "type": "string",
+                "const": "beat"
+              },
+              "actId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "beatId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "projectId",
+              "kind",
+              "actId",
+              "beatId"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "novel-creation-tool#outlineDescriptionProposal@dd9feca7": {
+      "typeSymbol": "novel-creation-tool#outlineDescriptionProposal",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "target": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "act"
+                  },
+                  "actId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "kind",
+                  "actId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "beat"
+                  },
+                  "actId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "beatId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "kind",
+                  "actId",
+                  "beatId"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "before": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "proposalId",
+          "target",
+          "before",
+          "after",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#outlineDescriptionDecision@78de5e8e": {
+      "typeSymbol": "novel-creation-tool#outlineDescriptionDecision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "proposalId",
+          "accept"
         ],
         "additionalProperties": false
       }

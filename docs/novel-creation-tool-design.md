@@ -1154,6 +1154,8 @@ project/
 
 I210 补充（R18-12）：范围补缺、当前节追加与单卡重生成的 Main LLM 输入均携带当前 `OutlineGenerationScope.targets` 中已保存的场景卡，只读、按解析顺序，包含所属幕/节、位置与完整卡字段。bound-chapter 仅携带该范围解析出的绑定卡，分页仅携带当前页；不得通过读取整个节拍或全书扩大上下文范围。提示词明确参考既有事实与衔接、避免重复，卡文本为素材而非指令；追加/补缺/显式替换的原写入边界、输出 schema 和 I11 不变。内部 parser input 新增可选 scopeCards，公开 invocation 不变。
 
+I212 补充：大纲编辑器冲突类型提供 hover/focus 说明，枚举不变。新增两级描述更新候选：节使用已保存场景卡，幕使用已保存的各节标题/description（目标字段沿用 goal，用户明确选择）；空子内容拒绝生成，未保存编辑需先保存。Main 生成严格单字段候选并创建 I11 proposal；作者对比原文/候选后拒绝或替换并保存。接受仅修改目标 description/goal，大纲基线变化拒绝旧候选，已接受写盘失败可按同 proposal 重试；不改变卡、ID、状态、排序和正文。新增 strict additive novelWorkspace.descriptionGenerate/descriptionDecide，canonical registry、contract lock、preload 与 Renderer 同步，字段输入/结果统一类型验证。
+
 #### 14.14.3 产品方向与非目标
 
 唯一产品主路径按 README 的 12 步执行：导入思路/梗概/长稿 → AI 大纲候选并由作者确认 → 按幕/章/全书生成细纲 → 作者修改并建立近期场景生成基线 → 每卡生成一份正文候选 → 接受为草稿/重写/手工微调 → 系统分析最终正文并展示确定性派生、五层变化和后续细纲建议 → 作者一次确认 → 当前卡完成并进入下一张 → 下一次只消费有效细纲、最终正文、已确认状态与 POV 可知信息 → 全书一致性检查 → 带目录的单一 TXT/Markdown。

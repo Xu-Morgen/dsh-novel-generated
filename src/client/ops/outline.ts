@@ -17,6 +17,30 @@ export function createOutlineOps(runtime: OpsRuntime, port: OutlinePort): Outlin
     candidate: undefined, candidateMode: undefined, proposalId: undefined, message: undefined, status: 'idle',
   });
   return {
+      generateDescription: (kind) => {
+        const editor = snapshot.outlineEditor;
+        if (editor.saving || editor.descriptionUpdate?.busy) return;
+        if (editor.dirty) { act.outlineDraft({ error: '请先保存当前大纲修改，再根据已保存内容生成描述。' }); return; }
+        if (!workspace || !projectId || !editor.selectedActId || (kind === 'beat' && !editor.selectedBeatId)) { act.outlineDraft({ error: '请先选择要更新的幕或节。' }); return; }
+        if (!beginOp('outline:description')) return;
+        const token = `${Date.now()}-${Math.random()}`;
+        const state = { token, kind, busy: true, message: '正在根据已保存的子内容生成候选…' };
+        act.outlineDraft({ error: '', descriptionUpdate: state });
+        const target = kind === 'act' ? { projectId, kind, actId: editor.selectedActId } : { projectId, kind, actId: editor.selectedActId, beatId: editor.selectedBeatId! };
+        void unwrap(workspace.descriptionGenerate(target)).then(proposal => {
+          if (isActive()) act.outlineDescriptionResult(token, { descriptionUpdate: { ...state, busy: false, message: '请比较原文与候选，再决定是否替换。', proposal } });
+        }, cause => { if (isActive()) act.outlineDescriptionResult(token, { descriptionUpdate: { ...state, busy: false, message: toUserMessage(cause) } }); }).finally(() => endOp('outline:description'));
+      },
+      decideDescription: (accept) => {
+        const state = snapshot.outlineEditor.descriptionUpdate;
+        if (!workspace || !projectId || !state?.proposal || state.busy || snapshot.outlineEditor.dirty || !beginOp('outline:description-decision')) return;
+        act.outlineDescriptionResult(state.token, { descriptionUpdate: { ...state, busy: true, message: '正在处理…' } });
+        void (async () => {
+          const proposal = await unwrap(workspace.descriptionDecide({ projectId, proposalId: state.proposal!.proposalId, accept }));
+          const draft = accept ? await unwrap(workspace.outlineRead(projectId)) : undefined;
+          if (isActive()) act.outlineDescriptionResult(state.token, { ...(draft ? { draft, dirty: false, saveMessage: '已保存' } : {}), descriptionUpdate: { ...state, proposal, busy: false, message: accept ? '描述已替换并保存。' : '已保留原文。' } });
+        })().catch(cause => { if (isActive()) act.outlineDescriptionResult(state.token, { descriptionUpdate: { ...state, busy: false, message: toUserMessage(cause) } }); }).finally(() => endOp('outline:description-decision'));
+      },
       mutate: (update) => { act.outlineMutate(update); clearGeneration(); },
       selectAct: (id) => { act.outlineDraft({ selectedActId: id, selectedBeatId: undefined, selectedDetailId: undefined }); clearGeneration('act', id); },
       selectBeat: (actId, beatId) => { act.outlineDraft({ selectedActId: actId, selectedBeatId: beatId, selectedDetailId: undefined }); clearGeneration('outline-beat', beatId); },

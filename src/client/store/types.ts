@@ -199,6 +199,7 @@ export type WorkbenchActions = {
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
+  outlineDescriptionResult(token: string, patch: Partial<OutlineEditor>): void;
   relationshipDraft(patch: Partial<RelationshipEditor>): void;
   stateDraft(patch: Partial<StateEditor>): void;
   canonDraft(patch: Partial<CanonEditor>): void;

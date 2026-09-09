@@ -1,4 +1,7 @@
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
+import { createOutlineDescriptionService } from '../../host/outline-description-service.js';
+import { descriptionTargetSchema, descriptionDecisionSchema, type OutlineDescriptionNamespace } from '../../app/outline-description-contract.js';
+import { asLlmBackend } from '../../llm/port/index.js';
 import type { DesktopPaths } from '../../app/paths.js';
 import { createNovelPortabilityService } from '../../host/import-export-service.js';
 import { createManuscriptCompiler } from '../../host/manuscript-compiler.js';
@@ -122,6 +125,10 @@ export function createDesktopAuthorWorkflowHandlers(
     await statistics.open(projectId);
   };
   const map = new Map<string, IpcHandler>();
+  const descriptions = createOutlineDescriptionService({ outline: deps.outline, confirmation: deps.confirmation, llm: asLlmBackend(deps.llm), settings: deps.c5.resolveSettings, onDispose: deps.onDispose });
+  const descriptionApi: OutlineDescriptionNamespace = descriptions;
+  map.set('novel-creation-tool/novelWorkspace/descriptionGenerate', (input, context) => descriptions.generate(descriptionTargetSchema.parse(input), contextOf(context)?.signal));
+  map.set('novel-creation-tool/novelWorkspace/descriptionDecide', input => descriptionApi.descriptionDecide(descriptionDecisionSchema.parse(input)));
 
   map.set('novel-creation-tool/novelOutlineProgress/projection', (projectId) => progress.projection(projectId as string));
   map.set('novel-creation-tool/novelOutlineProgress/recordDeviation', (projectId, input) => progress.recordDeviation(projectId as string, input as Parameters<typeof progress.recordDeviation>[1]));

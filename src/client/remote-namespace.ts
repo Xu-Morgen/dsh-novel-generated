@@ -90,7 +90,7 @@ export type NamespaceOf<C extends TypertRemoteContribution> = {
 };
 
 // —— 与 src/client/shared.ts 既有手写接口同名同形状的派生类型（消费方零改动）——
-export type WorkspaceNamespace = NamespaceOf<typeof workspaceRemoteContribution>;
+export type WorkspaceNamespace = NamespaceOf<typeof workspaceRemoteContribution> & import('../app/outline-description-contract.js').OutlineDescriptionNamespace;
 export type WritingNamespace = NamespaceOf<typeof writingRemoteContribution>;
 export type ReviewNamespace = NamespaceOf<typeof reviewRemoteContribution>;
 export type ReviewRepairNamespace = NamespaceOf<typeof reviewRepairRemoteContribution>;

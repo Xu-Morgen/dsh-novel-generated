@@ -317,7 +317,8 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       timelinePatch: (d, patch: Partial<TimelineLayerState>) => { d.timeline = { ...d.timeline, ...patch }; },
       characterDraft: (d, patch: Partial<CharacterEditor>) => { Object.assign(d.characterEditor, patch); },
       worldDraft: (d, patch: Partial<WorldEditor>) => { Object.assign(d.worldEditor, patch); },
-      outlineDraft: (d, patch: Partial<OutlineEditor>) => { Object.assign(d.outlineEditor, patch); },
+      outlineDraft: (d, patch: Partial<OutlineEditor>) => { if ('draft' in patch || 'selectedActId' in patch || 'selectedBeatId' in patch) d.outlineEditor.descriptionUpdate = undefined; Object.assign(d.outlineEditor, patch); },
+      outlineDescriptionResult: (d, token: string, patch: Partial<OutlineEditor>) => { if (d.outlineEditor.descriptionUpdate?.token !== token) return; Object.assign(d.outlineEditor, patch); if (patch.draft) d.outline = { status: 'ready', outline: patch.draft }; },
       relationshipDraft: (d, patch: Partial<RelationshipEditor>) => { Object.assign(d.relationshipEditor, patch); },
       stateDraft: (d, patch: Partial<StateEditor>) => { Object.assign(d.stateEditor, patch); },
       canonDraft: (d, patch: Partial<CanonEditor>) => { Object.assign(d.canonEditor, patch); },
@@ -326,7 +327,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       // snapshot — the root of the "unresponsive UI" defect.
       characterMutate: (d, update: (draft: CharacterShape) => CharacterShape) => { d.characterEditor.draft = update(d.characterEditor.draft); d.characterEditor.dirty = true; d.characterEditor.saveMessage = ''; },
       worldMutate: (d, update: (draft: WorldShape) => WorldShape) => { d.worldEditor.draft = update(d.worldEditor.draft); d.worldEditor.dirty = true; d.worldEditor.saveMessage = ''; },
-      outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; d.outlineEditor.saveMessage = ''; },
+      outlineMutate: (d, update: (draft: OutlineShape) => OutlineShape) => { d.outlineEditor.descriptionUpdate = undefined; d.outlineEditor.draft = update(d.outlineEditor.draft); d.outlineEditor.dirty = true; d.outlineEditor.saveMessage = ''; },
       relationshipMutate: (d, update: (draft: RelationshipShape) => RelationshipShape) => { d.relationshipEditor.draft = update(d.relationshipEditor.draft); d.relationshipEditor.dirty = true; d.relationshipEditor.saveMessage = ''; },
       // I58：非层视图重复点击回退默认层视图（保留旧 settings toggle 语义）；
       // 层视图之间直接切换，不做 toggle。
