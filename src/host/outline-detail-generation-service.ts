@@ -70,6 +70,15 @@ function scopeTargetMap(scope: OutlineGenerationScopeResult): Map<string, Outlin
   return new Map(scope.targets.map((target) => [target.beatId, target]));
 }
 
+/** I210 / §14.14.2: consume the resolved page/card set, including bound-chapter
+ * filtering; never widen context by rereading all cards from a target beat. */
+function savedScopeCards(scope: OutlineGenerationScopeResult) {
+  return scope.targets.flatMap(target => target.cards.map(card => ({
+    actId: target.actId, beatId: target.beatId, position: card.detailBeatIndex,
+    detailBeat: structuredClone(card.detailBeat),
+  })));
+}
+
 function candidateItemsForScope(
   projectId: string,
   scope: OutlineGenerationScopeResult,
@@ -265,6 +274,7 @@ export function createOutlineDetailGenerationService(deps: {
         const location = beatLocation(outline, target.beatId);
         const generated = await generateOutlineDetailBeats(backend, {
           mode: 'fill-missing', actId: target.actId, beatId: target.beatId,
+          scopeCards: savedScopeCards(scope),
           beatTitle: location.beat.title, beatDescription: location.beat.description,
         }, settings, signal);
         if (generatedCount + generated.detailBeats.length > scope.mutationBudget.maxNewDetailBeats) throw new Error('Generated detail beats exceed scope mutation budget');
@@ -300,6 +310,7 @@ export function createOutlineDetailGenerationService(deps: {
       const location = beatLocation(outline, input.beatId);
       const generated = await generateOutlineDetailBeats(backend, {
         mode: input.mode,
+        scopeCards: savedScopeCards(scope),
         actId: target.actId,
         beatId: target.beatId,
         beatTitle: location.beat.title,
@@ -355,6 +366,7 @@ export function createOutlineDetailGenerationService(deps: {
         const location = beatLocation(fresh.outline, item.beatId);
         const generated = await generateOutlineDetailBeats(backend, {
           mode: 'regenerate-existing', actId: item.actId, beatId: item.beatId,
+          scopeCards: savedScopeCards(fresh.scope),
           beatTitle: location.beat.title, beatDescription: location.beat.description, existing: detailFields(item.before),
         }, settings, signal);
         const after = { ...generated.detailBeats[0], id: item.detailBeatId, status: 'planned' as const };

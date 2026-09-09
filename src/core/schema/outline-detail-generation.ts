@@ -19,7 +19,15 @@ const detailBeatFieldsSchema = z.object({
 }).strict();
 export type OutlineDetailBeatFields = z.infer<typeof detailBeatFieldsSchema>;
 
-/** Only the beat facts needed by the model; Host supplies identity/status/order. */
+/** Read-only saved cards in resolved scope order; never a model write target. */
+export const outlineDetailGenerationContextCardSchema = z.object({
+  actId: entityIdSchema,
+  beatId: entityIdSchema,
+  position: z.number().int().nonnegative(),
+  detailBeat: detailBeatSchema,
+}).strict();
+
+/** Beat facts and saved scope context; Host still owns identity/status/order writes. */
 export const outlineDetailGenerationParserInputSchema = z.object({
   mode: z.enum(['fill-missing', 'regenerate-existing', 'append-to-selected-beat']),
   actId: entityIdSchema,
@@ -27,6 +35,7 @@ export const outlineDetailGenerationParserInputSchema = z.object({
   beatTitle: z.string().trim().min(1).max(200),
   beatDescription: z.string().trim().min(1).max(1_000),
   existing: detailBeatFieldsSchema.optional(),
+  scopeCards: outlineDetailGenerationContextCardSchema.array().max(OUTLINE_DETAIL_GENERATION_MAX_ITEMS).optional(),
   guidance: z.string().trim().min(1).max(OUTLINE_DETAIL_GENERATION_MAX_GUIDANCE).optional(),
 }).strict().superRefine((input, context) => {
   if (input.mode === 'regenerate-existing' && input.existing === undefined) {

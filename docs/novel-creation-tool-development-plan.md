@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 54 / I210：范围细纲已有卡上下文
+
+- **目标**：LLM 生成时携带所选范围已保存场景卡，避免仅提供节拍描述。
+- **明确不做**：不扩大范围或修改既有卡写入规则，不改公开 IPC。
+- **交付物 / owner**：Main 从 scope.targets 提取只读卡集合，内部 parser schema/prompt 携带；DoD：`docs/ui/i210-dod.md`。
+- **验收**：三种生成模式覆盖、范围和顺序隔离、空集合、负向 schema、冻结样本及真实 Electron/provider 回归。
+- **验证**：`pnpm run verify:i210` / `pnpm run verify:stage-54`；已完成，246 文件 / 1239 测试、真实 Electron/provider、I210 dev/held-out 100% 确定性回归与原样本通过。下一可用 I211。
+
 ## Stage 53 / I209：章节信息回填与保存
 
 - **目标**：修复选章表单未初始化与保存静默退出。

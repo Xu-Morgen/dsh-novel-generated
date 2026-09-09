@@ -1,0 +1,10 @@
+{
+  "immutable": true,
+  "threshold": 1,
+  "cases": [
+    {"id":"dev-fill", "split":"dev", "mode":"fill-missing", "title":"已找到钥匙", "status":"planned"},
+    {"id":"dev-append", "split":"dev", "mode":"append-to-selected-beat", "title":"已问过守门人", "status":"planned"},
+    {"id":"held-regenerate", "split":"held-out", "mode":"regenerate-existing", "title":"旧航图记录", "status":"planned"},
+    {"id":"held-append", "split":"held-out", "mode":"append-to-selected-beat", "title":"已经离港", "status":"done"}
+  ]
+}

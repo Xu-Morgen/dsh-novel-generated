@@ -70,6 +70,30 @@ async function realFixture(llm: ReturnType<typeof llmFixture> | { stream(request
 }
 
 describe('I134 OutlineDetailGenerationService', () => {
+  it('I210 all/beat scope context reaches fill, append and regenerate, without outside cards or writes', async () => {
+    const prompts: string[] = [];
+    const fixture = await realFixture({ async *stream(request: { prompt: string }) {
+      prompts.push(request.prompt);
+      yield { type: 'text-delta' as const, text: JSON.stringify({ detailBeats: [{ title: '新卡', summary: '新事实', pov: 'hero', wordTarget: 300, points: ['行动'] }], rationale: '衔接' }) };
+      yield { type: 'finish' as const, reason: { kind: 'stop' as const } };
+    } });
+    const original = outlineFixture();
+    original.acts[0].beats[0].detailBeats.push(card('second'));
+    await fixture.outline.save('project', original);
+    const context = () => JSON.parse(prompts.at(-1)!.split('\n').find(line => line.startsWith('当前生成范围已保存场景卡：'))!.slice('当前生成范围已保存场景卡：'.length));
+    const all = await fixture.service.generate('project', { scope: { kind: 'all' } }, settings);
+    expect(context().map((entry: { detailBeat: DetailBeat }) => entry.detailBeat)).toEqual(original.acts[0].beats[0].detailBeats);
+    expect(context().map((entry: { position: number }) => entry.position)).toEqual([0, 1]);
+    await fixture.service.regenerate('project', { candidateId: all.candidateId, detailBeatId: 'detail-existing' }, settings);
+    expect(context()).toHaveLength(2);
+    await fixture.service.generate('project', { scope: { kind: 'outline-beat', beatId: 'beat-empty' } }, settings);
+    expect(context()).toEqual([]);
+    await fixture.service.append('project', { mode: 'append-to-selected-beat', beatId: 'beat-existing', guidance: '添加后续' }, settings);
+    expect(context().map((entry: { detailBeat: DetailBeat }) => entry.detailBeat.id)).toEqual(['detail-existing', 'second']);
+    expect(await fixture.outline.read('project')).toEqual(original);
+    expect(fixture.saveCalls).toBe(0);
+  });
+
   it('默认只补缺失卡，已有卡不调用模型；编辑/重生成/跳过只改变会话候选', async () => {
     const fixture = await realFixture();
     const candidate = await fixture.service.generate('project', { scope: { kind: 'all' } }, settings);
