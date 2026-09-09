@@ -1,4 +1,6 @@
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
+import { IpcHandlerRejection } from '../../app/ipc-handler-rejection.js';
+import { ContextAssemblyError } from '../../core/assemble/index.js';
 import type { DesktopPaths } from '../../app/paths.js';
 import { createOutlineGenerationScopeService } from '../../host/outline-generation-scope-service.js';
 import { createOutlineDetailGenerationService } from '../../host/outline-detail-generation-service.js';
@@ -104,6 +106,11 @@ async function withProgress<T>(context: IpcInvocationContext | undefined, phase:
     return result;
   } catch (cause) {
     context?.reportProgress({ phase, status: context?.signal.aborted ? 'cancelled' : 'failed' });
+    // I205 / §8.1: keep required sections fail-closed; only the exact known
+    // assembly failure may become a fixed author-facing IPC rejection.
+    if (cause instanceof ContextAssemblyError && cause.message === 'Context serializer produced empty section: rules') {
+      throw new IpcHandlerRejection('writing-rules-required');
+    }
     throw cause;
   }
 }

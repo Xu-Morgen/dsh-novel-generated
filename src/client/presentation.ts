@@ -1,4 +1,5 @@
 import type { El } from './shared.js';
+import { ClientInvocationError } from './invocation-error.js';
 
 /**
  * I132 作者表现层词典与错误映射（R18-7）。
@@ -57,7 +58,7 @@ export function rawError(cause: unknown): string {
  * `[object Object]` 或空 alert。
  */
 export function toUserMessage(cause: unknown, fallback = '操作未完成，请重试。'): string {
-  const message = rawError(cause).trim();
+  const message = (cause instanceof ClientInvocationError ? cause.invocationMessage : rawError(cause)).trim();
   if (message === '') return fallback;
   if (/stale|sourceHash|baseHash|fingerprint|expectedFingerprint/i.test(message)) return '内容已发生变化，请刷新后再试。';
   if (/unknown (project|chapter|scene|branch)|not open|not found|cross[- ]project|不存在当前作品/i.test(message)) return '找不到对应内容，请刷新后再试。';

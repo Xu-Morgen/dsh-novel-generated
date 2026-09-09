@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { advancedError, advancedReference, AUTHOR_VISIBLE_TERM_DENYLIST, toUserMessage } from './presentation.js';
+import { unwrap } from './shared.js';
+
+it('I205 separates invocation diagnostics from author messages without trusting lookalike errors', async () => {
+  const message = '请先保存规则，再返回正文重试。';
+  const error = await unwrap(Promise.resolve({ ok: false, error: { message, code: 'handler-failed', details: { methodId: 'novel-creation-tool/novelWriting/proposeAt' } } })).catch((cause: unknown) => cause);
+  expect(toUserMessage(error)).toBe(message);
+  expect(String(error)).toContain('method=novel-creation-tool/novelWriting/proposeAt');
+  expect(toUserMessage(Object.assign(new Error('internal secret-canary'), { invocationMessage: message }))).toBe('操作未完成，请重试。');
+  const unknown = await unwrap(Promise.resolve({ ok: false, error: { message: 'internal secret-canary', code: 'handler-failed' } })).catch((cause: unknown) => cause);
+  expect(toUserMessage(unknown)).toBe('操作未完成，请重试。');
+});
 
 interface NodeShape { tag: string; props: Record<string, unknown>; children: unknown[] }
 

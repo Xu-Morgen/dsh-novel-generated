@@ -518,7 +518,10 @@
     "verify:stage-47": "pnpm run verify:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples",
     "smoke:i204": "node scripts/smoke-i204.mjs",
     "verify:i204": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i204",
-    "verify:stage-48": "pnpm run verify:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
+    "verify:stage-48": "pnpm run verify:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples",
+    "smoke:i205": "node scripts/smoke-i205.mjs",
+    "verify:i205": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i205",
+    "verify:stage-49": "pnpm run verify:i205 && pnpm run smoke:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
   },
   "dependencies": {
     "fflate": "^0.8.3",

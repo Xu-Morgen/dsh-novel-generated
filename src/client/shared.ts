@@ -1,4 +1,5 @@
 import type { TypertRemoteContribution, TypertDisposer } from '@deepseek-ai/dsh-typert-protocol';
+import { ClientInvocationError } from './invocation-error.js';
 import type { WorkspaceViewModel } from '../app/workspace-view-model.js';
 // I91：namespace 类型从 host contribution 派生（见 remote-namespace.ts）——
 // 消除手写 `Promise<unknown>` 接口，方法签名变更在 Client 消费处即报编译错
@@ -134,7 +135,7 @@ export function unwrap<T>(promise: Promise<T> | undefined): Promise<UnwrapValue<
         typeof code === 'string' && code.length > 0 ? `code=${code}` : undefined,
         typeof methodId === 'string' && methodId.length > 0 ? `method=${methodId}` : undefined,
       ].filter((value): value is string => value !== undefined);
-      throw new Error(diagnostics.length === 0 ? message : `${message} [${diagnostics.join('; ')}]`);
+      throw new ClientInvocationError(message, diagnostics);
     }
     return result as UnwrapValue<T>;
   });
