@@ -199,6 +199,8 @@ export type WorkbenchActions = {
   characterDraft(patch: Partial<CharacterEditor>): void;
   worldDraft(patch: Partial<WorldEditor>): void;
   outlineDraft(patch: Partial<OutlineEditor>): void;
+  /** Refresh a chapter list projection without navigation or editing-buffer changes. */
+  chaptersRefreshRead(chapterId: string, read: ChapterReadShape): void;
   outlineDescriptionResult(token: string, patch: Partial<OutlineEditor>): void;
   relationshipDraft(patch: Partial<RelationshipEditor>): void;
   stateDraft(patch: Partial<StateEditor>): void;

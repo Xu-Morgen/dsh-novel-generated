@@ -279,6 +279,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
         d.workflow = { ...d.workflow, projectId: d.selectedProjectId, chapterId: d.chapters.selectedChapterId, sceneId };
       },
       chaptersRead: (d, status: 'loading' | 'ready' | 'error', read: unknown, message?: string) => { d.chapters = { ...d.chapters, chapter: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', read: read as ChapterReadShape } : { status: 'loading' } }; },
+      chaptersRefreshRead: (d, chapterId: string, read: ChapterReadShape) => { if (d.chapters.selectedChapterId === chapterId) d.chapters = { ...d.chapters, chapter: { status: 'ready', read } }; },
       chaptersScene: (d, status: 'idle' | 'loading' | 'ready' | 'error', scene: unknown, message?: string) => { d.chapters = { ...d.chapters, scene: status === 'error' ? { status: 'error', message } : status === 'ready' ? { status: 'ready', item: (scene as { scene?: SceneReadShape }).scene } : { status } }; },
       // I61：编辑器状态合并（与各层 draft 同一模式）；场景装载/重载时先 Reset 再初始化。
       sceneEditor: (d, patch: Partial<SceneEditorState>) => { d.chapters = { ...d.chapters, editor: { ...d.chapters.editor, ...patch } }; },

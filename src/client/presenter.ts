@@ -273,6 +273,8 @@ function groupNav(h: El, activeView: WorkbenchViewId, activateView: (view: Workb
     },
     h(group.id === 'advanced' ? 'summary' : 'h3', { className: 'nv-workbench__nav-group-label', 'data-novel-nav-group-label': group.id }, group.label),
     group.items.map((item) => h('button', {
+      hidden: item.hidden,
+      style: item.hidden ? { display: 'none' } : undefined,
       key: item.view,
       type: 'button',
       className: 'nv-workbench__nav-item' + (activeView === item.view ? ' is-active' : ''),

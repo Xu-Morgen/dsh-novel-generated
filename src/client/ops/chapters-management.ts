@@ -30,7 +30,16 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     if (!workspace || projectId === undefined || !beginOp(key)) return;
     void unwrap(workspace.chapterList(projectId)).then((list) => {
       endOp(key);
-      if (isActive()) act.setChapters('ready', list as unknown[]);
+      if (!isActive()) return;
+      act.setChapters('ready', list as unknown[]);
+      // I213: the tree's expanded scene rows consume chapter.read, not chapterList.
+      // Read it without navigation so unsaved prose and current selection survive.
+      const chapterId = snapshot.chapters.selectedChapterId;
+      if (chapterId !== undefined && list.some(chapter => chapter.id === chapterId)) {
+        void unwrap(workspace.chapterRead(projectId, chapterId)).then(read => {
+          if (isActive()) act.chaptersRefreshRead(chapterId, read);
+        }, cause => { if (isActive()) patch({ status: 'error', message: `场景列表刷新失败：${toUserMessage(cause)}` }); });
+      }
     }, (cause: Error) => {
       endOp(key);
       if (isActive()) act.setChapters('error', [], toUserMessage(cause));

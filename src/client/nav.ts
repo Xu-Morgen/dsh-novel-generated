@@ -62,6 +62,8 @@ import type { LayerId } from './shared.js';
 export type WorkbenchViewId = LayerId | 'workflow' | 'chapters' | 'review' | 'queue' | 'knowledge' | 'ruleStyle' | 'progress' | 'importExport' | 'search' | 'statistics' | 'timeline' | 'onboarding' | 'creationSettings' | 'settings';
 
 export interface WorkbenchNavItem {
+  /** Temporarily hide the navigation entry while retaining compatible routes/tasks. */
+  readonly hidden?: boolean;
   readonly view: WorkbenchViewId;
   readonly label: string;
   /** 技术层编号辅助徽标（B3/B2/B5/C1/C2/C4）；非层视图无徽标。 */
@@ -105,7 +107,7 @@ export const NAV_GROUPS: readonly WorkbenchNavGroup[] = [
       { view: 'outline', label: '大纲工作区', badge: 'B5', layer: 'outline' },
       { view: 'chapters', label: '正文工作区', badge: 'C5' },
       { view: 'review', label: '审校中心' },
-      { view: 'queue', label: '生成队列' },
+      { view: 'queue', label: '生成队列', hidden: true },
       { view: 'search', label: '搜索与追踪' },
       { view: 'statistics', label: '写作进度' },
       { view: 'progress', label: '进度与灵感', badge: 'C6' },
