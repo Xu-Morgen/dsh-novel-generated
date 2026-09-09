@@ -39,6 +39,13 @@
           "error": {
             "type": "string",
             "maxLength": 300
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 256000
+          },
+          "promptTruncated": {
+            "type": "boolean"
           }
         },
         "required": [

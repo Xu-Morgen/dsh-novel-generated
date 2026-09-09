@@ -1,9 +1,9 @@
 import { LLM_BACKEND_MARKER, type LlmBackend } from '../../llm/port/index.js';
-import { llmMonitorSchema, type LlmMonitorSnapshot } from '../llm-monitor-contract.js';
+import { LLM_MONITOR_PROMPT_LIMIT, llmMonitorSchema, type LlmMonitorSnapshot } from '../llm-monitor-contract.js';
 import { OpenAICompatibleError } from '../../platform/openai-compatible-llm.js';
 import { llmTraceStage, type LlmTrace, type LlmTraceStore } from './llm-trace-store.js';
 
-/** Main-only bounded observation; never copies prompts, endpoints or exception messages. */
+/** Main-only bounded observation; input previews are redacted, configuration/errors stay private. */
 export class LlmMonitor {
   private sequence = 0;
   private rows: LlmMonitorSnapshot['requests'] = [];
@@ -31,6 +31,13 @@ export class LlmMonitor {
       try {
         trace = monitor.traces?.begin(row.id, llmTraceStage(request.prompt), () => { traceFailed = true; });
         secret = await resolveSecret(request.settings.credentialRef) ?? '';
+        // I207 / §14.36: redact the complete input before taking a bounded preview.
+        // Never publish raw input if resolving the credential fails.
+        const promptFilter = new SecretFilter(secret);
+        const safePrompt = promptFilter.push(request.prompt) + promptFilter.finish();
+        row.prompt = safePrompt.slice(0, LLM_MONITOR_PROMPT_LIMIT);
+        row.promptTruncated = safePrompt.length > LLM_MONITOR_PROMPT_LIMIT;
+        monitor.emit(false);
         const source = typeof backend === 'function' ? backend(secret || undefined) : backend;
         textFilter = new SecretFilter(secret);
         reasoningFilter = new SecretFilter(secret);

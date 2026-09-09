@@ -1449,7 +1449,7 @@ Main 在生产 `LlmBackend` 组合入口统一装饰请求，原请求、chunk�
 
 Main 注册并统一回收主窗口与独立 AI 过程 BrowserWindow。观察窗具有独立 HTML、React root 和仅推送订阅的 preload，保持 §0.1 安全选项，无领域 invocation 权限。关闭观察窗不取消任务；新请求重新打开；主窗关闭及 DesktopLifecycle dispose 回收窗口与定时器。
 
-版本化只读事件 `novel:llm-monitor:v1` 采用 strict schema，在 Main 和 preload 验证并锁定 `contracts/desktop/llm-monitor.json`；既有 canonical invocation 不变。投影仅在内存保留最近 30 条请求，正文/推理分别限 16000 字，100ms 合并发送。凭据每请求解析一次供 provider 与脱敏共用；跨 chunk 密钥前缀暂缓发布，完整密钥在截断前替换；不传播 prompt、endpoint、路径或原始异常，错误仅采用固定分类提示。
+版本化只读事件 `novel:llm-monitor:v1` 采用 strict schema，在 Main 和 preload 验证并锁定 `contracts/desktop/llm-monitor.json`；既有 canonical invocation 不变。投影仅在内存保留最近 30 条请求，正文/推理分别限 16000 字，100ms 合并发送。凭据每请求解析一次供 provider 与脱敏共用；跨 chunk 密钥前缀暂缓发布，完整密钥在截断前替换；不传播 provider 配置、路径或原始异常，错误仅采用固定分类提示。I207 经用户明确授权增加可选 prompt/promptTruncated 投影：每条请求默认折叠展示经密钥过滤的输入，最多 256000 字符并显示截断提示，失败/取消仍保留；凭据解析失败不展示未脱敏输入。输入只在内存展示，不加入日志或 txt，原生成请求不变。
 
 实现与验收见 `docs/ui/i197-design.md`、`docs/ui/i197-dod.md`。本切片交付受管观察窗口，不宣称 R35 Renderer-owned 多 profile 已完成。
 

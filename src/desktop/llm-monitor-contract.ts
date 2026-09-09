@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 /** I197 / design §14.36: push-only, bounded and already redacted Main projection. */
 export const LLM_MONITOR_CHANNEL = 'novel:llm-monitor:v1';
+/** I207 bounded input preview; optional wire fields preserve old snapshots. */
+export const LLM_MONITOR_PROMPT_LIMIT = 256000;
 export const llmMonitorSchema = z.object({
   version: z.literal(1),
   requests: z.array(z.object({
@@ -10,6 +12,8 @@ export const llmMonitorSchema = z.object({
     text: z.string().max(16000),
     reasoning: z.string().max(16000),
     error: z.string().max(300),
+    prompt: z.string().max(LLM_MONITOR_PROMPT_LIMIT).optional(),
+    promptTruncated: z.boolean().optional(),
   }).strict()).max(30),
 }).strict();
 export type LlmMonitorSnapshot = z.infer<typeof llmMonitorSchema>;
