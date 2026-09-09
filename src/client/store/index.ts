@@ -1,4 +1,5 @@
 import type { LayerId, WorkspaceViewModel } from '../shared.js';
+import { chapterStatusSchema } from '../../core/schema/text.js';
 import type { UploadProgress } from '../upload.js';
 import type { OnboardingAnalysisState, OnboardingDecision, OnboardingLayerId, OnboardingState } from '../onboarding.js';
 import type { LlmConfigDraftShape, LlmConfigViewShape } from '../settings.js';
@@ -233,6 +234,12 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       // I107：导航世代随章节/场景改变；候选与版本结果属于旧目标时必须丢弃，
       // 管理面草稿则保留，避免模式切换或读取新场景抹掉未保存编辑（R18-9）。
       chaptersSelectChapter: (d, chapterId: string) => {
+        // I209 / §14.14.2: initialize a new metadata target from the Host list;
+        // revisiting the same chapter must preserve unsaved form edits.
+        const selected = d.chapters.list.find(chapter => chapter.id === chapterId);
+        if (selected !== undefined && d.chapters.management.chapterDraft.id !== chapterId) {
+          d.chapters = { ...d.chapters, management: { ...d.chapters.management, chapterDraft: { id: selected.id, index: selected.index, title: selected.title, pov: selected.pov, status: chapterStatusSchema.parse(selected.status) } } };
+        }
         const previousWorkflow = d.chapters.workflow;
         const preserveFinalizationContext = previousWorkflow.status === 'saved'
           && previousWorkflow.candidateId !== undefined

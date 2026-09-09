@@ -72,12 +72,14 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     if (management.projectFingerprint === undefined) { patch({ status: 'error', message: '请先点击“刷新管理状态”，读取完成后再新建章节。' }); return; }
     if (!beginOp('chapters:management:create-chapter')) return;
     patch({ status: 'loading', message: '' });
-    const id = draft.id || draftEntityId('chapter', `${draft.index}:${draft.title}`, snapshot.chapters.list.map((chapter) => chapter.id));
-    void unwrap(text.chapterCreate(projectId, { ...draft, id, expectedFingerprint: management.projectFingerprint })).then((result) => {
+    const editingExisting = snapshot.chapters.list.some(chapter => chapter.id === draft.id);
+    const index = editingExisting ? Math.max(0, ...snapshot.chapters.list.map(chapter => chapter.index)) + 1 : draft.index;
+    const id = (!editingExisting && draft.id) || draftEntityId('chapter', `${index}:${draft.title}`, snapshot.chapters.list.map((chapter) => chapter.id));
+    void unwrap(text.chapterCreate(projectId, { ...draft, id, index, expectedFingerprint: management.projectFingerprint })).then((result) => {
       endOp('chapters:management:create-chapter');
       if (!isActive()) return;
       const value = result as { fingerprint: string };
-      patch({ status: 'ready', message: '章节已创建，请在左侧选中该章，再切到“候选”按场景卡写作。', projectFingerprint: value.fingerprint, chapterDraft: { ...draft, id: '', index: draft.index + 1, title: '' } });
+      patch({ status: 'ready', message: '章节已创建，请在左侧选中该章，再切到“候选”按场景卡写作。', projectFingerprint: value.fingerprint, chapterDraft: { ...draft, id: '', index: index + 1, title: '' } });
       reloadTree('chapters:management:reload:create-chapter');
     }, (cause: Error) => { endOp('chapters:management:create-chapter'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
@@ -85,18 +87,26 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
   const updateChapter = (): void => {
     const text = port.textMutation;
     const draft = snapshot.chapters.management.chapterDraft;
-    if (!text || projectId === undefined || draft.id === '' || !beginOp('chapters:management:update-chapter')) return;
+    const management = snapshot.chapters.management;
+    if (!text || projectId === undefined) { patch({ status: 'error', message: '章节管理服务不可用，请重新打开作品。' }); return; }
+    if (management.status === 'loading') return;
+    if (draft.id === '' || draft.id !== snapshot.chapters.selectedChapterId) { patch({ status: 'error', message: '请先在左侧选择要修改的章节。' }); return; }
+    if (draft.title.trim() === '') { patch({ status: 'error', message: '请填写章节标题。' }); return; }
+    if (draft.title.trim().length > 200) { patch({ status: 'error', message: '章节标题不能超过 200 字。' }); return; }
+    if (draft.pov.trim() === '') { patch({ status: 'error', message: '请选择视角角色。' }); return; }
+    if (management.projectFingerprint === undefined) { patch({ status: 'error', message: '请先点击“刷新管理状态”，读取完成后再保存章节信息。' }); return; }
+    if (!beginOp('chapters:management:update-chapter')) return;
     const input: { chapterId: string; patch: ChapterMetadataPatch; expectedFingerprint: string } = {
       chapterId: draft.id,
       patch: { title: draft.title, pov: draft.pov, status: draft.status },
-      expectedFingerprint: snapshot.chapters.management.projectFingerprint ?? '',
+      expectedFingerprint: management.projectFingerprint,
     };
     patch({ status: 'loading', message: '' });
     void unwrap(text.chapterUpdate(projectId, input)).then((result) => {
       endOp('chapters:management:update-chapter');
       if (!isActive()) return;
       const value = result as { fingerprint: string };
-      patch({ status: 'ready', projectFingerprint: value.fingerprint });
+      patch({ status: 'ready', message: '章节信息已保存。', projectFingerprint: value.fingerprint });
       reloadTree('chapters:management:reload:update-chapter');
     }, (cause: Error) => { endOp('chapters:management:update-chapter'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
   };
