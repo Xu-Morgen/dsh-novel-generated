@@ -164,12 +164,21 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     const binding = port.sceneOutlineBinding;
     const sceneId = snapshot.chapters.selectedSceneId;
     const detailBeatId = snapshot.chapters.management.bindingDetailBeatId.trim();
-    if (!binding || projectId === undefined || sceneId === undefined || detailBeatId === '' || !beginOp('chapters:management:binding-save')) return;
-    void unwrap(binding.save(projectId, { sceneId, detailBeatId, expectedFingerprint: snapshot.chapters.management.binding?.fingerprint ?? '' })).then((result) => {
+    const current = snapshot.chapters.management.binding ?? { status: 'idle' as const, manual: [], effective: [] };
+    // I208 / §14.14.2: card status is not a scene selection. Missing author
+    // choices must be visible at the binding controls without issuing a write.
+    const fail = (message: string): void => patch({ status: 'error', message, binding: { ...current, message } });
+    if (!binding || projectId === undefined) { fail('绑定服务暂时不可用，请重新打开作品后重试。'); return; }
+    if (sceneId === undefined) { fail('请先在左侧展开章节并选中一个具体的正文场景；仅选中章节或把细纲卡设为写作中不能完成绑定。'); return; }
+    if (detailBeatId === '') { fail('请先在“细纲目标”中选择要绑定的细纲卡。'); return; }
+    if (current.status === 'loading') return;
+    if (current.status !== 'ready' || current.fingerprint === undefined) { fail('请先点击“刷新管理状态”，读取完成后再绑定细纲。'); return; }
+    if (!beginOp('chapters:management:binding-save')) return;
+    patch({ status: 'loading', message: '', binding: { ...current, status: 'loading', message: '正在保存细纲绑定…' } });
+    void unwrap(binding.save(projectId, { sceneId, detailBeatId, expectedFingerprint: current.fingerprint })).then((result) => {
       endOp('chapters:management:binding-save'); if (!isActive()) return;
-      const value = result as ChapterManagementState['binding'];
-      patch({ binding: value as never });
-    }, (cause: Error) => { endOp('chapters:management:binding-save'); if (isActive()) patch({ status: 'error', message: toUserMessage(cause) }); });
+      patch({ status: 'ready', message: '细纲绑定已保存。', binding: { ...result, status: 'ready', message: '细纲绑定已保存。' } });
+    }, (cause: Error) => { endOp('chapters:management:binding-save'); if (isActive()) fail(`绑定未完成：${toUserMessage(cause)} 可刷新管理状态后重试。`); });
   };
 
   const bindingRebind = (): void => {
