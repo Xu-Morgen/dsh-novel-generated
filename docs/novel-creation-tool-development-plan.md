@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 58 / I214：场景卡写作上下文接线修复
+
+- **目标**：正文工作区按场景卡写作携带实际细纲及人物上下文，当前节 writing 卡优先。
+- **明确不做**：不改 IPC、大纲导航进度或绑定，不改已生成正文，不重构队列。
+- **交付物 / owner**：writing-context / candidate-production / candidate-service / write prompt 与 trace；DoD `docs/ui/i214-dod.md`。
+- **验收**：冻结 dev/held-out 输入完整性样本、fake backend、负向导航/POV、真实 Electron 请求及 TXT 存档核验、未接受零作品写入。
+- **验证**：`pnpm run verify:i214` / `pnpm run verify:stage-58`；已完成，251 文件 / 1250 测试、真实 Electron 及 TXT 核验、冻结 dev 2/2 与 held-out 2/2 输入完整性、原样本回归全绿。下一可用 I215。
+
 ## Stage 57 / I213：隐藏队列入口与场景列表刷新
 
 - **目标**：暂时隐藏队列入口；同章节场景变更及时回读。

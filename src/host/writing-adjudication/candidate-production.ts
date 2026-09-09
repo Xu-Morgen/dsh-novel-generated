@@ -132,7 +132,7 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
     // target validation to observe that same revision before any generation.
     const ownerFingerprints = await deps.sceneOutlineBinding.captureOwnerFingerprintTriple(projectId);
     const built = await deps.context.context(projectId);
-    const card = { ...built.card, wordTarget: built.creation.wordTarget };
+    const card = input.intent === 'scene-card' ? built.card : { ...built.card, wordTarget: built.creation.wordTarget };
     const targetSnapshot = await deps.sceneOutlineBinding.captureCandidateTarget(
       projectId,
       { chapterId: input.chapterId, sceneId: input.sceneId },
@@ -154,11 +154,11 @@ export function createCandidateProduction(deps: CandidateProductionDeps): Candid
     };
     const request: WritingCandidateRequest = input.intent === 'continue'
       ? { ...base, intent: 'continue', sources: built.sources }
-      : { ...base, intent: 'scene-card' };
+      : { ...base, intent: 'scene-card', sources: built.sources };
     validateCandidateTarget(request.intent, request.target);
     const trace = input.intent === 'continue'
       ? built.trace
-      : buildContextTrace({ intent: 'scene-card', pov: card.pov, navigation: built.navigation, card });
+      : { ...built.trace, intent: 'scene-card' as const, sceneCard: { title: card.title, pov: card.pov, wordTarget: card.wordTarget } };
     return { request, context: built, trace, targetSnapshot };
   };
 

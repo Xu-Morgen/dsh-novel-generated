@@ -178,7 +178,8 @@ export function pickCurrentCard(
   navigation: OutlineNavigation,
 ): DetailBeat | undefined {
   const inBeat = cards.filter((card) => card.beatId === navigation.beatId);
-  const picked = inBeat.find((card) => card.detailBeat.status !== 'done') ?? inBeat[inBeat.length - 1];
+  const picked = inBeat.find((card) => card.detailBeat.status === 'writing')
+    ?? inBeat.find((card) => card.detailBeat.status !== 'done') ?? inBeat[inBeat.length - 1];
   return picked?.detailBeat ?? undefined;
 }
 

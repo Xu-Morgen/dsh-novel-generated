@@ -19,6 +19,7 @@ import type { OutlineNavigation } from '../core/schema/outline-progress.js';
 import { createGenerationService } from './generation-service.js';
 import type { GenerationSettings } from '../llm/port/index.js';
 import { buildChapterWritingPrompt } from '../write/chapter.js';
+import { buildSceneCardContextPrompt } from '../write/scene-card-context.js';
 import { assertCompleteProse } from '../write/chapter.js';
 import { buildContinuationPrompt } from '../write/continuation.js';
 import { buildPolishPrompt } from '../write/polish.js';
@@ -45,9 +46,10 @@ export interface ContinueCandidateRequest extends CandidateRequestBase {
   readonly navigation: OutlineNavigation;
 }
 
-/** 按场景卡写作（I43）：只消费场景卡 + 大纲导航，目标为新场景。 */
+/** 按场景卡写作：工作区传入 I19 sources；无 sources 仅保留旧 I43 内部调用兼容。 */
 export interface SceneCardCandidateRequest extends CandidateRequestBase {
   readonly intent: 'scene-card';
+  readonly sources?: StoryGenerationSources;
   readonly card: DetailBeat;
   readonly navigation: OutlineNavigation;
 }
@@ -80,8 +82,8 @@ export interface NovelWritingCandidateService {
    * - rewrite 落地前必须核对 `sourceHash` 与当前场景正文一致（脏文本保护），
    *   错绑定（非法 id / 未知场景 / 哈希不匹配）零写拒绝。
    * - prompt 构建只复用既有能力：generate/continue 走 I19 `assembleStoryContext`，
-   *   continue 追加 I44 `buildContinuationPrompt`，scene-card 走 I43
-   *   `buildChapterWritingPrompt`，rewrite 沿用 I42 的调用方 prompt 语义；不复制
+   *   continue 追加 I44 `buildContinuationPrompt`，工作区 scene-card 复用 I19
+   *   与 I43 并补 I214 身份约束，rewrite 沿用 I42 的调用方 prompt 语义；不复制
    *   任何既有 prompt 文本。
    * - 取消（AbortSignal）抛 `GenerationError('cancelled')`，模型失败抛
    *   `GenerationError('backend'|'unavailable')`，非法输出（空文本）抛错——三者
@@ -103,7 +105,7 @@ export interface WritingCandidateServiceDeps {
  *
  * 复用而不复制：`createGenerationService`（I17）负责 ctx.llm 流式收集与
  * 取消/错误传播；`ContextAssembler` + `registerContextSerializers`（I19）负责
- * generate/continue 的上下文组装；I43/I44 的 prompt builder 原样复用；
+ * generate/continue/工作区 scene-card 的上下文组装；I43/I44 的 prompt builder 复用；
  * rewrite 与 I42 `NovelLocalizedEditService.rewrite` 同一「调用方提供 prompt」语义。
  * 本模块不新增第二套解析、校验或写入路径（R2-7）。
  */
@@ -150,8 +152,12 @@ export function createWritingCandidateService(deps: WritingCandidateServiceDeps)
         const context = assembleStoryContext(assembler, request.sources);
         return buildContinuationPrompt(context, request.card, request.navigation);
       }
-      case 'scene-card':
-        return buildChapterWritingPrompt(request.card, request.navigation);
+      case 'scene-card': {
+        if (request.sources === undefined) return buildChapterWritingPrompt(request.card, request.navigation);
+        if (request.sources.context.macros.pov !== request.card.pov) throw new Error('Scene card POV must match context POV');
+        const context = assembleStoryContext(assembler, request.sources);
+        return buildSceneCardContextPrompt(context, request.sources.context.sources.characters, request.card, request.navigation);
+      }
       case 'rewrite': {
         if (!request.prompt.trim()) throw new Error('Rewrite candidate requires a non-empty prompt');
         return request.polishMode === undefined ? request.prompt : buildPolishPrompt(request.polishMode, request.prompt);

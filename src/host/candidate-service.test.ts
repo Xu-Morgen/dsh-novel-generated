@@ -12,6 +12,7 @@ import { createWritingCandidateService, type NovelWritingCandidateService, type 
 import { GenerationError } from '../llm/port/index.js';
 import type { StoryGenerationSources } from '../core/pipeline/index.js';
 import type { DetailBeat } from '../core/schema/outline.js';
+import type { SceneCharacterView } from '../core/schema/characters.js';
 
 const roots: string[] = [];
 const settings = { modelRef: 'dsh/default', credentialRef: 'dsh/managed' };
@@ -26,6 +27,54 @@ const stateFixture = {
 };
 const navigation = { actId: 'act-1', beatId: 'beat-1', title: 'Cross', description: 'Cross harbor.', prerequisites: [], prerequisitesMet: true, instruction: 'Cross harbor.', deviationIds: [] };
 const card: DetailBeat = { id: 'detail-1', title: 'Find key', summary: 'Mira finds the key.', pov: 'mira', wordTarget: 20, points: ['notice key'], status: 'writing' };
+
+interface PromptCase { id: string; split: string; name: string; ally: string; title: string; summary: string; points: string[]; wordTarget: number; longCharacters?: boolean }
+const promptCases: PromptCase[] = JSON.parse(await readFile(new URL('../../samples/i214/prompt-cases.json', import.meta.url), 'utf8'));
+
+function sceneCharacter(id: string, name: string, long = false): SceneCharacterView {
+  const character = {
+    id, version: 1, name, aliases: [`${name}的旧称`], kind: 'protagonist' as const,
+    personality: '沉着审慎', background: long ? '旧事'.repeat(3500) : '曾是档案员', motivation: '查明真相',
+    goals: ['保护同伴'], flaws: [], abilities: [], speechStyle: '言辞简短', staticTraits: [],
+    arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [],
+  };
+  return { character, name, kind: character.kind, pov: false };
+}
+
+describe('I214 scene-card prompt consumer regression (frozen dev / held-out)', () => {
+  it.each(promptCases)('$split / $id preserves card and character identities through the backend', async (sample) => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i214-'));
+    roots.push(projectsRoot);
+    const seen: string[] = [];
+    const { service } = await openProject(projectsRoot, fakeLlm(seen, `${sample.name}收起了证物。`));
+    const currentSources = sources();
+    const characters = [sceneCharacter('ally', sample.ally, sample.longCharacters), sceneCharacter('mira', sample.name)];
+    const currentCard = { ...card, id: sample.id, title: sample.title, summary: sample.summary, points: sample.points, wordTarget: sample.wordTarget };
+    const before = await snapshot(join(projectsRoot, 'demo'));
+    const { candidate } = await service.propose({
+      id: sample.id, intent: 'scene-card', target: { projectId: 'demo', chapterId: CHAPTER_ID, sceneId: 'new-scene' },
+      sources: { ...currentSources, context: { ...currentSources.context, sources: { ...currentSources.context.sources, characters } } },
+      card: currentCard, navigation, settings,
+    });
+    expect(seen).toEqual([candidate.prompt]);
+    for (const value of [sample.id, sample.title, sample.summary, ...sample.points, sample.name, sample.ally, `${sample.name}的旧称`, '沉着审慎', 'The seal holds.', '## Style', `目标字数: ${sample.wordTarget}`, '不得擅自改名']) expect(seen[0]).toContain(value);
+    expect(seen[0]).toContain(`当前视角角色姓名: ${sample.name}`);
+    expect(seen[0]).toContain('"id":"mira"');
+    if (sample.longCharacters) expect(seen[0]).toContain('[truncated]');
+    expect(await snapshot(join(projectsRoot, 'demo'))).toBe(before);
+  });
+
+  it('rejects split navigation and POV before model I/O', async () => {
+    const projectsRoot = await mkdtemp(join(tmpdir(), 'novel-i214-negative-'));
+    roots.push(projectsRoot);
+    const seen: string[] = [];
+    const { service } = await openProject(projectsRoot, fakeLlm(seen, '不应生成。'));
+    const request = { id: 'negative', intent: 'scene-card' as const, target: { projectId: 'demo', chapterId: CHAPTER_ID, sceneId: 'new-scene' }, sources: sources(), card, navigation, settings };
+    await expect(service.propose({ ...request, navigation: { ...navigation, beatId: 'other-beat' } })).rejects.toThrow('Navigation mismatch');
+    await expect(service.propose({ ...request, card: { ...card, pov: 'other-pov' } })).rejects.toThrow('POV must match');
+    expect(seen).toEqual([]);
+  });
+});
 
 function sources(): StoryGenerationSources {
   return {

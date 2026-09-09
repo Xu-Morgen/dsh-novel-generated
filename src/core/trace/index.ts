@@ -17,9 +17,9 @@ import type { OutlineNavigation } from '../schema/outline-progress.js';
  * - 不泄露：trace 只含层 id、字符数、预算、截断标记、触发关键词与有界导航标题，
  *   绝不携带 prompt 文本、知识事实、完整条目或任何非 POV 可见的 C3 内容
  *   （knowledge 只报告注入条数 `knowledgeVisibleCount`，不出现 entry id/fact）。
- * - scene-card / rewrite 不经 ContextAssembler：trace 如实报告
- *   `sections: []`（无结构层注入），scene-card 附带场景卡与导航摘要，rewrite 只
- *   报告重写指令长度。
+ * - 此处旧 scene-card / rewrite 无 sources 调用报告 `sections: []`；I214
+ *   工作区 scene-card 由 candidate-production 复用同次上下文的层摘要，附加
+ *   场景卡摘要，避免实际已注入 B3 却显示为零层。rewrite 只报告指令长度。
  * - 输出是纯 owned JSON（冻结），可直接进 Remote wire（见 host/remote/writing）。
  */
 

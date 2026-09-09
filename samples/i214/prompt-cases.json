@@ -1,0 +1,6 @@
+[
+  { "id": "dev-writing", "split": "dev", "name": "沈砚", "ally": "陆青", "title": "雨夜取证", "summary": "沈砚与陆青在钟楼寻找铜钥匙。", "points": ["核对钥匙刻痕", "保留证物"], "wordTarget": 800 },
+  { "id": "dev-planned", "split": "dev", "name": "温宁", "ally": "迟远", "title": "渡口相会", "summary": "温宁在渡口辨认迟远。", "points": ["辨认袖口暗纹", "不透露口令"], "wordTarget": 1200 },
+  { "id": "held-writing", "split": "held-out", "name": "晏知秋", "ally": "乔溪", "title": "雪原寻路", "summary": "晏知秋帮助乔溪走出雪原。", "points": ["检查冻伤", "寻找避风处", "留下路标"], "wordTarget": 1500 },
+  { "id": "held-long-characters", "split": "held-out", "name": "钟离月", "ally": "阿洛", "title": "旧档案室", "summary": "钟离月与阿洛核查残缺名册。", "points": ["比对旧名与别名", "封存伪造页"], "wordTarget": 900, "longCharacters": true }
+]

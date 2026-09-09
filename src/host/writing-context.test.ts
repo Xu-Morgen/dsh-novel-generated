@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNextSceneContextBuilder, type NextSceneContextDeps } from './writing-context.js';
+import { createNextSceneContextBuilder, pickCurrentCard, type NextSceneContextDeps } from './writing-context.js';
 import type { NovelTimelineService } from './timeline-service.js';
 import { assembleStoryContext } from '../core/pipeline/index.js';
 import { registerContextSerializers } from '../core/assemble/serializers.js';
@@ -44,6 +44,20 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
 }
 
 describe('host/writing-context 时间线关系注入（方案 A）', () => {
+  it('I214 prioritizes writing in the current beat and preserves planned order without mutating B5', async () => {
+    const deps = stubDeps({});
+    const navigation = await deps.outline.navigate('demo');
+    const [base] = await deps.outline.beatCards('demo');
+    const planned = { ...base, detailBeat: { ...base.detailBeat, id: 'planned', status: 'planned' as const } };
+    const writing = { ...base, detailBeat: { ...base.detailBeat, id: 'writing' } };
+    const otherBeat = { ...writing, beatId: 'other-beat', detailBeat: { ...writing.detailBeat, id: 'other' } };
+    const cards = [otherBeat, planned, writing];
+    const before = structuredClone(cards);
+    expect(pickCurrentCard(cards, navigation)?.id).toBe('writing');
+    expect(pickCurrentCard([otherBeat, planned], navigation)?.id).toBe('planned');
+    expect(pickCurrentCard([otherBeat], navigation)).toBeUndefined();
+    expect(cards).toEqual(before);
+  });
   it('时间线缺席 → 全量注入（兼容旧数据，行为不变）', async () => {
     const builder = createNextSceneContextBuilder(stubDeps({ timeline: undefined }));
     const context = await builder.context('demo');
