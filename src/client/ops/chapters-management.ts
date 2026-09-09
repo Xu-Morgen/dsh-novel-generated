@@ -41,12 +41,13 @@ export function createChaptersManagementOps(runtime: OpsRuntime, port: Managemen
     const text = port.textMutation;
     const binding = port.sceneOutlineBinding;
     if (!text || !binding || projectId === undefined || !beginOp('chapters:management:refresh')) return;
-    patch({ status: 'loading', binding: { status: 'loading', manual: [], effective: [] } });
+    // I206 / §14.34: refresh feedback belongs to this attempt, not a prior mutation.
+    patch({ status: 'loading', message: '', binding: { status: 'loading', manual: [], effective: [] } });
     void Promise.all([unwrap(text.fingerprint(projectId)), unwrap(binding.read(projectId))]).then(([fingerprint, result]) => {
       endOp('chapters:management:refresh');
       if (!isActive()) return;
       const value = result as { manual: Array<{ sceneId: string; detailBeatId: string }>; effective: Array<{ sceneId: string; detailBeatId: string; chapterId: string; source: 'manual' | 'default' }>; fingerprint: string };
-      patch({ status: 'ready', projectFingerprint: (fingerprint as { fingerprint: string }).fingerprint, binding: { status: 'ready', ...value } });
+      patch({ status: 'ready', message: '管理状态已刷新。', projectFingerprint: (fingerprint as { fingerprint: string }).fingerprint, binding: { status: 'ready', ...value } });
     }, (cause: Error) => {
       endOp('chapters:management:refresh');
       if (isActive()) { const message = toUserMessage(cause); patch({ status: 'error', message, binding: { status: 'error', manual: [], effective: [], message } }); }

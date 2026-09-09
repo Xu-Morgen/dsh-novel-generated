@@ -51,6 +51,7 @@ it('I204 editor consumers save through strict IPC and reject invalid forms witho
     expect(count()).toBe(0);
     store.actions.chaptersManagement({ status: 'idle' }); chapters().refreshManagement();
     await vi.waitFor(() => expect(store.getSnapshot().chapters.management.status).toBe('ready'));
+    expect(store.getSnapshot().chapters.management.message).toBe('管理状态已刷新。');
     chapters().chapterDraft({ title: '字'.repeat(201) }); chapters().createChapter();
     expect(count()).toBe(0);
     expect(store.getSnapshot().chapters.management.chapterDraft.title).toHaveLength(201);
