@@ -259,8 +259,21 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
   async function context(projectId: string, append?: { readonly chapterId: string; readonly intent: 'continue' | 'scene-card' }): Promise<NovelAgentContext> {
     const outlineFingerprintBefore = await deps.outline.contentFingerprint(projectId);
     const textFingerprintBefore = deps.textFingerprint === undefined ? undefined : await deps.textFingerprint(projectId);
-    const navigation = await deps.outline.navigate(projectId);
+    let navigation = await deps.outline.navigate(projectId);
     const cards = await deps.outline.beatCards(projectId);
+    // I216 a finished beat must not keep reselecting its last done card after
+    // the author explicitly starts a card in the next beat; C6 remains unchanged.
+    if (append?.intent === 'scene-card' && cards.filter(item => item.beatId === navigation.beatId).every(item => item.detailBeat.status === 'done')) {
+      const nextWriting = cards.find(item => item.detailBeat.status === 'writing');
+      if (nextWriting && nextWriting.beatId !== navigation.beatId) {
+        const outline = await deps.outline.read(projectId);
+        const beat = outline.acts.find(act => act.id === nextWriting.actId)?.beats.find(item => item.id === nextWriting.beatId);
+        if (!beat) throw new Error('Writing card beat is missing');
+        const progress = await deps.outline.readProgress(projectId);
+        navigation = { actId: nextWriting.actId, beatId: beat.id, title: beat.title, description: beat.description, prerequisites: beat.prerequisites,
+          prerequisitesMet: beat.prerequisites.every(id => progress.completedBeats.includes(id)), instruction: beat.description, deviationIds: navigation.deviationIds };
+      }
+    }
     const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
     const [characters, worldview, relationships, state, canonViews, styleSegment, activeRules, knowledgeView, fullKnowledge, chapters] = await Promise.all([
       deps.characters.list(projectId),

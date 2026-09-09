@@ -2209,6 +2209,14 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 60 / I216：场景卡采用完成与下一卡弹窗
+
+- **目标**：场景卡候选采用后当前卡完成，下一卡通过 I11 弹窗确认开始写作。
+- **明确不做**：不自动生成正文或定稿，旧 adoptDraft 保持 C5-only；无 LLM prompt/schema 变更。追加授权：新采用流程绑定本次 input 卡与保存场景。
+- **交付物 / owner**：Main 采用编排/B5 CAS、strict additive 双方法、Client 弹窗与重试，DoD `docs/ui/i216-dod.md`。
+- **验收**：零写/幂等/失败恢复/过期拒绝、确认与取消、跨节选卡、真实 Electron 与 strict 负向。
+- **验证**：`pnpm run verify:i216` / `pnpm run verify:stage-60` 已完成；253 文件 / 1263 测试、strict 双向负向、实际 Electron 采用/绑定/下一卡确认取消及原样本全绿。下一可用 I217。
+
 ## Stage 59 / I215：单卡剧情与同章承接上下文
 
 - **目标**：场景卡写作只展开目标卡，排除节描述后续事件；两种新场景写作读取目标章已保存正文。

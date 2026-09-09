@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ruleStyleRegenerationDescriptors } from '../app/rule-style-regeneration-contract.js';
 import { outlineDescriptionDescriptors } from '../app/outline-description-contract.js';
+import { draftCardProgressDescriptors } from '../app/draft-card-progress-contract.js';
 import { narrativeRepairDescriptors } from '../app/narrative-repair-contract.js';
 
 import desktopContract from '../../contracts/desktop/ipc-methods.json' with { type: 'json' };
@@ -95,7 +96,7 @@ function buildCanonicalDescriptors(): readonly IpcMethodDescriptor[] {
 }
 
 const baselineDescriptors = buildCanonicalDescriptors();
-const additiveDescriptors = [...ruleStyleRegenerationDescriptors, ...narrativeRepairDescriptors, ...outlineDescriptionDescriptors];
+const additiveDescriptors = [...ruleStyleRegenerationDescriptors, ...narrativeRepairDescriptors, ...outlineDescriptionDescriptors, ...draftCardProgressDescriptors];
 export const desktopIpcMethodDescriptors = Object.freeze([
   ...baselineDescriptors.map(descriptor => additiveDescriptors.find(additive => additive.id === descriptor.id) ?? descriptor),
   ...additiveDescriptors.filter(additive => !baselineDescriptors.some(descriptor => descriptor.id === additive.id)),

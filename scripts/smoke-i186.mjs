@@ -116,7 +116,7 @@ function verifyDesktopReleaseBaseline() {
 
   assert(lock.schemaVersion === 1, 'desktop IPC lock schema version changed');
   assert(lock.descriptorIds.length >= 214, 'desktop IPC lock lost the 214 invocation baseline');
-  assert(lock.descriptorIds.length === 234, `desktop IPC lock count changed unexpectedly: ${lock.descriptorIds.length}`);
+  assert(lock.descriptorIds.length === 236, `desktop IPC lock count changed unexpectedly: ${lock.descriptorIds.length}`);
   assert(new Set(lock.descriptorIds).size === lock.descriptorIds.length, 'desktop IPC lock contains duplicate method ids');
   assert(Object.keys(lock.descriptors).length === lock.descriptorIds.length, 'desktop IPC descriptor map is not exhaustive');
   assert(Object.keys(lock.schemas).length > lock.descriptorIds.length, 'desktop IPC result/argument schemas are missing');

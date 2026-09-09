@@ -57,7 +57,7 @@ describe('I174 generated Renderer IPC client', () => {
 
     expect(DESKTOP_CLIENT_SERVICES).toHaveLength(31);
     expect(new Set(DESKTOP_CLIENT_SERVICES.map(({ key }) => key)).size).toBe(31);
-    expect(DESKTOP_CLIENT_SERVICES.reduce((count, service) => count + service.methods.length, 0)).toBe(215);
+    expect(DESKTOP_CLIENT_SERVICES.reduce((count, service) => count + service.methods.length, 0)).toBe(217);
     expect(Object.keys(client.services).sort()).toEqual(DESKTOP_CLIENT_SERVICES.map(({ key }) => key).sort());
 
     for (const service of DESKTOP_CLIENT_SERVICES) {
@@ -178,7 +178,7 @@ describe('I174 generated Renderer IPC client', () => {
       .map((match) => ({ key: match[1], namespace: match[2] }));
 
     expect(DESKTOP_CLIENT_SERVICES.map(({ key, namespace }) => ({ key, namespace }))).toEqual(historical);
-    expect(lock.descriptorIds).toHaveLength(234);
+    expect(lock.descriptorIds).toHaveLength(236);
     expect(DESKTOP_CLIENT_SERVICES.flatMap(({ methods }) => methods.map(({ methodId }) => methodId))
       .every((methodId) => lock.descriptorIds.includes(methodId))).toBe(true);
   });

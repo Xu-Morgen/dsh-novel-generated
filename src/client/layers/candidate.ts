@@ -31,6 +31,9 @@ export type CandidateUiState =
 export interface CandidatePanelState {
   readonly ui: CandidateUiState;
   readonly rewritePrompt: string;
+  readonly cardProgress?: import('../../app/draft-card-progress-contract.js').CardDraftResult;
+  readonly cardProgressBusy?: boolean;
+  readonly cardProgressError?: string;
 }
 
 export function freshCandidatePanel(): CandidatePanelState {
@@ -46,7 +49,7 @@ export function freshCandidatePanel(): CandidatePanelState {
  */
 export function candidatePanel(h: El, projectId: string, writing: WritingNamespace | undefined, state: CandidatePanelState, ops: ChaptersEditOps, characterOptions: readonly EntityOption[] = []): unknown {
   const available = writing !== undefined && projectId !== undefined;
-  const disabled = !available || state.ui.kind === 'proposing' || state.ui.kind === 'acting';
+  const disabled = !available || state.ui.kind === 'proposing' || state.ui.kind === 'acting' || state.cardProgress !== undefined;
   const reviewing = state.ui.kind === 'ready' || state.ui.kind === 'acting';
   const proposeEntry = h('div', { className: 'nv-candidate__entry', 'data-novel-candidate-entry': '' },
     h('div', { className: 'nv-editor__actions' },
@@ -81,7 +84,7 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
     body = h('p', { className: 'nv-candidate__hint', 'data-novel-candidate-proposing': '', role: 'status', 'aria-live': 'polite' }, `正在生成${ui.intent === 'continue' ? '续写' : '场景卡写作'}候选…`);
   } else if (ui.kind === 'ready' || ui.kind === 'acting') {
     const review = ui.review;
-    const acting = ui.kind === 'acting' ? ui.action : undefined;
+    const acting = state.cardProgressBusy ? 'adopt' : ui.kind === 'acting' ? ui.action : undefined;
     const diffBlock = review.diff.kind === 'new-scene'
       ? h('p', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'new-scene' }, '新场景：将追加到当前选中的位置。')
       : h('details', { className: 'nv-candidate__diff', 'data-novel-candidate-diff': 'replace' },
@@ -158,5 +161,20 @@ export function candidatePanel(h: El, projectId: string, writing: WritingNamespa
     h('h3', { className: 'nv-editor__title' }, '写作候选'),
     reviewing ? h('details', { className: 'nv-candidate__other-actions' }, h('summary', null, '其他生成方式'), proposeEntry) : proposeEntry,
     body,
+    state.cardProgress?.completion === 'pending' ? h('div', { role: 'alert', 'data-novel-card-progress-retry': '' },
+      h('p', null, '草稿已保存，但细纲完成或场景绑定尚未完成。请重试联动，正文不会重复保存。'),
+      h('button', { type: 'button', className: 'nv-btn', disabled: state.cardProgressBusy, onClick: () => ops.retryCardDraft() }, '重试完成与绑定'),
+      state.cardProgressError ? h('p', null, state.cardProgressError) : null) : null,
+    state.cardProgress?.next ? h('div', { style: { position: 'fixed', inset: '0', zIndex: 10000, background: '#0006', display: 'grid', placeItems: 'center' } },
+      h('div', { role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'next-card-title', 'data-novel-next-card-dialog': '', style: { background: 'var(--nv-bg, #fffdf8)', color: 'var(--nv-text, #222)', padding: '24px', width: 'min(640px, 90vw)', maxHeight: '80vh', overflow: 'auto', borderRadius: '12px' },
+        onKeyDown: (event: { key: string; preventDefault(): void }) => { if (event.key === 'Escape' && !state.cardProgressBusy) { event.preventDefault(); ops.decideNextCard(false); } } },
+        h('h3', { id: 'next-card-title' }, '将下一张细纲卡设为“写作中”？'),
+        h('h4', null, state.cardProgress.next.card.title),
+        h('p', { style: { whiteSpace: 'pre-wrap' } }, state.cardProgress.next.card.summary),
+        h('ul', null, state.cardProgress.next.card.points.map((point, index) => h('li', { key: index }, point))),
+        h('p', null, `目标字数：${state.cardProgress.next.card.wordTarget}`),
+        state.cardProgressError ? h('p', { role: 'alert' }, state.cardProgressError) : null,
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-next-card-confirm': '', disabled: state.cardProgressBusy, onClick: () => ops.decideNextCard(true) }, '确认'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-next-card-cancel': '', disabled: state.cardProgressBusy, onClick: () => ops.decideNextCard(false) }, '取消'))) : null,
   );
 }

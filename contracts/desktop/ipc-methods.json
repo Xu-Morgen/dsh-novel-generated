@@ -235,7 +235,9 @@
     "novel-creation-tool/novelNarrativeAdaptation/repairProgress",
     "novel-creation-tool/novelNarrativeReveal/repairProgress",
     "novel-creation-tool/novelWorkspace/descriptionGenerate",
-    "novel-creation-tool/novelWorkspace/descriptionDecide"
+    "novel-creation-tool/novelWorkspace/descriptionDecide",
+    "novel-creation-tool/novelWorkspace/sceneCardDraftAdopt",
+    "novel-creation-tool/novelWorkspace/sceneCardNextDecide"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6780,6 +6782,48 @@
       "result": {
         "typeSymbol": "novel-creation-tool#outlineDescriptionProposal",
         "schemaId": "novel-creation-tool#outlineDescriptionProposal@dd9feca7"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/sceneCardDraftAdopt": {
+      "id": "novel-creation-tool/novelWorkspace/sceneCardDraftAdopt",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "sceneCardDraftAdopt",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#cardDraftInput",
+            "schemaId": "novel-creation-tool#cardDraftInput@bb384ed5"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#cardDraftResult",
+        "schemaId": "novel-creation-tool#cardDraftResult@5021dee6"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/sceneCardNextDecide": {
+      "id": "novel-creation-tool/novelWorkspace/sceneCardNextDecide",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "sceneCardNextDecide",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#nextCardDecision",
+            "schemaId": "novel-creation-tool#nextCardDecision@78de5e8e"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#nextCardResult",
+        "schemaId": "novel-creation-tool#nextCardResult@d424c959"
       }
     }
   },
@@ -54828,6 +54872,233 @@
           "projectId",
           "proposalId",
           "accept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#cardDraftInput@bb384ed5": {
+      "typeSymbol": "novel-creation-tool#cardDraftInput",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "candidateId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#cardDraftResult@5021dee6": {
+      "typeSymbol": "novel-creation-tool#cardDraftResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "adoption": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "candidateId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "chapterId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "sceneId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "adopted",
+                  "already-adopted"
+                ]
+              },
+              "sourceHash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "projectFingerprint": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "generationBaselineId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              }
+            },
+            "required": [
+              "projectId",
+              "candidateId",
+              "chapterId",
+              "sceneId",
+              "status",
+              "sourceHash",
+              "projectFingerprint"
+            ],
+            "additionalProperties": false
+          },
+          "completion": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "done"
+            ]
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "proposalId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "card": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64,
+                        "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                      },
+                      "title": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "summary": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "pov": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "wordTarget": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "points": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "planned",
+                          "writing",
+                          "done"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "summary",
+                      "pov",
+                      "wordTarget",
+                      "points",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "proposalId",
+                  "card"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "adoption",
+          "completion",
+          "next"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#nextCardDecision@78de5e8e": {
+      "typeSymbol": "novel-creation-tool#nextCardDecision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "proposalId",
+          "accept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#nextCardResult@d424c959": {
+      "typeSymbol": "novel-creation-tool#nextCardResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "status"
         ],
         "additionalProperties": false
       }

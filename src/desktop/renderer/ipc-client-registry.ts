@@ -171,6 +171,14 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "descriptionDecide",
         "methodId": "novel-creation-tool/novelWorkspace/descriptionDecide"
+      },
+      {
+        "method": "sceneCardDraftAdopt",
+        "methodId": "novel-creation-tool/novelWorkspace/sceneCardDraftAdopt"
+      },
+      {
+        "method": "sceneCardNextDecide",
+        "methodId": "novel-creation-tool/novelWorkspace/sceneCardNextDecide"
       }
     ]
   },

@@ -134,6 +134,8 @@ export interface NovelWritingAdjudicationService {
   previewLayers(candidateId: string, signal?: AbortSignal): Promise<WritingLayerPreview>;
   /** I135 main author path: land candidate prose into C5 only. */
   adoptDraft?(candidateId: string, signal?: AbortSignal): Promise<DraftAdoptionResult>;
+  /** I216 Host-only frozen source identity, never inferred from current editor selection. */
+  sceneCardDraftSource?(candidateId: string): { projectId: string; card: import('../core/schema/outline.js').DetailBeat };
   /** Host-only seam consumed by FinalizationPlanBuilder; never a Remote method. */
   adoptedDraft?(candidateId: string): DraftAdoptionResult;
   /** Host-only pure structural preview for the final saved C5 prose. */
@@ -290,6 +292,12 @@ export function createWritingAdjudicationService(deps: WritingAdjudicationServic
         changes: plan.changes,
         validation: review.validation,
       });
+    },
+    sceneCardDraftSource(candidateId: string) {
+      const entry = production.requireEntry(candidateId);
+      const card = entry.context?.card ?? entry.recovery?.card;
+      if (entry.candidate.intent !== 'scene-card' || card === undefined) throw new Error('Only scene-card candidates can complete a detail card');
+      return { projectId: entry.candidate.target.projectId, card: structuredClone(card) };
     },
     async adoptDraft(candidateId: string, signal?: AbortSignal): Promise<DraftAdoptionResult> {
       const observedEntry = production.requireEntry(candidateId);

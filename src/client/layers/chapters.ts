@@ -165,6 +165,9 @@ export interface ChaptersEditOps {
   proposeRewrite(): void;
   /** I135 main path: adopt candidate prose into C5 without structured sync. */
   adoptDraftCandidate(): void;
+  /** I216 retry only the saved candidate's completion/binding; next transition is an I11 choice. */
+  retryCardDraft(): void;
+  decideNextCard(accept: boolean): void;
   adjudicateCandidate(decision: 'accept' | 'reject' | 'rewrite'): void;
   dismissCandidate(): void;
   branchesLoad(): void;

@@ -44,6 +44,20 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
 }
 
 describe('host/writing-context 时间线关系注入（方案 A）', () => {
+  it('I216 follows a writing card in the next beat after the current beat cards are done without writing C6', async () => {
+    const deps = stubDeps({}); const [base] = await deps.outline.beatCards('demo');
+    const done = { ...base, detailBeat: { ...base.detailBeat, status: 'done' as const } };
+    const next = { ...base, beatId: 'beat-2', detailBeat: { ...base.detailBeat, id: 'next-card' } };
+    const builder = createNextSceneContextBuilder({ ...deps,
+      outline: { ...deps.outline, beatCards: async () => [done, next],
+        read: async () => ({ acts: [{ id: base.actId, beats: [{ id: 'beat-2', title: '下一节', description: '下一节内容', prerequisites: [] }] }] }),
+        readProgress: async () => ({ completedBeats: [] }),
+      } as unknown as NextSceneContextDeps['outline'],
+      text: { listChapters: async () => [contextChapter('chapter', 1, [])] } as unknown as NextSceneContextDeps['text'],
+    });
+    const built = await builder.context('demo', { chapterId: 'chapter', intent: 'scene-card' });
+    expect(built.card.id).toBe('next-card'); expect(built.navigation.beatId).toBe('beat-2');
+  });
   it('I215 scopes both append intents to saved current-chapter content and excludes future chapters', async () => {
     const chapters = [
       contextChapter('future', 3, [contextScene('future-scene', 0, '后章不应泄漏')]),

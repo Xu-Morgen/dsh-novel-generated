@@ -1,5 +1,7 @@
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
 import { createOutlineDescriptionService } from '../../host/outline-description-service.js';
+import { createDraftCardProgressService } from '../../host/draft-card-progress-service.js';
+import { cardDraftInputSchema, nextCardDecisionSchema, type DraftCardProgressNamespace } from '../../app/draft-card-progress-contract.js';
 import { descriptionTargetSchema, descriptionDecisionSchema, type OutlineDescriptionNamespace } from '../../app/outline-description-contract.js';
 import { asLlmBackend } from '../../llm/port/index.js';
 import type { DesktopPaths } from '../../app/paths.js';
@@ -125,6 +127,9 @@ export function createDesktopAuthorWorkflowHandlers(
     await statistics.open(projectId);
   };
   const map = new Map<string, IpcHandler>();
+  const cardProgress: DraftCardProgressNamespace = createDraftCardProgressService({ writing: deps.c5.writing, outline: deps.outline, confirmation: deps.confirmation, binding: deps.c5.binding, onDispose: deps.onDispose });
+  map.set('novel-creation-tool/novelWorkspace/sceneCardDraftAdopt', input => cardProgress.sceneCardDraftAdopt(cardDraftInputSchema.parse(input)));
+  map.set('novel-creation-tool/novelWorkspace/sceneCardNextDecide', input => cardProgress.sceneCardNextDecide(nextCardDecisionSchema.parse(input)));
   const descriptions = createOutlineDescriptionService({ outline: deps.outline, confirmation: deps.confirmation, llm: asLlmBackend(deps.llm), settings: deps.c5.resolveSettings, onDispose: deps.onDispose });
   const descriptionApi: OutlineDescriptionNamespace = descriptions;
   map.set('novel-creation-tool/novelWorkspace/descriptionGenerate', (input, context) => descriptions.generate(descriptionTargetSchema.parse(input), contextOf(context)?.signal));

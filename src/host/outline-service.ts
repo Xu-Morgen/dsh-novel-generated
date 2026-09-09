@@ -10,6 +10,8 @@ export interface NovelOutlineService {
   open(projectId: string): Promise<void>;
   readiness(projectId: string): Promise<'ready' | 'uninitialized' | 'corrupt'>;
   save(projectId: string, input: OutlineInput): Promise<Outline>;
+  /** Host-only atomic B5 freshness gate for card workflow. */
+  saveIfFingerprint?(projectId: string, input: OutlineInput, expected: string): Promise<Outline>;
   read(projectId: string): Promise<Outline>;
   /** Internal semantic token for canonical parsed B5 content. */
   contentFingerprint(projectId: string): Promise<string>;
@@ -49,6 +51,7 @@ export function createOutlineService(
     },
 
     save: (projectId, input) => get(projectId).outline.save(input),
+    saveIfFingerprint: (projectId, input, expected) => get(projectId).outline.saveIfFingerprint(input, expected),
     read: (projectId) => get(projectId).outline.read(),
     async contentFingerprint(projectId) {
       return outlineContentFingerprint(await get(projectId).outline.read());

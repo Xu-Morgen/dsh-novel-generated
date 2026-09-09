@@ -265,12 +265,39 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
    * command remains available above for compatibility, but the author-facing
    * button deliberately calls this additive Host method.
    */
+  const adoptCardDraft = (candidateId: string, navigationRevision: number): void => {
+    if (!workspace || !projectId || !beginOp(`card-draft:${candidateId}`)) return;
+    candidatePatchForRevision({ cardProgressBusy: true, cardProgressError: undefined }, navigationRevision);
+    void unwrap(workspace.sceneCardDraftAdopt({ candidateId })).then(result => {
+      if (!isActive()) return;
+      candidatePatchForRevision({ cardProgress: result.completion === 'pending' || result.next ? result : undefined, cardProgressBusy: false,
+        ui: { kind: 'done', message: result.completion === 'done' ? '草稿已保存；本次细纲卡已完成，正文场景已绑定。' : '草稿已保存，细纲与绑定联动待重试。' } }, navigationRevision);
+      workflowPatchForRevision({ status: 'saved', candidateId, projectId, chapterId: result.adoption.chapterId, sceneId: result.adoption.sceneId, sourceHash: result.adoption.sourceHash, message: '草稿已保存。' }, navigationRevision);
+      // Read projections without resetting candidate state while its confirmation dialog is open.
+      void unwrap(workspace.chapterRead(projectId, result.adoption.chapterId)).then(chapter => { if (isActive()) act.chaptersRefreshRead(result.adoption.chapterId, chapter); }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ cardProgressError: toUserMessage(cause) }, navigationRevision); });
+      if (result.completion === 'done' && !result.next) reloadChapters(result.adoption.sceneId);
+    }, (cause: Error) => {
+      if (isActive()) candidatePatchForRevision({ cardProgressBusy: false, cardProgressError: toUserMessage(cause), ui: { kind: 'error', message: toUserMessage(cause) } }, navigationRevision);
+    }).finally(() => endOp(`card-draft:${candidateId}`));
+  };
+  const decideNextCard = (accept: boolean): void => {
+    const flow = snapshot.chapters.candidate.cardProgress;
+    if (!workspace || !projectId || !flow?.next || !beginOp('card-next')) return;
+    const revision = snapshot.chapters.navigationRevision;
+    candidatePatchForRevision({ cardProgressBusy: true, cardProgressError: undefined }, revision);
+    void unwrap(workspace.sceneCardNextDecide({ projectId, proposalId: flow.next.proposalId, accept })).then(() => {
+      if (!isActive()) return;
+      candidatePatchForRevision({ cardProgress: undefined, cardProgressBusy: false, ui: { kind: 'done', message: accept ? '下一张细纲卡已设为写作中。' : '已取消；下一张细纲卡状态保持不变。' } }, revision);
+      reloadChapters(flow.adoption.sceneId);
+    }, (cause: Error) => { if (isActive()) candidatePatchForRevision({ cardProgressBusy: false, cardProgressError: toUserMessage(cause) }, revision); }).finally(() => endOp('card-next'));
+  };
   const adoptDraftCandidate = (): void => {
     const target = writing;
     const ui = snapshot.chapters.candidate.ui;
     if (!target || projectId === undefined || ui.kind !== 'ready') return;
     const candidateId = ui.review.candidateId;
     const navigationRevision = snapshot.chapters.navigationRevision;
+    if (ui.review.intent === 'scene-card') { adoptCardDraft(candidateId, navigationRevision); return; }
     if (!beginOp(`writing:adoptDraft:${candidateId}`)) return;
     const release = (): void => endOp(`writing:adoptDraft:${candidateId}`);
     candidatePatchForRevision({ ui: { kind: 'acting', review: ui.review, layerPreview: ui.layerPreview, action: 'adopt' } }, navigationRevision);
@@ -294,11 +321,13 @@ export function createCandidateOps(runtime: OpsRuntime, port: CandidatePort, int
     });
   };
 
-  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adoptDraftCandidate' | 'adjudicateCandidate' | 'dismissCandidate' | 'startPolish' | 'nextPolishScene' | 'stopPolish' | 'restartPolish'> = {
+  const ops: Pick<ChaptersEditOps, 'proposeWriting' | 'rewritePromptChange' | 'proposeRewrite' | 'adoptDraftCandidate' | 'retryCardDraft' | 'decideNextCard' | 'adjudicateCandidate' | 'dismissCandidate' | 'startPolish' | 'nextPolishScene' | 'stopPolish' | 'restartPolish'> = {
     proposeWriting,
     rewritePromptChange(value) { candidatePatch({ rewritePrompt: value }); },
     proposeRewrite,
     adoptDraftCandidate,
+    retryCardDraft() { const flow = snapshot.chapters.candidate.cardProgress; if (flow) adoptCardDraft(flow.adoption.candidateId, snapshot.chapters.navigationRevision); },
+    decideNextCard,
     adjudicateCandidate,
     dismissCandidate() { candidatePatch({ ui: { kind: 'idle' }, rewritePrompt: '' }); act.chaptersWorkflow({ status: 'idle', message: undefined, sourceHash: undefined, traceSectionCount: undefined }); },
     startPolish,
