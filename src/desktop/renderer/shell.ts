@@ -142,7 +142,7 @@ const RULE_STYLE_BEGIN_METHOD = 'novel-creation-tool/novelRuleStyleImportInitial
 
 /** Narrow and validate the live desktop progress event before it enters the presenter. */
 export function desktopRuleStyleStream(progress: DesktopClientSnapshot['progress']): RuleStyleStreamView | undefined {
-  if (progress?.methodId !== RULE_STYLE_BEGIN_METHOD || progress.value === null || typeof progress.value !== 'object' || Array.isArray(progress.value)) return undefined;
+  if ((progress?.methodId !== RULE_STYLE_BEGIN_METHOD && progress?.methodId !== 'novel-creation-tool/novelRuleStyleImportInitialization/regenerate') || progress.value === null || typeof progress.value !== 'object' || Array.isArray(progress.value)) return undefined;
   const value = progress.value as Record<string, unknown>;
   const phases: readonly RuleStyleStreamView['phase'][] = ['checking-config', 'connecting', 'reasoning', 'generating', 'validating'];
   if (value.status !== 'running') return undefined;

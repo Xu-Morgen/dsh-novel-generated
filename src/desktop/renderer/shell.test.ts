@@ -19,6 +19,9 @@ function createClient() {
 }
 
 describe('I173 desktop Renderer shell', () => {
+  it('I218 shows regenerate progress through the same stream projection', () => {
+    expect(desktopRuleStyleStream({ requestId: 'desktop:218', methodId: 'novel-creation-tool/novelRuleStyleImportInitialization/regenerate', value: { status: 'running', streamPhase: 'validating', receivedCharacters: 500, latestText: 'candidate' } })).toEqual({ phase: 'validating', receivedCharacters: 500, latestText: 'candidate' });
+  });
   it('accepts only bounded rule/style stream progress from the canonical begin method', () => {
     expect(desktopRuleStyleStream({
       requestId: 'desktop:4',

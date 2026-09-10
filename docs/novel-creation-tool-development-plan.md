@@ -2209,6 +2209,13 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 62 / I218：规则与文风失败恢复与重试（已完成）
+
+- 目标：完整 JSON 格式校验失败结束等待并开放同任务重试，旧孤立 running 可恢复；重生成展示真实进度。
+- 明确不做：不拓宽规则枚举、不自动映射或付费重试、不改变公开 IPC 与 I11 确认边界。
+- 交付物 / owner / 验收：见 `docs/ui/i218-dod.md`；Host 有界终态、Client 轮询恢复、Main/Renderer 进度、冻结 dev/held-out 样本与实际 Electron 消费者。
+- 验证：`pnpm run verify:stage-62`（含 verify:i218）全绿；258 文件 / 1278 测试、实际 Electron 失败→同任务重试→I11 写入、历史桌面回归、格式样本 dev/held-out 4/4 与原有样本全绿。下一可用 I219。
+
 ## Stage 61 / I217：整章阅读与整章定稿（已完成）
 
 - 目标：点击章节阅读所有场景正文，按整章分析、一次 I11 确认同步并进入下一章。

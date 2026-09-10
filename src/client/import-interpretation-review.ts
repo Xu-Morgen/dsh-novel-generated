@@ -435,7 +435,7 @@ function ruleStyleInitializationPanel(h: El, state: ImportInterpretationReviewSt
       h('section', { className: 'nv-field', 'data-novel-rule-style-import-style': '' }, h('h5', { className: 'nv-field__label' }, '文风初稿'), structuredEditor(h, parseDraft(state.ruleStyleStyleDraft, initialization.candidate?.style ?? {}), (next) => ops.setRuleStyleStyleDraft?.(JSON.stringify(next)), 'rule-style-style')),
     ) : null,
     initialization.status === 'proposed' ? h('div', { 'data-novel-rule-style-import-preview': '' }, h('ul', null, initialization.candidate?.rules.map(rule => h('li', { key: rule.id }, rule.statement))), h('p', null, `文风：${initialization.candidate?.style.name} · ${initialization.candidate?.style.tone}`)) : null,
-    initialization.error === undefined ? null : h('p', { className: 'nv-editor__error', role: 'alert' }, toUserMessage(initialization.error, '规则与文风初始化未完成。')),
+    initialization.error === undefined ? null : advancedError(h, initialization.error, '规则与文风初始化未完成。', { role: 'alert' }),
     h('div', { className: 'nv-import-review__actions' },
       initialization.status === 'succeeded' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-propose': '', onClick: () => ops.proposeRuleStyleInitialization?.() }, '审阅规则与文风') : null,
       initialization.status === 'proposed' || initialization.status === 'applying' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', disabled: state.ruleStyleBusy, 'data-novel-rule-style-import-accept': '', onClick: () => ops.acceptRuleStyleInitialization?.() }, initialization.status === 'applying' ? '继续已确认的规则与文风写入' : '确认写入规则与文风') : null,
@@ -677,7 +677,12 @@ export function createImportInterpretationController(deps: ImportInterpretationC
       patchRuleStyle(status);
       if (status.status === 'queued' || status.status === 'running') ruleStylePollTimer = setTimeout(() => pollRuleStyle(identity), IMPORT_ANALYSIS_POLL_MS);
       else clearRuleStylePoll();
-    }, (error: Error) => patch({ ruleStyleBusy: false, error: toUserMessage(error, '规则与文风初始化状态不可用。') }));
+    }, (error: Error) => {
+      if (!active() || current?.projectId !== identity.projectId || current.importSessionId !== identity.importSessionId || current.sourceHash !== identity.sourceHash) return;
+      clearRuleStylePoll();
+      const message = toUserMessage(error, '规则与文风初始化状态读取失败，请重试同一初始化任务。');
+      patch({ ruleStyleBusy: false, ruleStyleStream: undefined, ruleStyleStartFailure: { message, retryable: true }, error: message, technicalError: rawError(error) });
+    });
   };
   const startRuleStyle = (identity: { projectId: string; importSessionId: string; sourceHash: string }): void => {
     if (current?.ruleStyleBusy) return;

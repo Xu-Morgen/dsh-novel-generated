@@ -1,5 +1,6 @@
 import { importInterpretationSessionReadInputSchema } from '../core/schema/import-interpretation-session.js';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { load, dump } from 'js-yaml';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -28,6 +29,40 @@ const waitFor = async (service: ReturnType<typeof createRuleStyleImportInitializ
 };
 
 describe('I151 RuleStyleImportInitializationService', () => {
+  it('I218 persists oversized schema failures, recovers orphan running and retries the same import without early writes', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'novel-i218-'));
+    try {
+      await new ProjectRepository(root).createProject({ projectId: 'demo', name: 'Demo' });
+      const rules = createRuleService(root); const style = createStyleService(root); const confirmation = createConfirmationService(root);
+      await Promise.all([rules.open('demo'), style.open('demo'), confirmation.open('demo')]);
+      const samples = JSON.parse(await readFile('samples/rule-style-i218.json', 'utf8'));
+      const invalid = { ...candidate, rules: samples.cases.find((sample: { id: string }) => sample.id === 'held-out-invalid').kinds.map((kind: string, index: number) => ({ ...candidate.rules[0], id: `rule-${index}`, kind })) };
+      let result = invalid; let calls = 0;
+      const backend = { async *stream() { calls += 1; yield { type: 'text-delta' as const, text: JSON.stringify(result) }; } };
+      const deps = { sessions: { firstConfirmed: async () => ({ ...identity, intent, paragraphDecisions: [], status: 'confirmed', createdAt: new Date(0).toISOString(), updatedAt: new Date(0).toISOString() }) } as never, analysis: { source: () => 'fixture' } as never, confirmation, rules, style, isProjectEmpty: async () => true };
+      const first = createRuleStyleImportInitializationService(backend, root, deps);
+      const failed = await first.begin(identity, settings, { waitForCompletion: true });
+      expect(failed).toMatchObject({ ...identity, status: 'failed' });
+      expect(failed.error).toContain('kind'); expect(failed.error!.length).toBeLessThanOrEqual(4000);
+      first.dispose();
+      const reopened = createRuleStyleImportInitializationService(backend, root, deps);
+      expect(await reopened.status(identity)).toEqual(failed);
+      reopened.dispose();
+      const path = join(root, 'demo', '.rule-style-import-initialization.yaml');
+      const saved = load(await readFile(path, 'utf8')) as { checkpoint: Record<string, unknown> };
+      saved.checkpoint.status = 'running'; delete saved.checkpoint.error;
+      await writeFile(path, dump(saved), 'utf8');
+      const recovered = createRuleStyleImportInitializationService(backend, root, deps);
+      expect(await recovered.status(identity)).toMatchObject({ status: 'failed' });
+      result = candidate;
+      const succeeded = await recovered.begin(identity, settings, { waitForCompletion: true });
+      expect(succeeded).toMatchObject({ ...identity, status: 'succeeded' });
+      expect(calls).toBe(2);
+      expect(await rules.list('demo')).toEqual([]);
+      expect(await style.isInitialized('demo')).toBe(false);
+      recovered.dispose();
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
   it('calls LLM exactly once, writes nothing before I11, then round-trips rules/style after accept', async () => {
     const root = await mkdtemp(join(tmpdir(), 'novel-i151-'));
     try {

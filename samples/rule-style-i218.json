@@ -1,0 +1,9 @@
+{
+  "threshold": 1,
+  "cases": [
+    { "id": "dev-invalid-setting", "split": "dev", "kinds": ["setting", "character", "item", "event", "plot", "location", "timeline"], "valid": false },
+    { "id": "dev-valid", "split": "dev", "kinds": ["magic", "physics", "genre"], "valid": true },
+    { "id": "held-out-invalid", "split": "held-out", "kinds": ["character", "plot", "setting", "event", "item", "timeline", "location", "plot", "character", "setting", "event", "item", "location"], "valid": false },
+    { "id": "held-out-valid", "split": "held-out", "kinds": ["technology", "permission", "taboo"], "valid": true }
+  ]
+}

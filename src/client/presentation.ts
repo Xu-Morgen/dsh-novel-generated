@@ -60,6 +60,7 @@ export function rawError(cause: unknown): string {
 export function toUserMessage(cause: unknown, fallback = '操作未完成，请重试。'): string {
   const message = (cause instanceof ClientInvocationError ? cause.invocationMessage : rawError(cause)).trim();
   if (message === '') return fallback;
+  if (message.startsWith('规则与文风返回格式校验失败：') && message.includes('kind 分类不合法')) return '生成结果中的规则分类不符合要求。请点击“重试同一初始化任务”重新生成；分类详情可展开查看。';
   if (/stale|sourceHash|baseHash|fingerprint|expectedFingerprint/i.test(message)) return '内容已发生变化，请刷新后再试。';
   if (/unknown (project|chapter|scene|branch)|not open|not found|cross[- ]project|不存在当前作品/i.test(message)) return '找不到对应内容，请刷新后再试。';
   if (/remote|host|schema|codec|invalid .*result|invalid input|expected .*received|rejected .*result|malformed json|gateway|六层候选契约/i.test(message)) return '创作服务返回了无法使用的内容，请重试。';

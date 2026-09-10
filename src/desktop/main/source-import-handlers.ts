@@ -252,13 +252,17 @@ export function createDesktopSourceImportHandlers(
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/accept', (input) => initialization.accept(input as Parameters<typeof initialization.accept>[0]));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/reject', (input) => initialization.reject(input as Parameters<typeof initialization.reject>[0]));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/cancel', (input) => initialization.cancel(input as Parameters<typeof initialization.cancel>[0]));
+  const regenerateWithProgress = async (input: Parameters<typeof initialization.regenerate>[0], invocation?: IpcInvocationContext) => withProgress(invocation, 'ruleStyleImportInitialization.regenerate', async () => initialization.regenerate(input, await resolveSettings(), {
+    waitForCompletion: invocation !== undefined,
+    onProgress: progress => invocation?.reportProgress({ phase: 'ruleStyleImportInitialization.regenerate', status: 'running', streamPhase: progress.phase, receivedCharacters: progress.receivedCharacters, latestText: progress.latestText }),
+  }));
   const regeneration: RuleStyleRegenerationNamespace = {
     prepareRegeneration: input => initialization.prepareRegeneration(input),
-    regenerate: async input => initialization.regenerate(input, await resolveSettings()),
+    regenerate: input => regenerateWithProgress(input),
     rejectRegeneration: input => initialization.rejectRegeneration(input),
   };
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/prepareRegeneration', input => regeneration.prepareRegeneration(ruleStyleImportIdentitySchema.parse(input)));
-  map.set('novel-creation-tool/novelRuleStyleImportInitialization/regenerate', input => regeneration.regenerate(ruleStyleRegenerationDecisionSchema.parse(input)));
+  map.set('novel-creation-tool/novelRuleStyleImportInitialization/regenerate', (input, context) => regenerateWithProgress(ruleStyleRegenerationDecisionSchema.parse(input), contextOf(context)));
   map.set('novel-creation-tool/novelRuleStyleImportInitialization/rejectRegeneration', input => regeneration.rejectRegeneration(ruleStyleRegenerationDecisionSchema.parse(input)));
 
   map.set('novel-creation-tool/novelNarrativeAdaptation/begin', async (input, settings, context) => {

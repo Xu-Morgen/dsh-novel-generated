@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { ruleStyleFailureMessage } from './rule-style-failure.js';
 import { applyRuleStyleReplacement, readRuleStyleSnapshot, ruleStyleSnapshotFingerprint } from './rule-style-replacement.js';
 import { importInterpretationIntentSchema } from '../core/schema/import-interpretation-session.js';
 import { mkdir, rename, unlink } from 'node:fs/promises';
@@ -112,6 +113,7 @@ export function createRuleStyleImportInitializationService(
   const tails = new Map<string, Promise<unknown>>();
   const controllers = new Map<string, AbortController>();
   const jobs = new Map<string, Promise<void>>();
+  const terminalFailures = new Map<string, RuleStyleImportCheckpoint>();
   let disposed = false;
   const ensureActive = (): void => { if (disposed) throw new Error('Rule/style import initialization service is disposed'); };
   const pathFor = (projectId: string): string => join(projectDirectory(root, projectId), RULE_STYLE_IMPORT_CHECKPOINT_FILE);
@@ -122,6 +124,8 @@ export function createRuleStyleImportInitializationService(
     return run;
   };
   const readCheckpoint = async (projectId: string): Promise<RuleStyleImportCheckpoint | undefined> => {
+    const terminal = terminalFailures.get(projectId);
+    if (terminal) return structuredClone(terminal);
     try { return ruleStyleImportCheckpointFileSchema.parse(await readYaml<unknown>(pathFor(projectId))).checkpoint; }
     catch (error) { if (isMissing(error)) return undefined; throw new Error(`Invalid rule/style import checkpoint for ${projectId}`, { cause: error }); }
   };
@@ -132,6 +136,7 @@ export function createRuleStyleImportInitializationService(
     const temporary = `${target}.tmp`;
     try { await writeYaml(temporary, { checkpoint: parsed }); await rename(temporary, target); }
     finally { await unlink(temporary).catch(() => undefined); }
+    terminalFailures.delete(parsed.projectId);
     return structuredClone(parsed);
   };
   const requireCheckpoint = async (identity: RuleStyleImportIdentity): Promise<RuleStyleImportCheckpoint> => {
@@ -166,8 +171,10 @@ export function createRuleStyleImportInitializationService(
       } catch (error) {
         await serialize(checkpoint.projectId, async () => {
           const current = await requireCheckpoint(checkpoint).catch(() => checkpoint);
-          await persist({ ...current, status: controller.signal.aborted ? 'cancelled' : 'failed', error: controller.signal.aborted ? 'Rule/style import initialization cancelled' : (error instanceof Error ? error.message : 'Rule/style import initialization failed'), updatedAt: now() });
-        }).catch(() => undefined);
+          const failed = ruleStyleImportCheckpointSchema.parse({ ...current, status: controller.signal.aborted ? 'cancelled' : 'failed', error: controller.signal.aborted ? 'Rule/style import initialization cancelled' : ruleStyleFailureMessage(error), updatedAt: now() });
+          terminalFailures.set(checkpoint.projectId, failed);
+          await persist(failed);
+        }).catch((persistError) => onBackgroundError(persistError, checkpoint.importSessionId));
         if (!controller.signal.aborted) onBackgroundError(error, checkpoint.importSessionId);
       } finally { controllers.delete(checkpoint.projectId); jobs.delete(checkpoint.projectId); }
     })();
@@ -290,7 +297,16 @@ export function createRuleStyleImportInitializationService(
     status(rawInput) {
       ensureActive();
       const identity = ruleStyleImportIdentitySchema.parse(rawInput);
-      return serialize(identity.projectId, async () => projection(await requireCheckpoint(identity)));
+      return serialize(identity.projectId, async () => {
+        const current = await requireCheckpoint(identity);
+        if ((current.status === 'queued' || current.status === 'running') && !jobs.has(identity.projectId)) {
+          const failed = ruleStyleImportCheckpointSchema.parse({ ...current, status: 'failed', error: '上次规则与文风生成已结束或中断，但没有保存可用结果。请点击“重试同一初始化任务”。', updatedAt: now() });
+          terminalFailures.set(identity.projectId, failed);
+          await persist(failed).catch(error => onBackgroundError(error, identity.importSessionId));
+          return projection(failed);
+        }
+        return projection(current);
+      });
     },
     result(rawInput) {
       ensureActive();
@@ -357,7 +373,7 @@ export function createRuleStyleImportInitializationService(
         } catch (error) {
           await deps.rules.clearInitialization(input.projectId, createdRuleIds).catch(() => undefined);
           if (styleWritten) await deps.style.clearInitialization(input.projectId, candidate.style.id).catch(() => undefined);
-          const failed = await persist({ ...current, status: 'failed', error: error instanceof Error ? error.message : 'Rule/style import apply failed', updatedAt: now() });
+          const failed = await persist({ ...current, status: 'failed', error: ruleStyleFailureMessage(error), updatedAt: now() });
           throw new Error(failed.error, { cause: error });
         }
       });
@@ -385,7 +401,7 @@ export function createRuleStyleImportInitializationService(
         return projection(await persist({ ...current, status: 'cancelled', error: 'Rule/style import initialization cancelled', updatedAt: now() }));
       });
     },
-    dispose() { if (disposed) return; disposed = true; for (const controller of controllers.values()) controller.abort(); controllers.clear(); jobs.clear(); tails.clear(); },
+    dispose() { if (disposed) return; disposed = true; for (const controller of controllers.values()) controller.abort(); controllers.clear(); jobs.clear(); tails.clear(); terminalFailures.clear(); },
   };
   onDispose?.(() => service.dispose());
   return Object.freeze(service);

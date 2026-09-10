@@ -13,6 +13,31 @@ import { ONBOARDING_STYLES } from './styles/onboarding.js';
 import type { WorkbenchActions } from './store/types.js';
 
 describe('I198 initialization startup failure', () => {
+  it('I218 ends a failed status poll and exposes a same-session retry without duplicate submission', async () => {
+    let state: ImportInterpretationReviewState | undefined;
+    const identities: unknown[] = [];
+    let creates = 0;
+    const controller = createImportInterpretationController({
+      analysis: () => ({ begin: async () => ({}), status: async () => ({ status: 'succeeded' }), result: async () => ({ output }) }) as never,
+      session: () => ({ create: async () => ({ importSessionId: `session-${++creates}` }), confirm: async () => {} }) as never,
+      initialization: () => ({ begin: async (identity: object) => { identities.push(identity); return { ...identity, status: 'running' }; }, status: async () => { throw new Error('Status unavailable'); } }) as never,
+      currentProjectId: () => 'book', isActive: () => true, beginOp: () => true, endOp: () => {},
+      dispatch: (apply) => apply({ importInterpretationReview: (value: ImportInterpretationReviewState | undefined) => { state = value; } } as WorkbenchActions), onConfirmed: () => {},
+    });
+    const flush = async () => { for (let i = 0; i < 35; i += 1) await Promise.resolve(); };
+    controller.begin({ sourceHash: 'a'.repeat(64), text: 'fixture', paragraphs: [{ paragraphId: 'paragraph-0001', index: 0, text: 'fixture', startOffset: 0, endOffset: 7 }] });
+    await flush();
+    controller.setSourceRole('idea'); controller.setTreatment('expand-outline'); controller.setParagraphDecision('paragraph-0001', 'accepted');
+    controller.confirm(); await flush();
+    expect(state).toMatchObject({ ruleStyleBusy: false, ruleStyleStartFailure: { retryable: true } });
+    const tree = sourceInterpretationReview(h, state!, controller);
+    expect(JSON.stringify(tree)).not.toContain('等待模型返回首个内容片段');
+    const retry = collect(tree, 'button').find(node => node.props?.['data-novel-rule-style-import-retry'] !== undefined);
+    expect(retry).toBeDefined(); expect(retry?.props?.disabled).toBe(false);
+    controller.retryRuleStyleInitialization(); controller.retryRuleStyleInitialization(); await flush();
+    expect(identities).toHaveLength(2); expect(identities[1]).toEqual(identities[0]); expect(creates).toBe(1);
+    controller.dispose();
+  });
   it.each([
     ['Rule/style initialization is only allowed for the first controlled import', false],
     ['Rule/style import initialization requires empty B4', false],

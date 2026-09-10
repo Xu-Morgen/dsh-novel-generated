@@ -38,6 +38,14 @@ function find(node: unknown, attribute: string): NodeShape | undefined {
 }
 
 describe('I132 author presentation contract (R18-7)', () => {
+  it('I218 explains rule category rejection while keeping enum details in the advanced view', () => {
+    const message = '规则与文风返回格式校验失败：第 1 条规则的 kind 分类不合法。kind 只允许 magic、genre。';
+    expect(toUserMessage(message)).toContain('规则分类不符合要求');
+    expect(toUserMessage(message)).not.toContain('kind');
+    const tree = advancedError(h, message);
+    expect(find(tree, 'data-novel-advanced-view')?.tag).toBe('details');
+    expect(flatten(tree)).toContain('kind 只允许');
+  });
   it('maps the five dynamic failure classes to actionable author language', () => {
     expect(toUserMessage(new Error('Stale branch source'))).toBe('内容已发生变化，请刷新后再试。');
     expect(toUserMessage(new Error('Unknown scene scene-1'))).toBe('找不到对应内容，请刷新后再试。');
