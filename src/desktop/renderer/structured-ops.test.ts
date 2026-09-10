@@ -100,6 +100,7 @@ describe('I178 desktop C5/review/queue structured ops consumer', () => {
     const workspace = {
       chapterList: vi.fn(async () => ok([])),
       chapterRead,
+      chapterManuscript: vi.fn(async () => ok({ projectId: 'alpha', chapterId: 'chapter-1', title: 'First', status: 'draft', sourceHash: 'a'.repeat(64), scenes: [] })),
       sceneRead: vi.fn(async () => ok({})),
     } as unknown as OpsPorts['workspace'];
     const ops = createDesktopStructuredOps(runtime(store), ports(workspace, undefined, undefined));

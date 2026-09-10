@@ -106,6 +106,7 @@ function appendIssue(issues: BookReadinessIssue[], issue: BookReadinessIssue): v
 function pendingIssue(record: ConfirmationRecord): BookReadinessIssue | undefined {
   switch (record.kind) {
     case 'finalization.apply':
+    case 'chapter.finalization':
       return makeIssue('pending-finalization', 'hard', 'pending', '存在待确认的正文定稿，发布门保持关闭。');
     case 'outline-reconciliation.apply':
       return makeIssue('pending-reconciliation', 'hard', 'pending', '存在待确认的大纲偏差裁决，发布门保持关闭。');

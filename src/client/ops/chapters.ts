@@ -1,3 +1,4 @@
+import { createChapterFinalizationOps } from './chapter-finalization.js';
 // chapters 层编辑动作组合根（I82 按层拆分 + I95 三片接线，计划 §18 I95）：
 // I60/I61 C5 正文工作台 ops（R13-1/R13-2）：只读导航 + 受控编辑（editor 片）+
 // I63 候选裁决（candidate 片）+ I70 版本/分支（branch 片）。
@@ -34,7 +35,13 @@ export function createChaptersOps(runtime: OpsRuntime, ports: ChaptersPort, ref:
       management.refreshManagement();
     }
   };
-  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops, ...management, setMode };
+  const chapterFinalization = createChapterFinalizationOps(runtime, ports, internal);
+  const chaptersOpsResult: ChaptersEditOps = { ...editor.ops, ...candidate.ops, ...branch.ops, ...management, ...chapterFinalization, setMode,
+    nextChapter() {
+      chapterFinalization.nextChapter();
+      if (runtime.snapshot.chapters.manuscript?.result?.status === 'done' && !runtime.snapshot.chapters.manuscript.result.nextChapterId) management.refreshManagement();
+    },
+  };
   ref.current = chaptersOpsResult;
   return chaptersOpsResult;
 }

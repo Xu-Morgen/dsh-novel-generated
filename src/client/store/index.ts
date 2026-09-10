@@ -249,6 +249,7 @@ export function createWorkbenchStore(defineStore: DefineStore) {
           ...d.chapters,
           selectedChapterId: chapterId,
           selectedSceneId: undefined,
+          manuscript: { status: 'loading' },
           navigationRevision: nextRevision,
           workflow: preserveFinalizationContext ? { ...previousWorkflow, navigationRevision: nextRevision } : freshWritingWorkflow(nextRevision),
           polish: freshPolishSession(d.chapters.navigationRevision + 1),
@@ -302,6 +303,10 @@ export function createWorkbenchStore(defineStore: DefineStore) {
       chaptersPolishReset: (d) => { d.chapters = { ...d.chapters, polish: freshPolishSession(d.chapters.navigationRevision) }; },
       chaptersBranches: (d, patch: Partial<BranchPanelState>) => { d.chapters = { ...d.chapters, branches: { ...d.chapters.branches, ...patch } }; },
       chaptersMode: (d, mode: ChaptersMode) => { d.chapters = { ...d.chapters, mode }; },
+      chapterManuscript: (d, chapterId: string, revision: number, patch: Partial<import('../layers/chapters.js').ChapterManuscriptState>) => {
+        if (d.chapters.selectedChapterId !== chapterId || d.chapters.navigationRevision !== revision || d.chapters.selectedSceneId !== undefined) return;
+        d.chapters = { ...d.chapters, manuscript: { status: 'loading', ...d.chapters.manuscript, ...patch } };
+      },
       chaptersManagement: (d, patch: Partial<ChapterManagementState>) => { d.chapters = { ...d.chapters, management: { ...d.chapters.management, ...patch } }; },
       reviewPatch: (d, patch: Partial<ReviewLayerState>) => { d.review = { ...d.review, ...patch }; },
       referenceReviewPatch: (d, patch: Partial<ReferenceReviewLayerState>) => { d.referenceReview = { ...d.referenceReview, ...patch }; },

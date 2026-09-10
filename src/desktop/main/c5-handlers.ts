@@ -1,3 +1,5 @@
+import { createChapterFinalizationService } from '../../host/chapter-finalization-service.js';
+import { chapterTargetSchema, chapterDecisionSchema, type ChapterFinalizationNamespace } from '../../app/chapter-finalization-contract.js';
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
 import { IpcHandlerRejection } from '../../app/ipc-handler-rejection.js';
 import { ContextAssemblyError } from '../../core/assemble/index.js';
@@ -248,6 +250,22 @@ export function createDesktopC5Handlers(deps: DesktopC5HandlerDependencies): Rea
   const writingSettings = async (settings: unknown): Promise<GenerationSettings> => settings === undefined ? resolveSettings() : settings as GenerationSettings;
 
   const map = new Map<string, IpcHandler>();
+  const chapterFinalization = createChapterFinalizationService({ text, state, relationship, knowledge, canon, worldview, confirmation, progress: { outline, binding }, llm: deps.llm, resolveSettings, onDispose: deps.onDispose,
+    onApplied: (projectId, chapterId, sceneId) => writing.settleFinalizedDraft?.(projectId, chapterId, sceneId) });
+  const chapterApi: ChapterFinalizationNamespace = chapterFinalization;
+  map.set('novel-creation-tool/novelWorkspace/chapterManuscript', input => chapterApi.chapterManuscript(chapterTargetSchema.parse(input)));
+  map.set('novel-creation-tool/novelWorkspace/chapterAnalyze', async (raw, context) => {
+    const input = chapterTargetSchema.parse(raw);
+    await knowledge.open(input.projectId);
+    const invocation = contextOf(context);
+    return withProgress(invocation, 'chapter.analyze', () => chapterFinalization.analyze(input, invocation?.signal));
+  });
+  map.set('novel-creation-tool/novelWorkspace/chapterFinalize', async raw => {
+    const input = chapterDecisionSchema.parse(raw);
+    await knowledge.open(input.projectId);
+    return chapterApi.chapterFinalize(input);
+  });
+
   // I191: these canonical methods were allowlisted but had no desktop adapter.
   // Reuse the B5/I11 owners; no alternate generation or confirmation path.
   map.set('novel-creation-tool/novelOutlineGenerationScope/resolve', async (projectId, input) => {

@@ -237,7 +237,10 @@
     "novel-creation-tool/novelWorkspace/descriptionGenerate",
     "novel-creation-tool/novelWorkspace/descriptionDecide",
     "novel-creation-tool/novelWorkspace/sceneCardDraftAdopt",
-    "novel-creation-tool/novelWorkspace/sceneCardNextDecide"
+    "novel-creation-tool/novelWorkspace/sceneCardNextDecide",
+    "novel-creation-tool/novelWorkspace/chapterManuscript",
+    "novel-creation-tool/novelWorkspace/chapterAnalyze",
+    "novel-creation-tool/novelWorkspace/chapterFinalize"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6824,6 +6827,69 @@
       "result": {
         "typeSymbol": "novel-creation-tool#nextCardResult",
         "schemaId": "novel-creation-tool#nextCardResult@d424c959"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/chapterManuscript": {
+      "id": "novel-creation-tool/novelWorkspace/chapterManuscript",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "chapterManuscript",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#chapterTarget",
+            "schemaId": "novel-creation-tool#chapterTarget@00479de4"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#chapterManuscript",
+        "schemaId": "novel-creation-tool#chapterManuscript@9d1b3e3f"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/chapterAnalyze": {
+      "id": "novel-creation-tool/novelWorkspace/chapterAnalyze",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "chapterAnalyze",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#chapterTarget",
+            "schemaId": "novel-creation-tool#chapterTarget@00479de4"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#chapterAnalysis",
+        "schemaId": "novel-creation-tool#chapterAnalysis@273078ae"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/chapterFinalize": {
+      "id": "novel-creation-tool/novelWorkspace/chapterFinalize",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "chapterFinalize",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#chapterDecision",
+            "schemaId": "novel-creation-tool#chapterDecision@78de5e8e"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#chapterDecisionResult",
+        "schemaId": "novel-creation-tool#chapterDecisionResult@143f2c1d"
       }
     }
   },
@@ -55099,6 +55165,321 @@
         },
         "required": [
           "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#chapterTarget@00479de4": {
+      "typeSymbol": "novel-creation-tool#chapterTarget",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "chapterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId",
+          "chapterId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#chapterManuscript@9d1b3e3f": {
+      "typeSymbol": "novel-creation-tool#chapterManuscript",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "chapterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "revised",
+              "canon"
+            ]
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "scenes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "index",
+                "content"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "projectId",
+          "chapterId",
+          "title",
+          "status",
+          "sourceHash",
+          "scenes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#chapterAnalysis@273078ae": {
+      "typeSymbol": "novel-creation-tool#chapterAnalysis",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "chapterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceHash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "sceneCount": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "emptySceneCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "completedBeatCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "changes": {
+            "maxItems": 512,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layer": {
+                  "type": "string",
+                  "enum": [
+                    "c2",
+                    "c1",
+                    "c3",
+                    "c4",
+                    "b2"
+                  ]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "add",
+                    "update",
+                    "remove"
+                  ]
+                },
+                "entityType": {
+                  "type": "string",
+                  "enum": [
+                    "state",
+                    "scene",
+                    "character",
+                    "relationship",
+                    "knowledge-entry",
+                    "knowledge-state",
+                    "canon-event",
+                    "world-entry"
+                  ]
+                },
+                "entityId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                },
+                "beforeHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "afterHash": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "beforeIndex": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "afterIndex": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "changedFields": {
+                  "maxItems": 40,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  }
+                }
+              },
+              "required": [
+                "layer",
+                "kind",
+                "entityType",
+                "entityId",
+                "changedFields"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "projectId",
+          "chapterId",
+          "proposalId",
+          "sourceHash",
+          "sceneCount",
+          "emptySceneCount",
+          "completedBeatCount",
+          "changes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#chapterDecision@78de5e8e": {
+      "typeSymbol": "novel-creation-tool#chapterDecision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "proposalId",
+          "accept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#chapterDecisionResult@143f2c1d": {
+      "typeSymbol": "novel-creation-tool#chapterDecisionResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "chapterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "rejected",
+              "stale",
+              "partial-failure"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "nextChapterId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "chapterId",
+          "status",
+          "message",
+          "nextChapterId"
         ],
         "additionalProperties": false
       }

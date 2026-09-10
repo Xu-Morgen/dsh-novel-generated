@@ -147,7 +147,8 @@ function progressWithPending(progress: OutlineProgress, plan: OutlineReconciliat
   return { ...progress, deviations };
 }
 
-function nextProgress(outline: Outline, progress: OutlineProgress, currentBeatId: string): OutlineProgress {
+/** Internal completion rule shared by scene and chapter finalization (§14.14.3–4); only fully done beats advance. */
+export function nextProgress(outline: Outline, progress: OutlineProgress, currentBeatId: string): OutlineProgress {
   const currentBeat = outline.acts.flatMap((act) => act.beats).find((beat) => beat.id === currentBeatId);
   if (currentBeat === undefined) throw new Error(`Current C6 beat is missing: ${currentBeatId}`);
   if (currentBeat.detailBeats.length === 0 || !currentBeat.detailBeats.every((detailBeat) => detailBeat.status === 'done')) return progress;

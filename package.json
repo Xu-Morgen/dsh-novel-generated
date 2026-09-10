@@ -554,7 +554,10 @@
     "verify:stage-59": "pnpm run verify:i215 && pnpm run smoke:i214 && pnpm run smoke:i213 && pnpm run smoke:i212 && pnpm run smoke:i211 && pnpm run smoke:i210 && pnpm run smoke:i209 && pnpm run smoke:i208 && pnpm run smoke:i207 && pnpm run smoke:i206 && pnpm run smoke:i205 && pnpm run smoke:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples",
     "smoke:i216": "node scripts/smoke-i216.mjs",
     "verify:i216": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i216",
-    "verify:stage-60": "pnpm run verify:i216 && pnpm run smoke:i215 && pnpm run smoke:i214 && pnpm run smoke:i213 && pnpm run smoke:i212 && pnpm run smoke:i211 && pnpm run smoke:i210 && pnpm run smoke:i209 && pnpm run smoke:i208 && pnpm run smoke:i207 && pnpm run smoke:i206 && pnpm run smoke:i205 && pnpm run smoke:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
+    "verify:stage-60": "pnpm run verify:i216 && pnpm run smoke:i215 && pnpm run smoke:i214 && pnpm run smoke:i213 && pnpm run smoke:i212 && pnpm run smoke:i211 && pnpm run smoke:i210 && pnpm run smoke:i209 && pnpm run smoke:i208 && pnpm run smoke:i207 && pnpm run smoke:i206 && pnpm run smoke:i205 && pnpm run smoke:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples",
+    "smoke:i217": "node scripts/smoke-i217.mjs",
+    "verify:i217": "pnpm run typecheck && pnpm test --maxWorkers=1 && pnpm run build && pnpm run smoke:i217",
+    "verify:stage-61": "pnpm run verify:i217 && pnpm run smoke:i216 && pnpm run smoke:i215 && pnpm run smoke:i214 && pnpm run smoke:i213 && pnpm run smoke:i212 && pnpm run smoke:i211 && pnpm run smoke:i210 && pnpm run smoke:i209 && pnpm run smoke:i208 && pnpm run smoke:i207 && pnpm run smoke:i206 && pnpm run smoke:i205 && pnpm run smoke:i204 && pnpm run smoke:i203 && pnpm run smoke:i202 && pnpm run smoke:i201 && pnpm run smoke:i200 && pnpm run smoke:i200:samples && pnpm run smoke:samples"
   },
   "dependencies": {
     "fflate": "^0.8.3",

@@ -170,6 +170,7 @@ export type WorkbenchActions = {
   /** I107：章节区唯一可见操作模式。 */
   chaptersMode(mode: ChaptersMode): void;
   /** I106：章节 CRUD/绑定/删除仅保存交互态；领域结果由 Host 重读回填。 */
+  chapterManuscript(chapterId: string, revision: number, patch: Partial<import('../layers/chapters.js').ChapterManuscriptState>): void;
   chaptersManagement(patch: Partial<ChapterManagementState>): void;
   /** I64 一致性审校中心（R13-5）：审校面板状态（投影/过滤/选中/审计记录）。 */
   reviewPatch(patch: Partial<ReviewLayerState>): void;

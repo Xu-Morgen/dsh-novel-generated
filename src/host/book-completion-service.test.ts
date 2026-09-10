@@ -77,9 +77,9 @@ describe('I137 BookCompletionService', () => {
     expect(second).toMatchObject({ status: first.status, gateOpen: first.gateOpen, issues: first.issues, counts: first.counts });
   });
 
-  it('保留软警告的显式继续状态，但 pending 定稿与硬审校仍关闭发布门', async () => {
+  it.each(['finalization.apply', 'chapter.finalization'])('保留软警告的显式继续状态，但 pending %s 与硬审校仍关闭发布门', async (kind) => {
     const data = await fixture();
-    await data.confirmation.propose('project', { id: 'finalization-1', kind: 'finalization.apply', payload: {} });
+    await data.confirmation.propose('project', { id: 'finalization-1', kind, payload: {} });
     const hardReview: ReviewProjection = {
       projectId: 'project', scannedAt: ISO,
       issues: [

@@ -179,6 +179,18 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "sceneCardNextDecide",
         "methodId": "novel-creation-tool/novelWorkspace/sceneCardNextDecide"
+      },
+      {
+        "method": "chapterManuscript",
+        "methodId": "novel-creation-tool/novelWorkspace/chapterManuscript"
+      },
+      {
+        "method": "chapterAnalyze",
+        "methodId": "novel-creation-tool/novelWorkspace/chapterAnalyze"
+      },
+      {
+        "method": "chapterFinalize",
+        "methodId": "novel-creation-tool/novelWorkspace/chapterFinalize"
       }
     ]
   },

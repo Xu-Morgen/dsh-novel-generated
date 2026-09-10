@@ -115,6 +115,9 @@ export interface MountOptions {
 }
 
 export interface WorkspaceOverrides {
+  chapterManuscript?: (input: {projectId: string; chapterId: string}) => Promise<unknown>;
+  chapterAnalyze?: (input: {projectId: string; chapterId: string}) => Promise<unknown>;
+  chapterFinalize?: (input: {projectId: string; proposalId: string; accept: boolean}) => Promise<unknown>;
   projectList?: () => Promise<unknown[]>;
   projectArchiveList?: () => Promise<unknown[]>;
   projectCreate?: (input: unknown) => Promise<unknown>;
@@ -178,6 +181,9 @@ export const makeWorkspace = (viewModel: () => Promise<unknown>, overrides: Work
   canonQuery: overrides.canonQuery ?? (async () => []),
   canonCorrectionPropose: overrides.canonCorrectionPropose ?? (async () => ({})),
   canonCorrectionAccept: overrides.canonCorrectionAccept ?? (async () => ({})),
+  chapterManuscript: overrides.chapterManuscript ?? (async ({ projectId, chapterId }: {projectId: string; chapterId: string}) => ({ projectId, chapterId, title: 'Chapter', status: 'draft', sourceHash: 'a'.repeat(64), scenes: [] })),
+  chapterAnalyze: overrides.chapterAnalyze ?? (async () => { throw new Error('No chapter analysis fixture'); }),
+  chapterFinalize: overrides.chapterFinalize ?? (async () => { throw new Error('No chapter confirmation fixture'); }),
   chapterList: overrides.chapterList ?? (async () => []),
   chapterRead: overrides.chapterRead ?? (async () => ({ id: '', index: 1, title: '', pov: '', status: 'draft', scenes: [] })),
   sceneRead: overrides.sceneRead ?? (async () => ({ chapter: { id: '', index: 1, title: '', pov: '' }, scene: { id: '', index: 0, summary: '', content: '', beats: [], canonEvents: [], notes: '' } })),

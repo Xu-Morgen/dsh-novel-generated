@@ -1296,6 +1296,10 @@ I215 单卡与承接范围：正文工作区 scene-card 仅将目标卡作为待
 - 来源角色提示必须解释五类材料及当前边界；段落来源类型提示必须解释 `world-truth/plot-plan/prose/author-instruction/presentation-note`；段落处理提示必须解释 pending/accepted/edited/rejected。“合并此分类”明确等价于接受当前分类，不拼接相邻文本、不触发领域写入。
 - 当前目录 DOCX 路径的审阅单元来自 Host 4000 字符 chunk，可能包含多个 Word 段落；UI 文案称其为“来源片段”，不得承诺 Word 段落一一对应。I154 不修改 DOCX reader、chunkText、paragraph ID、分类/裁决 enum、Host/Remote、LLM prompt/schema 或样本。
 
+### 14.14.4 I217：章级正文阅读与统一定稿
+
+用户授权整章为主流程操作单位：章节正文由当前 C5 场景按 index/id 顺序组成，只读汇总，无第二份正文文件。点击章节显示全章，具体场景保持单独编辑。Main 以保存内容进行完整五层分析，沿用现有 parser/schema 和五层 writer；一个 I11 确认冻结章节内容/顺序及结构快照，确认后校验 freshness、同步故事资料并通过 TextService 标记章 canon。空场景提示并排除解析，全空禁止分析；不能把摘要当正文。定稿不依赖临时候选记录，重新打开作品可重新分析。下一步选择已有下一章或引导创建；不自动生成正文、不自动改后续细纲。已绑定且所有细纲卡完成的节通过既有 nextProgress 规则同步 C6，同一确认冻结 B5/绑定/C6 freshness。新增 strict chapterManuscript/chapterAnalyze/chapterFinalize，原方法保持兼容。I11 记录保存冻结结构计划，重开后重试通过既有结构扫描识别已应用层，禁止盲目重复写入。
+
 ### 14.22 I155：既有作品归档与强制只读
 
 - 项目归档是 Host-owned 生命周期转换，不是删除或 `project.yaml` 状态字段。完整作品树从活动 `<projectsRoot>/<projectId>` 原子迁入 `<projectsRoot>/.archive/<projectId>`；活动主列表仍只枚举安全的直接项目目录，因此归档作品天然退出主列表。

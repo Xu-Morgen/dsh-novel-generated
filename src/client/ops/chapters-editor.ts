@@ -47,14 +47,19 @@ export function createEditorOps(runtime: OpsRuntime, port: EditorPort, internal:
     if (!target || projectId === undefined) return;
     if (!beginOp(`chapters:chapter:${chapterId}`)) return;
     const release = (): void => endOp(`chapters:chapter:${chapterId}`);
+    const revision = snapshot.chapters.navigationRevision + 1;
     act.chaptersSelectChapter(chapterId);
+    if (preferredSceneId === undefined) {
+      void unwrap(target.chapterManuscript({ projectId, chapterId })).then(read => {
+        if (isActive()) act.chapterManuscript(chapterId, revision, { status: 'ready', read });
+      }, (cause: Error) => { if (isActive()) act.chapterManuscript(chapterId, revision, { status: 'error', message: toUserMessage(cause) }); });
+    }
     void unwrap(target.chapterRead(projectId, chapterId)).then((read) => {
       release();
       if (!isActive()) return;
       const shape = read as ChapterReadShape;
       act.chaptersRead('ready', shape, undefined);
       if (preferredSceneId !== undefined) loadScene(preferredSceneId, chapterId);
-      else if (shape.scenes.length > 0) loadScene(shape.scenes[0].id, chapterId);
       else act.chaptersScene('idle', undefined, undefined);
     }, (cause: Error) => { release(); if (!isActive()) return; act.chaptersRead('error', undefined, toUserMessage(cause)); });
   };

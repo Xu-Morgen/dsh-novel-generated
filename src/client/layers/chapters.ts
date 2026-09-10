@@ -119,7 +119,18 @@ export interface ChapterManagementState {
   readonly finalization: FinalizationPanelState;
 }
 
+/** I217 transient UI projection; saved prose and authorizations remain Main-owned. */
+export interface ChapterManuscriptState {
+  readonly status: 'loading' | 'ready' | 'analyzing' | 'pending' | 'applying' | 'done' | 'error' | 'partial-failure';
+  readonly read?: import('../../app/chapter-finalization-contract.js').ChapterManuscript;
+  readonly analysis?: import('../../app/chapter-finalization-contract.js').ChapterAnalysis;
+  readonly result?: import('../../app/chapter-finalization-contract.js').ChapterDecisionResult;
+  readonly message?: string;
+}
+
 export interface ChaptersLayerState {
+  /** I217 read-only chapter projection and chapter-scoped confirmation state. */
+  readonly manuscript?: ChapterManuscriptState;
   readonly status: 'loading' | 'ready' | 'error';
   readonly list: ChapterListItemShape[];
   readonly message?: string;
@@ -148,6 +159,9 @@ export interface ChaptersLayerState {
 }
 
 export interface ChaptersEditOps {
+  analyzeChapter(): void;
+  finalizeChapter(accept: boolean): void;
+  nextChapter(): void;
   selectChapter(chapterId: string): void;
   selectScene(sceneId: string): void;
   openScene(chapterId: string, sceneId: string, anchor?: import('../../core/schema/link.js').TextAnchor): void;
@@ -267,6 +281,39 @@ function writingWorkflowPanel(h: El, state: WritingWorkflowState, finalization: 
     h('span', { className: 'nv-chapters__item-meta', 'data-novel-writing-workflow-status': state.status }, finalized ? '当前正文已定稿' : labels[state.status]),
     finalized || state.message === undefined ? null : h('span', { className: state.status === 'error' ? 'nv-error' : 'nv-chapters__item-meta', 'data-novel-writing-workflow-message': '' }, state.status === 'error' ? toUserMessage(state.message) : state.message),
   );
+}
+
+/** I217 full chapter reading and one chapter confirmation; no independent prose copy. */
+function chapterManuscriptPanel(h: El, state: ChaptersLayerState, ops: ChaptersEditOps): unknown {
+  const view = state.manuscript;
+  const scenes = view?.read?.scenes ?? [];
+  const populated = scenes.filter(scene => scene.content.trim().length > 0);
+  const empty = scenes.length - populated.length;
+  const busy = view?.status === 'loading' || view?.status === 'analyzing' || view?.status === 'applying';
+  const labels = { c2: '故事状态', c1: '人物关系', c3: '知情信息', c4: '正史事件', b2: '世界观' };
+  return h('div', { 'data-novel-chapter-manuscript': '', 'data-novel-chapter-finalization-state': view?.status ?? 'loading' },
+    h('h3', { className: 'nv-editor__title' }, view?.read?.title ?? '整章正文'),
+    h('p', { role: 'status', className: 'nv-chapters__item-meta' }, view?.status === 'loading' || !view ? '正在读取整章正文…' : `整章正文 · ${populated.length} 个有正文的场景${view.status === 'done' || view.read?.status === 'canon' ? ' · 已定稿' : ''}`),
+    empty > 0 ? h('p', { 'data-novel-chapter-empty-scenes': '', className: 'nv-chapters__item-meta' }, `本章有 ${empty} 个空场景，不计入正文分析。`) : null,
+    view?.status === 'ready' && populated.length === 0 ? h('p', { 'data-novel-chapters-empty': '' }, '本章暂无已保存的场景正文。') : null,
+    ...populated.map(scene => h('section', { key: scene.id, 'data-novel-chapter-prose-scene': scene.id },
+      proseParagraphs(h, scene.content),
+      h('button', { type: 'button', className: 'nv-btn', onClick: () => ops.selectScene(scene.id) }, `编辑场景 ${scene.index + 1}`))),
+    h('section', { 'data-novel-chapter-finalization': '' },
+      h('h4', { className: 'nv-editor__title' }, '最终正文定稿（整章）'),
+      h('p', { className: 'nv-chapters__item-meta' }, '分析本章所有已保存正文，审阅后一次确认同步故事资料并完成本章。'),
+      view?.message ? h('p', { role: view.status === 'error' || view.status === 'partial-failure' ? 'alert' : 'status' }, view.message) : null,
+      view?.status === 'pending' && view.analysis ? h('div', { 'data-novel-chapter-analysis': '' },
+        h('p', null, `本次覆盖 ${view.analysis.sceneCount} 个场景，共 ${view.analysis.changes.length} 项故事资料变化；同时将本章标为已定稿。正文保持原样。`),
+        h('p', null, `同步 ${view.analysis.completedBeatCount} 个已写完节的完成进度。`),
+        ...Object.entries(labels).map(([layer, label]) => h('p', { key: layer }, `${label}：${view.analysis!.changes.filter(change => change.layer === layer).length} 项`)),
+        h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-chapter-finalize': '', onClick: () => ops.finalizeChapter(true) }, '确认并同步定稿'),
+        h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-finalize-cancel': '', onClick: () => ops.finalizeChapter(false) }, '取消本次定稿')) : null,
+      view?.status === 'partial-failure' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-finalize-retry': '', onClick: () => ops.finalizeChapter(true) }, '重试同步定稿') : null,
+      view?.status === 'done' ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-chapter-next': '', onClick: () => ops.nextChapter() }, view.result?.nextChapterId ? '进入下一章' : '创建下一章') : null,
+      !view?.analysis || view.status === 'done' ? h('button', { type: 'button', className: 'nv-btn', 'data-novel-chapter-analyze': '', disabled: busy || populated.length === 0 || state.editor.dirty, onClick: () => ops.analyzeChapter() }, view?.status === 'done' ? '重新分析整章' : '分析最终正文') : null,
+      view?.status === 'error' && !view.read ? h('button', { type: 'button', className: 'nv-btn', onClick: () => ops.retryChapter() }, '重试读取整章') : null,
+    ));
 }
 
 function finalizationPanel(h: El, state: FinalizationPanelState, workflow: WritingWorkflowState, ops: ChaptersEditOps, primary = true): unknown {
@@ -585,7 +632,9 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
   const scenes = chapter?.scenes ?? [];
   // 正文区状态机：场景错误 → 场景读取中 → 章节错误 → 空章 → 正文（编辑/只读）→ 未选择。
   let body: unknown;
-  if (state.scene.status === 'error') {
+  if (state.selectedChapterId !== undefined && state.selectedSceneId === undefined) {
+    body = chapterManuscriptPanel(h, state, ops);
+  } else if (state.scene.status === 'error') {
     body = errorBlock(h, state.scene.message ?? '场景读取失败', () => ops.retryScene(), '重试场景');
   } else if (state.scene.status === 'loading') {
     body = h('p', { className: 'nv-chapters__empty', 'data-novel-scene-loading': '' }, '正在读取场景正文…');
@@ -604,7 +653,8 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
       );
     body = h('div', { className: 'nv-chapters__writing-body', 'data-novel-writing-body': '' },
       sceneBody,
-      state.mode === 'writing' ? h('details', { className: 'nv-chapters__finalization-tools', open: state.management.finalization.status !== 'idle' || state.workflow.status === 'saved', 'data-novel-finalization-tools': '' }, h('summary', null, '定稿与故事同步'), finalizationPanel(h, state.management.finalization, state.workflow, ops, !state.editor.dirty)) : null,
+      state.mode === 'writing' && state.selectedChapterId ? h('button', { type: 'button', className: 'nv-btn nv-btn--primary', 'data-novel-scene-to-chapter': '', onClick: () => ops.selectChapter(state.selectedChapterId!) }, '查看整章并定稿') : null,
+      state.mode === 'writing' ? h('details', { className: 'nv-chapters__finalization-tools', open: state.management.finalization.status !== 'idle', 'data-novel-finalization-tools': '' }, h('summary', null, '单场景定稿（进阶）'), finalizationPanel(h, state.management.finalization, state.workflow, ops, !state.editor.dirty)) : null,
     );
   } else {
     body = h('p', { className: 'nv-chapters__empty' }, '选择左侧章节与场景后阅读正文。');
@@ -648,7 +698,9 @@ export function chaptersPanel(h: El, projectId: string, workspace: WorkspaceName
     ),
     h('div', { className: 'nv-chapters__pane nv-chapters__pane--body', 'data-novel-scene-body': '', ...(state.editor.focusAnchor === undefined ? {} : { 'data-novel-scene-anchor-start': String(state.editor.focusAnchor.start), 'data-novel-scene-anchor-end': String(state.editor.focusAnchor.end), 'data-novel-scene-anchor-quote': state.editor.focusAnchor.quote }) },
       h('h3', { className: 'nv-editor__title', 'data-novel-chapter-mode-title': state.mode }, CHAPTER_MODE_ITEMS.find((item) => item.id === state.mode)?.label ?? '正文'),
-      writingWorkflowPanel(h, state.workflow, state.management.finalization),
+      state.selectedChapterId !== undefined && state.selectedSceneId === undefined
+        ? h('p', { className: 'nv-chapters__item-meta' }, '整章阅读与定稿')
+        : writingWorkflowPanel(h, state.workflow, state.management.finalization),
       h('details', { className: 'nv-chapters__tools', open: state.polish.status === 'running', 'data-novel-polish-tools': '' }, h('summary', null, '章节润色工具'), polishSessionPanel(h, state, ops)),
       chapterModeTabs(h, state, ops),
       modePanel(h, projectId, writing, branches, state, ops, body, choices),

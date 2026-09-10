@@ -50,9 +50,12 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     },
   };
 
+  const manuscriptRead = async () => ({ projectId: 'fixture-project', chapterId: 'chapter-1', title: '第一章', status: 'draft', sourceHash: 'a'.repeat(64), scenes: [SCENE_1_READ.value.scene, SCENE_2_READ.value.scene] });
+
   it('写作组新增「正文」视图；章节树/场景列表/正文按 Host 只读投影渲染', async () => {
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
       chapterList: async () => CHAPTER_LIST,
+      chapterManuscript: manuscriptRead,
       chapterRead: async (_projectId, chapterId) => (chapterId === 'chapter-1' ? CHAPTER_1_READ : { ok: true, value: { id: chapterId, index: 2, title: '第二章', pov: 'lin', status: 'draft', scenes: [] } }),
       sceneRead: async (_projectId, _chapterId, sceneId) => (sceneId === 'scene-1' ? SCENE_1_READ : SCENE_2_READ),
     });
@@ -69,14 +72,13 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     const chapterItems = collect(tree, 'button').filter((n) => n.props?.['data-novel-chapter-item'] !== undefined);
     expect(chapterItems.map((n) => n.props?.['data-novel-chapter-item'])).toEqual(['chapter-1', 'chapter-2']);
     expect(collect(sceneList(tree) ?? ({} as FakeNode), 'p').map((node) => String(node.children?.[0] ?? ''))).toContain('选择左侧章节查看场景。');
-    // 选择第一章 → chapterRead → 场景列表 + 自动读取首个场景（sceneRead）。
+    // I217 选择第一章读取整章，场景列表仍可单独导航。
     (chapterItems[0]?.props?.onClick as () => void)();
     await flush();
     const tree2 = render();
     const sceneItems = collect(tree2, 'button').filter((n) => n.props?.['data-novel-scene-item'] !== undefined);
     expect(sceneItems.map((n) => n.props?.['data-novel-scene-item'])).toEqual(['scene-1', 'scene-2']);
-    // 正文：首个场景自动选中并按空行拆段渲染（只经 sceneRead 投影）。
-    expect(paragraphs(tree2)).toEqual(['第一段。', '第二段。']);
+    expect(paragraphs(tree2)).toEqual(['第一段。', '第二段。', '第三段。']);
     // 切换场景 → 正文更新。
     (sceneItems[1]?.props?.onClick as () => void)();
     await flush();
@@ -106,6 +108,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     let failChapter = true;
     const { registrations } = mount(() => Promise.resolve({ ok: true, value: READY_MODEL }), {
       chapterList: async () => CHAPTER_LIST,
+      chapterManuscript: manuscriptRead,
       chapterRead: async (_projectId, chapterId) => {
         if (failChapter) throw new Error('章节文档损坏');
         return chapterId === 'chapter-1' ? CHAPTER_1_READ : { ok: true, value: { id: chapterId, index: 2, title: '第二章', pov: 'lin', status: 'draft', scenes: [] } };
@@ -126,7 +129,7 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     const tree = render();
     expect(collect(tree, 'div').some((n) => n.props?.['data-novel-chapters-error'] !== undefined)).toBe(false);
     expect(collect(tree, 'button').filter((n) => n.props?.['data-novel-scene-item'] !== undefined).length).toBe(2);
-    expect(paragraphs(tree)).toEqual(['第一段。', '第二段。']);
+    expect(paragraphs(tree)).toEqual(['第一段。', '第二段。', '第三段。']);
   });
 
   it('正文视图是稳定视图：重复点击保持原位（不回退默认层视图）', async () => {
@@ -170,6 +173,8 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find(node => node.props?.['data-novel-scene-item'] === 'scene-1')?.props?.onClick as () => void)();
     await flush();
     // I107：章节管理退居 materials 互斥模式，进入后才激活其 Remote 读取。
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'materials')?.props?.onClick as () => void)();
@@ -219,6 +224,8 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find(node => node.props?.['data-novel-scene-item'] === 'scene-1')?.props?.onClick as () => void)();
     await flush();
 
     const mode = (name: string): FakeNode | undefined => collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === name);
@@ -334,6 +341,8 @@ describe('I60 C5 章节/场景只读导航 (R13-1)', () => {
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
     await flush();
+    (collect(render(), 'button').find(node => node.props?.['data-novel-scene-item'] === 'scene-1')?.props?.onClick as () => void)();
+    await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-mode'] === 'versions')?.props?.onClick as () => void)();
     await flush();
 
@@ -407,6 +416,8 @@ describe('I61 C5 正文编辑与可选 reparse (R13-2)', () => {
     (navButton(render(), 'chapters')?.props?.onClick as () => void)();
     await flush();
     (collect(render(), 'button').find((node) => node.props?.['data-novel-chapter-item'] === 'chapter-1')?.props?.onClick as () => void)();
+    await flush();
+    (collect(render(), 'button').find(node => node.props?.['data-novel-scene-item'] === 'scene-1')?.props?.onClick as () => void)();
     await flush();
     expect(collect(render(), 'button').some((node) => node.props?.['data-novel-scene-item'] === 'scene-1')).toBe(true);
     return { registrations: m.registrations, render };
