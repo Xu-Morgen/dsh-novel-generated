@@ -6,6 +6,8 @@ import type { DesktopPaths } from '../../app/paths.js';
 import { workspaceViewModel } from '../../app/workspace-view-model.js';
 import { createCanonService } from '../../host/canon-service.js';
 import { createCharacterService } from '../../host/character-service.js';
+import { createCharacterManagementService } from '../../host/character-management-service.js';
+import { characterManagementProjectSchema, characterManagementInputSchema, characterManagementDecisionSchema, type CharacterManagementNamespace } from '../../app/character-management-contract.js';
 import { createConfirmationService } from '../../host/confirmation-service.js';
 import { createOutlineService } from '../../host/outline-service.js';
 import { createProjectService } from '../../host/project-service.js';
@@ -192,7 +194,11 @@ export function createDesktopProjectHandlers(
   const migrationHandlers = createDesktopMigrationCommandRegistry(migration);
   const fileHandlers = createDesktopFileHandlers({ saveFile: options.saveFile });
 
+  const characterManagement: CharacterManagementNamespace = createCharacterManagementService(paths.libraryRoot, characters, confirmation, options.onDispose);
   return new Map<string, IpcHandler>([
+    ['novel-creation-tool/novelWorkspace/characterManageList',raw=>characterManagement.characterManageList(characterManagementProjectSchema.parse(raw))],
+    ['novel-creation-tool/novelWorkspace/characterManagePropose',raw=>characterManagement.characterManagePropose(characterManagementInputSchema.parse(raw))],
+    ['novel-creation-tool/novelWorkspace/characterManageDecide',raw=>characterManagement.characterManageDecide(characterManagementDecisionSchema.parse(raw))],
     ...c5Handlers,
     ...reviewQueueHandlers,
     ...sourceImportHandlers,

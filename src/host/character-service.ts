@@ -2,6 +2,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
 import { CharacterRepository } from '../core/characters/index.js';
+import type { CharacterLifecycleRecord } from '../core/characters/lifecycle.js';
 import type {
   CharacterCore,
   CharacterCoreInput,
@@ -15,6 +16,11 @@ export interface NovelCharacterService {
   create(projectId: string, input: CharacterCoreInput): Promise<CharacterCore>;
   read(projectId: string, characterId: string): Promise<CharacterCore>;
   list(projectId: string): Promise<CharacterCore[]>;
+  listAll(projectId: string): Promise<CharacterCore[]>;
+  listActive(projectId: string): Promise<CharacterCore[]>;
+  assertActive(projectId: string, characterId: string): Promise<void>;
+  lifecycleRecords(projectId: string): Promise<CharacterLifecycleRecord[]>;
+  changeLifecycle(projectId: string, characterId: string, status: CharacterLifecycleRecord['status'], expectedVersion: number, expectedRevision: number, operationId: string): Promise<void>;
   update(projectId: string, characterId: string, patch: CharacterCorePatch): Promise<CharacterCore>;
   listByKind(projectId: string, kind?: CharacterKind): Promise<CharacterCore[]>;
   listForScene(projectId: string, characterIds: string[]): Promise<SceneCharacterView[]>;
@@ -44,6 +50,11 @@ export function createCharacterService(
     create: (projectId, input) => get(projectId).create(input),
     read: (projectId, characterId) => get(projectId).read(characterId),
     list: (projectId) => get(projectId).list(),
+    listAll: (projectId) => get(projectId).listAll(),
+    assertActive: (projectId, characterId) => get(projectId).assertActive(characterId),
+    listActive: async projectId => { const records=await get(projectId).lifecycleRecords();return (await get(projectId).list()).filter(character=>!records.some(record=>record.characterId===character.id&&record.status!=='active')); },
+    lifecycleRecords: projectId => get(projectId).lifecycleRecords(),
+    changeLifecycle: (projectId,characterId,status,version,revision,operationId)=>get(projectId).changeLifecycle(characterId,status,version,revision,operationId),
     update: (projectId, characterId, patch) => get(projectId).update(characterId, patch),
     listByKind: (projectId, kind) => get(projectId).listByKind(kind),
     listForScene: (projectId, characterIds) => get(projectId).listForScene(characterIds),

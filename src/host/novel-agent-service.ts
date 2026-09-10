@@ -107,7 +107,7 @@ export function createNovelAgentService(deps: NovelAgentDeps): NovelAgentService
     async status(projectId) {
       const openedResult = await openProject(projectId);
       const [characters, worldview, relationships, canonViews, chapters, outline] = await Promise.all([
-        deps.characters.list(projectId),
+        deps.characters.listActive(projectId),
         deps.worldview.list(projectId),
         deps.relationship.read(projectId),
         deps.canon.query(projectId),

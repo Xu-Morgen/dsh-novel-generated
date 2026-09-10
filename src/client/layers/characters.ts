@@ -1,5 +1,6 @@
 import { characterText, listField, type El, type WorkspaceNamespace } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
+import type { CharacterManagementNamespace, CharacterManagementPreview } from '../../app/character-management-contract.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
 import { characterKindSchema, type CharacterKind } from '../../core/schema/characters.js';
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
@@ -20,6 +21,7 @@ export interface CharacterLayerState {
 }
 
 export interface CharacterEditor {
+  management?: { records: Awaited<ReturnType<CharacterManagementNamespace['characterManageList']>>; preview?: CharacterManagementPreview; busy?: boolean; message?: string };
   selectedId: string | undefined;
   draft: CharacterShape;
   dirty: boolean;
@@ -31,6 +33,9 @@ export interface CharacterEditor {
 }
 
 export interface CharacterEditOps {
+  manage?(): void;
+  proposeManagement?(characterId: string, action: 'freeze' | 'restore' | 'delete'): void;
+  decideManagement?(accept: boolean): void;
   select(character: CharacterShape): void;
   newDraft(): void;
   mutate(update: (draft: CharacterShape) => CharacterShape): void;
@@ -135,6 +140,21 @@ export function characterLayer(
     editor.error ? h('p', { className: 'nv-editor__error', 'data-novel-error': 'character', role: 'alert' }, toUserMessage(editor.error)) : null,
   );
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'ready' },
+    h('button', {type:'button',className:'nv-btn','data-novel-character-manage':'',onClick:ops.manage,disabled:editor.management?.busy},'冻结、删除与恢复角色'),
+    editor.management ? h('section', {'data-novel-character-management':''},
+      h('p',null,'冻结保留资料与历史引用，暂停创作使用；删除前先检查引用，已删除角色可以恢复。'),
+      editor.management.message ? h('p',{role:'status'},editor.management.message):null,
+      ...editor.management.records.map(record=>h('div',{key:record.id,'data-novel-character-managed':record.id},
+        h('span',null,`${record.name} · ${record.status==='active'?'可用':record.status==='frozen'?'已冻结':'已删除'}`),
+        h('button',{type:'button',className:'nv-btn',disabled:editor.management?.busy,'data-novel-character-freeze':record.id,onClick:()=>ops.proposeManagement?.(record.id,record.status==='active'?'freeze':'restore')},record.status==='active'?'冻结':'恢复'),
+        record.status!=='deleted'?h('button',{type:'button',className:'nv-btn',disabled:editor.management?.busy,'data-novel-character-delete':record.id,onClick:()=>ops.proposeManagement?.(record.id,'delete')},'删除'):null)),
+      editor.management.preview ? h('div',{'data-novel-character-management-preview':''},
+        h('p',null,`${editor.management.preview.name}：${editor.management.preview.action==='freeze'?'冻结':editor.management.preview.action==='delete'?'删除':'恢复'}`),
+        h('p',null,editor.management.preview.message),
+        ...editor.management.preview.references.map(ref=>h('p',{key:ref.layer},`${ref.layer}：${ref.count} 处引用`)),
+        editor.management.preview.allowed?h('button',{type:'button',className:'nv-btn',disabled:editor.management.busy,'data-novel-character-management-confirm':'',onClick:()=>ops.decideManagement?.(true)},'确认执行'):null,
+        editor.management.preview.proposalId?h('button',{type:'button',className:'nv-btn',disabled:editor.management.busy,'data-novel-character-management-cancel':'',onClick:()=>ops.decideManagement?.(false)},'取消操作'):null):null,
+    ):null,
     h('div', { className: 'nv-editor__columns' }, list, detail),
   );
 }

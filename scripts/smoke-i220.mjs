@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { uiInvoke } from './ui-test-provider.mjs';
+const app=await launchUiElectron('i220');const invoke=(method,...args)=>uiInvoke(app,method,...args);
+try{
+ await app.fill('[data-novel-project-name-input]','角色冻结与删除');await app.click('[data-novel-project-create]');
+ await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")','project');const id=(await invoke('novelWorkspace/projectList'))[0].id;
+ const character={id:'hero',name:'调查员',aliases:[],kind:'protagonist',personality:'',background:'',motivation:'',goals:[],flaws:[],abilities:[],speechStyle:'',staticTraits:[],arc:{startingPoint:'',desiredEnd:'',keyBeats:[]},relationships:[],knowledgeIds:[]};
+ await invoke('novelWorkspace/characterCreate',id,character);await app.send('Page.reload');await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")','reopen');
+ await app.click('[data-novel-nav-item="characters"]');await app.waitFor('!!document.querySelector("[data-novel-character-manage]")','characters');await app.click('[data-novel-character-manage]');
+ await app.waitFor('!!document.querySelector("[data-novel-character-managed=hero]")','management');
+ await app.click('[data-novel-character-freeze=hero]');await app.waitFor('!!document.querySelector("[data-novel-character-management-confirm]")','preview');
+ await app.click('[data-novel-character-management-cancel]');await app.waitFor('!document.querySelector("[data-novel-character-management-confirm]")','cancel');
+ assert.equal((await invoke('novelWorkspace/characterManageList',{projectId:id}))[0].status,'active');
+ await app.click('[data-novel-character-freeze=hero]');await app.waitFor('!!document.querySelector("[data-novel-character-management-confirm]")','freeze preview');await app.click('[data-novel-character-management-confirm]');
+ await app.waitFor('document.querySelector("[data-novel-character-managed=hero]")?.textContent.includes("已冻结")','frozen');await app.screenshot('frozen');
+ await invoke('novelWorkspace/projectOpen',id);assert.equal((await invoke('novelWorkspace/characterManageList',{projectId:id}))[0].status,'frozen');
+ const {id:_id,...patch}=character;await assert.rejects(invoke('novelWorkspace/characterUpdate',id,'hero',patch));
+ await app.click('[data-novel-character-delete=hero]');await app.waitFor('!!document.querySelector("[data-novel-character-management-confirm]")','delete preview');await app.click('[data-novel-character-management-confirm]');
+ await app.waitFor('document.querySelector("[data-novel-character-managed=hero]")?.textContent.includes("已删除")','deleted');assert.equal((await invoke('novelWorkspace/characterList',id)).length,0);
+ await app.click('[data-novel-character-freeze=hero]');await app.waitFor('!!document.querySelector("[data-novel-character-management-confirm]")','restore preview');await app.click('[data-novel-character-management-confirm]');
+ await app.waitFor('document.querySelector("[data-novel-character-managed=hero]")?.textContent.includes("可用")','restored');assert.equal((await invoke('novelWorkspace/characterList',id)).length,1);
+ await invoke('novelText/chapterCreate',id,{id:'chapter',index:1,title:'开场',pov:'hero',status:'draft',expectedFingerprint:(await invoke('novelText/fingerprint',id)).fingerprint});
+ await app.click('[data-novel-character-delete=hero]');await app.waitFor('document.querySelector("[data-novel-character-management-preview]")?.textContent.includes("不能直接删除")','referenced deletion');assert.equal(await app.evaluate('!!document.querySelector("[data-novel-character-management-confirm]")'),false);
+ await app.screenshot('referenced-delete-blocked');
+ await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:'I220',gateCancel:true,freezeReopen:true,updateBlocked:true,reversibleDelete:true,referenceBlocked:true},null,2));
+ process.stdout.write('I220 Electron lifecycle preview, cancellation, freeze/reopen, delete/restore and referenced deletion guard passed\n');
+}finally{await app.close();}

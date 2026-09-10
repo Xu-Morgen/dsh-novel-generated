@@ -2,6 +2,7 @@ import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
 import { validateProjectId } from '../io/path.js';
+import { characterLifecycleFileSchema, type CharacterLifecycleRecord } from './lifecycle.js';
 import {
   characterCoreSchema,
   type CharacterCore,
@@ -31,10 +32,12 @@ const FILE_SUFFIX = '.yaml';
  */
 export class CharacterRepository {
   private readonly charactersDirectory: string;
+  private readonly lifecyclePath: string;
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(projectDirectory: string) {
     this.charactersDirectory = join(projectDirectory, 'characters');
+    this.lifecyclePath = join(projectDirectory, 'character-lifecycle.yaml');
   }
 
   async open(): Promise<void> {
@@ -61,6 +64,12 @@ export class CharacterRepository {
   }
 
   async list(): Promise<CharacterCore[]> {
+    const records = await this.lifecycleRecords();
+    return (await this.listAll()).filter(character => !records.some(record => record.characterId === character.id && record.status === 'deleted'));
+  }
+
+  /** Historical records remain readable; normal selection excludes deleted records. */
+  async listAll(): Promise<CharacterCore[]> {
     return this.enqueue(async () => {
       const files = (await this.readCharacterFiles()).sort();
       const characters: CharacterCore[] = [];
@@ -78,6 +87,7 @@ export class CharacterRepository {
 
   async update(characterId: string, patch: CharacterCorePatch): Promise<CharacterCore> {
     return this.enqueue(async () => {
+      await this.assertActive(characterId);
       const current = await this.read(characterId);
       const character = characterCoreSchema.parse({ ...patch, id: current.id, version: current.version + 1 });
       await this.writeCharacterDocument(character);
@@ -104,6 +114,7 @@ export class CharacterRepository {
    * I9 proves the storage + selection contract without any injection.
    */
   async listForScene(characterIds: string[]): Promise<SceneCharacterView[]> {
+    for (const id of characterIds) await this.assertActive(id);
     const characters = await this.list();
     const byId = new Map(characters.map((character) => [character.id, character]));
     const unknown = characterIds.filter((id) => !byId.has(id));
@@ -121,6 +132,34 @@ export class CharacterRepository {
 
   private characterPath(characterId: string): string {
     return join(this.charactersDirectory, `${validateProjectId(characterId)}${FILE_SUFFIX}`);
+  }
+
+  /** Main-only lifecycle query. Missing record means active; malformed storage fails closed. */
+  async lifecycleRecords(): Promise<CharacterLifecycleRecord[]> {
+    try { return characterLifecycleFileSchema.parse(await readYaml(this.lifecyclePath)).records; }
+    catch (cause) {
+      if ((cause as NodeJS.ErrnoException).code === 'ENOENT' || ((cause as {cause?:NodeJS.ErrnoException}).cause)?.code === 'ENOENT') return [];
+      throw cause;
+    }
+  }
+
+  /** Required by generation and edits; frozen identities remain available for historical reads. */
+  async assertActive(characterId: string): Promise<void> {
+    const record=(await this.lifecycleRecords()).find(record=>record.characterId===characterId);
+    if(record && record.status!=='active') throw new Error('当前角色已冻结或删除，请在角色管理中恢复后再使用。');
+  }
+
+  /** Compare-and-set shares the B3 update lane and retains an operation token for replay. */
+  async changeLifecycle(characterId: string, status: CharacterLifecycleRecord['status'], expectedVersion: number, expectedRevision: number, operationId: string): Promise<void> {
+    return this.enqueue(async()=>{
+      const character=await this.read(characterId);
+      const records=await this.lifecycleRecords();
+      const old=records.find(record=>record.characterId===characterId);
+      if(old?.operationId===operationId)return;
+      if(character.version!==expectedVersion || (old?.revision??0)!==expectedRevision)throw new Error('角色已变化，请重新预览操作。');
+      const next=characterLifecycleFileSchema.parse({version:1,records:[...records.filter(record=>record.characterId!==characterId),{characterId,status,revision:expectedRevision+1,operationId}]});
+      await writeYaml(this.lifecyclePath+'.tmp',next);await rename(this.lifecyclePath+'.tmp',this.lifecyclePath);
+    });
   }
 
   private async readCharacterFiles(): Promise<string[]> {

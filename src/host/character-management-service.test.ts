@@ -1,0 +1,52 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { expect, it } from 'vitest';
+import { ProjectRepository } from '../core/project/index.js';
+import { createCharacterService } from './character-service.js';
+import { createConfirmationService } from './confirmation-service.js';
+import { createCharacterManagementService } from './character-management-service.js';
+import { ONBOARDING_PROMPT_EXAMPLE } from '../core/onboarding/example.js';
+import { createOutlineService } from './outline-service.js';
+
+it('I220 reversible lifecycle obeys I11, persisted state, stale edits, and real character consumers',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'i220-'));
+ try{
+  await new ProjectRepository(root).createProject({projectId:'book',name:'Book'});
+  const chars=createCharacterService(root),gate=createConfirmationService(root);
+  await chars.open('book');await gate.open('book');
+  const input=ONBOARDING_PROMPT_EXAMPLE.layers.characters.candidates[0];await chars.create('book',input);
+  const manager=createCharacterManagementService(root,chars,gate);
+  const target={projectId:'book',characterId:'mira'};
+  const rejected=await manager.characterManagePropose({...target,action:'freeze'});
+  expect((await chars.listActive('book')).length).toBe(1);
+  await manager.characterManageDecide({projectId:'book',proposalId:rejected.proposalId!,accept:false});
+  expect((await chars.listActive('book')).length).toBe(1);
+  const preview=await manager.characterManagePropose({...target,action:'freeze'});
+  const decision={projectId:'book',proposalId:preview.proposalId!,accept:true};
+  expect((await manager.characterManageDecide(decision)).status).toBe('done');
+  expect((await manager.characterManageDecide(decision)).status).toBe('done');
+  const reopened=createCharacterService(root);await reopened.open('book');
+  expect(await reopened.listActive('book')).toEqual([]);
+  expect(await reopened.read('book','mira')).toMatchObject({name:input.name});
+  await expect(reopened.listForScene('book',['mira'])).rejects.toThrow('已冻结或删除');
+  const {id:_id,...patch}=input;await expect(reopened.update('book','mira',patch)).rejects.toThrow('已冻结或删除');
+  const restore=await manager.characterManagePropose({...target,action:'restore'});
+  await manager.characterManageDecide({projectId:'book',proposalId:restore.proposalId!,accept:true});
+  expect((await chars.listActive('book')).length).toBe(1);
+  const stale=await manager.characterManagePropose({...target,action:'delete'});
+  await chars.update('book','mira',{...patch,name:'New name'});
+  expect((await manager.characterManageDecide({projectId:'book',proposalId:stale.proposalId!,accept:true})).status).toBe('stale');
+  const deletion=await manager.characterManagePropose({...target,action:'delete'});
+  await manager.characterManageDecide({projectId:'book',proposalId:deletion.proposalId!,accept:true});
+  expect(await chars.list('book')).toEqual([]);
+  expect(await manager.characterManageList({projectId:'book'})).toEqual([{id:'mira',name:'New name',status:'deleted'}]);
+  const restoreDeleted=await manager.characterManagePropose({...target,action:'restore'});
+  await manager.characterManageDecide({projectId:'book',proposalId:restoreDeleted.proposalId!,accept:true});
+  expect((await chars.list('book')).length).toBe(1);
+  const outline=createOutlineService(root);await outline.open('book');await outline.save('book',ONBOARDING_PROMPT_EXAMPLE.layers.outline.candidates[0]);
+  const blocked=await manager.characterManagePropose({...target,action:'delete'});
+  expect(blocked.allowed).toBe(false);expect(blocked.proposalId).toBeNull();expect(blocked.references.some(ref=>ref.layer==='大纲')).toBe(true);
+  await expect(manager.characterManagePropose({...target,characterId:'missing',action:'freeze'})).rejects.toThrow();
+ }finally{await rm(root,{recursive:true,force:true});}
+});

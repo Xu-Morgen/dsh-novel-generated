@@ -9,10 +9,10 @@ const lockPath = resolve(process.cwd(), 'contracts/desktop/ipc-methods.json');
 
 describe('desktop canonical IPC registry', () => {
   it('covers the historical baseline plus source-import seams exactly once', () => {
-    expect(desktopIpcMethodDescriptors).toHaveLength(239);
-    expect(desktopIpcRegistry.size).toBe(239);
-    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => descriptor.id)).size).toBe(239);
-    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => `${descriptor.namespace}/${descriptor.method}`)).size).toBe(239);
+    expect(desktopIpcMethodDescriptors).toHaveLength(242);
+    expect(desktopIpcRegistry.size).toBe(242);
+    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => descriptor.id)).size).toBe(242);
+    expect(new Set(desktopIpcMethodDescriptors.map((descriptor) => `${descriptor.namespace}/${descriptor.method}`)).size).toBe(242);
     expect(desktopIpcRegistry.get('novel-creation-tool/novelReviewRepair/propose')).toBeDefined();
     expect(desktopIpcMethodDescriptors.every((descriptor) => descriptor.id === `novel-creation-tool/${descriptor.service}/${descriptor.method}`)).toBe(true);
   });

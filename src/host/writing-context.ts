@@ -276,7 +276,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
     }
     const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
     const [characters, worldview, relationships, state, canonViews, styleSegment, activeRules, knowledgeView, fullKnowledge, chapters] = await Promise.all([
-      deps.characters.list(projectId),
+      deps.characters.listActive(projectId),
       deps.worldview.list(projectId),
       deps.relationship.read(projectId),
       deps.state.current(projectId),
@@ -306,6 +306,7 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       sourceHash: textContentHash(entry.scene.content),
     }));
     const characterIds = characters.map((character) => character.id);
+    await deps.characters.assertActive(projectId, card.pov);
     const sceneCharacters = await deps.characters.listForScene(projectId, characterIds);
     // 方案 A 时间线层：关系注入只保留「当前时间线节点之前已建立」的关系
     // （design §8 相关角色对 / 排除尚未发生的关系）。锚定 = 手动选择优先，

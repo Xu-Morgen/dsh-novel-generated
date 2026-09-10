@@ -2209,6 +2209,12 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 64 / I220：角色冻结、恢复与受控删除（已完成）
+
+- 目标/交付物/验收见 `docs/ui/i220-dod.md`；新增独立生命周期记录、严格管理方法、I11 与实际角色页消费者。
+- 明确不做：不删除历史事实，不自动清理引用，不修改 B3 字段；跨层合并属后续 I221。
+- 验证：`pnpm run verify:stage-64`（含 verify:i220）全绿；262 文件 / 1283 测试，strict 负向、Electron 冻结/重开/恢复/引用阻止删除及历史样本全绿。下一步 I221。
+
 ## Stage 63 / I219：主角身份重复防护与复用（已完成）
 
 - 目标/交付物/验收：见 `docs/ui/i219-dod.md`，用户连续修改流程见 `docs/ui/character-correction-workflow.md`。

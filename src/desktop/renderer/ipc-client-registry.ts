@@ -191,6 +191,18 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "chapterFinalize",
         "methodId": "novel-creation-tool/novelWorkspace/chapterFinalize"
+      },
+      {
+        "method": "characterManageList",
+        "methodId": "novel-creation-tool/novelWorkspace/characterManageList"
+      },
+      {
+        "method": "characterManagePropose",
+        "methodId": "novel-creation-tool/novelWorkspace/characterManagePropose"
+      },
+      {
+        "method": "characterManageDecide",
+        "methodId": "novel-creation-tool/novelWorkspace/characterManageDecide"
       }
     ]
   },

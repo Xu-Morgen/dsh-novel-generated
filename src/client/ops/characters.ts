@@ -12,7 +12,15 @@ export function createCharactersOps(runtime: OpsRuntime, port: CharactersPort): 
   const { act, snapshot, beginOp, endOp, isActive } = runtime;
   const projectId = runtime.projectId;
   const workspace = port.workspace;
+  const managementRun=(operation:()=>Promise<void>):void=>{
+    if(!workspace||!projectId||!beginOp('characters:manage'))return;
+    act.characterDraft({management:{records:snapshot.characterEditor.management?.records??[],preview:snapshot.characterEditor.management?.preview,busy:true}});
+    void operation().catch(cause=>{if(isActive())act.characterDraft({management:{records:snapshot.characterEditor.management?.records??[],preview:snapshot.characterEditor.management?.preview,message:toUserMessage(cause),busy:false}});}).finally(()=>endOp('characters:manage'));
+  };
   return {
+      manage:()=>managementRun(async()=>{const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));if(isActive())act.characterDraft({management:{records,busy:false}});}),
+      proposeManagement:(characterId,action)=>managementRun(async()=>{const preview=await unwrap(workspace!.characterManagePropose({projectId:projectId!,characterId,action}));if(isActive())act.characterDraft({management:{records:snapshot.characterEditor.management?.records??[],preview,busy:false}});}),
+      decideManagement:accept=>managementRun(async()=>{const proposalId=snapshot.characterEditor.management?.preview?.proposalId;if(!proposalId)throw new Error('请先预览角色操作。');const result=await unwrap(workspace!.characterManageDecide({projectId:projectId!,proposalId,accept}));const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));const list=await unwrap(workspace!.characterList(projectId!));if(isActive()){act.setCharacters('ready',list);act.characterDraft({management:{records,message:result.message,busy:false}});}}),
       select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '', saving: false, saveMessage: '' }),
       newDraft: () => { const draft: CharacterShape = { id: '', name: '', kind: 'extra', aliases: [], personality: '', background: '', motivation: '', goals: [], flaws: [], abilities: [], speechStyle: '', staticTraits: [], arc: { startingPoint: '', desiredEnd: '', keyBeats: [] }, relationships: [], knowledgeIds: [] }; act.characterDraft({ selectedId: undefined, draft, dirty: false, error: '', saving: false, saveMessage: '' }); },
       mutate: (update) => act.characterMutate(update),

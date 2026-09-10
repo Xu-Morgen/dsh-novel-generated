@@ -240,7 +240,10 @@
     "novel-creation-tool/novelWorkspace/sceneCardNextDecide",
     "novel-creation-tool/novelWorkspace/chapterManuscript",
     "novel-creation-tool/novelWorkspace/chapterAnalyze",
-    "novel-creation-tool/novelWorkspace/chapterFinalize"
+    "novel-creation-tool/novelWorkspace/chapterFinalize",
+    "novel-creation-tool/novelWorkspace/characterManageList",
+    "novel-creation-tool/novelWorkspace/characterManagePropose",
+    "novel-creation-tool/novelWorkspace/characterManageDecide"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6890,6 +6893,69 @@
       "result": {
         "typeSymbol": "novel-creation-tool#chapterDecisionResult",
         "schemaId": "novel-creation-tool#chapterDecisionResult@143f2c1d"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterManageList": {
+      "id": "novel-creation-tool/novelWorkspace/characterManageList",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterManageList",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterManagementProject",
+            "schemaId": "novel-creation-tool#characterManagementProject@669e4735"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterManagementList",
+        "schemaId": "novel-creation-tool#characterManagementList@ba20d832"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterManagePropose": {
+      "id": "novel-creation-tool/novelWorkspace/characterManagePropose",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterManagePropose",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterManagementInput",
+            "schemaId": "novel-creation-tool#characterManagementInput@11a7bf9c"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterManagementPreview",
+        "schemaId": "novel-creation-tool#characterManagementPreview@508c524f"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterManageDecide": {
+      "id": "novel-creation-tool/novelWorkspace/characterManageDecide",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterManageDecide",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterManagementDecision",
+            "schemaId": "novel-creation-tool#characterManagementDecision@78de5e8e"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterManagementResult",
+        "schemaId": "novel-creation-tool#characterManagementResult@fbaea1a2"
       }
     }
   },
@@ -55480,6 +55546,233 @@
           "status",
           "message",
           "nextChapterId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterManagementProject@669e4735": {
+      "typeSymbol": "novel-creation-tool#characterManagementProject",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterManagementList@ba20d832": {
+      "typeSymbol": "novel-creation-tool#characterManagementList",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "active",
+                "frozen",
+                "deleted"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "novel-creation-tool#characterManagementInput@11a7bf9c": {
+      "typeSymbol": "novel-creation-tool#characterManagementInput",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "characterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "freeze",
+              "restore",
+              "delete"
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "characterId",
+          "action"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterManagementPreview@508c524f": {
+      "typeSymbol": "novel-creation-tool#characterManagementPreview",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "characterId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "freeze",
+              "restore",
+              "delete"
+            ]
+          },
+          "proposalId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layer": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "layer",
+                "count"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectId",
+          "characterId",
+          "action",
+          "proposalId",
+          "name",
+          "references",
+          "allowed",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterManagementDecision@78de5e8e": {
+      "typeSymbol": "novel-creation-tool#characterManagementDecision",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "proposalId",
+          "accept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterManagementResult@fbaea1a2": {
+      "typeSymbol": "novel-creation-tool#characterManagementResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "rejected",
+              "stale"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
         ],
         "additionalProperties": false
       }

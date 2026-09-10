@@ -18,6 +18,8 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
     } as unknown as NextSceneContextDeps['outline'],
     characters: {
       list: async () => [character('mira', '米拉'), character('lin', '林')],
+      listActive: async () => [character('mira', '米拉'), character('lin', '林')],
+      assertActive: async () => {},
       listForScene: async (_projectId: string, ids: string[]) => ids.map((id) => {
         const core = {
           id, name: id === 'mira' ? '米拉' : '林', kind: 'extra' as const, aliases: [], personality: '', background: '', motivation: '',
