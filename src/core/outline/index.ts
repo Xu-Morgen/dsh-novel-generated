@@ -2,6 +2,7 @@ import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
 import { outlineContentFingerprint } from './fingerprint.js';
+import { resolveOutlineIdentities } from '../characters/merged-identities.js';
 import {
   outlineSchema,
   type DetailBeat,
@@ -34,7 +35,7 @@ export class OutlineRepository {
 
   async save(input: OutlineInput): Promise<Outline> {
     return this.enqueue(async () => {
-      const outline = outlineSchema.parse({ ...input, version: input.version ?? 1 });
+      const outline = await resolveOutlineIdentities(join(this.outlinePath,'..'),outlineSchema.parse({ ...input, version: input.version ?? 1 }));
       this.assertValidStructure(outline);
       await this.writeDocument(outline);
       return structuredClone(outline);
@@ -44,9 +45,9 @@ export class OutlineRepository {
   /** I216 compare and save inside the same B5 lane; stale author edits are never overwritten. */
   async saveIfFingerprint(input: OutlineInput, expected: string): Promise<Outline> {
     return this.enqueue(async () => {
-      const current = outlineSchema.parse(await readYaml<unknown>(this.outlinePath));
+      const current = await resolveOutlineIdentities(join(this.outlinePath,'..'),outlineSchema.parse(await readYaml<unknown>(this.outlinePath)));
       if (outlineContentFingerprint(current) !== expected) throw new Error('Outline changed before card status update');
-      const outline = outlineSchema.parse({ ...input, version: input.version ?? 1 });
+      const outline = await resolveOutlineIdentities(join(this.outlinePath,'..'),outlineSchema.parse({ ...input, version: input.version ?? 1 }));
       this.assertValidStructure(outline);
       await this.writeDocument(outline);
       return structuredClone(outline);
@@ -77,7 +78,7 @@ export class OutlineRepository {
       try {
         const outline = outlineSchema.parse(raw);
         this.assertValidStructure(outline);
-        return outline;
+        return await resolveOutlineIdentities(join(this.outlinePath,'..'),outline);
       } catch (error) {
         throw new Error('Invalid outline document', { cause: error });
       }

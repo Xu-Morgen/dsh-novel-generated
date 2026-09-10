@@ -46,6 +46,15 @@ function stubDeps(overrides: Partial<NextSceneContextDeps>): NextSceneContextDep
 }
 
 describe('host/writing-context 时间线关系注入（方案 A）', () => {
+  it('I222 appends with the next unbound card; old-scene context still checks its stale baseline',async()=>{
+    const base=stubDeps({});const [first]=await base.outline.beatCards('demo');let checks=0;
+    const deps=stubDeps({outline:{...base.outline,beatCards:async()=>[first,{...first,detailBeat:{...first.detailBeat,id:'next',status:'planned'}}]} as NextSceneContextDeps['outline'],sceneOutlineBinding:{read:async()=>({effective:[{chapterId:'old',sceneId:'saved',detailBeatId:first.detailBeat.id}]})} as unknown as NextSceneContextDeps['sceneOutlineBinding'],outlineGenerationBaseline:{current:async()=>{checks++;return {freshness:'stale',staleReasons:['b5-changed']};}} as unknown as NextSceneContextDeps['outlineGenerationBaseline'],text:{listChapters:async()=>[contextChapter('new',2,[])]} as unknown as NextSceneContextDeps['text']});
+    const builder=createNextSceneContextBuilder(deps);
+    for(const intent of ['continue','scene-card'] as const)expect((await builder.context('demo',{chapterId:'new',intent})).card.id).toBe('next');
+    expect(checks).toBe(0);await expect(builder.context('demo')).rejects.toThrow('Stale outline generation baseline');expect(checks).toBe(1);
+    const exhausted=createNextSceneContextBuilder({...deps,outline:{...base.outline,beatCards:async()=>[first]}});
+    await expect(exhausted.context('demo',{chapterId:'new',intent:'continue'})).rejects.toThrow('新增待写场景卡');
+  });
   it('I216 follows a writing card in the next beat after the current beat cards are done without writing C6', async () => {
     const deps = stubDeps({}); const [base] = await deps.outline.beatCards('demo');
     const done = { ...base, detailBeat: { ...base.detailBeat, status: 'done' as const } };

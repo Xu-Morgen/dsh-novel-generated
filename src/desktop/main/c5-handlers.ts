@@ -1,7 +1,7 @@
 import { createChapterFinalizationService } from '../../host/chapter-finalization-service.js';
 import { chapterTargetSchema, chapterDecisionSchema, type ChapterFinalizationNamespace } from '../../app/chapter-finalization-contract.js';
 import type { IpcHandler, IpcInvocationContext } from '../../app/ipc-registry.js';
-import { IpcHandlerRejection } from '../../app/ipc-handler-rejection.js';
+import { IpcHandlerRejection, ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
 import { ContextAssemblyError } from '../../core/assemble/index.js';
 import type { DesktopPaths } from '../../app/paths.js';
 import { createOutlineGenerationScopeService } from '../../host/outline-generation-scope-service.js';
@@ -113,7 +113,7 @@ async function withProgress<T>(context: IpcInvocationContext | undefined, phase:
     if (cause instanceof ContextAssemblyError && cause.message === 'Context serializer produced empty section: rules') {
       throw new IpcHandlerRejection('writing-rules-required');
     }
-    throw cause;
+    throw ruleStyleHandlerRejection(cause);
   }
 }
 

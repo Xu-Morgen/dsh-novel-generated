@@ -260,11 +260,14 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
     const outlineFingerprintBefore = await deps.outline.contentFingerprint(projectId);
     const textFingerprintBefore = deps.textFingerprint === undefined ? undefined : await deps.textFingerprint(projectId);
     let navigation = await deps.outline.navigate(projectId);
-    const cards = await deps.outline.beatCards(projectId);
+    const allCards = await deps.outline.beatCards(projectId);
+    const bindings = append && deps.sceneOutlineBinding ? await deps.sceneOutlineBinding.read(projectId) : undefined;
+    const cards = bindings ? allCards.filter(item=>item.detailBeat.status!=='done'&&!bindings.effective.some(binding=>binding.detailBeatId===item.detailBeat.id)) : allCards;
+    if(append&&allCards.length&&!cards.length)throw new Error('当前场景卡均已完成或绑定正文，请先新增待写场景卡，再写下一场景。');
     // I216 a finished beat must not keep reselecting its last done card after
     // the author explicitly starts a card in the next beat; C6 remains unchanged.
-    if (append?.intent === 'scene-card' && cards.filter(item => item.beatId === navigation.beatId).every(item => item.detailBeat.status === 'done')) {
-      const nextWriting = cards.find(item => item.detailBeat.status === 'writing');
+    if (append && cards.filter(item => item.beatId === navigation.beatId).every(item => item.detailBeat.status === 'done')) {
+      const nextWriting = cards.find(item => item.detailBeat.status === 'writing') ?? cards.find(item=>item.detailBeat.status==='planned');
       if (nextWriting && nextWriting.beatId !== navigation.beatId) {
         const outline = await deps.outline.read(projectId);
         const beat = outline.acts.find(act => act.id === nextWriting.actId)?.beats.find(item => item.id === nextWriting.beatId);
@@ -275,6 +278,8 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       }
     }
     const card = pickCurrentCard(cards, navigation) ?? fallbackCard(navigation);
+    // Fail before knowledge lookup so a retired POV cannot become an opaque C3 error.
+    await deps.characters.assertActive(projectId, card.pov);
     const [characters, worldview, relationships, state, canonViews, styleSegment, activeRules, knowledgeView, fullKnowledge, chapters] = await Promise.all([
       deps.characters.listActive(projectId),
       deps.worldview.list(projectId),
@@ -283,11 +288,13 @@ export function createNextSceneContextBuilder(deps: NextSceneContextDeps): NextS
       deps.canon.query(projectId),
       deps.style.constantSegment(projectId),
       deps.rules.listActive(projectId),
-      deps.knowledge.forPov(projectId, card.pov),
+      deps.knowledge.forPov(projectId, card.pov).catch(cause=>{if(cause instanceof Error&&cause.message===`Knowledge state is missing for POV: ${card.pov}`)throw new Error('当前场景卡的视角角色缺少知情状态，请检查角色合并结果和场景卡视角后重试。');throw cause;}),
       deps.knowledge.read(projectId),
       deps.text.listChapters(projectId),
     ]);
-    const baseline = await currentBaseline(projectId, card);
+    // A new scene has its own target snapshot in candidate-production. An old
+    // bound scene's editing baseline must not gate chapter append (I222).
+    const baseline = append === undefined ? await currentBaseline(projectId, card) : undefined;
     const target = baseline === undefined ? undefined : {
       chapterId: baseline.chapterId,
       sceneId: baseline.sceneId,

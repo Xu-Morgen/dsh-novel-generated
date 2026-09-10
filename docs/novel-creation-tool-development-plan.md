@@ -2209,6 +2209,11 @@ TDD Route:
 - **明确不做**：不放宽 schema、不新增付费自动重试、不持久化 Renderer 候选；三步生成边界不变。
 - **验证**：pnpm run verify:i202；pnpm run verify:stage-46。状态：已完成；238 文件 / 1221 测试、真实 Electron 分步重试和完整记录及冻结样本回归通过。下一可用 I203。
 
+## Stage 66 / I222：新章节写作引用与诊断恢复（已完成）
+
+- 目标、owner、边界、证据与验收见 `docs/ui/i222-dod.md`。
+- 验证：verify:stage-66（含 verify:i222）全绿，265 文件 / 1288 测试、累计 Electron 与旧样本通过；独立打包程序 smoke 通过，真实作品副本两种写作恢复。公开合同不变，下一可用 I223。
+
 ## Stage 65 / I221：重复角色合并（已完成）
 
 - 目标、owner、兼容边界、恢复和验收见 `docs/ui/i221-dod.md`；按检查包工作流完成第三个独立切片。

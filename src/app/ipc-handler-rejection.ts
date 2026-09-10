@@ -1,5 +1,7 @@
 /** Fixed diagnostics only: no caller text, paths or secrets may cross this seam (§0.1.2). */
 const messages = Object.freeze({
+  'writing-cards-exhausted': '当前场景卡均已完成或绑定正文，请先新增待写场景卡，再写下一场景。',
+  'writing-pov-knowledge-missing': '当前场景卡的视角角色缺少知情状态，请检查角色合并结果和场景卡视角后重试。',
   'character-merge-relationships': '合并将产生自身关系或重复关系，请先在关系页处理后重试。',
   'character-merge-pending': '请先完成或取消已有合并预览。',
   'character-merge-restore': '请先恢复被删除的源角色或不可用的保留角色。',
