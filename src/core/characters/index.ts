@@ -85,10 +85,11 @@ export class CharacterRepository {
     });
   }
 
-  async update(characterId: string, patch: CharacterCorePatch): Promise<CharacterCore> {
+  async update(characterId: string, patch: CharacterCorePatch, expectedVersion?:number): Promise<CharacterCore> {
     return this.enqueue(async () => {
       await this.assertActive(characterId);
       const current = await this.read(characterId);
+      if(expectedVersion!==undefined&&current.version!==expectedVersion)throw new Error('角色资料已变化，请重新预览。');
       const character = characterCoreSchema.parse({ ...patch, id: current.id, version: current.version + 1 });
       await this.writeCharacterDocument(character);
       return structuredClone(character);
@@ -157,7 +158,8 @@ export class CharacterRepository {
       const old=records.find(record=>record.characterId===characterId);
       if(old?.operationId===operationId)return;
       if(character.version!==expectedVersion || (old?.revision??0)!==expectedRevision)throw new Error('角色已变化，请重新预览操作。');
-      const next=characterLifecycleFileSchema.parse({version:1,records:[...records.filter(record=>record.characterId!==characterId),{characterId,status,revision:expectedRevision+1,operationId}]});
+      const completedMergeIds=[...new Set([...(old?.completedMergeIds??[]),...(operationId.startsWith('character-merge-')?[operationId]:[])])];
+      const next=characterLifecycleFileSchema.parse({version:1,records:[...records.filter(record=>record.characterId!==characterId),{characterId,status,revision:expectedRevision+1,operationId,...(completedMergeIds.length?{completedMergeIds}:{})}]});
       await writeYaml(this.lifecyclePath+'.tmp',next);await rename(this.lifecyclePath+'.tmp',this.lifecyclePath);
     });
   }

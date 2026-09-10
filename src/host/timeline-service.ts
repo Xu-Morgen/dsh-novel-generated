@@ -19,6 +19,8 @@ import type { NovelOutlineService } from './outline-service.js';
  * 只读最小 owned JSON，不序列化完整 live object 或文件路径。
  */
 export interface NovelTimelineService {
+  /** I221 internal CAS for an existing timeline; no new generic public write. */
+  saveIfSnapshot?(projectId:string,input:Timeline,expected:Timeline):Promise<Timeline>;
   read(projectId: string): Promise<Timeline | null>;
   /** 大纲已就绪且时间线缺失时自建骨架；已存在则原样返回（不覆盖手动编辑）。 */
   ensureFromOutline(projectId: string): Promise<Timeline>;
@@ -45,6 +47,7 @@ export function createTimelineService(
   };
 
   return Object.freeze({
+    async saveIfSnapshot(projectId:string,input:Timeline,expected:Timeline){return (await get(projectId)).save(input,expected);},
     async read(projectId: string) {
       return (await get(projectId)).read();
     },

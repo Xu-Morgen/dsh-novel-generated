@@ -8,6 +8,9 @@ import { createCanonService } from '../../host/canon-service.js';
 import { createCharacterService } from '../../host/character-service.js';
 import { createCharacterManagementService } from '../../host/character-management-service.js';
 import { characterManagementProjectSchema, characterManagementInputSchema, characterManagementDecisionSchema, type CharacterManagementNamespace } from '../../app/character-management-contract.js';
+import { createCharacterMergeService } from '../../host/character-merge-service.js';
+import { ruleStyleHandlerRejection } from '../../app/ipc-handler-rejection.js';
+import { characterMergeInputSchema, characterMergeDecideSchema, characterMergeProjectSchema } from '../../app/character-merge-contract.js';
 import { createConfirmationService } from '../../host/confirmation-service.js';
 import { createOutlineService } from '../../host/outline-service.js';
 import { createProjectService } from '../../host/project-service.js';
@@ -195,7 +198,11 @@ export function createDesktopProjectHandlers(
   const fileHandlers = createDesktopFileHandlers({ saveFile: options.saveFile });
 
   const characterManagement: CharacterManagementNamespace = createCharacterManagementService(paths.libraryRoot, characters, confirmation, options.onDispose);
+  const characterMerge=createCharacterMergeService({characters,confirmation,outline,state,knowledge,relationship,text:c5Services.text,timeline:c5Services.timeline,onDispose:options.onDispose});
   return new Map<string, IpcHandler>([
+    ['novel-creation-tool/novelWorkspace/characterMergePropose',raw=>characterMerge.characterMergePropose(characterMergeInputSchema.parse(raw)).catch(cause=>{throw ruleStyleHandlerRejection(cause);})],
+    ['novel-creation-tool/novelWorkspace/characterMergeDecide',raw=>characterMerge.characterMergeDecide(characterMergeDecideSchema.parse(raw))],
+    ['novel-creation-tool/novelWorkspace/characterMergePending',raw=>characterMerge.characterMergePending(characterMergeProjectSchema.parse(raw))],
     ['novel-creation-tool/novelWorkspace/characterManageList',raw=>characterManagement.characterManageList(characterManagementProjectSchema.parse(raw))],
     ['novel-creation-tool/novelWorkspace/characterManagePropose',raw=>characterManagement.characterManagePropose(characterManagementInputSchema.parse(raw))],
     ['novel-creation-tool/novelWorkspace/characterManageDecide',raw=>characterManagement.characterManageDecide(characterManagementDecisionSchema.parse(raw))],

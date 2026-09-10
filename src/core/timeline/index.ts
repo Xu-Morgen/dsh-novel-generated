@@ -48,8 +48,9 @@ export class TimelineRepository {
   }
 
   /** 保存完整时间线（调用方先经 timelineSchema 校验）。 */
-  async save(timeline: Timeline): Promise<Timeline> {
+  async save(timeline: Timeline, expected?:Timeline): Promise<Timeline> {
     return this.enqueue(async () => {
+      if(expected!==undefined&&JSON.stringify(timelineSchema.parse(await readYaml(this.timelinePath)))!==JSON.stringify(expected))throw new Error('时间线已变化，请重新预览。');
       const parsed = timelineSchema.parse(timeline);
       const temporaryPath = `${this.timelinePath}.tmp`;
       await writeYaml(temporaryPath, parsed);

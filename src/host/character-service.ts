@@ -22,6 +22,8 @@ export interface NovelCharacterService {
   lifecycleRecords(projectId: string): Promise<CharacterLifecycleRecord[]>;
   changeLifecycle(projectId: string, characterId: string, status: CharacterLifecycleRecord['status'], expectedVersion: number, expectedRevision: number, operationId: string): Promise<void>;
   update(projectId: string, characterId: string, patch: CharacterCorePatch): Promise<CharacterCore>;
+  /** Internal CAS for I221; public characterUpdate keeps its original contract. */
+  updateIfVersion?(projectId:string,characterId:string,patch:CharacterCorePatch,expectedVersion:number):Promise<CharacterCore>;
   listByKind(projectId: string, kind?: CharacterKind): Promise<CharacterCore[]>;
   listForScene(projectId: string, characterIds: string[]): Promise<SceneCharacterView[]>;
 }
@@ -56,6 +58,7 @@ export function createCharacterService(
     lifecycleRecords: projectId => get(projectId).lifecycleRecords(),
     changeLifecycle: (projectId,characterId,status,version,revision,operationId)=>get(projectId).changeLifecycle(characterId,status,version,revision,operationId),
     update: (projectId, characterId, patch) => get(projectId).update(characterId, patch),
+    updateIfVersion:(projectId,characterId,patch,expectedVersion)=>get(projectId).update(characterId,patch,expectedVersion),
     listByKind: (projectId, kind) => get(projectId).listByKind(kind),
     listForScene: (projectId, characterIds) => get(projectId).listForScene(characterIds),
   };

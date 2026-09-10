@@ -38,8 +38,9 @@ export class RelationshipRepository {
     });
   }
 
-  async saveAll(inputs: readonly RelationshipInput[]): Promise<Relationship[]> {
+  async saveAll(inputs: readonly RelationshipInput[], expected?:readonly Relationship[]): Promise<Relationship[]> {
     return this.enqueue(async () => {
+      if(expected!==undefined&&JSON.stringify(await this.readOptional())!==JSON.stringify(expected))throw new Error('关系已变化，请重新预览。');
       const relationships = inputs.map((input) => relationshipSchema.parse({ ...input, version: input.version ?? 1 }));
       assertRelationshipStructure(relationships);
       await this.writeDocument(relationships);

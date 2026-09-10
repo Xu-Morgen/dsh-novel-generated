@@ -9,6 +9,8 @@ import {
 
 /** Host-owned C1 facade; relationship changes remain explicit writes until I27 parser. */
 export interface NovelRelationshipService {
+  /** I221 internal CAS; ordinary public saves keep their existing signature. */
+  saveIfSnapshot?(projectId:string,inputs:readonly RelationshipInput[],expected:readonly Relationship[]):Promise<Relationship[]>;
   open(projectId: string): Promise<void>;
   save(projectId: string, input: RelationshipInput): Promise<Relationship>;
   saveAll(projectId: string, inputs: readonly RelationshipInput[]): Promise<Relationship[]>;
@@ -36,6 +38,7 @@ export function createRelationshipService(
     },
     save: (projectId, input) => get(projectId).save(input),
     saveAll: (projectId, inputs) => get(projectId).saveAll(inputs),
+    saveIfSnapshot:(projectId,inputs,expected)=>get(projectId).saveAll(inputs,expected),
     restoreForCompensation: (projectId, snapshot) => get(projectId).restoreForCompensation(snapshot),
     read: (projectId) => get(projectId).read(),
   };

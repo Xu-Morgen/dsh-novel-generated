@@ -7,6 +7,8 @@ import type { KnowledgeDocument, KnowledgeEntry, KnowledgeEntryInput, KnowledgeS
 
 /** Host facade for C3 storage and deterministic POV filtering. */
 export interface NovelKnowledgeService {
+  /** Internal I221 identity correction; normal saves retain knowledge monotonicity. */
+  mergeIdentity?(projectId:string,sourceId:string,targetId:string,from:'source'|'target',expected:KnowledgeDocument):Promise<void>;
   open(projectId: string): Promise<void>;
   read(projectId: string): Promise<KnowledgeDocument>;
   saveAll(projectId: string, entries: readonly KnowledgeEntry[], states: readonly KnowledgeState[]): Promise<KnowledgeDocument>;
@@ -34,6 +36,7 @@ export function createKnowledgeService(
       repositories.set(projectId, repository);
     },
     read: (projectId) => get(projectId).read(),
+    mergeIdentity:(projectId,sourceId,targetId,from,expected)=>get(projectId).mergeIdentity(sourceId,targetId,from,expected),
     saveAll: (projectId, entries, states) => get(projectId).saveAll(entries, states),
     restoreForCompensation: (projectId, entries, states) => get(projectId).restoreForCompensation(entries, states),
     saveEntry: (projectId, entry, states) => get(projectId).saveEntry(entry, states),

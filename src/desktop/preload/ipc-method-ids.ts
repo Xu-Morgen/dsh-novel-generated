@@ -241,5 +241,8 @@ export const IPC_METHOD_IDS = [
   "novel-creation-tool/novelWorkspace/chapterFinalize",
   "novel-creation-tool/novelWorkspace/characterManageList",
   "novel-creation-tool/novelWorkspace/characterManagePropose",
-  "novel-creation-tool/novelWorkspace/characterManageDecide"
+  "novel-creation-tool/novelWorkspace/characterManageDecide",
+  "novel-creation-tool/novelWorkspace/characterMergePropose",
+  "novel-creation-tool/novelWorkspace/characterMergeDecide",
+  "novel-creation-tool/novelWorkspace/characterMergePending"
 ] as const;

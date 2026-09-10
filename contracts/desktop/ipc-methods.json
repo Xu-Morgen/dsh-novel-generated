@@ -243,7 +243,10 @@
     "novel-creation-tool/novelWorkspace/chapterFinalize",
     "novel-creation-tool/novelWorkspace/characterManageList",
     "novel-creation-tool/novelWorkspace/characterManagePropose",
-    "novel-creation-tool/novelWorkspace/characterManageDecide"
+    "novel-creation-tool/novelWorkspace/characterManageDecide",
+    "novel-creation-tool/novelWorkspace/characterMergePropose",
+    "novel-creation-tool/novelWorkspace/characterMergeDecide",
+    "novel-creation-tool/novelWorkspace/characterMergePending"
   ],
   "descriptors": {
     "novel-creation-tool/novelProbe/probe": {
@@ -6956,6 +6959,69 @@
       "result": {
         "typeSymbol": "novel-creation-tool#characterManagementResult",
         "schemaId": "novel-creation-tool#characterManagementResult@fbaea1a2"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterMergePropose": {
+      "id": "novel-creation-tool/novelWorkspace/characterMergePropose",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterMergePropose",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterMergeInput",
+            "schemaId": "novel-creation-tool#characterMergeInput@af899ccd"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterMergePreview",
+        "schemaId": "novel-creation-tool#characterMergePreview@d10b7115"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterMergeDecide": {
+      "id": "novel-creation-tool/novelWorkspace/characterMergeDecide",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterMergeDecide",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterMergeDecide",
+            "schemaId": "novel-creation-tool#characterMergeDecide@78de5e8e"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterMergeResult",
+        "schemaId": "novel-creation-tool#characterMergeResult@fbaea1a2"
+      }
+    },
+    "novel-creation-tool/novelWorkspace/characterMergePending": {
+      "id": "novel-creation-tool/novelWorkspace/characterMergePending",
+      "service": "novelWorkspace",
+      "namespace": "novelWorkspace",
+      "method": "characterMergePending",
+      "parameters": [
+        {
+          "name": "input",
+          "wire": "input",
+          "acceptsUndefined": false,
+          "codec": {
+            "typeSymbol": "novel-creation-tool#characterMergeProject",
+            "schemaId": "novel-creation-tool#characterMergeProject@669e4735"
+          }
+        }
+      ],
+      "result": {
+        "typeSymbol": "novel-creation-tool#characterMergePending",
+        "schemaId": "novel-creation-tool#characterMergePending@d86f0580"
       }
     }
   },
@@ -55775,6 +55841,738 @@
           "message"
         ],
         "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterMergeInput@af899ccd": {
+      "typeSymbol": "novel-creation-tool#characterMergeInput",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "sourceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "enum": [
+                    "name",
+                    "aliases",
+                    "kind",
+                    "personality",
+                    "background",
+                    "motivation",
+                    "goals",
+                    "flaws",
+                    "abilities",
+                    "speechStyle",
+                    "staticTraits",
+                    "arc",
+                    "relationships",
+                    "knowledgeIds"
+                  ]
+                },
+                "from": {
+                  "type": "string",
+                  "enum": [
+                    "source",
+                    "target"
+                  ]
+                }
+              },
+              "required": [
+                "field",
+                "from"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "stateFrom": {
+            "type": "string",
+            "enum": [
+              "source",
+              "target"
+            ]
+          },
+          "knowledgeFrom": {
+            "type": "string",
+            "enum": [
+              "source",
+              "target"
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "sourceId",
+          "targetId",
+          "fields",
+          "stateFrom",
+          "knowledgeFrom"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterMergePreview@d10b7115": {
+      "typeSymbol": "novel-creation-tool#characterMergePreview",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "protagonist",
+                  "antagonist",
+                  "supporting",
+                  "extra",
+                  "pov"
+                ]
+              },
+              "personality": {
+                "type": "string"
+              },
+              "background": {
+                "type": "string"
+              },
+              "motivation": {
+                "type": "string"
+              },
+              "goals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "flaws": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "abilities": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "speechStyle": {
+                "type": "string"
+              },
+              "staticTraits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "arc": {
+                "type": "object",
+                "properties": {
+                  "startingPoint": {
+                    "type": "string"
+                  },
+                  "desiredEnd": {
+                    "type": "string"
+                  },
+                  "keyBeats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "startingPoint",
+                  "desiredEnd",
+                  "keyBeats"
+                ],
+                "additionalProperties": false
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "knowledgeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "name",
+              "aliases",
+              "kind",
+              "personality",
+              "background",
+              "motivation",
+              "goals",
+              "flaws",
+              "abilities",
+              "speechStyle",
+              "staticTraits",
+              "arc",
+              "relationships",
+              "knowledgeIds"
+            ],
+            "additionalProperties": false
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "protagonist",
+                  "antagonist",
+                  "supporting",
+                  "extra",
+                  "pov"
+                ]
+              },
+              "personality": {
+                "type": "string"
+              },
+              "background": {
+                "type": "string"
+              },
+              "motivation": {
+                "type": "string"
+              },
+              "goals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "flaws": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "abilities": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "speechStyle": {
+                "type": "string"
+              },
+              "staticTraits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "arc": {
+                "type": "object",
+                "properties": {
+                  "startingPoint": {
+                    "type": "string"
+                  },
+                  "desiredEnd": {
+                    "type": "string"
+                  },
+                  "keyBeats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "startingPoint",
+                  "desiredEnd",
+                  "keyBeats"
+                ],
+                "additionalProperties": false
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "knowledgeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "name",
+              "aliases",
+              "kind",
+              "personality",
+              "background",
+              "motivation",
+              "goals",
+              "flaws",
+              "abilities",
+              "speechStyle",
+              "staticTraits",
+              "arc",
+              "relationships",
+              "knowledgeIds"
+            ],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64,
+                "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+              },
+              "version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "aliases": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "protagonist",
+                  "antagonist",
+                  "supporting",
+                  "extra",
+                  "pov"
+                ]
+              },
+              "personality": {
+                "type": "string"
+              },
+              "background": {
+                "type": "string"
+              },
+              "motivation": {
+                "type": "string"
+              },
+              "goals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "flaws": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "abilities": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "speechStyle": {
+                "type": "string"
+              },
+              "staticTraits": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "arc": {
+                "type": "object",
+                "properties": {
+                  "startingPoint": {
+                    "type": "string"
+                  },
+                  "desiredEnd": {
+                    "type": "string"
+                  },
+                  "keyBeats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "startingPoint",
+                  "desiredEnd",
+                  "keyBeats"
+                ],
+                "additionalProperties": false
+              },
+              "relationships": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              },
+              "knowledgeIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "name",
+              "aliases",
+              "kind",
+              "personality",
+              "background",
+              "motivation",
+              "goals",
+              "flaws",
+              "abilities",
+              "speechStyle",
+              "staticTraits",
+              "arc",
+              "relationships",
+              "knowledgeIds"
+            ],
+            "additionalProperties": false
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "characterId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "alive": {
+                    "type": "boolean"
+                  },
+                  "health": {
+                    "type": "string"
+                  },
+                  "mood": {
+                    "type": "string"
+                  },
+                  "inventory": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "condition": {
+                    "type": "string"
+                  },
+                  "currentGoal": {
+                    "type": "string"
+                  },
+                  "flags": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/__schema0"
+                    }
+                  }
+                },
+                "required": [
+                  "characterId",
+                  "location",
+                  "alive",
+                  "health",
+                  "mood",
+                  "inventory",
+                  "condition",
+                  "currentGoal",
+                  "flags"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "knownFacts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "proposalId",
+          "source",
+          "target",
+          "result",
+          "state",
+          "knownFacts",
+          "changes"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "novel-creation-tool#characterMergeDecide@78de5e8e": {
+      "typeSymbol": "novel-creation-tool#characterMergeDecide",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "proposalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          },
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId",
+          "proposalId",
+          "accept"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterMergeResult@fbaea1a2": {
+      "typeSymbol": "novel-creation-tool#characterMergeResult",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "done",
+              "rejected",
+              "stale"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterMergeProject@669e4735": {
+      "typeSymbol": "novel-creation-tool#characterMergeProject",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "novel-creation-tool#characterMergePending@d86f0580": {
+      "typeSymbol": "novel-creation-tool#characterMergePending",
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "sourceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "targetId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$"
+            },
+            "accepted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "proposalId",
+            "sourceId",
+            "targetId",
+            "accepted"
+          ],
+          "additionalProperties": false
+        }
       }
     }
   },

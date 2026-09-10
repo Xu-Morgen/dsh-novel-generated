@@ -1,6 +1,7 @@
 import { mkdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readYaml, writeYaml } from '../io/yaml.js';
+import { mergeCharacterKnowledge } from '../characters/merge.js';
 import {
   assertKnowledgeOnlyAdvances,
   assertKnowledgeStructure,
@@ -33,6 +34,15 @@ export class KnowledgeRepository {
       if (previous) assertKnowledgeOnlyAdvances(previous, next);
       await this.writeDocument(next);
       return cloneDocument(next);
+    });
+  }
+
+  /** I221 identity correction under I11: CAS plus selected knower, never a generic monotonic bypass. */
+  async mergeIdentity(sourceId:string,targetId:string,from:'source'|'target',expected:KnowledgeDocument):Promise<void>{
+    return this.enqueue(async()=>{
+      const current=await this.readOptional();
+      if(!current||JSON.stringify(current)!==JSON.stringify(expected))throw new Error('知情资料已变化，请重新预览。');
+      await this.writeDocument(this.parseRaw(mergeCharacterKnowledge(current,sourceId,targetId,from)));
     });
   }
 

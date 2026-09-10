@@ -2,6 +2,7 @@ import { characterText, listField, type El, type WorkspaceNamespace } from '../s
 import { toUserMessage } from '../presentation.js';
 import type { CharacterManagementNamespace, CharacterManagementPreview } from '../../app/character-management-contract.js';
 import { renderSaveStatus, saveButtonLabel, saveStatusLine } from '../save-status.js';
+import { characterMergePanel, type CharacterMergeEditor, type CharacterMergeOps } from './character-merge.js';
 import { characterKindSchema, type CharacterKind } from '../../core/schema/characters.js';
 // I78：表单模型单一来源 `src/client/shapes.ts`（派生自 core schema，见 shapes.ts 契约注释）。
 export type { CharacterShape } from '../shapes.js';
@@ -21,6 +22,7 @@ export interface CharacterLayerState {
 }
 
 export interface CharacterEditor {
+  merge?: CharacterMergeEditor;
   management?: { records: Awaited<ReturnType<CharacterManagementNamespace['characterManageList']>>; preview?: CharacterManagementPreview; busy?: boolean; message?: string };
   selectedId: string | undefined;
   draft: CharacterShape;
@@ -32,7 +34,7 @@ export interface CharacterEditor {
   saveMessage: string;
 }
 
-export interface CharacterEditOps {
+export interface CharacterEditOps extends CharacterMergeOps {
   manage?(): void;
   proposeManagement?(characterId: string, action: 'freeze' | 'restore' | 'delete'): void;
   decideManagement?(accept: boolean): void;
@@ -142,6 +144,7 @@ export function characterLayer(
   return h('section', { className: 'nv-editor', 'data-novel-layer-panel': 'characters', 'data-novel-layer-state': 'ready' },
     h('button', {type:'button',className:'nv-btn','data-novel-character-manage':'',onClick:ops.manage,disabled:editor.management?.busy},'冻结、删除与恢复角色'),
     editor.management ? h('section', {'data-novel-character-management':''},
+      editor.merge?characterMergePanel(h,editor.merge,editor.management.records,editor.management.busy??false,ops):null,
       h('p',null,'冻结保留资料与历史引用，暂停创作使用；删除前先检查引用，已删除角色可以恢复。'),
       editor.management.message ? h('p',{role:'status'},editor.management.message):null,
       ...editor.management.records.map(record=>h('div',{key:record.id,'data-novel-character-managed':record.id},

@@ -3,6 +3,7 @@
 
 import { availableDraftId, unwrap } from '../shared.js';
 import { toUserMessage } from '../presentation.js';
+import { emptyCharacterMerge } from '../layers/character-merge.js';
 import { characterCreateInput as buildCharacterCreateInput, characterUpdateInput } from '../layers/characters.js';
 import type { CharacterEditOps, CharacterShape } from '../layers/characters.js';
 import type { OpsPorts, OpsRuntime } from './context.js';
@@ -18,7 +19,10 @@ export function createCharactersOps(runtime: OpsRuntime, port: CharactersPort): 
     void operation().catch(cause=>{if(isActive())act.characterDraft({management:{records:snapshot.characterEditor.management?.records??[],preview:snapshot.characterEditor.management?.preview,message:toUserMessage(cause),busy:false}});}).finally(()=>endOp('characters:manage'));
   };
   return {
-      manage:()=>managementRun(async()=>{const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));if(isActive())act.characterDraft({management:{records,busy:false}});}),
+      manage:()=>managementRun(async()=>{const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));const pending=await unwrap(workspace!.characterMergePending({projectId:projectId!}));if(isActive())act.characterDraft({management:{records,busy:false},merge:{...emptyCharacterMerge(),pending}});}),
+      changeMerge:patch=>act.characterDraft({merge:{...(snapshot.characterEditor.merge??emptyCharacterMerge()),...patch}}),
+      proposeMerge:()=>managementRun(async()=>{const editor=snapshot.characterEditor.merge??emptyCharacterMerge();const {sourceId,targetId,fields,stateFrom,knowledgeFrom}=editor;const preview=await unwrap(workspace!.characterMergePropose({projectId:projectId!,sourceId,targetId,fields,stateFrom,knowledgeFrom}));const pending=await unwrap(workspace!.characterMergePending({projectId:projectId!}));if(isActive())act.characterDraft({merge:{...editor,preview,pending},management:{records:snapshot.characterEditor.management?.records??[],busy:false}});}),
+      decideMerge:(proposalId,accept)=>managementRun(async()=>{try{const result=await unwrap(workspace!.characterMergeDecide({projectId:projectId!,proposalId,accept}));const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));const list=await unwrap(workspace!.characterList(projectId!));if(isActive()){act.setCharacters('ready',list);act.characterDraft({management:{records,busy:false,message:result.message}});}}finally{const pending=await unwrap(workspace!.characterMergePending({projectId:projectId!}));if(isActive())act.characterDraft({merge:{...(snapshot.characterEditor.merge??emptyCharacterMerge()),pending,preview:pending.length?snapshot.characterEditor.merge?.preview:undefined}});}}),
       proposeManagement:(characterId,action)=>managementRun(async()=>{const preview=await unwrap(workspace!.characterManagePropose({projectId:projectId!,characterId,action}));if(isActive())act.characterDraft({management:{records:snapshot.characterEditor.management?.records??[],preview,busy:false}});}),
       decideManagement:accept=>managementRun(async()=>{const proposalId=snapshot.characterEditor.management?.preview?.proposalId;if(!proposalId)throw new Error('请先预览角色操作。');const result=await unwrap(workspace!.characterManageDecide({projectId:projectId!,proposalId,accept}));const records=await unwrap(workspace!.characterManageList({projectId:projectId!}));const list=await unwrap(workspace!.characterList(projectId!));if(isActive()){act.setCharacters('ready',list);act.characterDraft({management:{records,message:result.message,busy:false}});}}),
       select: (character) => act.characterDraft({ selectedId: character.id, draft: { ...character }, dirty: false, error: '', saving: false, saveMessage: '' }),

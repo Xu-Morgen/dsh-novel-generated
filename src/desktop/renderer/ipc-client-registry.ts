@@ -203,6 +203,18 @@ export const DESKTOP_CLIENT_SERVICES = [
       {
         "method": "characterManageDecide",
         "methodId": "novel-creation-tool/novelWorkspace/characterManageDecide"
+      },
+      {
+        "method": "characterMergePropose",
+        "methodId": "novel-creation-tool/novelWorkspace/characterMergePropose"
+      },
+      {
+        "method": "characterMergeDecide",
+        "methodId": "novel-creation-tool/novelWorkspace/characterMergeDecide"
+      },
+      {
+        "method": "characterMergePending",
+        "methodId": "novel-creation-tool/novelWorkspace/characterMergePending"
       }
     ]
   },

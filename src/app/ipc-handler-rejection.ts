@@ -1,5 +1,9 @@
 /** Fixed diagnostics only: no caller text, paths or secrets may cross this seam (§0.1.2). */
 const messages = Object.freeze({
+  'character-merge-relationships': '合并将产生自身关系或重复关系，请先在关系页处理后重试。',
+  'character-merge-pending': '请先完成或取消已有合并预览。',
+  'character-merge-restore': '请先恢复被删除的源角色或不可用的保留角色。',
+  'character-inactive': '当前角色已冻结或删除，请在角色管理中恢复后再使用。',
   'duplicate-protagonist': '新主角与基础角色重名，请选择复用基础角色后重试；若确为不同人物，请先明确区分名称。',
   'writing-rules-required': '当前作品没有已启用的规则。请到“故事资料 → 规则与文风”新建或启用至少一条规则并保存，再返回正文重试；不需要先新建场景或选择调和计划。',
   'narrative-binding-invalid': '故事资料任务与当前作品或来源不一致，请重新生成故事资料。',
