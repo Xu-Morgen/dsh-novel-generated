@@ -147,6 +147,10 @@ describe('I148 NarrativeImportPlanCoordinator', () => {
       },
     });
     const coordinator = createNarrativeImportPlanCoordinator(root, owners);
+    const duplicate = structuredClone(generated);
+    duplicate.package.outline.protagonistCandidate!.name = duplicate.package.characters.candidates[0].name;
+    await expect(coordinator.propose(duplicate)).rejects.toThrow('新主角与基础角色重名');
+    expect(calls).toEqual([]);
     const proposed = await coordinator.propose(generated);
     expect(proposed.status).toBe('pending');
     expect(proposed.package.characters.candidates[0]).toMatchObject({

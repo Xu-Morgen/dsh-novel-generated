@@ -3,6 +3,8 @@ import { Button } from './ui/button.js';
 import type { DesktopServiceBag } from './desktop-ipc-client.js';
 import type { WorkbenchActions } from '../../client/store/types.js';
 import type { ImportInterpretationReviewState } from '../../client/import-interpretation-review.js';
+import { automaticProtagonistCandidateId } from '../../client/import-interpretation-review.js';
+import { narrativeIntentSchema, type NarrativeIntent } from '../../core/schema/import-interpretation.js';
 import { createOnboardingController } from '../../client/controllers.js';
 import { analysisPanel, onboardingReview } from '../../client/onboarding-panels.js';
 import type { OnboardingState } from '../../client/onboarding-types.js';
@@ -16,6 +18,14 @@ import { SourcePlanStep, sourcePlanInputKey } from './source-plan-step.js';
 
 const LABELS = { characters: '角色', worldview: '世界观', outline: '读者体验大纲', state: '起始状态', canon: '开场已公开事实', relationship: '关系', knowledge: '秘密与揭示计划' } as const;
 const identityOf = ({ projectId, importSessionId, sourceHash, planId }: NarrativeImportPlan): NarrativeImportPlanIdentity => ({ projectId, importSessionId, sourceHash, planId });
+
+/** I219: the final I11 plan may resolve the automatic placeholder to a reviewed foundation character. */
+export function sourceIntentMatchesPlan(intent: NarrativeIntent | undefined, plan: NarrativeImportPlan): boolean {
+  if (JSON.stringify(intent) === JSON.stringify(plan.narrativeIntent)) return true;
+  const selected = plan.narrativeIntent.protagonistId;
+  if (!intent || intent.protagonistCandidateId !== automaticProtagonistCandidateId(plan.sourceHash) || !selected || plan.package.outline.protagonistCandidate || !plan.package.characters.candidates.some(character => character.id === selected)) return false;
+  return JSON.stringify(narrativeIntentSchema.parse({ ...intent, protagonistId: selected, protagonistCandidateId: undefined })) === JSON.stringify(narrativeIntentSchema.parse(plan.narrativeIntent));
+}
 
 /** Human-readable plan preview. Internal bindings remain in the strict Main document. */
 function planPreview(plan: NarrativeImportPlan, layer: keyof typeof LABELS): React.ReactNode {
@@ -55,6 +65,8 @@ export function useSourcePlanPanel(props: {
   const [plan, setPlan] = React.useState<NarrativeImportPlan>();
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState<NarrativeImportPlan['package']>();
+  const [foundationCharacters, setFoundationCharacters] = React.useState<{ key: string; list: { id: string; name: string; background: string }[] }>();
+  const [protagonistChoice, setProtagonistChoice] = React.useState<{ key: string; id: string }>();
   React.useEffect(() => { props.onDirtyChange(editing); return () => props.onDirtyChange(false); }, [editing, projectId]);
   const active = React.useRef(true);
   const projectRef = React.useRef(projectId);
@@ -84,6 +96,7 @@ export function useSourcePlanPanel(props: {
   React.useEffect(() => {
     active.current = true;
     Object.values(steps.current).forEach(step => step.clear());
+    setFoundationCharacters(undefined); setProtagonistChoice(undefined);
     setPlan(undefined); setDraft(undefined); setEditing(false); setError(''); setBusy(false); setGenerating(false); setManualSettingsReady(false); lock.current = false;
     if (!projectId) return;
     try {
@@ -140,8 +153,14 @@ export function useSourcePlanPanel(props: {
     await registerCancel(() => unwrap(services.analyzer.cancel(foundationId.onboardingSessionId)));
     await poll(() => unwrap(services.analyzer.status(foundationId.onboardingSessionId)), () => unwrap(services.analyzer.result(foundationId.onboardingSessionId)), '故事资料');
     const foundation = await unwrap(services.analyzer.result(foundationId.onboardingSessionId)); assertCurrent();
+    setFoundationCharacters({ key: inputKey, list: foundation.layers.characters.candidates.map(({ id, name, background }) => ({ id, name, background })) });
+    if (protagonistChoice?.key === inputKey && input.narrativeIntent.pov === 'limited') {
+      if (!foundation.layers.characters.candidates.some(character => character.id === protagonistChoice.id)) throw new Error('选择的基础角色已变化，请重新选择。');
+      input.narrativeIntent = { ...input.narrativeIntent, protagonistId: protagonistChoice.id, protagonistCandidateId: undefined };
+    }
+    const narrativeKey = await sourcePlanInputKey(input); assertCurrent();
     setMessage('正在安排读者体验与视角大纲…');
-    const adaptationId = await steps.current.adaptation.acquire(`${inputKey}:${foundationSessionId}`, async () => {
+    const adaptationId = await steps.current.adaptation.acquire(`${narrativeKey}:${foundationSessionId}`, async () => {
       const value = await unwrap(services.narrativeAdaptation.beginBound({ input, onboardingSessionId: foundationSessionId }));
       await registerCancel(() => unwrap(services.narrativeAdaptation.cancel(value))); return value;
     }, async id => (await unwrap(services.narrativeAdaptation.status(id))).status, assertCurrent);
@@ -154,7 +173,7 @@ export function useSourcePlanPanel(props: {
     const outline = (await unwrap(services.narrativeAdaptation.result(adaptationId))).candidate; assertCurrent();
     setMessage('正在安排秘密与揭示时机…');
     const characterIds = [...new Set([...foundation.layers.characters.candidates.map(c=>c.id), ...(outline.protagonistCandidate ? [outline.protagonistCandidate.id] : [])])];
-    const revealId = await steps.current.reveal.acquire(`${inputKey}:${adaptationId.adaptationId}`, async () => {
+    const revealId = await steps.current.reveal.acquire(`${narrativeKey}:${adaptationId.adaptationId}`, async () => {
       const value = await unwrap(services.narrativeReveal.begin({ ...input, b5CandidateId: outline.candidateId, characterIds, b5Anchors: outline.outline.acts.flatMap(act=>act.beats.map(beat=>({id:beat.id,actId:act.id,beatId:beat.id,label:beat.title}))) }, undefined));
       await registerCancel(() => unwrap(services.narrativeReveal.cancel(value))); return value;
     }, async id => (await unwrap(services.narrativeReveal.status(id))).status, assertCurrent);
@@ -175,7 +194,7 @@ export function useSourcePlanPanel(props: {
   const cancel = (): void => { if (!generating) return; setGenerating(false); generation.current++; lock.current = false; setBusy(false); setMessage('生成已取消，尚未应用故事资料。'); void cancelRemote.current().catch(()=>{}); };
   const decision = (kind: 'accept' | 'reject' | 'recover'): void => { if (!plan) return; void run(async () => {
     const source = await unwrap(services.importInterpretation.read({projectId,importSessionId:plan.importSessionId,sourceHash:plan.sourceHash}));
-    if (source.status !== 'confirmed' || source.intent.treatment !== plan.treatment || source.intent.sourceRole !== plan.sourceRole || JSON.stringify(source.intent.narrativeIntent) !== JSON.stringify(plan.narrativeIntent)) throw new Error('来源意图已改变，请重新生成计划。');
+    if (source.status !== 'confirmed' || source.intent.treatment !== plan.treatment || source.intent.sourceRole !== plan.sourceRole || !sourceIntentMatchesPlan(source.intent.narrativeIntent, plan)) throw new Error('来源意图已改变，请重新生成计划。');
     const result = await unwrap(services.narrativeImportPlan[kind](identityOf(plan)));
     if (!isCurrent()) return;
     remember(result);
@@ -200,6 +219,12 @@ export function useSourcePlanPanel(props: {
     h('p', null, '检查角色、事件顺序与秘密揭示时机后，再确认写入。'),
     message ? h('p', { role: 'status', 'aria-live': 'polite' }, message) : null,
     error ? h('p', { role: 'alert', 'data-novel-source-plan-error': '' }, error) : null,
+    error && !plan && review?.narrativeIntent?.pov === 'limited' && foundationCharacters?.list.length ? h('section', { 'data-novel-protagonist-reuse': '' },
+      h('p', null, '基础资料已包含以下角色。可以选择其中一位作为主角，再点击重试；仅重新生成后续大纲与揭示计划，最终写入仍需确认。'),
+      h('select', { 'aria-label': '复用基础角色作为主角', 'data-novel-protagonist-select': '', disabled: busy, value: protagonistChoice?.key === foundationCharacters.key ? protagonistChoice.id : '', onChange: (event: React.ChangeEvent<HTMLSelectElement>) => setProtagonistChoice(event.target.value ? { key: foundationCharacters.key, id: event.target.value } : undefined) },
+        h('option', { value: '' }, '沿用原来的新主角请求'),
+        ...foundationCharacters.list.map(character => h('option', { key: character.id, value: character.id }, `${character.name}：${character.background}`))),
+    ) : null,
     !plan || plan.status === 'rejected' || plan.status === 'stale' ? h(Button, { variant:'primary', disabled:busy || !confirmed, 'data-novel-source-plan-generate':'', onClick:generate }, busy?'正在生成…':error?'重试未完成步骤':'生成叙事计划') : null,
     error && !plan ? h('p', null, '同一页面与来源下，已成功步骤会保留；重试只重新请求失败或取消的步骤，并继续后续流程。') : null,
     generating ? h(Button, { variant:'ghost', onClick:cancel, 'data-novel-source-plan-cancel':'' }, '取消生成') : null,

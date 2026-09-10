@@ -24,6 +24,7 @@ import { createNarrativeAdaptationService, type NarrativeAdaptationService } fro
 import { createNarrativeImportPlanCoordinator, NarrativePlanPreflightError, type NarrativeImportPlanCoordinator } from '../../host/narrative-import-plan-coordinator.js';
 import { createNarrativeRevealPlanner, type NarrativeRevealPlanner } from '../../host/narrative-reveal-planner-service.js';
 import { createRuleStyleImportInitializationService, type RuleStyleImportInitializationService } from '../../host/rule-style-import-initialization-service.js';
+import { DuplicateProtagonistError } from '../../core/characters/identity.js';
 import type { NovelCharacterService } from '../../host/character-service.js';
 import type { NovelCanonService } from '../../host/canon-service.js';
 import type { NovelConfirmationService } from '../../host/confirmation-service.js';
@@ -288,6 +289,7 @@ export function createDesktopSourceImportHandlers(
     catch (cause) {
       // I200: fixed diagnostic only; Zod messages may contain model text or secrets.
       if (cause instanceof NarrativeAdaptationFormatError) throw new IpcHandlerRejection('narrative-output-invalid');
+      if (cause instanceof DuplicateProtagonistError) throw new IpcHandlerRejection('duplicate-protagonist');
       if (cause instanceof NarrativeRepairError) throw new IpcHandlerRejection('narrative-adaptation-repair-failed');
       throw cause;
     }
@@ -306,7 +308,7 @@ export function createDesktopSourceImportHandlers(
 
   map.set('novel-creation-tool/novelNarrativeImportPlan/propose', async (input) => {
     try { return await plan.propose(input as Parameters<typeof plan.propose>[0]); }
-    catch (cause) { if (cause instanceof NarrativePlanPreflightError) throw new IpcHandlerRejection(cause.stages.every(stage => stage === 'outline') ? 'narrative-plan-outline-invalid' : 'narrative-plan-foundation-invalid'); throw cause; }
+    catch (cause) { if (cause instanceof DuplicateProtagonistError) throw new IpcHandlerRejection('duplicate-protagonist'); if (cause instanceof NarrativePlanPreflightError) throw new IpcHandlerRejection(cause.stages.every(stage => stage === 'outline') ? 'narrative-plan-outline-invalid' : 'narrative-plan-foundation-invalid'); throw cause; }
   });
   map.set('novel-creation-tool/novelNarrativeImportPlan/read', (input) => plan.read(input as Parameters<typeof plan.read>[0]));
   map.set('novel-creation-tool/novelNarrativeImportPlan/accept', async (input) => { const result = await plan.accept(input as Parameters<typeof plan.accept>[0]); if (result.status === 'applied') await ensureImportedProgress(outline, result.projectId); return result; });

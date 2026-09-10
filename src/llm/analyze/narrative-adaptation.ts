@@ -1,4 +1,5 @@
 import { collectCandidate, resolveGenerationSettings, type GenerationSettings, type LlmBackend } from '../port/index.js';
+import { assertDistinctProtagonist } from '../../core/characters/identity.js';
 import {
   narrativeAdaptationInputSchema,
   narrativeAdaptationOutputSchema,
@@ -84,10 +85,12 @@ export async function classifyNarrativeAdaptation(
     example.evidenceParagraphIds = input.evidence.map(item => item.paragraphId);
     example.outline.acts[0].beats[0].charactersInvolved = protagonist ? [protagonist] : [];
     if (input.narrativeIntent.protagonistCandidateId) example.protagonistCandidate = { id: input.narrativeIntent.protagonistCandidateId, name: '待命名调查者', premise: '从可见线索展开调查。' };
-    return generateWithNarrativeRepair({ backend, settings: resolveGenerationSettings(settings), signal, stage: 'adaptation', onRepair: bound.onRepair,
+    const output = await generateWithNarrativeRepair({ backend, settings: resolveGenerationSettings(settings), signal, stage: 'adaptation', onRepair: bound.onRepair,
       referenceContext: JSON.stringify(characters),
       prompt: `${buildNarrativeAdaptationPrompt(input).replace(NARRATIVE_ADAPTATION_PROMPT_EXAMPLE, JSON.stringify(example))}\n允许的角色 ID 与姓名（所有角色引用只能精确选取这些 id，不得重新音译姓名生成 id）：${JSON.stringify(characters)}`,
       schema: narrativeAdaptationOutputSchema, references: value => adaptationReferenceIssues(value, characters.map(c => c.id)), validate: value => assertNarrativeAdaptationSafety(input, value) });
+    assertDistinctProtagonist(output.protagonistCandidate, bound.characters);
+    return output;
   }
   const candidate = await collectCandidate(backend, {
     prompt: buildNarrativeAdaptationPrompt(input),
@@ -110,7 +113,7 @@ export function buildNarrativeAdaptationPrompt(input: NarrativeAdaptationInput):
     'description/goal/hint/payoff/premise 各用一两句，rationale 不超过 200 字。输出紧凑 JSON，不缩进、不重复原文；必须完整闭合 JSON，不能因追求细节遗漏末尾字段。',
     input.narrativeIntent.protagonistCandidateId === undefined
       ? '使用已确认的作品角色组织视角，不得另行输出 protagonistCandidate。'
-      : `素材中尚无可绑定主角。必须提议 id 为 ${input.narrativeIntent.protagonistCandidateId} 的 protagonistCandidate，并让 outline 的 charactersInvolved 或 detailBeats.pov 实际引用该角色来串联故事。`,
+      : `作者尚未绑定主角身份。当前请求创建主角，必须提议 id 为 ${input.narrativeIntent.protagonistCandidateId} 的 protagonistCandidate，并让 outline 的 charactersInvolved 或 detailBeats.pov 实际引用该角色。已有角色表不代表素材缺少主角；新候选必须是另一位人物，不能将同一人的职业称谓、别名或不同写法另建为角色。不得复制已有角色的姓名与身份；复用已有主角应由作者选择后重新请求。`,
     '第一幕必须建立调查体验，禁止直接讲解真实自杀、助手操纵、群体信念复活或其他幕后终局。作者指令和呈现提示只能成为规划约束，不得逐字成为正文或读者可见事实。',
     '不得输出 B2/B3/C1/C2/C3/C4/C5、secret、holder、revealPlan、写入命令、source range 或 Host-owned version/seq/status。细纲和伏笔自身的 status 必须按下方 schema 填写。',
     '完整输出 JSON Schema（所有嵌套对象必须严格遵守 required、enum 和 additionalProperties；空数组示例不代表非空数组可以自定义字段）：',

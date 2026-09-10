@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { launchUiElectron } from './ui-electron-session.mjs';
+import { uiInvoke } from './ui-test-provider.mjs';
+import { startSourceTestProvider, sourceText } from './ui-source-test-provider.mjs';
+const line=(prompt,label)=>JSON.parse(prompt.split('\n').find(value=>value.startsWith(label)).slice(label.length));
+const provider=await startSourceTestProvider(prompt=>{
+  if(!prompt.includes('POV 叙事化候选生成器'))return undefined;
+  const intent=line(prompt,'已确认叙事意图：');
+  if(!intent.protagonistCandidateId)return undefined;
+  const id=intent.protagonistCandidateId,evidence=line(prompt,'已确认证据段（必须按 paragraphId 回引）：');
+  return {kind:'duplicate',output:JSON.stringify({confidence:'high',evidenceParagraphIds:evidence.map(e=>e.paragraphId),protagonistCandidate:{id,name:'米拉',premise:'调查港口失踪案'},outline:{id:'outline',structure:'free',logline:'米拉调查港口',themes:['调查'],acts:[{id:'act-1',index:0,title:'调查',goal:'追查线索',beats:[{id:'beat-1',title:'追查',description:'调查线索',charactersInvolved:[id],conflictType:'external',prerequisites:[],optional:false,detailBeats:[]}]}],foreshadowing:[],endings:[]},rationale:'调查线索'})};
+});
+const app=await launchUiElectron('i219');
+const invoke=(method,...args)=>uiInvoke(app,method,...args);
+const select=(selector,value)=>app.evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+try{
+  await app.fill('[data-novel-project-name-input]','角色身份复用');await app.click('[data-novel-project-create]');
+  await app.waitFor('!!document.querySelector("[data-novel-workflow-next-action]")','project');
+  const id=(await invoke('novelWorkspace/projectList'))[0].id;
+  await invoke('novelLlmConfig/save',{baseUrl:provider.endpoint,model:'ui-deterministic',apiKey:'test-only-not-a-real-key',maxTokens:32768,thinking:'disabled',reasoningEffort:'low'});
+  await app.click('[data-novel-workflow-next-action]');await app.fill('[data-novel-source-import-text]',sourceText);await app.click('[data-novel-source-import-submit]');
+  await app.waitFor('!!document.querySelector("[data-novel-import-interpretation-status=succeeded]")','source');
+  await select('[data-novel-import-interpretation-source-role]','background-material');await select('[data-novel-import-interpretation-treatment]','adapt-pov');
+  const paragraphs=await app.evaluate('[...document.querySelectorAll("[data-novel-import-interpretation-accept]")].map(e=>e.getAttribute("data-novel-import-interpretation-accept"))');
+  for(const p of paragraphs)await app.click(`[data-novel-import-interpretation-accept="${p}"]`);
+  await app.click('[data-novel-import-interpretation-confirm]');
+  await app.waitFor('!!document.querySelector("[data-novel-rule-style-import-status=succeeded]")','rules');
+  await app.click('[data-novel-rule-style-import-propose]');await app.waitFor('!!document.querySelector("[data-novel-rule-style-import-accept]")','gate');await app.click('[data-novel-rule-style-import-accept]');
+  await app.waitFor('!!document.querySelector("[data-novel-source-plan-generate]")','plan');await app.click('[data-novel-source-plan-generate]');
+  await app.waitFor('document.querySelector("[data-novel-source-plan-error]")?.textContent.includes("新主角与基础角色重名")','duplicate');
+  assert.equal((await invoke('novelWorkspace/characterList',id)).length,0);
+  assert.equal(provider.calls.filter(c=>c.kind==='reveal').length,0);
+  await app.screenshot('duplicate-reuse');
+  await select('[data-novel-protagonist-select]','mira');await app.click('[data-novel-source-plan-generate]');
+  await app.waitFor('!!document.querySelector("[data-novel-source-plan-accept]")','reused candidate');
+  assert.equal(provider.calls.filter(c=>c.kind==='foundation').length,1);
+  assert.equal((await invoke('novelWorkspace/characterList',id)).length,0);
+  await app.click('[data-novel-source-plan-accept]');await app.waitFor('!!document.querySelector("[data-novel-source-plan-next]")','applied');
+  const characters=await invoke('novelWorkspace/characterList',id);
+  assert.equal(characters.filter(c=>c.name==='米拉').length,1);assert(!characters.some(c=>c.id.startsWith('imported-protagonist')));
+  assert(characters.find(c=>c.id==='mira').abilities.includes('辨认星图'));
+  await app.screenshot('reused-applied');
+  await writeFile(join(app.evidence,'validation.json'),JSON.stringify({iteration:'I219',duplicateBlocked:true,foundationCalls:1,oneProtagonist:true,fullCharacterRetained:true,zeroWritesBeforeGate:true},null,2));
+  process.stdout.write('I219 Electron duplicate blocked, same foundation reused, one complete protagonist applied after I11\n');
+}finally{await app.close();await provider.close();}

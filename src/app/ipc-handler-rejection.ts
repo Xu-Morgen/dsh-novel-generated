@@ -1,5 +1,6 @@
 /** Fixed diagnostics only: no caller text, paths or secrets may cross this seam (§0.1.2). */
 const messages = Object.freeze({
+  'duplicate-protagonist': '新主角与基础角色重名，请选择复用基础角色后重试；若确为不同人物，请先明确区分名称。',
   'writing-rules-required': '当前作品没有已启用的规则。请到“故事资料 → 规则与文风”新建或启用至少一条规则并保存，再返回正文重试；不需要先新建场景或选择调和计划。',
   'narrative-binding-invalid': '故事资料任务与当前作品或来源不一致，请重新生成故事资料。',
   'narrative-adaptation-repair-failed': '读者体验大纲输出格式不符合要求或引用校验失败，已尝试修正两次；请重试大纲步骤，已完成故事资料会保留。',

@@ -1,4 +1,5 @@
 import { mkdir, rename } from 'node:fs/promises';
+import { assertDistinctProtagonist } from '../core/characters/identity.js';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { projectDirectory, validateProjectId } from '../core/io/path.js';
@@ -48,6 +49,7 @@ export interface NarrativeImportPlanCoordinator {
 function withGeneratedProtagonist(input: NarrativeImportPlanInput): NarrativeImportPlanInput {
   const candidate = input.package.outline.protagonistCandidate;
   if (candidate === undefined) return input;
+  assertDistinctProtagonist(candidate, input.package.characters.candidates);
   const existing = input.package.characters.candidates.find((character) => character.id === candidate.id);
   if (existing !== undefined) {
     if (existing.kind !== 'protagonist' || existing.name !== candidate.name) {

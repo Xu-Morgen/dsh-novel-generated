@@ -1,0 +1,1 @@
+{"threshold":1,"cases":[{"id":"same-name","split":"dev","existing":"调查员","candidate":"调查员","duplicate":true},{"id":"different","split":"dev","existing":"米拉","candidate":"林舟","duplicate":false},{"id":"normalized","split":"held-out","existing":"调查员","candidate":" 调查员 ","duplicate":true},{"id":"distinct","split":"held-out","existing":"阿瑟","candidate":"索尼娅","duplicate":false}]}
