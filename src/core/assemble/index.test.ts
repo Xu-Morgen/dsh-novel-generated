@@ -464,8 +464,8 @@ describe('I13 B3/B2/C2 serializers and trigger consumption', () => {
 
   it('exposes immutable I13 budgets and the deterministic truncation marker', () => {
     expect(i13ContextBudget).toEqual({
-      totalCharacters: 16_000,
-      sectionCharacters: { characters: 4_000, worldview: 3_000, relationships: 3_000, state: 3_000 },
+      totalCharacters: 20_000,
+      sectionCharacters: { characters: 8_000, worldview: 3_000, relationships: 3_000, state: 3_000 },
     });
     expect(Object.isFrozen(i13ContextBudget)).toBe(true);
     expect(Object.isFrozen(i13ContextBudget.sectionCharacters)).toBe(true);

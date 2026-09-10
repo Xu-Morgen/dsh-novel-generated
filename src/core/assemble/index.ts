@@ -64,12 +64,12 @@ export const i12ContextBudget = Object.freeze({
  * behaviour fails closed, these sections deterministically truncate and mark
  * themselves (see {@link contextTruncationMarker}); the combined total remains
  * a hard cap that fails closed. The total mirrors the I12 pattern of being
- * tighter than the sum of per-section caps (4_000 + 3_000 + 4_000 + 3_000 +
- * 3_000 + 3_000 − 4_000 = 16_000).
+ * tighter than the sum of per-section caps. I223 raises B3 by 4_000 and
+ * the total by the same amount, preserving the other section allocations.
  */
 export const i13ContextBudget = Object.freeze({
-  totalCharacters: 16_000,
-  sectionCharacters: Object.freeze({ characters: 4_000, worldview: 3_000, relationships: 3_000, state: 3_000 }),
+  totalCharacters: 20_000,
+  sectionCharacters: Object.freeze({ characters: 8_000, worldview: 3_000, relationships: 3_000, state: 3_000 }),
 });
 
 /** Suffix appended when a truncatable section is deterministically cut to budget. */

@@ -60,7 +60,12 @@ describe('I214 scene-card prompt consumer regression (frozen dev / held-out)', (
     for (const value of [sample.id, sample.title, sample.summary, ...sample.points, sample.name, sample.ally, `${sample.name}的旧称`, '沉着审慎', 'The seal holds.', '## Style', `目标字数: ${sample.wordTarget}`, '不得擅自改名']) expect(seen[0]).toContain(value);
     expect(seen[0]).toContain(`当前视角角色姓名: ${sample.name}`);
     expect(seen[0]).toContain('"id":"mira"');
-    if (sample.longCharacters) expect(seen[0]).toContain('[truncated]');
+    // I223 explicitly raises B3 to 8000: keep the frozen 7000-character input
+    // and identity golds; this previously truncated biography must now survive.
+    if (sample.longCharacters) {
+      expect(seen[0]).toContain('旧事'.repeat(3500));
+      expect(seen[0]).not.toContain('[truncated]');
+    }
     expect(await snapshot(join(projectsRoot, 'demo'))).toBe(before);
   });
 

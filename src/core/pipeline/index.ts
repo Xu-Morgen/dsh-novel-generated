@@ -7,9 +7,9 @@ import { sceneSchema, type Scene } from '../schema/text.js';
 import { knowledgeEntrySchema } from '../schema/knowledge.js';
 import { renderTailHistory } from './tail-history.js';
 
-/** Immutable I19 limits for the full prompt, measured in UTF-16 code units. */
+/** Immutable I19 limits in UTF-16 code units; I223 adds the full B3 increase to the total. */
 export const i19ContextBudget = Object.freeze({
-  totalCharacters: 24_000,
+  totalCharacters: 28_000,
   sectionCharacters: Object.freeze({ outline: 1_800, knowledge: 3_000, canon: 4_000, history: 5_000 }),
 });
 

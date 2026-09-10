@@ -5,7 +5,7 @@ import { launchUiElectron } from './ui-electron-session.mjs';
 import { startUiTestProvider,uiInvoke } from './ui-test-provider.mjs';
 const prompts=[];const provider=await startUiTestProvider(prompt=>{if(!prompt.startsWith('你是长篇小说章节写作器。')&&!prompt.startsWith('你是长篇小说续写 agent。'))return undefined;prompts.push(prompt);return {kind:'prose',output:'调查员沿着主街前进，收起录音笔。'};});
 const packaged=process.argv.includes('--packaged');
-const app=await launchUiElectron(packaged?'i222-packaged':'i222',packaged?resolve('artifacts/desktop/i222-release/win-unpacked/Novel Creation Tool.exe'):undefined);
+const app=await launchUiElectron(process.env.NOVEL_SMOKE_EVIDENCE??(packaged?'i222-packaged':'i222'),packaged?resolve(process.env.NOVEL_SMOKE_EXECUTABLE??'artifacts/desktop/i222-release/win-unpacked/Novel Creation Tool.exe'):undefined);
 const invoke=(method,...args)=>uiInvoke(app,method,...args);
 try{
  await app.fill('[data-novel-project-name-input]','新章节写作恢复');await app.click('[data-novel-project-create]');await app.waitFor('!!document.querySelector("[data-novel-workflow-panel]")','project');const id=(await invoke('novelWorkspace/projectList'))[0].id;
